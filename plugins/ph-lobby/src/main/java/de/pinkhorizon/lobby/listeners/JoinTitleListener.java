@@ -42,16 +42,25 @@ public class JoinTitleListener implements Listener {
         );
 
         // Spielmodus + Status
-        player.setGameMode(GameMode.ADVENTURE);
-        player.setHealth(20.0);
-        player.setFoodLevel(20);
-        player.setAllowFlight(true);
+        if (player.hasPermission("lobby.admin")) {
+            player.setGameMode(GameMode.CREATIVE);
+        } else {
+            player.setGameMode(GameMode.ADVENTURE);
+            player.setHealth(20.0);
+            player.setFoodLevel(20);
+            player.setAllowFlight(true);
+        }
 
         // Zum Spawn teleportieren
         teleportToSpawn(player);
 
         // Hotbar-Items
         HotbarManager.giveHotbar(player, plugin);
+
+        // Owner-Rank für Admins automatisch setzen
+        if (player.hasPermission("lobby.admin")) {
+            plugin.getRankManager().setRank(player.getUniqueId(), player.getName(), "owner");
+        }
 
         // Scoreboard
         scoreboardManager.giveScoreboard(player);
