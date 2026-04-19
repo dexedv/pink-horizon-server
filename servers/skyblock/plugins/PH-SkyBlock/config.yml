@@ -1,0 +1,4 @@
+# PH-SkyBlock Konfiguration
+island:
+  distance: 500
+  reset-cooldown-seconds: 60

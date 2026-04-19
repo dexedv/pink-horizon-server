@@ -1,0 +1,28 @@
+name: PH-Core
+version: '1.0.0'
+main: de.pinkhorizon.core.PHCore
+api-version: '1.21'
+description: Core-Plugin fuer alle Pink Horizon Server
+authors: [ PinkHorizon ]
+
+commands:
+  hub:
+    description: Zurueck zum Hub
+    usage: /hub
+  msg:
+    description: Private Nachricht senden
+    usage: /msg <Spieler> <Nachricht>
+  report:
+    description: Spieler melden
+    usage: /report <Spieler> <Grund>
+
+permissions:
+  pinkhorizon.admin:
+    description: Vollstaendiger Admin-Zugriff
+    default: op
+  pinkhorizon.hub:
+    description: /hub benutzen
+    default: true
+  pinkhorizon.msg:
+    description: Privatnachrichten senden
+    default: true

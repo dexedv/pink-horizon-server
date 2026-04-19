@@ -1,0 +1,26 @@
+name: PH-Minigames
+version: '1.0.0'
+main: de.pinkhorizon.minigames.PHMinigames
+api-version: '1.21'
+description: Minigames-Plugin fuer Pink Horizon
+authors: [ PinkHorizon ]
+depend: [ PH-Core ]
+
+commands:
+  joinbedwars:
+    description: BedWars beitreten
+    usage: /joinbedwars
+  joinskywars:
+    description: SkyWars beitreten
+    usage: /joinskywars
+  stats:
+    description: Deine Statistiken anzeigen
+    usage: /stats
+
+permissions:
+  minigames.play:
+    description: Minigames spielen
+    default: true
+  minigames.admin:
+    description: Admin-Zugriff fuer Minigames
+    default: op

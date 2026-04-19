@@ -1,0 +1,20 @@
+name: PH-SkyBlock
+version: '1.0.0'
+main: de.pinkhorizon.skyblock.PHSkyBlock
+api-version: '1.21'
+description: SkyBlock-Plugin fuer Pink Horizon
+authors: [ PinkHorizon ]
+depend: [ PH-Core ]
+
+commands:
+  island:
+    description: Insel-Verwaltung
+    usage: /island <create|home|reset|info>
+
+permissions:
+  skyblock.island:
+    description: Eigene Insel verwalten
+    default: true
+  skyblock.admin:
+    description: Admin-Zugriff fuer SkyBlock
+    default: op

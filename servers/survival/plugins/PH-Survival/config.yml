@@ -1,0 +1,19 @@
+# PH-Survival Konfiguration
+economy:
+  start-balance: 500
+  max-claims-per-player: 10
+
+shop:
+  enabled: true
+
+claims:
+  enabled: true
+  # Preis pro Chunk-Claim in Coins
+  claim-price: 100
+spawn:
+  world: world
+  x: 163.48527277466803
+  y: 65.0
+  z: 90.27024602270518
+  yaw: -31.350328
+  pitch: 25.80002

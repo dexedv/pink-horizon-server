@@ -1,0 +1,113 @@
+services:
+
+  # ── Velocity Proxy ────────────────────────────────────────────────────
+  velocity:
+    image: itzg/bungeecord:latest
+    container_name: ph-velocity
+    environment:
+      TYPE: VELOCITY
+      MEMORY: "512m"
+    ports:
+      - "25565:25577"      # Spieler connecten hier
+    volumes:
+      - ./proxy:/server
+    networks:
+      - ph-net
+    restart: unless-stopped
+    depends_on:
+      - lobby
+      - survival
+      - skyblock
+      - minigames
+
+  # ── Lobby ─────────────────────────────────────────────────────────────
+  lobby:
+    image: itzg/minecraft-server:latest
+    container_name: ph-lobby
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: "1.21.4"
+      MEMORY: "2G"
+      SERVER_PORT: "25565"
+      ONLINE_MODE: "false"        # Velocity übernimmt Auth
+      ENABLE_RCON: "true"
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "ph-admin-2024"
+    ports:
+      - "25575:25575"             # RCON (nur intern / Verwaltung)
+    volumes:
+      - ./servers/lobby:/data
+    networks:
+      - ph-net
+    restart: unless-stopped
+
+  # ── Survival ──────────────────────────────────────────────────────────
+  survival:
+    image: itzg/minecraft-server:latest
+    container_name: ph-survival
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: "1.21.4"
+      MEMORY: "2G"
+      SERVER_PORT: "25565"
+      ONLINE_MODE: "false"
+      ENABLE_RCON: "true"
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "ph-admin-2024"
+    ports:
+      - "25576:25575"             # RCON auf Host-Port 25576
+    volumes:
+      - ./servers/survival:/data
+    networks:
+      - ph-net
+    restart: unless-stopped
+
+  # ── SkyBlock ──────────────────────────────────────────────────────────
+  skyblock:
+    image: itzg/minecraft-server:latest
+    container_name: ph-skyblock
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: "1.21.4"
+      MEMORY: "2G"
+      SERVER_PORT: "25565"
+      ONLINE_MODE: "false"
+      ENABLE_RCON: "true"
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "ph-admin-2024"
+    ports:
+      - "25577:25575"             # RCON auf Host-Port 25577
+    volumes:
+      - ./servers/skyblock:/data
+    networks:
+      - ph-net
+    restart: unless-stopped
+
+  # ── Minigames ─────────────────────────────────────────────────────────
+  minigames:
+    image: itzg/minecraft-server:latest
+    container_name: ph-minigames
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: "1.21.4"
+      MEMORY: "2G"
+      SERVER_PORT: "25565"
+      ONLINE_MODE: "false"
+      ENABLE_RCON: "true"
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "ph-admin-2024"
+    ports:
+      - "25578:25575"             # RCON auf Host-Port 25578
+    volumes:
+      - ./servers/minigames:/data
+    networks:
+      - ph-net
+    restart: unless-stopped
+
+networks:
+  ph-net:
+    driver: bridge

@@ -1,0 +1,41 @@
+name: PH-Lobby
+version: '1.0.0'
+main: de.pinkhorizon.lobby.PHLobby
+api-version: '1.21'
+description: Lobby-Plugin fuer Pink Horizon Hub
+authors: [ PinkHorizon ]
+depend: [ PH-Core ]
+
+commands:
+  navigator:
+    description: Server-Navigator oeffnen
+    usage: /navigator
+  setspawn:
+    description: Lobby-Spawn auf aktuelle Position setzen
+    usage: /setspawn
+  border:
+    description: Lobby-Border setzen
+    usage: /border <wand|create|remove|clear|info>
+  portal:
+    description: Portal zu einem Unterserver erstellen
+    usage: /portal <wand|create|remove|clear|list>
+  vanish:
+    description: Unsichtbar schalten
+    usage: /vanish
+  toggleplayers:
+    description: Andere Spieler ein-/ausblenden
+    usage: /toggleplayers
+  build:
+    description: Build-Modus (Creative) ein-/ausschalten
+    usage: /build
+  rank:
+    description: Rang eines Spielers verwalten
+    usage: /rank <set|info|list>
+
+permissions:
+  lobby.navigator:
+    description: Navigator benutzen
+    default: true
+  lobby.admin:
+    description: Lobby-Admin
+    default: op

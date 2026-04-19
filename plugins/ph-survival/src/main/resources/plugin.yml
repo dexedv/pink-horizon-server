@@ -1,0 +1,101 @@
+name: PH-Survival
+version: '1.0.0'
+main: de.pinkhorizon.survival.PHSurvival
+api-version: '1.21'
+description: Survival-Plugin fuer Pink Horizon
+authors: [ PinkHorizon ]
+depend: [ PH-Core ]
+
+commands:
+  claim:
+    description: Chunk beanspruchen
+    usage: /claim
+  unclaim:
+    description: Chunk-Claim entfernen
+    usage: /unclaim
+  claimlist:
+    description: Eigene Claims auflisten
+    usage: /claimlist
+  balance:
+    description: Kontostand anzeigen
+    usage: /balance
+  pay:
+    description: Coins ueberweisen
+    usage: /pay <Spieler> <Betrag>
+  shop:
+    description: Server-Shop oeffnen
+    usage: /shop
+  baltop:
+    description: Top 10 Spieler nach Coins
+    usage: /baltop
+  eco:
+    description: Wirtschaft verwalten (Admin)
+    usage: /eco <give|take|set|check> <Spieler> [Betrag]
+  sell:
+    description: Items verkaufen
+    usage: /sell <hand|all>
+  sethome:
+    description: Home setzen
+    usage: /sethome [Name]
+  home:
+    description: Zu Home teleportieren
+    usage: /home [Name]
+  delhome:
+    description: Home loeschen
+    usage: /delhome [Name]
+  homes:
+    description: Alle Homes anzeigen
+    usage: /homes
+  back:
+    description: Zum letzten Sterbeort
+    usage: /back
+  spawn:
+    description: Zum Spawn teleportieren
+    usage: /spawn
+  setspawn:
+    description: Spawn setzen (Admin)
+    usage: /setspawn
+  tpa:
+    description: Teleportanfrage senden
+    usage: /tpa <Spieler>
+  tpaccept:
+    description: Teleportanfrage annehmen
+    usage: /tpaccept
+  tpdeny:
+    description: Teleportanfrage ablehnen
+    usage: /tpdeny
+  setwarp:
+    description: Warp setzen (Admin)
+    usage: /setwarp <Name>
+  warp:
+    description: Zu Warp teleportieren
+    usage: /warp <Name>
+  delwarp:
+    description: Warp loeschen (Admin)
+    usage: /delwarp <Name>
+  warps:
+    description: Alle Warps anzeigen
+    usage: /warps
+  srank:
+    description: Spielerrang verwalten (Admin)
+    usage: /srank <set|info|list>
+  trust:
+    description: Spieler im eigenen Claim vertrauen
+    usage: /trust <Spieler>
+  untrust:
+    description: Vertrauen entfernen
+    usage: /untrust <Spieler>
+  trustlist:
+    description: Vertrauensliste anzeigen
+    usage: /trustlist
+  jobs:
+    description: Job-System öffnen
+    usage: /jobs
+
+permissions:
+  survival.claim:
+    description: Chunks claimen
+    default: true
+  survival.admin:
+    description: Admin-Befehle fuer Survival
+    default: op

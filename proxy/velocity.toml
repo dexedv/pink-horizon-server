@@ -1,0 +1,42 @@
+# Velocity Proxy Konfiguration - Pink Horizon
+config-version = "2.7"
+
+# Port auf dem Spieler connecten
+bind = "0.0.0.0:25565"
+
+# Servername (im Multiplayer-Menue angezeigt)
+motd = "<gradient:light_purple:dark_purple>Pink Horizon</gradient> <gray>» Survival | SkyBlock | Minigames"
+
+# Maximale Spieleranzahl (0 = unbegrenzt)
+show-max-players = 100
+
+# Forwarding-Modus: "modern" fuer Paper 1.13+
+player-info-forwarding-mode = "MODERN"
+
+# Forwarding-Secret (muss in paper-global.yml identisch sein!)
+forwarding-secret-file = "forwarding.secret"
+
+[servers]
+  lobby     = "ph-lobby:25565"
+  survival  = "ph-survival:25565"
+  skyblock  = "ph-skyblock:25565"
+  minigames = "ph-minigames:25565"
+
+# Server, auf den neue Spieler kommen
+try = ["lobby"]
+
+[forced-hosts]
+  # "mc.deine-domain.de" = ["lobby"]
+
+[advanced]
+  compression-threshold = 256
+  compression-level = -1
+  login-ratelimit = 3000
+  connection-timeout = 5000
+  read-timeout = 30000
+  haproxy-protocol = false
+  tcp-fast-open = false
+
+[query]
+  enabled = false
+  port = 25577

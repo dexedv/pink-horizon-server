@@ -1,0 +1,40 @@
+# ── Maven Build-Output ────────────────────────────────────────────────
+plugins/*/target/
+
+# ── Server-JARs ───────────────────────────────────────────────────────
+servers/*/server.jar
+servers/*/paper-*.jar
+proxy/velocity-*.jar
+proxy/server.jar
+
+# ── Welten / Spielerdaten ─────────────────────────────────────────────
+servers/*/*world*/
+servers/*/world/
+servers/*/world_nether/
+servers/*/world_the_end/
+
+# ── Session-Lock (läuft gerade) ───────────────────────────────────────
+**/session.lock
+
+# ── Logs & Crash-Reports ──────────────────────────────────────────────
+**/logs/
+**/crash-reports/
+
+# ── Paper-Caches ──────────────────────────────────────────────────────
+**/.paper-remapped/
+**/cache/
+**/libraries/
+**/versions/
+
+# ── Temporäre / automatisch generierte Dateien ───────────────────────
+*.tmp
+eula.txt
+usercache.json
+**/ops.json
+**/whitelist.json
+**/banned-*.json
+
+# ── IDE ───────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/

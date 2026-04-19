@@ -1,0 +1,37 @@
+# PH-Lobby Konfiguration
+spawn:
+  world: world
+  x: -60.621634896031125
+  y: 6.0
+  z: -66.45752880047338
+  yaw: -0.2990345358848572
+  pitch: 9.750284194946289
+
+messages:
+  welcome: '&dWillkommen auf &5Pink Horizon&d, &f{player}&d!'
+  welcome-back: '&7Willkommen zurueck, &f{player}&7!'
+
+# MOTD die im Tab angezeigt wird
+tab-header: '&d&lPink Horizon'
+tab-footer: '&7play.pinkhorizon.de'
+
+# Schild-Navigation: Schilder mit [PH-Nav] im ersten Header aktivieren Navigation
+signs:
+  survival: Survival
+  skyblock: SkyBlock
+  minigames: Minigames
+border:
+  centerX: -61.62334280884393
+  centerZ: -67.4661148306987
+  size: 133.84216366051436
+  enabled: true
+portals:
+  survival:
+    server: survival
+    world: world
+    minX: -61.86321525396967
+    maxX: -58.25815256302762
+    minY: 4.0
+    maxY: 14.118555618941205
+    minZ: -13.227428257846103
+    maxZ: -12.114202469910483

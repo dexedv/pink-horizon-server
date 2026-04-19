@@ -1,0 +1,19 @@
+# Pink Horizon Core - Konfiguration
+database:
+  # 'sqlite' fuer lokal, 'mysql' fuer Produktion
+  type: sqlite
+  # MySQL-Einstellungen (nur wenn type: mysql)
+  mysql:
+    host: localhost
+    port: 3306
+    database: pinkhorizon
+    username: ph_user
+    password: AENDERN
+
+messages:
+  prefix: '&d[&5Pink&dHorizon&d] &r'
+  no-permission: '&cDu hast keine Berechtigung!'
+  player-not-found: '&cSpieler nicht gefunden!'
+
+chat:
+  format: '&7[{rank}] &f{player}: &7{message}'

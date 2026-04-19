@@ -1,0 +1,22 @@
+# PH-Lobby Konfiguration
+spawn:
+  world: world
+  x: -60.922
+  y: 6.0
+  z: 67.624
+  yaw: 0.0
+  pitch: 0.0
+
+messages:
+  welcome: '&dWillkommen auf &5Pink Horizon&d, &f{player}&d!'
+  welcome-back: '&7Willkommen zurueck, &f{player}&7!'
+
+# MOTD die im Tab angezeigt wird
+tab-header: '&d&lPink Horizon'
+tab-footer: '&7play.pinkhorizon.de'
+
+# Schild-Navigation: Schilder mit [PH-Nav] im ersten Header aktivieren Navigation
+signs:
+  survival: 'Survival'
+  skyblock: 'SkyBlock'
+  minigames: 'Minigames'

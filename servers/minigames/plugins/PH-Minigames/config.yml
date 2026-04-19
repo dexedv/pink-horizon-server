@@ -1,0 +1,5 @@
+# PH-Minigames Konfiguration
+arenas:
+  bedwars-max-players: 8
+  skywars-max-players: 12
+  max-game-time-seconds: 600

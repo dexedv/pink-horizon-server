@@ -1,0 +1,33 @@
+# PH-Survival Konfiguration
+economy:
+  start-balance: 500
+
+shop:
+  enabled: true
+  sell-prices:
+    DIAMOND: 50
+    EMERALD: 40
+    IRON_INGOT: 5
+    GOLD_INGOT: 12
+    NETHERITE_SCRAP: 250
+    COAL: 1
+    REDSTONE: 2
+    LAPIS_LAZULI: 3
+    QUARTZ: 2
+    AMETHYST_SHARD: 4
+    COOKED_BEEF: 3
+    BREAD: 1
+    COOKED_CHICKEN: 2
+
+claims:
+  enabled: true
+  # Preis pro Chunk-Claim in Coins
+  claim-price: 100
+  max-claims-per-player: 10
+
+homes:
+  max-per-player: 3
+
+# Spawn-Schutzzone (Radius in Blöcken um den Spawn-Punkt)
+spawn-zone:
+  radius: 50
