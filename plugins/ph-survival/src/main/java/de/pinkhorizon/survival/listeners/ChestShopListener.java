@@ -218,9 +218,27 @@ public class ChestShopListener implements Listener {
             player.sendMessage("§cDas ist ein fremder Shop!");
             return;
         }
-        // Shop-PDC entfernen (Truhe wird normal abgebaut)
+        // Shop-PDC und Hologramm entfernen (Truhe wird normal abgebaut)
         chest.getPersistentDataContainer().remove(ownerKey);
         chest.update();
+        plugin.getHologramManager().remove(shopHoloKey(block));
+    }
+
+    // ── Hologram-Hilfsmethoden (auch von CreateShopCommand genutzt) ──────
+
+    public static String shopHoloKey(org.bukkit.block.Block block) {
+        return "shop_" + block.getWorld().getName()
+            + "_" + block.getX() + "_" + block.getY() + "_" + block.getZ();
+    }
+
+    public static java.util.List<String> shopHoloLines(String itemName, int amount,
+                                                        long buyPrice, long sellPrice) {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        lines.add("<gold><bold>✦ Shop ✦</bold></gold>");
+        lines.add("<white>" + amount + "x " + itemName + "</white>");
+        if (buyPrice  > 0) lines.add("<green>Kaufen: <white>" + buyPrice  + " Coins</white></green>");
+        if (sellPrice > 0) lines.add("<red>Verkaufen: <white>" + sellPrice + " Coins</white></red>");
+        return lines;
     }
 
     // ── Hilfsmethoden ───────────────────────────────────────────────────

@@ -51,6 +51,7 @@ public class CreateShopCommand implements CommandExecutor {
             chest.getPersistentDataContainer().remove(ownerKey);
             chest.customName(null);
             chest.update();
+            plugin.getHologramManager().remove(ChestShopListener.shopHoloKey(target));
             player.sendMessage("§aShop entfernt.");
             return true;
         }
@@ -122,9 +123,16 @@ public class CreateShopCommand implements CommandExecutor {
         chest.getPersistentDataContainer().set(sellKey,   PersistentDataType.LONG,    sellPrice);
 
         String itemName = shopItem.name().replace('_', ' ').toLowerCase();
+        itemName = Character.toUpperCase(itemName.charAt(0)) + itemName.substring(1);
         chest.customName(Component.text("§6[Shop] §f" + amount + "x " + itemName
             + " §8| §aB:" + buyPrice + (sellPrice > 0 ? " §cS:" + sellPrice : "")));
         chest.update();
+
+        org.bukkit.Location holoLoc = new org.bukkit.Location(
+            target.getWorld(), target.getX() + 0.5, target.getY() + 1.8, target.getZ() + 0.5);
+        plugin.getHologramManager().create(
+            ChestShopListener.shopHoloKey(target), holoLoc,
+            ChestShopListener.shopHoloLines(itemName, amount, buyPrice, sellPrice), 0.85f);
 
         player.sendMessage("§aShop erstellt! §7(" + amount + "x " + itemName
             + " | Kaufen: §f" + buyPrice + " §7| Verkaufen: §f" + sellPrice + "§7)");
