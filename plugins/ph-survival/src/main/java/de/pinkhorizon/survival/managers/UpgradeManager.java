@@ -20,7 +20,8 @@ public class UpgradeManager {
     private final Map<UUID, Boolean> flyPerm           = new HashMap<>();
     private final Map<UUID, Long>    kiExpiry          = new HashMap<>(); // ms timestamp
     private final Map<UUID, Long>    flyExpiry         = new HashMap<>(); // ms timestamp
-    private final Map<UUID, Integer> extraClaims       = new HashMap<>();
+    private final Map<UUID, Integer> extraClaims        = new HashMap<>();
+    private final Map<UUID, Integer> claimPurchases     = new HashMap<>();
 
     public UpgradeManager(PHSurvival plugin) {
         this.plugin = plugin;
@@ -142,6 +143,23 @@ public class UpgradeManager {
         save();
     }
 
+    public int getClaimPurchases(UUID uuid) {
+        return claimPurchases.getOrDefault(uuid, 0);
+    }
+
+    public void incrementClaimPurchases(UUID uuid) {
+        int next = claimPurchases.getOrDefault(uuid, 0) + 1;
+        claimPurchases.put(uuid, next);
+        data.set("upgrades." + uuid + ".claimPurchases", next);
+        save();
+    }
+
+    /** Dynamischer Claim-Preis: Basispreis × 1.5^Käufe, gerundet auf 100 */
+    public long getClaimPrice(UUID uuid, long basePrice) {
+        int purchases = claimPurchases.getOrDefault(uuid, 0);
+        return Math.round(basePrice * Math.pow(1.5, purchases) / 100.0) * 100;
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────
 
     private boolean isActive(Map<UUID, Long> map, UUID uuid) {
@@ -170,6 +188,7 @@ public class UpgradeManager {
                 keepInventoryPerm.put(uuid, data.getBoolean("upgrades." + uuidStr + ".keepInventory", false));
                 flyPerm.put(uuid,           data.getBoolean("upgrades." + uuidStr + ".flyPerm",        false));
                 extraClaims.put(uuid,       data.getInt("upgrades."     + uuidStr + ".extraClaims",    0));
+                claimPurchases.put(uuid,    data.getInt("upgrades."     + uuidStr + ".claimPurchases", 0));
 
                 long ki  = data.getLong("upgrades." + uuidStr + ".kiExpiry",  0L);
                 long fly = data.getLong("upgrades." + uuidStr + ".flyExpiry", 0L);

@@ -3,6 +3,7 @@ package de.pinkhorizon.survival.listeners;
 import de.pinkhorizon.survival.PHSurvival;
 import de.pinkhorizon.survival.commands.ShopCommand;
 import org.bukkit.NamespacedKey;
+import java.util.UUID;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -105,18 +106,27 @@ public class ShopListener implements Listener {
         player.sendMessage("§aKeepInventory §ldauerhaft§r§a freigeschaltet!");
     }
 
-    private void handleClaims(Player player, int price, int amount) {
-        int current = plugin.getUpgradeManager().getExtraClaims(player.getUniqueId());
+    private void handleClaims(Player player, int ignoredPrice, int amount) {
+        UUID uuid = player.getUniqueId();
+        int current = plugin.getUpgradeManager().getExtraClaims(uuid);
         if (current >= 50) {
             player.sendMessage("§cMaximum an extra Claim-Slots erreicht (+50)!");
             return;
         }
+        // Preis dynamisch berechnen (ignoriert PDC-Preis)
+        long basePrice = amount == 5 ? 1_500L : 4_000L;
+        long price = plugin.getUpgradeManager().getClaimPrice(uuid, basePrice);
+
         int actual = Math.min(amount, 50 - current);
-        if (!plugin.getEconomyManager().withdraw(player.getUniqueId(), price)) {
+        if (!plugin.getEconomyManager().withdraw(uuid, price)) {
             player.sendMessage("§cNicht genug Coins! Preis: §f" + price);
             return;
         }
-        plugin.getUpgradeManager().addExtraClaims(player.getUniqueId(), actual);
+        plugin.getUpgradeManager().addExtraClaims(uuid, actual);
+        plugin.getUpgradeManager().incrementClaimPurchases(uuid);
+
+        long nextPrice = plugin.getUpgradeManager().getClaimPrice(uuid, basePrice);
         player.sendMessage("§a+" + actual + " Claim-Slots! §7(Gesamt extra: §a+" + (current + actual) + "§7)");
+        player.sendMessage("§7Nächster Kauf dieser Größe kostet: §c" + nextPrice + " §7Coins");
     }
 }

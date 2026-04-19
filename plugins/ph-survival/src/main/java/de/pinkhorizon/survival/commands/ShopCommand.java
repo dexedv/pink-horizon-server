@@ -88,13 +88,24 @@ public class ShopCommand implements CommandExecutor {
         // ── Claim-Sektion (rechts, Slots 14–15) ──────────────────────────
         int extra = um.getExtraClaims(uuid);
         String claimMax = extra >= 50 ? "§cMaximum erreicht (+50)!" : null;
+        long price5  = um.getClaimPrice(uuid, 1_500);
+        long price15 = um.getClaimPrice(uuid, 4_000);
+        long nextPrice5  = um.getClaimPrice(uuid, 1_500) * 3 / 2; // nach diesem Kauf
+        long nextPrice15 = um.getClaimPrice(uuid, 4_000) * 3 / 2;
+        int purchases = um.getClaimPurchases(uuid);
 
-        addItem(inv, 14, Material.GRASS_BLOCK, "§a§l+5 Claim-Slots",
-                "§7Erhöht dein Claim-Limit dauerhaft.", "§7Extra bisher: §a+" + extra + "§7/§a+50",
-                1_500, CLAIMS_5, claimMax);
-        addItem(inv, 15, Material.PODZOL,      "§a§l+15 Claim-Slots",
-                "§7Erhöht dein Claim-Limit dauerhaft.", "§7Extra bisher: §a+" + extra + "§7/§a+50",
-                4_000, CLAIMS_15, claimMax);
+        addItemDynamic(inv, 14, Material.GRASS_BLOCK, "§a§l+5 Claim-Slots",
+                "§7Erhöht dein Claim-Limit dauerhaft.",
+                "§7Extra bisher: §a+" + extra + "§7/§a+50",
+                "§8Kauf #" + (purchases + 1) + (purchases > 0 ? " §8(war §7" + um.getClaimPrice(uuid, 1_500) * 2 / 3 + "§8)" : ""),
+                "§7Nächster Kauf: §c" + nextPrice5 + " §7Coins",
+                price5, CLAIMS_5, claimMax);
+        addItemDynamic(inv, 15, Material.PODZOL,      "§a§l+15 Claim-Slots",
+                "§7Erhöht dein Claim-Limit dauerhaft.",
+                "§7Extra bisher: §a+" + extra + "§7/§a+50",
+                "§8Kauf #" + (purchases + 1) + (purchases > 0 ? " §8(war §7" + um.getClaimPrice(uuid, 4_000) * 2 / 3 + "§8)" : ""),
+                "§7Nächster Kauf: §c" + nextPrice15 + " §7Coins",
+                price15, CLAIMS_15, claimMax);
 
         // ── KeepInventory-Sektion (unten links, Slots 19–22) ─────────────
         long kiMins = um.getKiRemainingMs(uuid) / 60_000;
@@ -157,6 +168,36 @@ public class ShopCommand implements CommandExecutor {
                 new NamespacedKey(plugin, UPGRADE_KEY), PersistentDataType.STRING, upgradeId);
         meta.getPersistentDataContainer().set(
                 new NamespacedKey(plugin, "shop_price"), PersistentDataType.INTEGER, price);
+        item.setItemMeta(meta);
+        inv.setItem(slot, item);
+    }
+
+    private void addItemDynamic(Inventory inv, int slot, Material mat,
+                                String name, String desc1, String desc2,
+                                String desc3, String desc4,
+                                long price, String upgradeId, String statusOverride) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(Component.text(name));
+
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text(desc1, NamedTextColor.GRAY));
+        lore.add(Component.text(desc2, NamedTextColor.GRAY));
+        lore.add(Component.text(desc3, NamedTextColor.GRAY));
+        lore.add(Component.text(""));
+        if (statusOverride != null) {
+            lore.add(Component.text(statusOverride));
+        } else {
+            lore.add(Component.text("§7Preis: §6§l" + price + " Coins"));
+            lore.add(Component.text(desc4, NamedTextColor.GRAY));
+            lore.add(Component.text("§aKlicken zum Kaufen", NamedTextColor.GREEN));
+        }
+        meta.lore(lore);
+
+        meta.getPersistentDataContainer().set(
+                new NamespacedKey(plugin, UPGRADE_KEY), PersistentDataType.STRING, upgradeId);
+        meta.getPersistentDataContainer().set(
+                new NamespacedKey(plugin, "shop_price"), PersistentDataType.INTEGER, (int) Math.min(price, Integer.MAX_VALUE));
         item.setItemMeta(meta);
         inv.setItem(slot, item);
     }
