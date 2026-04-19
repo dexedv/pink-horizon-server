@@ -1,5 +1,7 @@
 package de.pinkhorizon.core.commands;
 
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import de.pinkhorizon.core.PHCore;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -21,9 +23,12 @@ public class HubCommand implements CommandExecutor {
             return true;
         }
 
-        // Teleportiert zum Spawn / Hub (Velocity-Nachricht zum Hub-Server wird hier hinzugefügt)
-        player.sendMessage("\u00a7dDu wirst zum Hub teleportiert...");
-        player.performCommand("spawn");
+        player.sendMessage("\u00a7dDu wirst zur Lobby weitergeleitet...");
+
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeUTF("Connect");
+        out.writeUTF("lobby");
+        player.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());
         return true;
     }
 }

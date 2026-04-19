@@ -23,6 +23,9 @@ public class PHCore extends JavaPlugin {
         databaseManager = new DatabaseManager(this);
         databaseManager.init();
 
+        // Plugin-Messaging für Velocity/BungeeCord
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+
         // Commands registrieren
         getCommand("hub").setExecutor(new HubCommand(this));
         getCommand("msg").setExecutor(new MsgCommand(this));
