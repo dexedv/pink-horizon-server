@@ -22,6 +22,14 @@ servers/lobby/world_nether/
 servers/lobby/world_the_end/
 servers/lobby/world_backup/
 
+# ── Automatisch generierte World-Metadaten (ändern sich bei jedem Start) ──
+**/level.dat
+**/level.dat_old
+**/level.dat_old_mcr
+**/data/raids.dat
+**/data/random_sequences.nbt
+**/uid.dat
+
 # ── Session-Lock (läuft gerade) ───────────────────────────────────────
 **/session.lock
 
