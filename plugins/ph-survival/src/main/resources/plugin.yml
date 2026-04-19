@@ -103,6 +103,9 @@ commands:
   rtp:
     description: Zufällig teleportieren
     usage: /rtp
+  helpholo:
+    description: Hilfe-Hologram setzen/entfernen
+    usage: /helpholo [place|remove]
 
 permissions:
   survival.claim:

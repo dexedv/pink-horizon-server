@@ -19,6 +19,7 @@ public class PHSurvival extends JavaPlugin {
     private JobManager jobManager;
     private AfkManager afkManager;
     private StatsManager statsManager;
+    private SurvivalHologramManager hologramManager;
     private ShopCommand shopCommand;
     private JobsCommand jobsCommand;
 
@@ -35,6 +36,7 @@ public class PHSurvival extends JavaPlugin {
         upgradeManager = new UpgradeManager(this);
         jobManager = new JobManager(this);
         statsManager = new StatsManager(this);
+        hologramManager = new SurvivalHologramManager(this);
         rankManager = new SurvivalRankManager(this);
         scoreboardManager = new SurvivalScoreboardManager(this);
         tabManager = new SurvivalTabManager(this);
@@ -108,6 +110,10 @@ public class PHSurvival extends JavaPlugin {
 
         getCommand("rtp").setExecutor(new RtpCommand(this));
 
+        HelpHoloCommand helpHoloCmd = new HelpHoloCommand(this);
+        getCommand("helpholo").setExecutor(helpHoloCmd);
+        getCommand("helpholo").setTabCompleter(helpHoloCmd);
+
         // Listeners
         getServer().getPluginManager().registerEvents(new ClaimProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopListener(this), this);
@@ -119,6 +125,9 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new AfkListener(this), this);
         getServer().getPluginManager().registerEvents(new StatsListener(this), this);
         getServer().getPluginManager().registerEvents(new PortalProtectionListener(), this);
+
+        // Holograms nach Weltlade spawnen
+        getServer().getScheduler().runTaskLater(this, () -> hologramManager.spawnAll(), 60L);
 
         getLogger().info("PH-Survival gestartet!");
     }
@@ -145,4 +154,5 @@ public class PHSurvival extends JavaPlugin {
     public JobManager getJobManager() { return jobManager; }
     public AfkManager getAfkManager() { return afkManager; }
     public StatsManager getStatsManager() { return statsManager; }
+    public SurvivalHologramManager getHologramManager() { return hologramManager; }
 }
