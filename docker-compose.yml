@@ -28,8 +28,8 @@ services:
       EULA: "TRUE"
       TYPE: PAPER
       VERSION: "1.21.4"
-      INIT_MEMORY: "512m"
-      MEMORY: "1G"
+      INIT_MEMORY: "256m"
+      MEMORY: "512m"
       USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
