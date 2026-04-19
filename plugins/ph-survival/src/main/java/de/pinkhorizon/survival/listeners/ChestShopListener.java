@@ -375,11 +375,12 @@ public class ChestShopListener implements Listener {
     @EventHandler
     public void onGuiClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        event.setCancelled(true);
 
         if (event.getInventory().getHolder() instanceof ShopHolder holder) {
+            event.setCancelled(true);
             handleShopClick(player, event.getRawSlot(), holder);
         } else if (event.getInventory().getHolder() instanceof SettingsHolder holder) {
+            event.setCancelled(true);
             handleSettingsClick(player, event.getRawSlot(), holder);
         }
     }
@@ -387,7 +388,7 @@ public class ChestShopListener implements Listener {
     private void handleShopClick(Player player, int slot, ShopHolder h) {
         if (h.block.getType() != Material.CHEST) {
             player.sendMessage("§cDer Shop existiert nicht mehr!");
-            player.closeInventory();
+            Bukkit.getScheduler().runTask(plugin, (Runnable) player::closeInventory);
             return;
         }
         if (slot == 2 && h.buyPrice  > 0) executeBuy (player, h.block, h);
@@ -424,11 +425,12 @@ public class ChestShopListener implements Listener {
             case 34 -> doWithdraw(player, h.block, 100);
             case 35 -> doWithdraw(player, h.block, 10);
             // ── Aktionen ──
-            case 36 -> { player.closeInventory();
-                         player.openInventory(((Chest) h.block.getState()).getInventory()); }
+            case 36 -> Bukkit.getScheduler().runTask(plugin, () -> {
+                         player.closeInventory();
+                         player.openInventory(((Chest) h.block.getState()).getInventory()); });
             case 39 -> detectItemFromChest(player, h.block);
             case 40 -> doModeToggle(player, h.block);
-            case 44 -> player.closeInventory();
+            case 44 -> Bukkit.getScheduler().runTask(plugin, (Runnable) player::closeInventory);
         }
     }
 
@@ -441,7 +443,7 @@ public class ChestShopListener implements Listener {
         chest.getPersistentDataContainer().set(key, PersistentDataType.LONG, newPrice);
         chest.update();
         updateHologram(block);
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void adjustAmount(Player player, Block block, int delta) {
@@ -451,7 +453,7 @@ public class ChestShopListener implements Listener {
         chest.getPersistentDataContainer().set(amountKey, PersistentDataType.INTEGER, newAmt);
         chest.update();
         updateHologram(block);
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void detectItemFromChest(Player player, Block block) {
@@ -459,7 +461,7 @@ public class ChestShopListener implements Listener {
         Material found = detectItem(chest);
         if (found == null) {
             player.sendMessage("§cTruhe ist leer – kein Item erkannt!");
-            openSettingsGUI(player, block);
+            Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
             return;
         }
         chest.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, found.name());
@@ -467,13 +469,13 @@ public class ChestShopListener implements Listener {
         updateHologram(block);
         updateItemDisplay(block, found);
         player.sendMessage("§aItem aktualisiert: §f" + formatName(found));
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void doDeposit(Player player, Block block, long amount) {
         if (!plugin.getEconomyManager().withdraw(player.getUniqueId(), amount)) {
             player.sendMessage("§cNicht genug Coins auf deinem Konto!");
-            openSettingsGUI(player, block);
+            Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
             return;
         }
         Chest chest  = (Chest) block.getState();
@@ -481,7 +483,7 @@ public class ChestShopListener implements Listener {
         chest.getPersistentDataContainer().set(balanceKey, PersistentDataType.LONG, newBal);
         chest.update();
         player.sendMessage("§a+" + amount + " Coins eingezahlt §7(Kasse: §f" + newBal + "§7)");
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void doWithdraw(Player player, Block block, long amount) {
@@ -489,14 +491,14 @@ public class ChestShopListener implements Listener {
         long  bal   = getPdc(chest, balanceKey, 0L);
         if (bal < amount) {
             player.sendMessage("§cNur §f" + bal + "§c Coins in der Kasse!");
-            openSettingsGUI(player, block);
+            Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
             return;
         }
         chest.getPersistentDataContainer().set(balanceKey, PersistentDataType.LONG, bal - amount);
         chest.update();
         plugin.getEconomyManager().deposit(player.getUniqueId(), amount);
         player.sendMessage("§a-" + amount + " Coins ausgezahlt §7(Kasse: §f" + (bal - amount) + "§7)");
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void doModeToggle(Player player, Block block) {
@@ -505,7 +507,7 @@ public class ChestShopListener implements Listener {
         chest.getPersistentDataContainer().set(useShopBalKey, PersistentDataType.INTEGER, newMode ? 1 : 0);
         chest.update();
         player.sendMessage("§7Zahlungsweise: " + (newMode ? "§a§lShop-Kasse" : "§e§lPersönlich"));
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     // ── Kaufen ──────────────────────────────────────────────────────────
@@ -527,7 +529,7 @@ public class ChestShopListener implements Listener {
         plugin.getEconomyManager().deposit(h.ownerUUID, h.buyPrice);
         player.sendMessage("§aGekauft: §f" + h.amount + "x " + formatName(h.item)
             + " §afür §6" + h.buyPrice + " §aCoins");
-        player.closeInventory();
+        Bukkit.getScheduler().runTask(plugin, (Runnable) player::closeInventory);
     }
 
     // ── Verkaufen ───────────────────────────────────────────────────────
@@ -565,7 +567,7 @@ public class ChestShopListener implements Listener {
         plugin.getEconomyManager().deposit(player.getUniqueId(), h.sellPrice);
         player.sendMessage("§aVerkauft: §f" + h.amount + "x " + formatName(h.item)
             + " §afür §6" + h.sellPrice + " §aCoins");
-        player.closeInventory();
+        Bukkit.getScheduler().runTask(plugin, (Runnable) player::closeInventory);
     }
 
     // ── Truhe direkt abbauen blockieren wenn Shop darüber ──────────────
