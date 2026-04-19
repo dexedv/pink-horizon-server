@@ -17,10 +17,10 @@ player-info-forwarding-mode = "MODERN"
 forwarding-secret-file = "forwarding.secret"
 
 [servers]
-  lobby     = "ph-lobby:25565"
-  survival  = "ph-survival:25565"
-  skyblock  = "ph-skyblock:25565"
-  minigames = "ph-minigames:25565"
+  lobby     = "ph-lobby:25566"
+  survival  = "ph-survival:25567"
+  skyblock  = "ph-skyblock:25568"
+  minigames = "ph-minigames:25569"
 
 # Server, auf den neue Spieler kommen
 try = ["lobby"]
