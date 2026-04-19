@@ -34,7 +34,7 @@ public class SurvivalJoinListener implements Listener {
         );
 
         // Spielmodus
-        if (player.hasPermission("survival.admin")) {
+        if (player.isOp()) {
             player.setGameMode(GameMode.CREATIVE);
         } else {
             player.setGameMode(GameMode.SURVIVAL);
@@ -42,8 +42,8 @@ public class SurvivalJoinListener implements Listener {
             player.setFoodLevel(20);
         }
 
-        // Owner-Rank für Admins automatisch setzen
-        if (player.hasPermission("survival.admin")) {
+        // Owner-Rank für OPs automatisch setzen
+        if (player.isOp()) {
             plugin.getRankManager().setRank(player.getUniqueId(), player.getName(), "owner");
         }
 
