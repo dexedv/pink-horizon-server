@@ -7,6 +7,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -48,6 +49,7 @@ public class PortalCommand implements CommandExecutor, TabCompleter, Listener {
     private final Set<UUID> cooldowns = new HashSet<>();
     private BukkitTask particleTask;
     private final Random random = new Random();
+    private int tick = 0;
 
     private static class Portal {
         final String name, server, world;
@@ -116,22 +118,71 @@ public class PortalCommand implements CommandExecutor, TabCompleter, Listener {
 
     // ── Partikel-Task ───────────────────────────────────────────────────
 
+    private Particle.DustOptions getDustColor(String server) {
+        Color color = switch (server.toLowerCase()) {
+            case "survival"  -> Color.fromRGB(0x55FF55);
+            case "skyblock"  -> Color.fromRGB(0xFFD700);
+            case "minigames" -> Color.fromRGB(0xFF4500);
+            default          -> Color.fromRGB(0xFF69B4);
+        };
+        return new Particle.DustOptions(color, 1.5f);
+    }
+
     private void startParticleTask() {
         particleTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            tick++;
             for (Portal portal : portals.values()) {
                 World world = Bukkit.getWorld(portal.world);
                 if (world == null) continue;
 
-                double dx = portal.maxX - portal.minX;
-                double dy = portal.maxY - portal.minY;
-                double dz = portal.maxZ - portal.minZ;
+                Particle.DustOptions dust = getDustColor(portal.server);
+                double cx  = (portal.minX + portal.maxX) / 2.0;
+                double cz  = (portal.minZ + portal.maxZ) / 2.0;
+                double dx  = portal.maxX - portal.minX;
+                double dy  = portal.maxY - portal.minY;
+                double dz  = portal.maxZ - portal.minZ;
+                double floorY = portal.minY + 0.1;
 
-                // 15 zufällige Partikel innerhalb des Portal-Bereichs
-                for (int i = 0; i < 15; i++) {
+                // 1. Farbiger Bodenrand
+                double step = 0.4;
+                for (double x = portal.minX; x <= portal.maxX; x += step) {
+                    world.spawnParticle(Particle.DUST, x, floorY, portal.minZ, 1, 0, 0, 0, 0, dust);
+                    world.spawnParticle(Particle.DUST, x, floorY, portal.maxZ, 1, 0, 0, 0, 0, dust);
+                }
+                for (double z = portal.minZ; z <= portal.maxZ; z += step) {
+                    world.spawnParticle(Particle.DUST, portal.minX, floorY, z, 1, 0, 0, 0, 0, dust);
+                    world.spawnParticle(Particle.DUST, portal.maxX, floorY, z, 1, 0, 0, 0, 0, dust);
+                }
+
+                // 2. Portal-Partikel innen
+                for (int i = 0; i < 10; i++) {
                     double x = portal.minX + random.nextDouble() * dx;
                     double y = portal.minY + random.nextDouble() * dy;
                     double z = portal.minZ + random.nextDouble() * dz;
-                    world.spawnParticle(Particle.PORTAL, x, y, z, 3, 0, 0, 0, 0.05);
+                    world.spawnParticle(Particle.PORTAL, x, y, z, 2, 0, 0, 0, 0.05);
+                }
+
+                // 3. Aufsteigende Funkeln (END_ROD)
+                for (int i = 0; i < 4; i++) {
+                    double x = portal.minX + random.nextDouble() * dx;
+                    double z = portal.minZ + random.nextDouble() * dz;
+                    world.spawnParticle(Particle.END_ROD, x, floorY, z, 1, 0, 0.04, 0, 0.01);
+                }
+
+                // 4. Rotierende Aura um Mittelpunkt
+                double angle  = tick * (18.0 * Math.PI / 180.0);
+                double radius = Math.min(dx, dz) / 2.0 * 0.75;
+                int    points = 8;
+                for (int i = 0; i < points; i++) {
+                    double a  = angle + (2.0 * Math.PI * i / points);
+                    double rx = cx + Math.cos(a) * radius;
+                    double rz = cz + Math.sin(a) * radius;
+                    world.spawnParticle(Particle.DUST, rx, floorY, rz, 1, 0, 0, 0, 0, dust);
+                }
+
+                // 5. Pulsierender Kern (jede 2. Runde)
+                if (tick % 2 == 0) {
+                    world.spawnParticle(Particle.END_ROD, cx, floorY, cz, 3, 0.2, 0.05, 0.2, 0.005);
                 }
             }
         }, 0L, 10L);
