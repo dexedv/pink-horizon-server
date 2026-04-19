@@ -17,8 +17,6 @@ services:
     depends_on:
       - lobby
       - survival
-      - skyblock
-      - minigames
 
   # ── Lobby ─────────────────────────────────────────────────────────────
   lobby:
@@ -74,6 +72,7 @@ services:
 
   # ── SkyBlock ──────────────────────────────────────────────────────────
   skyblock:
+    profiles: ["extra"]
     image: itzg/minecraft-server:latest
     container_name: ph-skyblock
     healthcheck:
@@ -100,6 +99,7 @@ services:
 
   # ── Minigames ─────────────────────────────────────────────────────────
   minigames:
+    profiles: ["extra"]
     image: itzg/minecraft-server:latest
     container_name: ph-minigames
     healthcheck:
