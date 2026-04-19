@@ -16,15 +16,18 @@ import org.bukkit.persistence.PersistentDataType;
 public class CreateShopCommand implements CommandExecutor {
 
     private final PHSurvival plugin;
-    private final NamespacedKey ownerKey, itemKey, amountKey, buyKey, sellKey;
+    private final NamespacedKey ownerKey, itemKey, amountKey, buyKey, sellKey,
+                                balanceKey, useShopBalKey;
 
     public CreateShopCommand(PHSurvival plugin) {
-        this.plugin    = plugin;
-        this.ownerKey  = new NamespacedKey(plugin, ChestShopListener.KEY_OWNER);
-        this.itemKey   = new NamespacedKey(plugin, ChestShopListener.KEY_ITEM);
-        this.amountKey = new NamespacedKey(plugin, ChestShopListener.KEY_AMOUNT);
-        this.buyKey    = new NamespacedKey(plugin, ChestShopListener.KEY_BUY);
-        this.sellKey   = new NamespacedKey(plugin, ChestShopListener.KEY_SELL);
+        this.plugin        = plugin;
+        this.ownerKey      = new NamespacedKey(plugin, ChestShopListener.KEY_OWNER);
+        this.itemKey       = new NamespacedKey(plugin, ChestShopListener.KEY_ITEM);
+        this.amountKey     = new NamespacedKey(plugin, ChestShopListener.KEY_AMOUNT);
+        this.buyKey        = new NamespacedKey(plugin, ChestShopListener.KEY_BUY);
+        this.sellKey       = new NamespacedKey(plugin, ChestShopListener.KEY_SELL);
+        this.balanceKey    = new NamespacedKey(plugin, ChestShopListener.KEY_BALANCE);
+        this.useShopBalKey = new NamespacedKey(plugin, ChestShopListener.KEY_USE_SHOP_BAL);
     }
 
     @Override
@@ -116,11 +119,13 @@ public class CreateShopCommand implements CommandExecutor {
         }
 
         // PDC setzen
-        chest.getPersistentDataContainer().set(ownerKey,  PersistentDataType.STRING,  player.getUniqueId().toString());
-        chest.getPersistentDataContainer().set(itemKey,   PersistentDataType.STRING,  shopItem.name());
-        chest.getPersistentDataContainer().set(amountKey, PersistentDataType.INTEGER, amount);
-        chest.getPersistentDataContainer().set(buyKey,    PersistentDataType.LONG,    buyPrice);
-        chest.getPersistentDataContainer().set(sellKey,   PersistentDataType.LONG,    sellPrice);
+        chest.getPersistentDataContainer().set(ownerKey,      PersistentDataType.STRING,  player.getUniqueId().toString());
+        chest.getPersistentDataContainer().set(itemKey,       PersistentDataType.STRING,  shopItem.name());
+        chest.getPersistentDataContainer().set(amountKey,     PersistentDataType.INTEGER, amount);
+        chest.getPersistentDataContainer().set(buyKey,        PersistentDataType.LONG,    buyPrice);
+        chest.getPersistentDataContainer().set(sellKey,       PersistentDataType.LONG,    sellPrice);
+        chest.getPersistentDataContainer().set(balanceKey,    PersistentDataType.LONG,    0L);
+        chest.getPersistentDataContainer().set(useShopBalKey, PersistentDataType.INTEGER, 0);
 
         String itemName = shopItem.name().replace('_', ' ').toLowerCase();
         itemName = Character.toUpperCase(itemName.charAt(0)) + itemName.substring(1);

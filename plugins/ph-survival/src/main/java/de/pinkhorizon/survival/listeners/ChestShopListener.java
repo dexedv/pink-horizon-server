@@ -22,27 +22,33 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class ChestShopListener implements Listener {
 
-    public static final String KEY_OWNER  = "shop_owner";
-    public static final String KEY_ITEM   = "shop_item";
-    public static final String KEY_AMOUNT = "shop_amount";
-    public static final String KEY_BUY    = "shop_buy";
-    public static final String KEY_SELL   = "shop_sell";
+    public static final String KEY_OWNER        = "shop_owner";
+    public static final String KEY_ITEM         = "shop_item";
+    public static final String KEY_AMOUNT       = "shop_amount";
+    public static final String KEY_BUY          = "shop_buy";
+    public static final String KEY_SELL         = "shop_sell";
+    public static final String KEY_BALANCE      = "shop_balance";
+    public static final String KEY_USE_SHOP_BAL = "shop_use_shop_bal";
 
     private final PHSurvival plugin;
-    private final NamespacedKey ownerKey, itemKey, amountKey, buyKey, sellKey;
+    private final NamespacedKey ownerKey, itemKey, amountKey, buyKey, sellKey,
+                                balanceKey, useShopBalKey;
 
     public ChestShopListener(PHSurvival plugin) {
-        this.plugin    = plugin;
-        this.ownerKey  = new NamespacedKey(plugin, KEY_OWNER);
-        this.itemKey   = new NamespacedKey(plugin, KEY_ITEM);
-        this.amountKey = new NamespacedKey(plugin, KEY_AMOUNT);
-        this.buyKey    = new NamespacedKey(plugin, KEY_BUY);
-        this.sellKey   = new NamespacedKey(plugin, KEY_SELL);
+        this.plugin        = plugin;
+        this.ownerKey      = new NamespacedKey(plugin, KEY_OWNER);
+        this.itemKey       = new NamespacedKey(plugin, KEY_ITEM);
+        this.amountKey     = new NamespacedKey(plugin, KEY_AMOUNT);
+        this.buyKey        = new NamespacedKey(plugin, KEY_BUY);
+        this.sellKey       = new NamespacedKey(plugin, KEY_SELL);
+        this.balanceKey    = new NamespacedKey(plugin, KEY_BALANCE);
+        this.useShopBalKey = new NamespacedKey(plugin, KEY_USE_SHOP_BAL);
     }
 
     // ── Klick auf Shop-Truhe ────────────────────────────────────────────
@@ -56,98 +62,161 @@ public class ChestShopListener implements Listener {
         Chest chest = (Chest) block.getState();
         if (!chest.getPersistentDataContainer().has(ownerKey)) return;
 
-        Player player = event.getPlayer();
-        UUID owner = UUID.fromString(chest.getPersistentDataContainer().get(ownerKey, PersistentDataType.STRING));
-
-        // Eigentümer + Shift → Truhe normal öffnen zum Befüllen
-        if (player.getUniqueId().equals(owner) && player.isSneaking()) return;
-
         event.setCancelled(true);
+        Player player  = event.getPlayer();
+        UUID   owner   = UUID.fromString(chest.getPersistentDataContainer().get(ownerKey, PersistentDataType.STRING));
 
-        Material itemType = Material.valueOf(chest.getPersistentDataContainer().get(itemKey,   PersistentDataType.STRING));
-        int      amount   = chest.getPersistentDataContainer().get(amountKey, PersistentDataType.INTEGER);
-        long     buyPrice = chest.getPersistentDataContainer().get(buyKey,    PersistentDataType.LONG);
-        long     sellPrice= chest.getPersistentDataContainer().get(sellKey,   PersistentDataType.LONG);
-        String   ownerName= Bukkit.getOfflinePlayer(owner).getName();
+        // Besitzer + Shift → Settings-GUI
+        if (player.getUniqueId().equals(owner) && player.isSneaking()) {
+            openSettingsGUI(player, block);
+            return;
+        }
+
+        // Alle anderen → Kunden-GUI
+        Material itemType  = Material.valueOf(chest.getPersistentDataContainer().get(itemKey,   PersistentDataType.STRING));
+        int      amount    = chest.getPersistentDataContainer().get(amountKey, PersistentDataType.INTEGER);
+        long     buyPrice  = chest.getPersistentDataContainer().get(buyKey,    PersistentDataType.LONG);
+        long     sellPrice = chest.getPersistentDataContainer().get(sellKey,   PersistentDataType.LONG);
+        String   ownerName = Bukkit.getOfflinePlayer(owner).getName();
 
         openShopGUI(player, block, itemType, amount, buyPrice, sellPrice, ownerName, owner);
     }
 
-    // ── Shop-GUI öffnen ─────────────────────────────────────────────────
+    // ── Kunden-GUI ──────────────────────────────────────────────────────
 
     private void openShopGUI(Player player, Block block, Material item, int amount,
                               long buyPrice, long sellPrice, String ownerName, UUID ownerUUID) {
         ShopHolder holder = new ShopHolder(block, item, amount, buyPrice, sellPrice, ownerUUID);
-        Inventory gui = Bukkit.createInventory(holder, 9,
-            Component.text("§6[Shop] §f" + ownerName));
+        Inventory  gui    = Bukkit.createInventory(holder, 9, Component.text("§6[Shop] §f" + ownerName));
 
-        // Slot 2: Kaufen
         if (buyPrice > 0) {
-            ItemStack buyBtn = new ItemStack(Material.LIME_STAINED_GLASS_PANE);
-            ItemMeta m = buyBtn.getItemMeta();
-            m.displayName(Component.text("§a§lKAUFEN", NamedTextColor.GREEN));
-            m.lore(List.of(
-                Component.text("§7" + amount + "x §f" + formatName(item)),
-                Component.text("§7Preis: §f" + buyPrice + " §7Coins")
-            ));
-            buyBtn.setItemMeta(m);
-            gui.setItem(2, buyBtn);
+            gui.setItem(2, makeItem(Material.LIME_STAINED_GLASS_PANE, "§a§lKAUFEN",
+                List.of("§7" + amount + "x §f" + formatName(item),
+                        "§7Preis: §6" + buyPrice + " §7Coins")));
         }
 
-        // Slot 4: Item-Info
-        ItemStack display = new ItemStack(item, amount);
+        ItemStack display = new ItemStack(item, Math.min(amount, 64));
         ItemMeta dm = display.getItemMeta();
-        dm.displayName(Component.text("§e" + formatName(item), TextColor.color(0xFFD700)));
+        dm.displayName(Component.text(formatName(item), TextColor.color(0xFFD700)));
         dm.lore(List.of(
             Component.text("§7Menge: §f" + amount),
-            buyPrice  > 0 ? Component.text("§7Kaufen: §f"    + buyPrice  + " Coins") : Component.text("§8Kaufen: deaktiviert"),
-            sellPrice > 0 ? Component.text("§7Verkaufen: §f" + sellPrice + " Coins") : Component.text("§8Verkaufen: deaktiviert")
+            buyPrice  > 0 ? Component.text("§7Kaufen: §f"    + buyPrice  + " Coins")
+                          : Component.text("§8Kaufen: —"),
+            sellPrice > 0 ? Component.text("§7Verkaufen: §f" + sellPrice + " Coins")
+                          : Component.text("§8Verkaufen: —")
         ));
         display.setItemMeta(dm);
         gui.setItem(4, display);
 
-        // Slot 6: Verkaufen
         if (sellPrice > 0) {
-            ItemStack sellBtn = new ItemStack(Material.RED_STAINED_GLASS_PANE);
-            ItemMeta sm = sellBtn.getItemMeta();
-            sm.displayName(Component.text("§c§lVERKAUFEN", NamedTextColor.RED));
-            sm.lore(List.of(
-                Component.text("§7" + amount + "x §f" + formatName(item)),
-                Component.text("§7Erlös: §f" + sellPrice + " §7Coins")
-            ));
-            sellBtn.setItemMeta(sm);
-            gui.setItem(6, sellBtn);
+            gui.setItem(6, makeItem(Material.RED_STAINED_GLASS_PANE, "§c§lVERKAUFEN",
+                List.of("§7" + amount + "x §f" + formatName(item),
+                        "§7Erlös: §6" + sellPrice + " §7Coins")));
         }
 
         player.openInventory(gui);
     }
 
-    // ── GUI-Klick ───────────────────────────────────────────────────────
+    // ── Settings-GUI ────────────────────────────────────────────────────
+
+    private void openSettingsGUI(Player player, Block block) {
+        Chest   chest   = (Chest) block.getState();
+        long    balance = getShopBalance(chest);
+        boolean useShop = getUseShopBalance(chest);
+
+        SettingsHolder holder = new SettingsHolder(block);
+        Inventory gui = Bukkit.createInventory(holder, 27,
+            Component.text("§6⚙ Shop Einstellungen"));
+
+        // Filler
+        ItemStack filler = makeItem(Material.GRAY_STAINED_GLASS_PANE, "§r", List.of());
+        for (int i = 0; i < 27; i++) gui.setItem(i, filler);
+
+        // Shop-Kasse Anzeige (Mitte oben, Slot 4)
+        gui.setItem(4, makeItem(Material.GOLD_INGOT, "§6§lShop-Kasse",
+            List.of("§7Guthaben: §6§l" + balance + " §7Coins",
+                    "",
+                    "§7Zahlungsweise beim Ankauf:",
+                    useShop  ? "§a● §aShop-Kasse"              : "§8○ §8Shop-Kasse",
+                    !useShop ? "§a● §aPersönlich (Besitzer)"   : "§8○ §8Persönlich (Besitzer)")));
+
+        // Einzahlen (Slots 1, 2, 3)
+        gui.setItem(1, makeItem(Material.LIME_CONCRETE,   "§a§l+ 10 Coins",
+            List.of("§7Aus deinem Konto einzahlen", "§7Dein Konto: §f" + plugin.getEconomyManager().getBalance(player.getUniqueId()) + " Coins")));
+        gui.setItem(2, makeItem(Material.LIME_CONCRETE,   "§a§l+ 100 Coins",
+            List.of("§7Aus deinem Konto einzahlen")));
+        gui.setItem(3, makeItem(Material.LIME_CONCRETE,   "§a§l+ 1.000 Coins",
+            List.of("§7Aus deinem Konto einzahlen")));
+
+        // Auszahlen (Slots 5, 6, 7)
+        gui.setItem(5, makeItem(Material.RED_CONCRETE, "§c§l- 1.000 Coins",
+            List.of("§7Auf dein Konto auszahlen")));
+        gui.setItem(6, makeItem(Material.RED_CONCRETE, "§c§l- 100 Coins",
+            List.of("§7Auf dein Konto auszahlen")));
+        gui.setItem(7, makeItem(Material.RED_CONCRETE, "§c§l- 10 Coins",
+            List.of("§7Auf dein Konto auszahlen")));
+
+        // Zahlungsweise umschalten (Slot 13)
+        gui.setItem(13, makeItem(Material.COMPARATOR, "§e§lZahlungsweise umschalten",
+            List.of(useShop  ? "§a▶ §aShop-Kasse (aktiv)"            : "§7  §7Shop-Kasse",
+                    !useShop ? "§a▶ §aPersönlich / Besitzer (aktiv)"  : "§7  §7Persönlich / Besitzer",
+                    "",
+                    "§7Klicken zum Wechseln")));
+
+        // Truhe öffnen (Slot 11)
+        gui.setItem(11, makeItem(Material.CHEST, "§f§lTruhe öffnen",
+            List.of("§7Items einlegen oder entnehmen")));
+
+        // Schließen (Slot 22)
+        gui.setItem(22, makeItem(Material.BARRIER, "§c§lSchließen", List.of()));
+
+        player.openInventory(gui);
+    }
+
+    // ── GUI-Klick-Handler ───────────────────────────────────────────────
 
     @EventHandler
     public void onGuiClick(InventoryClickEvent event) {
-        if (!(event.getInventory().getHolder() instanceof ShopHolder holder)) return;
-        event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)) return;
+        event.setCancelled(true);
 
-        Block block = holder.block;
-        if (block.getType() != Material.CHEST) {
+        if (event.getInventory().getHolder() instanceof ShopHolder holder) {
+            handleShopClick(player, event.getRawSlot(), holder);
+        } else if (event.getInventory().getHolder() instanceof SettingsHolder holder) {
+            handleSettingsClick(player, event.getRawSlot(), holder);
+        }
+    }
+
+    private void handleShopClick(Player player, int slot, ShopHolder h) {
+        if (h.block.getType() != Material.CHEST) {
             player.sendMessage("§cDer Shop existiert nicht mehr!");
             player.closeInventory();
             return;
         }
+        if (slot == 2 && h.buyPrice  > 0) executeBuy (player, h.block, h);
+        if (slot == 6 && h.sellPrice > 0) executeSell(player, h.block, h);
+    }
 
-        int slot = event.getRawSlot();
-        if (slot == 2 && holder.buyPrice  > 0) executeBuy (player, block, holder);
-        if (slot == 6 && holder.sellPrice > 0) executeSell(player, block, holder);
+    private void handleSettingsClick(Player player, int slot, SettingsHolder h) {
+        if (h.block.getType() != Material.CHEST) { player.closeInventory(); return; }
+        switch (slot) {
+            case 1  -> doDeposit (player, h.block, 10);
+            case 2  -> doDeposit (player, h.block, 100);
+            case 3  -> doDeposit (player, h.block, 1000);
+            case 5  -> doWithdraw(player, h.block, 1000);
+            case 6  -> doWithdraw(player, h.block, 100);
+            case 7  -> doWithdraw(player, h.block, 10);
+            case 11 -> { player.closeInventory();
+                         player.openInventory(((Chest) h.block.getState()).getInventory()); }
+            case 13 -> doModeToggle(player, h.block);
+            case 22 -> player.closeInventory();
+        }
     }
 
     // ── Kaufen ──────────────────────────────────────────────────────────
 
     private void executeBuy(Player player, Block block, ShopHolder h) {
         Chest chest = (Chest) block.getState();
-
-        // Prüfungen
         if (countItems(chest.getInventory(), h.item) < h.amount) {
             player.sendMessage("§cNicht auf Lager!");
             player.closeInventory();
@@ -157,18 +226,13 @@ public class ChestShopListener implements Listener {
             player.sendMessage("§cNicht genug Coins! (§f" + h.buyPrice + "§c benötigt)");
             return;
         }
-
-        // Items aus Truhe nehmen (kein chest.update() – das würde den Snapshot einspielen!)
+        // Inventar direkt ändern – KEIN chest.update() danach!
         removeItems(chest.getInventory(), h.item, h.amount);
-
-        // Items an Spieler geben, Überschuss droppen
         player.getInventory().addItem(new ItemStack(h.item, h.amount))
             .values().forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
-
-        // Besitzer bezahlen
         plugin.getEconomyManager().deposit(h.ownerUUID, h.buyPrice);
-
-        player.sendMessage("§aGekauft: §f" + h.amount + "x " + formatName(h.item) + " §afür §f" + h.buyPrice + " §aCoins");
+        player.sendMessage("§aGekauft: §f" + h.amount + "x " + formatName(h.item)
+            + " §afür §6" + h.buyPrice + " §aCoins");
         player.closeInventory();
     }
 
@@ -176,65 +240,131 @@ public class ChestShopListener implements Listener {
 
     private void executeSell(Player player, Block block, ShopHolder h) {
         Chest chest = (Chest) block.getState();
-
-        // Prüfungen
         if (countItems(player.getInventory(), h.item) < h.amount) {
-            player.sendMessage("§cDu hast nicht genug §f" + formatName(h.item) + "§c! (§f" + h.amount + "§c benötigt)");
+            player.sendMessage("§cDu hast nicht genug §f" + formatName(h.item)
+                + "§c! (§f" + h.amount + "§c benötigt)");
             return;
         }
         if (chest.getInventory().firstEmpty() == -1) {
             player.sendMessage("§cDer Shop ist voll!");
             return;
         }
-        if (!plugin.getEconomyManager().withdraw(h.ownerUUID, h.sellPrice)) {
-            player.sendMessage("§cDer Shop-Besitzer hat nicht genug Coins!");
-            return;
+
+        // Zahlung prüfen und abziehen
+        boolean useShopBal = getUseShopBalance(chest);
+        if (useShopBal) {
+            long shopBal = getShopBalance(chest);
+            if (shopBal < h.sellPrice) {
+                player.sendMessage("§cDie Shop-Kasse hat nicht genug Coins! (§f" + shopBal + "§c verfügbar)");
+                return;
+            }
+            // PDC-Änderung VOR Inventar-Änderung → chest.update() hier sicher
+            chest.getPersistentDataContainer().set(balanceKey, PersistentDataType.LONG, shopBal - h.sellPrice);
+            chest.update();
+        } else {
+            if (!plugin.getEconomyManager().withdraw(h.ownerUUID, h.sellPrice)) {
+                player.sendMessage("§cDer Shop-Besitzer hat nicht genug Coins!");
+                return;
+            }
         }
 
-        // Items aus Spieler-Inventar nehmen
+        // Inventar-Änderungen – KEIN chest.update() danach!
         removeItems(player.getInventory(), h.item, h.amount);
-
-        // Items in Truhe legen (kein chest.update() – das würde den Snapshot einspielen!)
         chest.getInventory().addItem(new ItemStack(h.item, h.amount));
-
-        // Spieler bezahlen
         plugin.getEconomyManager().deposit(player.getUniqueId(), h.sellPrice);
-
-        player.sendMessage("§aVerkauft: §f" + h.amount + "x " + formatName(h.item) + " §afür §f" + h.sellPrice + " §aCoins");
+        player.sendMessage("§aVerkauft: §f" + h.amount + "x " + formatName(h.item)
+            + " §afür §6" + h.sellPrice + " §aCoins");
         player.closeInventory();
+    }
+
+    // ── Settings-Aktionen ───────────────────────────────────────────────
+
+    private void doDeposit(Player player, Block block, long amount) {
+        if (!plugin.getEconomyManager().withdraw(player.getUniqueId(), amount)) {
+            player.sendMessage("§cNicht genug Coins auf deinem Konto!");
+            openSettingsGUI(player, block);
+            return;
+        }
+        Chest chest  = (Chest) block.getState();
+        long  newBal = getShopBalance(chest) + amount;
+        chest.getPersistentDataContainer().set(balanceKey, PersistentDataType.LONG, newBal);
+        chest.update();
+        player.sendMessage("§a+" + amount + " Coins in Kasse eingezahlt §7(Kasse: §f" + newBal + "§7)");
+        openSettingsGUI(player, block);
+    }
+
+    private void doWithdraw(Player player, Block block, long amount) {
+        Chest chest = (Chest) block.getState();
+        long  bal   = getShopBalance(chest);
+        if (bal < amount) {
+            player.sendMessage("§cNur §f" + bal + "§c Coins in der Kasse!");
+            openSettingsGUI(player, block);
+            return;
+        }
+        chest.getPersistentDataContainer().set(balanceKey, PersistentDataType.LONG, bal - amount);
+        chest.update();
+        plugin.getEconomyManager().deposit(player.getUniqueId(), amount);
+        player.sendMessage("§a-" + amount + " Coins ausgezahlt §7(Kasse: §f" + (bal - amount) + "§7)");
+        openSettingsGUI(player, block);
+    }
+
+    private void doModeToggle(Player player, Block block) {
+        Chest   chest   = (Chest) block.getState();
+        boolean newMode = !getUseShopBalance(chest);
+        chest.getPersistentDataContainer().set(useShopBalKey, PersistentDataType.INTEGER, newMode ? 1 : 0);
+        chest.update();
+        player.sendMessage("§7Zahlungsweise: " + (newMode ? "§a§lShop-Kasse" : "§e§lPersönlich (Besitzer)"));
+        openSettingsGUI(player, block);
     }
 
     // ── Shop-Truhe abbauen ──────────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
-        Block block = event.getBlock();
+        Block  block = event.getBlock();
         if (block.getType() != Material.CHEST) return;
-        Chest chest = (Chest) block.getState();
+        Chest  chest = (Chest) block.getState();
         if (!chest.getPersistentDataContainer().has(ownerKey)) return;
 
         Player player = event.getPlayer();
-        UUID owner = UUID.fromString(chest.getPersistentDataContainer().get(ownerKey, PersistentDataType.STRING));
+        UUID   owner  = UUID.fromString(chest.getPersistentDataContainer().get(ownerKey, PersistentDataType.STRING));
         if (!player.getUniqueId().equals(owner) && !player.isOp()) {
             event.setCancelled(true);
             player.sendMessage("§cDas ist ein fremder Shop!");
             return;
+        }
+        // Kassen-Guthaben zurückgeben
+        long balance = getShopBalance(chest);
+        if (balance > 0) {
+            plugin.getEconomyManager().deposit(owner, balance);
+            player.sendMessage("§7Shop-Kasse ausgezahlt: §6" + balance + " §7Coins");
         }
         chest.getPersistentDataContainer().remove(ownerKey);
         chest.update();
         plugin.getHologramManager().remove(shopHoloKey(block));
     }
 
-    // ── Hologram-Hilfsmethoden (auch von CreateShopCommand genutzt) ──────
+    // ── PDC Hilfsmethoden ───────────────────────────────────────────────
+
+    private long getShopBalance(Chest chest) {
+        if (!chest.getPersistentDataContainer().has(balanceKey)) return 0L;
+        return chest.getPersistentDataContainer().get(balanceKey, PersistentDataType.LONG);
+    }
+
+    private boolean getUseShopBalance(Chest chest) {
+        if (!chest.getPersistentDataContainer().has(useShopBalKey)) return false;
+        return chest.getPersistentDataContainer().get(useShopBalKey, PersistentDataType.INTEGER) == 1;
+    }
+
+    // ── Hologramm-Hilfsmethoden ─────────────────────────────────────────
 
     public static String shopHoloKey(Block block) {
         return "shop_" + block.getWorld().getName()
             + "_" + block.getX() + "_" + block.getY() + "_" + block.getZ();
     }
 
-    public static List<String> shopHoloLines(String itemName, int amount,
-                                              long buyPrice, long sellPrice) {
-        List<String> lines = new java.util.ArrayList<>();
+    public static List<String> shopHoloLines(String itemName, int amount, long buyPrice, long sellPrice) {
+        List<String> lines = new ArrayList<>();
         lines.add("<gold><bold>✦ Shop ✦</bold></gold>");
         lines.add("<white>" + amount + "x " + itemName + "</white>");
         if (buyPrice  > 0) lines.add("<green>Kaufen: <white>" + buyPrice  + " Coins</white></green>");
@@ -242,7 +372,22 @@ public class ChestShopListener implements Listener {
         return lines;
     }
 
-    // ── Hilfsmethoden ───────────────────────────────────────────────────
+    // ── Item-Builder ────────────────────────────────────────────────────
+
+    private ItemStack makeItem(Material mat, String name, List<String> loreLines) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(Component.text(name));
+        if (!loreLines.isEmpty()) {
+            List<Component> lore = new ArrayList<>();
+            for (String l : loreLines) lore.add(Component.text(l));
+            meta.lore(lore);
+        }
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    // ── Inventar-Hilfsmethoden ──────────────────────────────────────────
 
     private int countItems(Inventory inv, Material mat) {
         int count = 0;
@@ -268,24 +413,26 @@ public class ChestShopListener implements Listener {
     }
 
     public static String formatName(Material mat) {
-        String name = mat.name().replace('_', ' ').toLowerCase();
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        String s = mat.name().replace('_', ' ').toLowerCase();
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
-    // ── Shop-GUI-Holder ─────────────────────────────────────────────────
+    // ── Holders ─────────────────────────────────────────────────────────
 
     public static class ShopHolder implements InventoryHolder {
-        final Block block;
-        final Material item;
-        final int amount;
-        final long buyPrice, sellPrice;
-        final UUID ownerUUID;
+        final Block block; final Material item; final int amount;
+        final long buyPrice, sellPrice; final UUID ownerUUID;
 
         ShopHolder(Block block, Material item, int amount, long buy, long sell, UUID ownerUUID) {
             this.block = block; this.item = item; this.amount = amount;
             this.buyPrice = buy; this.sellPrice = sell; this.ownerUUID = ownerUUID;
         }
+        @Override public Inventory getInventory() { return null; }
+    }
 
+    public static class SettingsHolder implements InventoryHolder {
+        final Block block;
+        SettingsHolder(Block block) { this.block = block; }
         @Override public Inventory getInventory() { return null; }
     }
 }
