@@ -20,6 +20,7 @@ public class PHSurvival extends JavaPlugin {
     private AfkManager afkManager;
     private StatsManager statsManager;
     private SurvivalHologramManager hologramManager;
+    private ClaimBorderVisualizer claimBorderVisualizer;
     private ShopCommand shopCommand;
     private JobsCommand jobsCommand;
 
@@ -41,6 +42,7 @@ public class PHSurvival extends JavaPlugin {
         scoreboardManager = new SurvivalScoreboardManager(this);
         tabManager = new SurvivalTabManager(this);
         afkManager = new AfkManager(this);
+        claimBorderVisualizer = new ClaimBorderVisualizer(this);
         new PlaytimeRewardManager(this);
 
         // Commands
@@ -142,6 +144,7 @@ public class PHSurvival extends JavaPlugin {
     @Override
     public void onDisable() {
         if (claimManager != null) claimManager.save();
+        if (claimBorderVisualizer != null) claimBorderVisualizer.stop();
         if (scoreboardManager != null) scoreboardManager.stopAll();
         if (tabManager != null) tabManager.stop();
         getLogger().info("PH-Survival gestoppt.");
