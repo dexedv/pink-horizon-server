@@ -20,3 +20,20 @@ signs:
   survival: 'Survival'
   skyblock: 'SkyBlock'
   minigames: 'Minigames'
+
+# Server-Status BossBar: Adressen der Sub-Server zum Anpingen
+# Für Docker: host = Container-Name (z.B. "survival"), port = 25565
+# Für lokal:  host = localhost, port = individueller Server-Port
+servers:
+  survival:
+    display: "Survival"
+    host: "localhost"
+    port: 25567
+  skyblock:
+    display: "SkyBlock"
+    host: "localhost"
+    port: 25568
+  minigames:
+    display: "Minigames"
+    host: "localhost"
+    port: 25569

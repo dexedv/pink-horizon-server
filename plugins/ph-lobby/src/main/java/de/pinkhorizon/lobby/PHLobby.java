@@ -18,6 +18,8 @@ import de.pinkhorizon.lobby.managers.AfkManager;
 import de.pinkhorizon.lobby.managers.HologramManager;
 import de.pinkhorizon.lobby.managers.RankManager;
 import de.pinkhorizon.lobby.managers.ScoreboardManager;
+import de.pinkhorizon.lobby.managers.ServerBossBarManager;
+import de.pinkhorizon.lobby.managers.ServerStatusManager;
 import de.pinkhorizon.lobby.managers.TabManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -30,10 +32,12 @@ public class PHLobby extends JavaPlugin {
     private PortalCommand      portalCommand;
     private VanishCommand      vanishCommand;
     private TogglePlayersCommand togglePlayersCommand;
-    private BuildCommand       buildCommand;
-    private AfkManager         afkManager;
-    private RankManager        rankManager;
-    private HologramManager    hologramManager;
+    private BuildCommand          buildCommand;
+    private AfkManager            afkManager;
+    private RankManager           rankManager;
+    private HologramManager       hologramManager;
+    private ServerStatusManager   serverStatusManager;
+    private ServerBossBarManager  bossBarManager;
 
     @Override
     public void onEnable() {
@@ -46,6 +50,12 @@ public class PHLobby extends JavaPlugin {
         afkManager           = new AfkManager(this);
         rankManager          = new RankManager(this);
         hologramManager      = new HologramManager(this);
+
+        // Server-Status BossBar
+        serverStatusManager = new ServerStatusManager(this);
+        bossBarManager      = new ServerBossBarManager(this);
+        bossBarManager.init(serverStatusManager.getServers());
+        serverStatusManager.start();
 
         // Commands
         navigatorCommand     = new NavigatorCommand(this);
@@ -109,7 +119,9 @@ public class PHLobby extends JavaPlugin {
         if (scoreboardManager != null) scoreboardManager.stopAll();
         if (tabManager        != null) tabManager.stop();
         if (portalCommand     != null) portalCommand.stopParticleTask();
-        if (afkManager        != null) afkManager.stop();
+        if (afkManager          != null) afkManager.stop();
+        if (serverStatusManager != null) serverStatusManager.stop();
+        if (bossBarManager      != null) bossBarManager.stop();
         getLogger().info("PH-Lobby gestoppt.");
     }
 
@@ -123,4 +135,6 @@ public class PHLobby extends JavaPlugin {
     public AfkManager getAfkManager()                         { return afkManager; }
     public RankManager getRankManager()                       { return rankManager; }
     public HologramManager getHologramManager()               { return hologramManager; }
+    public ServerStatusManager getServerStatusManager()       { return serverStatusManager; }
+    public ServerBossBarManager getBossBarManager()           { return bossBarManager; }
 }
