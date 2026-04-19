@@ -91,6 +91,15 @@ commands:
   jobs:
     description: Job-System öffnen
     usage: /jobs
+  stats:
+    description: Spielerstatistiken anzeigen
+    usage: /stats [Spieler]
+  kit:
+    description: Starter-Kit erhalten
+    usage: /kit <starter>
+  report:
+    description: Spieler melden
+    usage: /report <Spieler> <Grund>
 
 permissions:
   survival.claim:

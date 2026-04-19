@@ -17,6 +17,8 @@ public class PHSurvival extends JavaPlugin {
     private SurvivalTabManager tabManager;
     private UpgradeManager upgradeManager;
     private JobManager jobManager;
+    private AfkManager afkManager;
+    private StatsManager statsManager;
     private ShopCommand shopCommand;
     private JobsCommand jobsCommand;
 
@@ -32,9 +34,11 @@ public class PHSurvival extends JavaPlugin {
         warpManager = new WarpManager(this);
         upgradeManager = new UpgradeManager(this);
         jobManager = new JobManager(this);
+        statsManager = new StatsManager(this);
         rankManager = new SurvivalRankManager(this);
         scoreboardManager = new SurvivalScoreboardManager(this);
         tabManager = new SurvivalTabManager(this);
+        afkManager = new AfkManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -90,6 +94,18 @@ public class PHSurvival extends JavaPlugin {
 
         getCommand("jobs").setExecutor(jobsCommand);
 
+        StatsCommand statsCmd = new StatsCommand(this);
+        getCommand("stats").setExecutor(statsCmd);
+        getCommand("stats").setTabCompleter(statsCmd);
+
+        KitCommand kitCmd = new KitCommand(this);
+        getCommand("kit").setExecutor(kitCmd);
+        getCommand("kit").setTabCompleter(kitCmd);
+
+        ReportCommand reportCmd = new ReportCommand(this);
+        getCommand("report").setExecutor(reportCmd);
+        getCommand("report").setTabCompleter(reportCmd);
+
         // Listeners
         getServer().getPluginManager().registerEvents(new ClaimProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopListener(this), this);
@@ -98,6 +114,9 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SurvivalChatListener(this), this);
         getServer().getPluginManager().registerEvents(new SpawnZoneListener(this), this);
         getServer().getPluginManager().registerEvents(new JobsListener(this), this);
+        getServer().getPluginManager().registerEvents(new AfkListener(this), this);
+        getServer().getPluginManager().registerEvents(new StatsListener(this), this);
+        getServer().getPluginManager().registerEvents(new PortalProtectionListener(), this);
 
         getLogger().info("PH-Survival gestartet!");
     }
@@ -122,4 +141,6 @@ public class PHSurvival extends JavaPlugin {
     public ShopCommand getShopCommand() { return shopCommand; }
     public JobsCommand getJobsCommand() { return jobsCommand; }
     public JobManager getJobManager() { return jobManager; }
+    public AfkManager getAfkManager() { return afkManager; }
+    public StatsManager getStatsManager() { return statsManager; }
 }

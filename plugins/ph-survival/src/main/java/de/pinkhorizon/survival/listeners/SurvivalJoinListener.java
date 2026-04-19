@@ -47,6 +47,9 @@ public class SurvivalJoinListener implements Listener {
             plugin.getRankManager().setRank(player.getUniqueId(), player.getName(), "owner");
         }
 
+        // AFK-Timer starten
+        plugin.getAfkManager().setJoined(player);
+
         // Scoreboard + Tab
         plugin.getScoreboardManager().giveScoreboard(player);
         plugin.getTabManager().update(player);
