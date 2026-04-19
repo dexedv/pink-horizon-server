@@ -34,6 +34,17 @@ usercache.json
 **/whitelist.json
 **/banned-*.json
 
+# ── Spielerdaten (live auf dem Server, nie überschreiben!) ────────────
+servers/*/plugins/PH-Survival/ranks.yml
+servers/*/plugins/PH-Survival/claims.yml
+servers/*/plugins/PH-Survival/jobs.yml
+servers/*/plugins/PH-Survival/upgrades.yml
+servers/*/plugins/PH-Survival/homes.yml
+servers/*/plugins/PH-Survival/warps.yml
+servers/*/plugins/PH-Lobby/ranks.yml
+servers/*/plugins/PH-SkyBlock/islands.yml
+servers/*/plugins/PH-Core/data.db
+
 # ── IDE ───────────────────────────────────────────────────────────────
 .idea/
 *.iml

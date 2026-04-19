@@ -1,0 +1,75 @@
+name: Build & Deploy Plugins
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/**'   # Nur auslösen wenn Plugin-Code geändert wurde
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Code auschecken ──────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Java 21 einrichten ────────────────────────────────────────
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # ── 3. Alle Plugins bauen ────────────────────────────────────────
+      - name: Build plugins
+        run: cd plugins && mvn clean package -q
+
+      # ── 4. JARs auf den Server kopieren (NUR JARs, KEINE Configs/Daten)
+      - name: Copy JARs to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: >
+            plugins/ph-core/target/ph-core-1.0.0.jar,
+            plugins/ph-lobby/target/ph-lobby-1.0.0.jar,
+            plugins/ph-survival/target/ph-survival-1.0.0.jar,
+            plugins/ph-skyblock/target/ph-skyblock-1.0.0.jar,
+            plugins/ph-minigames/target/ph-minigames-1.0.0.jar
+          target: /tmp/ph-deploy/
+          strip_components: 3   # Entfernt "plugins/ph-xxx/target/" Prefix
+
+      # ── 5. JARs an die richtigen Stellen verschieben & Server neustarten
+      - name: Deploy & restart containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            DEPLOY=/tmp/ph-deploy
+            ROOT=${{ secrets.SERVER_PATH }}
+
+            # ph-core → alle Server
+            for srv in lobby survival skyblock minigames; do
+              cp $DEPLOY/ph-core-1.0.0.jar $ROOT/servers/$srv/plugins/ph-core-1.0.0.jar
+            done
+
+            # Spezifische Plugins
+            cp $DEPLOY/ph-lobby-1.0.0.jar     $ROOT/servers/lobby/plugins/ph-lobby-1.0.0.jar
+            cp $DEPLOY/ph-survival-1.0.0.jar  $ROOT/servers/survival/plugins/ph-survival-1.0.0.jar
+            cp $DEPLOY/ph-skyblock-1.0.0.jar  $ROOT/servers/skyblock/plugins/ph-skyblock-1.0.0.jar
+            cp $DEPLOY/ph-minigames-1.0.0.jar $ROOT/servers/minigames/plugins/ph-minigames-1.0.0.jar
+
+            # Aufräumen
+            rm -rf $DEPLOY
+
+            # Container neustarten (Welten/Spielerdaten bleiben UNBERÜHRT)
+            cd $ROOT && docker compose restart lobby survival skyblock minigames
+
+            echo "Deploy erfolgreich!"
