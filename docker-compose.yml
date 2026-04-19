@@ -25,12 +25,14 @@ services:
     image: itzg/minecraft-server:latest
     container_name: ph-lobby
     healthcheck:
-      start_period: 3m
+      start_period: 2m
     environment:
       EULA: "TRUE"
       TYPE: PAPER
       VERSION: "1.21.4"
-      MEMORY: "2G"
+      INIT_MEMORY: "512m"
+      MEMORY: "1G"
+      USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
       RCON_PORT: "25575"
@@ -54,7 +56,9 @@ services:
       EULA: "TRUE"
       TYPE: PAPER
       VERSION: "1.21.4"
+      INIT_MEMORY: "512m"
       MEMORY: "2G"
+      USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
       RCON_PORT: "25575"
@@ -78,7 +82,9 @@ services:
       EULA: "TRUE"
       TYPE: PAPER
       VERSION: "1.21.4"
+      INIT_MEMORY: "512m"
       MEMORY: "2G"
+      USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
       RCON_PORT: "25575"
@@ -102,7 +108,9 @@ services:
       EULA: "TRUE"
       TYPE: PAPER
       VERSION: "1.21.4"
+      INIT_MEMORY: "512m"
       MEMORY: "2G"
+      USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
       RCON_PORT: "25575"
