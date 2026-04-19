@@ -24,6 +24,8 @@ services:
   lobby:
     image: itzg/minecraft-server:latest
     container_name: ph-lobby
+    healthcheck:
+      start_period: 3m
     environment:
       EULA: "TRUE"
       TYPE: PAPER
@@ -46,6 +48,8 @@ services:
   survival:
     image: itzg/minecraft-server:latest
     container_name: ph-survival
+    healthcheck:
+      start_period: 3m
     environment:
       EULA: "TRUE"
       TYPE: PAPER
@@ -68,6 +72,8 @@ services:
   skyblock:
     image: itzg/minecraft-server:latest
     container_name: ph-skyblock
+    healthcheck:
+      start_period: 3m
     environment:
       EULA: "TRUE"
       TYPE: PAPER
@@ -90,6 +96,8 @@ services:
   minigames:
     image: itzg/minecraft-server:latest
     container_name: ph-minigames
+    healthcheck:
+      start_period: 3m
     environment:
       EULA: "TRUE"
       TYPE: PAPER
