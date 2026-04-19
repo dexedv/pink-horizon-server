@@ -7,11 +7,20 @@ servers/*/paper-*.jar
 proxy/velocity-*.jar
 proxy/server.jar
 
-# ── Welten / Spielerdaten ─────────────────────────────────────────────
-servers/*/*world*/
-servers/*/world/
-servers/*/world_nether/
-servers/*/world_the_end/
+# ── Welten (Lobby-Welt wird bewusst getrackt!) ────────────────────────
+servers/survival/world/
+servers/survival/world_nether/
+servers/survival/world_the_end/
+servers/skyblock/world/
+servers/skyblock/world_nether/
+servers/skyblock/world_the_end/
+servers/skyblock/skyblock_world/
+servers/minigames/world/
+servers/minigames/world_nether/
+servers/minigames/world_the_end/
+servers/lobby/world_nether/
+servers/lobby/world_the_end/
+servers/lobby/world_backup/
 
 # ── Session-Lock (läuft gerade) ───────────────────────────────────────
 **/session.lock
