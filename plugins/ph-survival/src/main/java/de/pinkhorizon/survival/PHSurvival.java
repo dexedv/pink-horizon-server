@@ -106,6 +106,8 @@ public class PHSurvival extends JavaPlugin {
         getCommand("report").setExecutor(reportCmd);
         getCommand("report").setTabCompleter(reportCmd);
 
+        getCommand("rtp").setExecutor(new RtpCommand(this));
+
         // Listeners
         getServer().getPluginManager().registerEvents(new ClaimProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopListener(this), this);

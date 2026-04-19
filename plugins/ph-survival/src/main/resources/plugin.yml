@@ -100,6 +100,9 @@ commands:
   report:
     description: Spieler melden
     usage: /report <Spieler> <Grund>
+  rtp:
+    description: Zufällig teleportieren
+    usage: /rtp
 
 permissions:
   survival.claim:
