@@ -41,6 +41,7 @@ public class PHSurvival extends JavaPlugin {
         scoreboardManager = new SurvivalScoreboardManager(this);
         tabManager = new SurvivalTabManager(this);
         afkManager = new AfkManager(this);
+        new PlaytimeRewardManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -114,6 +115,10 @@ public class PHSurvival extends JavaPlugin {
         getCommand("helpholo").setExecutor(helpHoloCmd);
         getCommand("helpholo").setTabCompleter(helpHoloCmd);
 
+        CreateShopCommand shopCmd = new CreateShopCommand(this);
+        getCommand("createshop").setExecutor(shopCmd);
+        getCommand("removeshop").setExecutor(shopCmd);
+
         // Listeners
         getServer().getPluginManager().registerEvents(new ClaimProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopListener(this), this);
@@ -125,6 +130,8 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new AfkListener(this), this);
         getServer().getPluginManager().registerEvents(new StatsListener(this), this);
         getServer().getPluginManager().registerEvents(new PortalProtectionListener(), this);
+        getServer().getPluginManager().registerEvents(new DeathChestListener(this), this);
+        getServer().getPluginManager().registerEvents(new ChestShopListener(this), this);
 
         // Holograms nach Weltlade spawnen
         getServer().getScheduler().runTaskLater(this, () -> hologramManager.spawnAll(), 60L);

@@ -106,6 +106,12 @@ commands:
   helpholo:
     description: Hilfe-Hologram setzen/entfernen
     usage: /helpholo [place|remove]
+  createshop:
+    description: Chest-Shop erstellen
+    usage: /createshop <Menge> <Kaufpreis> [Verkaufspreis]
+  removeshop:
+    description: Chest-Shop entfernen
+    usage: /removeshop
 
 permissions:
   survival.claim:
