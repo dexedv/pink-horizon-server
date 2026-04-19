@@ -43,6 +43,9 @@ public class PHLobby extends JavaPlugin {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        // Neue Default-Werte in bestehende config.yml mergen (z.B. servers-Sektion)
+        getConfig().options().copyDefaults(true);
+        saveConfig();
 
         // Manager
         scoreboardManager    = new ScoreboardManager(this);
