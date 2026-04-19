@@ -70,59 +70,6 @@ services:
       - ph-net
     restart: unless-stopped
 
-  # ── SkyBlock ──────────────────────────────────────────────────────────
-  skyblock:
-    profiles: ["extra"]
-    image: itzg/minecraft-server:latest
-    container_name: ph-skyblock
-    healthcheck:
-      start_period: 3m
-    environment:
-      EULA: "TRUE"
-      TYPE: PAPER
-      VERSION: "1.21.4"
-      INIT_MEMORY: "256m"
-      MEMORY: "1500m"
-      USE_AIKAR_FLAGS: "true"
-      ONLINE_MODE: "false"
-      ENABLE_RCON: "true"
-      RCON_PORT: "25575"
-      RCON_PASSWORD: "ph-admin-2024"
-    ports:
-      - "25577:25575"             # RCON
-      - "25568:25568"             # Minecraft (intern für Velocity)
-    volumes:
-      - ./servers/skyblock:/data
-    networks:
-      - ph-net
-    restart: unless-stopped
-
-  # ── Minigames ─────────────────────────────────────────────────────────
-  minigames:
-    profiles: ["extra"]
-    image: itzg/minecraft-server:latest
-    container_name: ph-minigames
-    healthcheck:
-      start_period: 3m
-    environment:
-      EULA: "TRUE"
-      TYPE: PAPER
-      VERSION: "1.21.4"
-      INIT_MEMORY: "256m"
-      MEMORY: "1500m"
-      USE_AIKAR_FLAGS: "true"
-      ONLINE_MODE: "false"
-      ENABLE_RCON: "true"
-      RCON_PORT: "25575"
-      RCON_PASSWORD: "ph-admin-2024"
-    ports:
-      - "25578:25575"             # RCON
-      - "25569:25569"             # Minecraft (intern für Velocity)
-    volumes:
-      - ./servers/minigames:/data
-    networks:
-      - ph-net
-    restart: unless-stopped
 
 networks:
   ph-net:
