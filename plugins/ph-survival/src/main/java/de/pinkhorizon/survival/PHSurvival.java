@@ -21,6 +21,7 @@ public class PHSurvival extends JavaPlugin {
     private StatsManager statsManager;
     private SurvivalHologramManager hologramManager;
     private ClaimBorderVisualizer claimBorderVisualizer;
+    private de.pinkhorizon.survival.listeners.ChestShopListener chestShopListener;
     private ShopCommand shopCommand;
     private JobsCommand jobsCommand;
 
@@ -122,8 +123,10 @@ public class PHSurvival extends JavaPlugin {
         getCommand("removeshop").setExecutor(shopCmd);
 
         // Listeners
+        chestShopListener = new de.pinkhorizon.survival.listeners.ChestShopListener(this);
         getServer().getPluginManager().registerEvents(new ClaimProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopListener(this), this);
+        getServer().getPluginManager().registerEvents(chestShopListener, this);
         getServer().getPluginManager().registerEvents(new SurvivalJoinListener(this), this);
         getServer().getPluginManager().registerEvents(new SurvivalDeathListener(this), this);
         getServer().getPluginManager().registerEvents(new SurvivalChatListener(this), this);
@@ -133,7 +136,6 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new StatsListener(this), this);
         getServer().getPluginManager().registerEvents(new PortalProtectionListener(), this);
         getServer().getPluginManager().registerEvents(new DeathChestListener(this), this);
-        getServer().getPluginManager().registerEvents(new ChestShopListener(this), this);
 
         // Holograms nach Weltlade spawnen
         getServer().getScheduler().runTaskLater(this, () -> hologramManager.spawnAll(), 60L);
@@ -165,4 +167,5 @@ public class PHSurvival extends JavaPlugin {
     public AfkManager getAfkManager() { return afkManager; }
     public StatsManager getStatsManager() { return statsManager; }
     public SurvivalHologramManager getHologramManager() { return hologramManager; }
+    public de.pinkhorizon.survival.listeners.ChestShopListener getChestShopListener() { return chestShopListener; }
 }
