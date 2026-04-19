@@ -1,6 +1,7 @@
 package de.pinkhorizon.survival.commands;
 
 import de.pinkhorizon.survival.PHSurvival;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -11,44 +12,56 @@ import java.util.List;
 
 public class HelpHoloCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> HELP_LINES = List.of(
-        "<bold><gradient:#FF69B4:#9B59B6>✦ Pink Horizon – Survival ✦</gradient></bold>",
-        " ",
+    // Titel – zentriert über allen 3 Spalten
+    private static final List<String> TITLE_LINES = List.of(
+        "<bold><gradient:#FF69B4:#9B59B6>✦ Pink Horizon – Survival ✦</gradient></bold>"
+    );
+
+    // Spalte 1 (links): Allgemein + Claims
+    private static final List<String> COL1_LINES = List.of(
         "<bold><gold>⚙ Allgemein</gold></bold>",
-        "<gray>/spawn        <white>→ Zum Spawn teleportieren",
-        "<gray>/rtp          <white>→ Zufällig in die Welt teleportieren",
-        "<gray>/kit starter  <white>→ Starter-Kit erhalten (24h Cooldown)",
-        "<gray>/stats        <white>→ Deine Statistiken anzeigen",
-        " ",
-        "<bold><gold>🏠 Homes & Teleport</gold></bold>",
-        "<gray>/sethome [Name]  <white>→ Home setzen",
-        "<gray>/home [Name]     <white>→ Zu Home teleportieren",
-        "<gray>/homes           <white>→ Alle Homes anzeigen",
-        "<gray>/delhome [Name]  <white>→ Home löschen",
-        "<gray>/tpa <Spieler>   <white>→ Teleportanfrage senden",
-        "<gray>/tpaccept        <white>→ Anfrage annehmen",
-        " ",
-        "<bold><gold>💰 Wirtschaft</gold></bold>",
-        "<gray>/balance       <white>→ Kontostand anzeigen",
-        "<gray>/pay <Sp.> <B> <white>→ Coins überweisen",
-        "<gray>/baltop        <white>→ Reichste Spieler",
-        "<gray>/jobs          <white>→ Job wählen & Geld verdienen",
-        "<gray>/shop          <white>→ Upgrades kaufen (Fly, KI, Claims)",
+        "<gray>/spawn        <white>→ Zum Spawn tp.",
+        "<gray>/rtp          <white>→ Zufällig teleportieren",
+        "<gray>/kit starter  <white>→ Starter-Kit (24h)",
+        "<gray>/stats        <white>→ Statistiken anzeigen",
         " ",
         "<bold><gold>🏗 Claims</gold></bold>",
         "<gray>/claim         <white>→ Chunk schützen",
         "<gray>/unclaim       <white>→ Schutz entfernen",
-        "<gray>/claimlist     <white>→ Eigene Claims anzeigen",
-        "<gray>/trust <Sp.>   <white>→ Spieler im Claim vertrauen",
+        "<gray>/claimlist     <white>→ Eigene Claims",
+        "<gray>/trust <Sp.>   <white>→ Spieler vertrauen"
+    );
+
+    // Spalte 2 (mitte): Homes & Teleport + Warps
+    private static final List<String> COL2_LINES = List.of(
+        "<bold><gold>🏠 Homes & Teleport</gold></bold>",
+        "<gray>/sethome [Name]  <white>→ Home setzen",
+        "<gray>/home [Name]     <white>→ Home tp.",
+        "<gray>/homes           <white>→ Alle Homes",
+        "<gray>/delhome [Name]  <white>→ Home löschen",
+        "<gray>/tpa <Spieler>   <white>→ TP-Anfrage senden",
+        "<gray>/tpaccept        <white>→ Anfrage annehmen",
         " ",
         "<bold><gold>🗺 Warps</gold></bold>",
-        "<gray>/warps         <white>→ Alle Warps anzeigen",
-        "<gray>/warp <Name>   <white>→ Zu Warp teleportieren",
+        "<gray>/warps         <white>→ Alle Warps",
+        "<gray>/warp <Name>   <white>→ Zu Warp tp."
+    );
+
+    // Spalte 3 (rechts): Wirtschaft + Sonstiges
+    private static final List<String> COL3_LINES = List.of(
+        "<bold><gold>💰 Wirtschaft</gold></bold>",
+        "<gray>/balance       <white>→ Kontostand",
+        "<gray>/pay <Sp.> <B> <white>→ Coins überweisen",
+        "<gray>/baltop        <white>→ Reichste Spieler",
+        "<gray>/jobs          <white>→ Job & Geld verdienen",
+        "<gray>/shop          <white>→ Upgrades kaufen",
         " ",
         "<bold><gold>💬 Sonstiges</gold></bold>",
-        "<gray>/report <Sp.> <Grund>  <white>→ Spieler melden",
-        "<gray>/hub                   <white>→ Zur Lobby"
+        "<gray>/report <Sp.> <Gr.> <white>→ Spieler melden",
+        "<gray>/hub               <white>→ Zur Lobby"
     );
+
+    private static final double COL_OFFSET = 4.0; // Abstand zwischen Spalten (Blöcke)
 
     private final PHSurvival plugin;
 
@@ -71,12 +84,29 @@ public class HelpHoloCommand implements CommandExecutor, TabCompleter {
 
         switch (sub) {
             case "place" -> {
-                plugin.getHologramManager().create("help", player.getLocation(), HELP_LINES, 0.9f);
+                Location base = player.getLocation();
+                var hm = plugin.getHologramManager();
+
+                // Titel 1.5 Blöcke über der Basis
+                hm.create("help-title", base.clone().add(0, 1.5, 0), TITLE_LINES, 1.1f);
+
+                // 3 Spalten auf gleicher Höhe
+                hm.create("help-col1", base.clone().add(-COL_OFFSET, 0, 0), COL1_LINES, 0.85f);
+                hm.create("help-col2", base.clone(),                         COL2_LINES, 0.85f);
+                hm.create("help-col3", base.clone().add( COL_OFFSET, 0, 0), COL3_LINES, 0.85f);
+
                 player.sendMessage("§aHilfe-Hologram gesetzt!");
             }
             case "remove" -> {
-                boolean removed = plugin.getHologramManager().remove("help");
-                player.sendMessage(removed ? "§aHilfe-Hologram entfernt!" : "§cKein Hilfe-Hologram gefunden.");
+                var hm = plugin.getHologramManager();
+                boolean r1 = hm.remove("help-title");
+                boolean r2 = hm.remove("help-col1");
+                boolean r3 = hm.remove("help-col2");
+                boolean r4 = hm.remove("help-col3");
+                // Rückwärts-Kompatibilität: altes Single-Hologram
+                hm.remove("help");
+                boolean any = r1 || r2 || r3 || r4;
+                player.sendMessage(any ? "§aHilfe-Hologram entfernt!" : "§cKein Hilfe-Hologram gefunden.");
             }
             default -> player.sendMessage("§cVerwendung: /helpholo [place|remove]");
         }
