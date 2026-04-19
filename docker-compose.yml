@@ -56,8 +56,8 @@ services:
       EULA: "TRUE"
       TYPE: PAPER
       VERSION: "1.21.4"
-      INIT_MEMORY: "512m"
-      MEMORY: "2G"
+      INIT_MEMORY: "256m"
+      MEMORY: "1500m"
       USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
@@ -82,8 +82,8 @@ services:
       EULA: "TRUE"
       TYPE: PAPER
       VERSION: "1.21.4"
-      INIT_MEMORY: "512m"
-      MEMORY: "2G"
+      INIT_MEMORY: "256m"
+      MEMORY: "1500m"
       USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
@@ -108,8 +108,8 @@ services:
       EULA: "TRUE"
       TYPE: PAPER
       VERSION: "1.21.4"
-      INIT_MEMORY: "512m"
-      MEMORY: "2G"
+      INIT_MEMORY: "256m"
+      MEMORY: "1500m"
       USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"

@@ -23,12 +23,7 @@ public class SurvivalScoreboardManager {
     private final Map<UUID, Scoreboard> playerBoards = new HashMap<>();
     private BukkitTask updateTask;
 
-    private static final String[] TITLE_FRAMES = {
-        "§a§lPink Horizon §7| §2Survival",
-        "§2§lPink Horizon §7| §aSurvival",
-        "§a§l✦ §2Survival §a§l✦"
-    };
-    private int titleFrame = 0;
+    private static final String TITLE = "§a§lPink Horizon §7| §2Survival";
 
     // 16 einzigartige Einträge
     private static final String[] ENTRIES;
@@ -47,7 +42,7 @@ public class SurvivalScoreboardManager {
     public void giveScoreboard(Player player) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective obj = board.registerNewObjective("ph_surv", Criteria.DUMMY,
-            Component.text(TITLE_FRAMES[0]));
+            Component.text(TITLE));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         for (int i = 0; i < 12; i++) {
@@ -68,13 +63,9 @@ public class SurvivalScoreboardManager {
 
     private void startUpdateTask() {
         updateTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            titleFrame = (titleFrame + 1) % TITLE_FRAMES.length;
             for (Player player : Bukkit.getOnlinePlayers()) {
                 Scoreboard board = playerBoards.get(player.getUniqueId());
                 if (board == null) continue;
-                Objective obj = board.getObjective("ph_surv");
-                if (obj == null) continue;
-                obj.displayName(Component.text(TITLE_FRAMES[titleFrame]));
                 refreshLines(player, board);
             }
         }, 20L, 20L);
