@@ -10,10 +10,10 @@ echo "=== Pink Horizon Update ==="
 git pull
 
 # Berechtigungen fixieren (Docker läuft als uid=1000)
-chown -R 1000:1000 servers/lobby/ servers/survival/ servers/skyblock/ servers/minigames/
+chown -R 1000:1000 servers/lobby/ servers/survival/
 
 # Container mit neuen JARs neustarten
 # Welten, ranks.yml, claims.yml etc. sind in .gitignore → werden NIE berührt
-docker compose restart lobby survival skyblock minigames
+docker compose restart lobby survival
 
 echo "=== Update abgeschlossen ==="
