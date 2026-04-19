@@ -16,6 +16,11 @@ public class BackCommand implements CommandExecutor {
             return true;
         }
 
+        if (!player.isOp()) {
+            player.sendMessage("§cDieser Befehl ist nicht verfügbar!");
+            return true;
+        }
+
         Location lastDeath = SurvivalDeathListener.lastDeaths.get(player.getUniqueId());
         if (lastDeath == null) {
             player.sendMessage("\u00a7cKein Sterbeort gefunden!");
