@@ -2,6 +2,7 @@ package de.pinkhorizon.lobby;
 
 import de.pinkhorizon.lobby.commands.BorderCommand;
 import de.pinkhorizon.lobby.commands.BuildCommand;
+import de.pinkhorizon.lobby.commands.HologramCommand;
 import de.pinkhorizon.lobby.commands.NavigatorCommand;
 import de.pinkhorizon.lobby.commands.PortalCommand;
 import de.pinkhorizon.lobby.commands.RankCommand;
@@ -14,6 +15,7 @@ import de.pinkhorizon.lobby.listeners.JoinTitleListener;
 import de.pinkhorizon.lobby.listeners.LobbyListener;
 import de.pinkhorizon.lobby.listeners.SignListener;
 import de.pinkhorizon.lobby.managers.AfkManager;
+import de.pinkhorizon.lobby.managers.HologramManager;
 import de.pinkhorizon.lobby.managers.RankManager;
 import de.pinkhorizon.lobby.managers.ScoreboardManager;
 import de.pinkhorizon.lobby.managers.TabManager;
@@ -31,6 +33,7 @@ public class PHLobby extends JavaPlugin {
     private BuildCommand       buildCommand;
     private AfkManager         afkManager;
     private RankManager        rankManager;
+    private HologramManager    hologramManager;
 
     @Override
     public void onEnable() {
@@ -42,6 +45,7 @@ public class PHLobby extends JavaPlugin {
         tabManager           = new TabManager(this);
         afkManager           = new AfkManager(this);
         rankManager          = new RankManager(this);
+        hologramManager      = new HologramManager(this);
 
         // Commands
         navigatorCommand     = new NavigatorCommand(this);
@@ -57,6 +61,10 @@ public class PHLobby extends JavaPlugin {
         getCommand("build").setExecutor(buildCommand);
         getCommand("portal").setExecutor(portalCommand);
         getCommand("portal").setTabCompleter(portalCommand);
+
+        HologramCommand hologramCommand = new HologramCommand(this);
+        getCommand("hologram").setExecutor(hologramCommand);
+        getCommand("hologram").setTabCompleter(hologramCommand);
 
         RankCommand rankCommand = new RankCommand(this);
         getCommand("rank").setExecutor(rankCommand);
@@ -82,6 +90,8 @@ public class PHLobby extends JavaPlugin {
                 world.getEntities().stream()
                     .filter(e -> !(e instanceof org.bukkit.entity.Player))
                     .forEach(org.bukkit.entity.Entity::remove);
+                // Holograms nach Cleanup spawnen
+                hologramManager.spawnAll();
                 world.setGameRule(org.bukkit.GameRule.DO_DAYLIGHT_CYCLE, false);
                 world.setGameRule(org.bukkit.GameRule.DO_WEATHER_CYCLE, false);
                 world.setTime(6000);
@@ -112,4 +122,5 @@ public class PHLobby extends JavaPlugin {
     public BuildCommand getBuildCommand()                      { return buildCommand; }
     public AfkManager getAfkManager()                         { return afkManager; }
     public RankManager getRankManager()                       { return rankManager; }
+    public HologramManager getHologramManager()               { return hologramManager; }
 }

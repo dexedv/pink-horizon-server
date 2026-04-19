@@ -31,6 +31,9 @@ commands:
   rank:
     description: Rang eines Spielers verwalten
     usage: /rank <set|info|list>
+  hologram:
+    description: Holograms verwalten
+    usage: /hologram <create|delete|list>
 
 permissions:
   lobby.navigator:
