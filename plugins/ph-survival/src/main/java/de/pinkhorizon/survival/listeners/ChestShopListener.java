@@ -193,6 +193,12 @@ public class ChestShopListener implements Listener {
             player.sendMessage("§cDer Shop ist voll – kann nichts annehmen!");
             return;
         }
+        // Shop-Besitzer muss die Coins für den Kauf haben
+        UUID ownerUUID = UUID.fromString(chest.getPersistentDataContainer().get(ownerKey, PersistentDataType.STRING));
+        if (!plugin.getEconomyManager().withdraw(ownerUUID, h.sellPrice)) {
+            player.sendMessage("§cDer Shop-Besitzer hat nicht genug Coins!");
+            return;
+        }
         removeItems(player.getInventory(), h.item, h.amount);
         chest.getInventory().addItem(new ItemStack(h.item, h.amount));
         chest.update();
