@@ -55,7 +55,7 @@ public class ScoreboardManager {
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         // Teams + Eintraege einmalig registrieren
-        for (int i = 0; i < 11; i++) {
+        for (int i = 0; i < 9; i++) {
             Team team = board.registerNewTeam("line" + i);
             team.addEntry(ENTRIES[i]);
             obj.getScore(ENTRIES[i]).setScore(i);
@@ -90,15 +90,13 @@ public class ScoreboardManager {
         int online   = Bukkit.getOnlinePlayers().size();
 
         // Score 10 = oberste Zeile, Score 0 = unterste
-        setLine(board, 10, " ");
-        setLine(board, 9,  "\u00a7d\u00a7l\u00bb \u00a7fServer-Hub");
-        setLine(board, 8,  "  ");
-        setLine(board, 7,  "\u00a77Online: \u00a7d\u00a7l" + online);
-        setLine(board, 6,  "\u00a77Datum:  \u00a7f" + date);
-        setLine(board, 5,  "   ");
-        setLine(board, 4,  "\u00a77\u00bb \u00a7aSurvival");
-        setLine(board, 3,  "\u00a77\u00bb \u00a76SkyBlock");
-        setLine(board, 2,  "\u00a77\u00bb \u00a7bMinigames");
+        setLine(board, 8,  " ");
+        setLine(board, 7,  "\u00a7d\u00a7l\u00bb \u00a7fServer-Hub");
+        setLine(board, 6,  "  ");
+        setLine(board, 5,  "\u00a77Online: \u00a7d\u00a7l" + online);
+        setLine(board, 4,  "\u00a77Datum:  \u00a7f" + date);
+        setLine(board, 3,  "   ");
+        setLine(board, 2,  "\u00a77\u00bb \u00a7aSurvival");
         setLine(board, 1,  "    ");
         setLine(board, 0,  "\u00a7dplay.pinkhorizon.de");
     }
