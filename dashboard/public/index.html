@@ -6,1077 +6,908 @@
 <title>Pink Horizon – Dashboard</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --bg:       #0f0f13;
-    --surface:  #1a1a24;
-    --border:   #2a2a3a;
-    --text:     #e0e0f0;
-    --muted:    #6b6b8a;
-    --pink:     #ff69b4;
-    --purple:   #9b59b6;
-    --green:    #2ecc71;
-    --red:      #e74c3c;
-    --blue:     #3498db;
-    --yellow:   #f39c12;
-    --font:     'Segoe UI', system-ui, sans-serif;
-    --mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --bg: #0f0f13; --surface: #1a1a24; --surface2: #1e1e2c; --border: #2a2a3a;
+    --text: #e0e0f0; --muted: #6b6b8a;
+    --pink: #ff69b4; --purple: #9b59b6;
+    --green: #2ecc71; --red: #e74c3c; --blue: #3498db; --yellow: #f39c12;
+    --font: 'Segoe UI', system-ui, sans-serif;
+    --mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    --sw: 220px; --hh: 52px;
   }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-  body { background: var(--bg); color: var(--text); font-family: var(--font); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  /* Login */
+  #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .lbox { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 40px; width: 360px; text-align: center; }
+  .lbox h1 { font-size: 1.6rem; background: linear-gradient(135deg,var(--pink),var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  .lbox p { color: var(--muted); margin-bottom: 28px; font-size: .9rem; }
+  .lbox input { width: 100%; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1rem; outline: none; margin-bottom: 12px; }
+  .lbox input:focus { border-color: var(--pink); }
+  .lbox .lbtn { width: 100%; padding: 12px; background: linear-gradient(135deg,var(--pink),var(--purple)); border: none; border-radius: 8px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  .lbox .lbtn:hover { opacity: .85; }
+  .lerr { color: var(--red); font-size: .85rem; margin-top: 10px; display: none; }
+  .hidden { display: none !important; }
 
-  /* ── Login ── */
-  #login-screen {
-    position: fixed; inset: 0; background: var(--bg);
-    display: flex; align-items: center; justify-content: center; z-index: 100;
-  }
-  .login-box {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    padding: 40px; width: 360px; text-align: center;
-  }
-  .login-box h1 { font-size: 1.6rem; background: linear-gradient(135deg, var(--pink), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
-  .login-box p  { color: var(--muted); margin-bottom: 28px; font-size: .9rem; }
-  .login-box input {
-    width: 100%; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; color: var(--text); font-size: 1rem; outline: none; margin-bottom: 12px;
-  }
-  .login-box input:focus { border-color: var(--pink); }
-  .login-box button {
-    width: 100%; padding: 12px; background: linear-gradient(135deg, var(--pink), var(--purple));
-    border: none; border-radius: 8px; color: #fff; font-size: 1rem; font-weight: 600;
-    cursor: pointer; transition: opacity .2s;
-  }
-  .login-box button:hover { opacity: .85; }
-  .login-error { color: var(--red); font-size: .85rem; margin-top: 10px; display: none; }
+  /* App */
+  #app { display: flex; flex: 1; overflow: hidden; }
 
-  /* ── Header ── */
-  header {
-    height: 52px; background: var(--surface); border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0;
-  }
-  .logo { font-size: 1.1rem; font-weight: 700; background: linear-gradient(135deg, var(--pink), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .header-sep { flex: 1; }
-  .btn-logout { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: .85rem; }
-  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+  /* Sidebar */
+  #sidebar { width: var(--sw); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .nav-logo { padding: 0 16px; height: var(--hh); display: flex; align-items: center; font-size: 1rem; font-weight: 700; background: linear-gradient(135deg,var(--pink),var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  #nav-body { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-sec { font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); padding: 10px 8px 3px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; background: none; color: var(--text); font-size: .88rem; text-align: left; width: 100%; transition: background .15s; }
+  .nav-item:hover { background: rgba(255,255,255,.05); }
+  .nav-item.active { background: rgba(255,105,180,.1); border-color: rgba(255,105,180,.3); }
+  .ndot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
+  .ndot.on  { background: var(--green); box-shadow: 0 0 5px var(--green); }
+  .ndot.off { background: var(--red); }
+  .nav-footer { padding: 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .logout-btn { width: 100%; padding: 8px 10px; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; cursor: pointer; font-size: .85rem; text-align: left; transition: all .15s; }
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
 
-  /* ── Layout ── */
-  .layout { display: flex; flex: 1; overflow: hidden; }
+  /* Main */
+  #main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #page-header { height: var(--hh); display: flex; align-items: center; gap: 12px; padding: 0 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+  #page-title { font-size: 1.1rem; font-weight: 700; flex: 1; }
+  #hdr-actions { display: flex; gap: 8px; align-items: center; }
+  #page-content { flex: 1; overflow-y: auto; }
 
-  /* ── Sidebar ── */
-  aside {
-    width: 200px; background: var(--surface); border-right: 1px solid var(--border);
-    padding: 12px 8px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;
-  }
-  .sidebar-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 8px 10px 4px; }
-  .server-btn {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-    border-radius: 8px; cursor: pointer; border: 1px solid transparent;
-    background: none; color: var(--text); font-size: .9rem; text-align: left; width: 100%;
-    transition: background .15s;
-  }
-  .server-btn:hover   { background: rgba(255,255,255,.05); }
-  .server-btn.active  { background: rgba(255,105,180,.1); border-color: rgba(255,105,180,.3); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
-  .dot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
-  .dot.offline { background: var(--red); }
+  /* Buttons */
+  .btn { padding: 7px 14px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; font-size: .85rem; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; white-space: nowrap; }
+  .btn:hover { border-color: var(--pink); color: var(--pink); }
+  .btn-d:hover { border-color: var(--red)   !important; color: var(--red)   !important; }
+  .btn-s:hover { border-color: var(--green) !important; color: var(--green) !important; }
+  .btn-p { background: linear-gradient(135deg,var(--pink),var(--purple)); border-color: transparent; color: #fff; font-weight: 600; }
+  .btn-p:hover { opacity: .85; color: #fff; border-color: transparent; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-xs { padding: 3px 10px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: .76rem; transition: all .15s; white-space: nowrap; }
+  .btn-xs:hover { border-color: var(--red); color: var(--red); }
+  .btn-xs.g:hover { border-color: var(--green); color: var(--green); }
 
-  /* ── Main Panel ── */
-  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card-title { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 10px; }
 
-  .server-header {
-    padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0;
-  }
-  .server-name  { font-size: 1.2rem; font-weight: 700; }
-  .server-status { font-size: .8rem; padding: 3px 10px; border-radius: 20px; background: rgba(255,255,255,.08); }
-  .server-status.online  { color: var(--green); }
-  .server-status.offline { color: var(--red); }
-  .header-actions { margin-left: auto; display: flex; gap: 8px; }
+  /* Badges */
+  .badge { font-size: .72rem; padding: 2px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; }
+  .b-green  { background: rgba(46,204,113,.12); border: 1px solid rgba(46,204,113,.3); color: var(--green); }
+  .b-red    { background: rgba(231,76,60,.12);  border: 1px solid rgba(231,76,60,.3);  color: var(--red); }
+  .b-purple { background: rgba(155,89,182,.12); border: 1px solid rgba(155,89,182,.3); color: var(--purple); }
+  .b-yellow { background: rgba(243,156,18,.12); border: 1px solid rgba(243,156,18,.3); color: var(--yellow); }
 
-  .btn {
-    padding: 7px 14px; border-radius: 7px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text); cursor: pointer; font-size: .85rem;
-    display: flex; align-items: center; gap: 6px; transition: all .15s;
-  }
-  .btn:hover            { border-color: var(--pink); color: var(--pink); }
-  .btn.btn-danger:hover { border-color: var(--red);  color: var(--red); }
-  .btn.btn-success:hover{ border-color: var(--green); color: var(--green); }
-  .btn:disabled         { opacity: .4; cursor: not-allowed; }
+  /* Form */
+  .field { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 13px; color: var(--text); font-size: .9rem; outline: none; width: 100%; font-family: inherit; }
+  .field:focus { border-color: var(--pink); }
+  .fsm { padding: 6px 10px; font-size: .85rem; border-radius: 6px; }
+  select.field { cursor: pointer; }
+  .irow { display: flex; gap: 8px; align-items: center; }
 
-  /* ── Tabs ── */
-  .console-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 12px 16px; gap: 10px; }
-  .console-tabs { display: flex; gap: 4px; flex-shrink: 0; }
-  .tab-btn {
-    padding: 5px 14px; border-radius: 6px 6px 0 0; border: 1px solid var(--border); border-bottom: none;
-    background: none; color: var(--muted); cursor: pointer; font-size: .85rem;
-  }
-  .tab-btn.active { background: var(--bg); color: var(--text); }
-  .tab-panel { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-  .tab-hidden { display: none !important; }
+  /* Msg */
+  .msg { font-size: .82rem; padding: 6px 12px; border-radius: 6px; }
+  .msg-ok  { background: rgba(46,204,113,.1); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
+  .msg-err { background: rgba(231,76,60,.1);  color: var(--red);   border: 1px solid rgba(231,76,60,.3); }
 
-  /* ── Konsole ── */
-  #console-output {
-    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 0 8px 8px 8px;
-    padding: 12px 14px; overflow-y: auto; font-family: var(--mono); font-size: .8rem;
-    line-height: 1.55; white-space: pre-wrap; word-break: break-all;
-  }
-  #console-output .log-line         { color: #c0c0d0; }
-  #console-output .log-line.warn    { color: var(--yellow); }
-  #console-output .log-line.error   { color: var(--red); }
-  #console-output .log-line.info    { color: #7ec8e3; }
-  #console-output .log-line.cmd-out { color: var(--pink); }
+  /* Layout */
+  .page { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+  @media(max-width:1000px){ .g3,.g4 { grid-template-columns: 1fr 1fr; } }
+  @media(max-width:650px) { .g2,.g3,.g4 { grid-template-columns: 1fr; } }
 
-  .console-input-row { display: flex; gap: 8px; flex-shrink: 0; }
-  #cmd-input {
-    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-    padding: 10px 14px; color: var(--text); font-family: var(--mono); font-size: .9rem; outline: none;
-  }
-  #cmd-input:focus { border-color: var(--pink); }
-  #cmd-send {
-    padding: 10px 20px; background: linear-gradient(135deg, var(--pink), var(--purple));
-    border: none; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; font-size: .9rem;
-  }
-  #cmd-send:hover { opacity: .85; }
+  /* Dashboard */
+  .srv-card-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .srv-card-name { font-weight: 700; font-size: 1rem; flex: 1; }
+  .srv-meta { display: flex; flex-direction: column; gap: 5px; font-size: .85rem; margin-bottom: 10px; }
+  .srv-row { display: flex; justify-content: space-between; }
+  .srv-row span:first-child { color: var(--muted); }
+  .srv-row span:last-child  { font-weight: 600; }
+  .srv-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
-  /* ── Spieler-Tab ── */
-  .player-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .stat-card { display: flex; align-items: center; gap: 14px; }
+  .stat-icon { font-size: 1.8rem; }
+  .stat-lbl  { font-size: .75rem; color: var(--muted); }
+  .stat-val  { font-size: 1.5rem; font-weight: 700; }
 
-  .player-search-row { display: flex; gap: 8px; flex-shrink: 0; }
-  .player-search-row input {
-    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-    padding: 10px 14px; color: var(--text); font-size: .9rem; outline: none;
-  }
-  .player-search-row input:focus { border-color: var(--pink); }
-  .search-btn {
-    padding: 10px 18px; background: linear-gradient(135deg, var(--pink), var(--purple));
-    border: none; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; font-size: .9rem;
-    white-space: nowrap;
-  }
-  .search-btn:disabled { opacity: .5; cursor: not-allowed; }
+  /* Console */
+  .con-wrap  { display: flex; flex-direction: column; height: 100%; padding: 12px 16px; gap: 10px; }
+  .con-out   { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; overflow-y: auto; font-family: var(--mono); font-size: .8rem; line-height: 1.55; white-space: pre-wrap; word-break: break-all; }
+  .ll        { color: #c0c0d0; }
+  .ll.warn   { color: var(--yellow); }
+  .ll.error  { color: var(--red); }
+  .ll.info   { color: #7ec8e3; }
+  .ll.cmd    { color: var(--pink); }
+  .con-in    { display: flex; gap: 8px; flex-shrink: 0; }
+  .con-in .field { font-family: var(--mono); }
 
-  .online-chips { display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; min-height: 24px; align-items: center; }
-  .chip {
-    padding: 3px 12px; background: rgba(255,255,255,.06); border: 1px solid var(--border);
-    border-radius: 20px; cursor: pointer; font-size: .82rem; color: var(--text); transition: all .15s;
-  }
+  /* Players */
+  .pl-page { display: flex; flex-direction: column; height: 100%; }
+  .pl-top  { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+  .pl-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .chips   { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 24px; }
+  .chip-lbl { font-size: .78rem; color: var(--muted); }
+  .chip { padding: 3px 12px; background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: .82rem; color: var(--text); transition: all .15s; }
   .chip:hover { border-color: var(--pink); color: var(--pink); }
-  .chip::before { content: '● '; color: var(--green); }
-  .chips-label { font-size: .78rem; color: var(--muted); }
+  .chip::before { content: '● '; color: var(--green); font-size: .7rem; }
 
-  .player-card-empty {
-    flex: 1; display: flex; align-items: center; justify-content: center;
-    color: var(--muted); font-size: .9rem; border: 1px dashed var(--border); border-radius: 10px;
-  }
+  .pl-hdr { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+  .pl-name { font-size: 1.2rem; font-weight: 700; flex: 1; }
+  .pl-acts { display: flex; gap: 6px; flex-wrap: wrap; }
 
-  /* Spieler-Karte */
-  .player-card { display: flex; flex-direction: column; gap: 10px; }
-
-  .pc-header {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  }
-  .pc-name { font-size: 1.15rem; font-weight: 700; flex: 1; }
-  .rank-row { display: flex; align-items: center; gap: 8px; }
-  .rank-row select {
-    background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    padding: 7px 10px; border-radius: 6px; font-size: .85rem; outline: none; cursor: pointer;
-  }
-  .rank-row select:focus { border-color: var(--pink); }
-  .rank-badge {
-    font-size: .78rem; padding: 2px 10px; border-radius: 20px;
-    background: rgba(155,89,182,.15); border: 1px solid rgba(155,89,182,.3); color: var(--purple);
-  }
-
-  .pc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  @media (max-width: 700px) { .pc-grid { grid-template-columns: 1fr; } }
-
-  .data-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-    padding: 16px; display: flex; flex-direction: column; gap: 10px;
-  }
-  .data-card h3 {
-    font-size: .75rem; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--muted); margin-bottom: 2px;
-  }
-
-  /* Coins */
-  .coin-big { font-size: 1.9rem; font-weight: 700; color: var(--yellow); }
-  .coin-input {
-    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
-    padding: 8px 12px; color: var(--text); font-size: .9rem; outline: none;
-  }
-  .coin-input:focus { border-color: var(--yellow); }
-  .coin-btns { display: flex; gap: 6px; }
-  .coin-btns button {
-    flex: 1; padding: 8px 4px; border-radius: 6px; border: 1px solid var(--border);
-    background: var(--bg); color: var(--text); cursor: pointer; font-size: .8rem; transition: all .15s;
-  }
-  .coin-btns .btn-give:hover { border-color: var(--green); color: var(--green); }
-  .coin-btns .btn-take:hover { border-color: var(--red);   color: var(--red); }
-  .coin-btns .btn-set:hover  { border-color: var(--blue);  color: var(--blue); }
-
-  /* Statistiken */
-  .stat-row {
-    display: flex; justify-content: space-between; padding: 5px 0;
-    border-bottom: 1px solid rgba(255,255,255,.05); font-size: .88rem;
-  }
+  .stat-tbl { display: flex; flex-direction: column; }
+  .stat-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: .88rem; }
   .stat-row:last-child { border-bottom: none; }
-  .stat-lbl { color: var(--muted); }
-  .stat-val { font-weight: 600; }
+  .sl { color: var(--muted); }
+  .sv { font-weight: 600; }
 
-  /* Job */
-  .job-row { display: flex; align-items: center; gap: 10px; }
-  .job-badge {
-    padding: 4px 14px; border-radius: 20px; font-size: .85rem; font-weight: 600;
-    background: rgba(46,204,113,.12); border: 1px solid rgba(46,204,113,.3); color: var(--green);
-  }
-  .job-none { color: var(--muted); font-size: .88rem; }
+  .coin-big { font-size: 2rem; font-weight: 700; color: var(--yellow); }
+  .cbtns { display: flex; gap: 6px; }
+  .cbtn { flex: 1; padding: 8px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; font-size: .82rem; transition: all .15s; }
+  .cbtn.give:hover { border-color: var(--green); color: var(--green); }
+  .cbtn.take:hover { border-color: var(--red);   color: var(--red); }
+  .cbtn.setv:hover { border-color: var(--blue);  color: var(--blue); }
 
-  /* Aktionsergebnis */
-  .action-result {
-    font-size: .82rem; padding: 6px 12px; border-radius: 6px;
-    display: none; margin-top: 2px;
-  }
-  .action-result.ok  { display: block; background: rgba(46,204,113,.1); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
-  .action-result.err { display: block; background: rgba(231,76,60,.1);  color: var(--red);   border: 1px solid rgba(231,76,60,.3); }
+  /* Economy */
+  .bt-row { display: flex; align-items: center; gap: 12px; padding: 9px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+  .bt-rank { font-size: .9rem; font-weight: 700; color: var(--muted); min-width: 28px; }
+  .bt-rank.gold   { color: #FFD700; }
+  .bt-rank.silver { color: #C0C0C0; }
+  .bt-rank.bronze { color: #CD7F32; }
+  .bt-name { flex: 1; font-weight: 600; font-family: var(--mono); font-size: .9rem; cursor: pointer; }
+  .bt-name:hover { color: var(--pink); }
+  .bt-coins { color: var(--yellow); font-weight: 700; }
 
-  /* Rank-Ergebnis */
-  .rank-result { font-size: .82rem; }
-  .rank-result.ok  { color: var(--green); }
-  .rank-result.err { color: var(--red); }
+  /* Rights */
+  .rtabs  { display: flex; gap: 4px; }
+  .rtab   { padding: 5px 20px; border-radius: 6px 6px 0 0; border: 1px solid var(--border); border-bottom: none; background: none; color: var(--muted); cursor: pointer; font-size: .88rem; }
+  .rtab.active { background: var(--bg); color: var(--text); }
+  .rbody  { background: var(--bg); border: 1px solid var(--border); border-radius: 0 8px 8px 8px; padding: 16px; display: flex; flex-direction: column; gap: 20px; flex: 1; overflow-y: auto; }
+  .rsec   { display: flex; flex-direction: column; gap: 8px; }
+  .rhdr   { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+  .rttl   { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); flex: 1; }
+  .pentries { display: flex; flex-direction: column; gap: 4px; }
+  .pentry { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
+  .pentry-name { flex: 1; font-family: var(--mono); font-size: .88rem; }
+  .wl-pill { font-size: .76rem; padding: 3px 10px; border-radius: 12px; }
+  .wl-on  { background: rgba(46,204,113,.12); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
+  .wl-off { background: rgba(107,107,138,.12); color: var(--muted); border: 1px solid var(--border); }
 
-  /* ── Leer ── */
-  .empty-state {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    color: var(--muted); gap: 12px;
-  }
-  .empty-state svg { opacity: .3; }
+  /* Commands */
+  .cg-title { font-size: .95rem; font-weight: 700; padding: 4px 0 8px; border-bottom: 2px solid var(--border); margin-bottom: 4px; }
+  .csec { display: flex; flex-direction: column; gap: 4px; }
+  .csec-lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 6px 0 2px; }
+  .crow { display: grid; grid-template-columns: 155px 1fr 2fr auto; align-items: center; gap: 10px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; font-size: .87rem; }
+  .cn { font-family: var(--mono); color: var(--pink); font-weight: 600; }
+  .cu { font-family: var(--mono); color: var(--muted); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cd { color: var(--text); }
+  .ca { font-size: .7rem; padding: 2px 8px; border-radius: 10px; background: rgba(231,76,60,.12); border: 1px solid rgba(231,76,60,.3); color: var(--red); white-space: nowrap; }
+  .ch { display: none !important; }
 
-  /* ── Scrollbar ── */
+  /* Misc */
+  .empty { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .9rem; padding: 32px; }
+  .divider { border: none; border-top: 1px solid var(--border); }
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
   input[type=number]::-webkit-inner-spin-button { opacity: .4; }
-
-  /* ── Befehle-Seite ── */
-  .page-wrap { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
-  .search-field { flex: 1; max-width: 380px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; color: var(--text); font-size: .9rem; outline: none; }
-  .search-field:focus { border-color: var(--pink); }
-  .cmd-group-title { font-size: .95rem; font-weight: 700; color: var(--text); padding: 4px 0 8px; border-bottom: 2px solid var(--border); margin-bottom: 4px; }
-  .cmd-section { display: flex; flex-direction: column; gap: 4px; }
-  .cmd-section-title { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 6px 0 2px; }
-  .cmd-row { display: grid; grid-template-columns: 160px 1fr 2fr auto; align-items: center; gap: 10px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; font-size: .87rem; }
-  .cmd-name { font-family: var(--mono); color: var(--pink); font-weight: 600; }
-  .cmd-usage { font-family: var(--mono); color: var(--muted); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cmd-desc { color: var(--text); }
-  .cmd-badge { font-size: .7rem; padding: 2px 8px; border-radius: 10px; white-space: nowrap; background: rgba(231,76,60,.12); border: 1px solid rgba(231,76,60,.3); color: var(--red); }
-  .cmd-hidden { display: none !important; }
-
-  /* ── Rechte-Seite ── */
-  .rights-tabs { display: flex; gap: 4px; flex-shrink: 0; }
-  .rights-tab-btn { padding: 5px 18px; border-radius: 6px 6px 0 0; border: 1px solid var(--border); border-bottom: none; background: none; color: var(--muted); cursor: pointer; font-size: .88rem; }
-  .rights-tab-btn.active { background: var(--bg); color: var(--text); }
-  .rights-panel { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 0 8px 8px 8px; padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
-  .rights-section { display: flex; flex-direction: column; gap: 8px; }
-  .rights-section-header { display: flex; align-items: center; gap: 10px; }
-  .rights-section-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); flex: 1; }
-  .wl-toggle { display: flex; align-items: center; gap: 8px; }
-  .wl-status { font-size: .78rem; padding: 3px 10px; border-radius: 12px; }
-  .wl-status.on  { background: rgba(46,204,113,.12); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
-  .wl-status.off { background: rgba(107,107,138,.12); color: var(--muted); border: 1px solid var(--border); }
-  .player-list { display: flex; flex-direction: column; gap: 4px; }
-  .player-entry { display: flex; align-items: center; gap: 10px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
-  .player-entry-name { flex: 1; font-size: .88rem; font-family: var(--mono); }
-  .btn-sm { padding: 4px 12px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: .78rem; transition: all .15s; white-space: nowrap; }
-  .btn-sm:hover { border-color: var(--red); color: var(--red); }
-  .btn-sm.green-btn:hover { border-color: var(--green); color: var(--green); }
-  .add-row { display: flex; gap: 8px; }
-  .add-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: .88rem; outline: none; }
-  .add-row input:focus { border-color: var(--pink); }
-  .rights-msg { font-size: .8rem; padding: 5px 10px; border-radius: 5px; }
-  .rights-msg.ok  { background: rgba(46,204,113,.1); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
-  .rights-msg.err { background: rgba(231,76,60,.1);  color: var(--red);   border: 1px solid rgba(231,76,60,.3); }
 </style>
 </head>
 <body>
 
-<!-- Login -->
 <div id="login-screen">
-  <div class="login-box">
+  <div class="lbox">
     <h1>✦ Pink Horizon</h1>
     <p>Server Dashboard</p>
     <input type="password" id="pw-input" placeholder="Passwort" autocomplete="current-password">
-    <button onclick="login()">Einloggen</button>
-    <div class="login-error" id="login-err">Falsches Passwort!</div>
+    <button class="lbtn" onclick="login()">Einloggen</button>
+    <div class="lerr" id="lerr">Falsches Passwort!</div>
   </div>
 </div>
 
-<!-- App -->
-<header>
-  <span class="logo">✦ Pink Horizon Dashboard</span>
-  <span class="header-sep"></span>
-  <button class="btn-logout" onclick="logout()">Abmelden</button>
-</header>
-
-<div class="layout">
-  <aside>
-    <div class="sidebar-label">Server</div>
-    <div id="server-list"></div>
-  </aside>
-
-  <main id="main-panel">
-    <div class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-      </svg>
-      <p>Server auswählen</p>
+<div id="app" class="hidden">
+  <nav id="sidebar">
+    <div class="nav-logo">✦ Pink Horizon</div>
+    <div id="nav-body"></div>
+    <div class="nav-footer">
+      <button class="logout-btn" onclick="logout()">⏻ Abmelden</button>
     </div>
-  </main>
+  </nav>
+  <div id="main-area">
+    <header id="page-header">
+      <span id="page-title"></span>
+      <div id="hdr-actions"></div>
+    </header>
+    <main id="page-content"></main>
+  </div>
 </div>
 
 <script>
+// ── State ─────────────────────────────────────────────────────────────────
 let TOKEN = localStorage.getItem('ph_token') || '';
-let activeServer = null;
+let PAGE  = 'dashboard';
+let srvData = {};
+let curPlayer = null;
+let rTab = 'lobby';
+let rCache = {};
 let ws = null;
-let cmdHistory = [];
-let historyIdx = -1;
+let conSrv = null;
+let cmdHist = [], histIdx = -1;
 let autoScroll = true;
-let serverData = {};
-let activeTab  = {};           // serverKey → 'console' | 'players'
-let currentPlayer = null;      // zuletzt geladene Spielerdaten
-let activeTool   = null;       // null | 'commands' | 'rights'
-let rightsServer = 'lobby';    // aktiver Tab auf der Rechte-Seite
-let rightsData   = {};         // gecachte ops/whitelist-Daten
+const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [] };
 
-// ── Auth ────────────────────────────────────────────────────────────────
-
+// ── Auth ──────────────────────────────────────────────────────────────────
 async function login() {
   const pw = document.getElementById('pw-input').value;
-  const res = await fetch('/api/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: pw })
-  });
-  const data = await res.json();
-  if (data.ok) {
-    TOKEN = data.token;
-    localStorage.setItem('ph_token', TOKEN);
+  const r  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pw}) });
+  const d  = await r.json();
+  if (d.ok) {
+    TOKEN = d.token; localStorage.setItem('ph_token', TOKEN);
     document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.remove('hidden');
     init();
-  } else {
-    document.getElementById('login-err').style.display = 'block';
-  }
+  } else { document.getElementById('lerr').style.display = 'block'; }
 }
-
 function logout() { localStorage.removeItem('ph_token'); location.reload(); }
-document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key==='Enter') login(); });
 
-// ── Init ────────────────────────────────────────────────────────────────
-
+// ── Init ──────────────────────────────────────────────────────────────────
 async function init() {
-  if (!TOKEN) return;
-  document.getElementById('login-screen').style.display = 'none';
   connectWs();
-  await loadServers();
-  setInterval(loadServers, 8000);
+  await loadSrv();
+  setInterval(loadSrv, 10000);
+  nav('dashboard');
 }
 
-async function loadServers() {
-  const res = await apiFetch('/api/servers');
-  if (!res) return;
-  serverData = await res.json();
-  renderSidebar();
+async function loadSrv() {
+  const r = await apiFetch('/api/servers');
+  if (!r?.ok) return;
+  srvData = await r.json();
+  buildNav();
 }
 
-function renderSidebar() {
-  const list = document.getElementById('server-list');
-  list.innerHTML = '';
-  for (const [key, srv] of Object.entries(serverData)) {
+// ── Navigation ────────────────────────────────────────────────────────────
+const NAV_DEF = [
+  { sec: 'Übersicht' },
+  { id:'dashboard',        icon:'📊', label:'Dashboard' },
+  { sec: 'Konsolen' },
+  { id:'con_velocity',     dot:true,  label:'Velocity Proxy', srv:'velocity' },
+  { id:'con_lobby',        dot:true,  label:'Lobby',          srv:'lobby'    },
+  { id:'con_survival',     dot:true,  label:'Survival',       srv:'survival' },
+  { sec: 'Verwaltung' },
+  { id:'players',          icon:'👥', label:'Spieler' },
+  { id:'economy',          icon:'💰', label:'Wirtschaft' },
+  { id:'rights',           icon:'🔑', label:'Rechte' },
+  { sec: 'Tools' },
+  { id:'commands',         icon:'📋', label:'Befehlsreferenz' },
+];
+
+function buildNav() {
+  const nb = document.getElementById('nav-body');
+  nb.innerHTML = '';
+  for (const item of NAV_DEF) {
+    if (item.sec) {
+      const d = document.createElement('div');
+      d.className = 'nav-sec'; d.textContent = item.sec;
+      nb.appendChild(d); continue;
+    }
     const btn = document.createElement('button');
-    btn.className = 'server-btn' + (activeServer === key && !activeTool ? ' active' : '');
-    btn.innerHTML = `<span class="dot ${srv.running ? 'online' : 'offline'}"></span><span>${srv.label}</span>`;
-    btn.onclick = () => selectServer(key);
-    list.appendChild(btn);
-  }
-  // Tools-Sektion
-  const toolLabel = document.createElement('div');
-  toolLabel.className = 'sidebar-label';
-  toolLabel.style.marginTop = '8px';
-  toolLabel.textContent = 'Tools';
-  list.appendChild(toolLabel);
-  for (const { key, icon, label } of [
-    { key: 'commands', icon: '📋', label: 'Befehle' },
-    { key: 'rights',   icon: '🔑', label: 'Rechte'  }
-  ]) {
-    const btn = document.createElement('button');
-    btn.className = 'server-btn' + (activeTool === key ? ' active' : '');
-    btn.innerHTML = `<span>${icon}</span><span>${label}</span>`;
-    btn.onclick = () => selectTool(key);
-    list.appendChild(btn);
-  }
-  if (activeServer && !activeTool) updateStatusBadge();
-}
-
-function updateStatusBadge() {
-  const srv = serverData[activeServer];
-  if (!srv) return;
-  const dot = document.querySelector('.server-header .dot');
-  const badge = document.querySelector('.server-status');
-  if (dot)   { dot.className = 'dot ' + (srv.running ? 'online' : 'offline'); }
-  if (badge) { badge.textContent = srv.status; badge.className = 'server-status ' + (srv.running ? 'online' : 'offline'); }
-}
-
-// ── Server auswählen ────────────────────────────────────────────────────
-
-function selectServer(key) {
-  activeServer = key;
-  activeTool   = null;
-  currentPlayer = null;
-  renderSidebar();
-  renderMain();
-  if ((activeTab[key] || 'console') === 'console') {
-    subscribeToLogs(serverData[key].container);
+    btn.className = 'nav-item' + (PAGE === item.id ? ' active' : '');
+    btn.onclick = () => nav(item.id);
+    if (item.dot) {
+      const srv = srvData[item.srv];
+      btn.innerHTML = `<span class="ndot ${srv?.running?'on':'off'}"></span><span>${escH(item.label)}</span>`;
+    } else {
+      btn.innerHTML = `<span>${item.icon}</span><span>${escH(item.label)}</span>`;
+    }
+    nb.appendChild(btn);
   }
 }
 
-function selectTool(name) {
-  activeTool   = name;
-  activeServer = null;
-  currentPlayer = null;
-  renderSidebar();
-  if (name === 'commands') renderCommandsPage();
-  else if (name === 'rights') renderRightsPage();
+function nav(p) {
+  PAGE = p; buildNav(); renderPage();
 }
 
-function renderMain() {
-  const srv = serverData[activeServer];
-  const tab = activeTab[activeServer] || 'console';
-  const showPlayerTab = activeServer === 'survival' && srv.rcon;
+function setHdr(title, html) {
+  document.getElementById('page-title').textContent = title;
+  document.getElementById('hdr-actions').innerHTML = html || '';
+  const c = document.getElementById('page-content');
+  c.removeAttribute('style');
+}
 
-  document.getElementById('main-panel').innerHTML = `
-    <div class="server-header">
-      <div class="dot ${srv.running ? 'online' : 'offline'}"></div>
-      <span class="server-name">${srv.label}</span>
-      <span class="server-status ${srv.running ? 'online' : 'offline'}">${srv.status}</span>
-      <div class="header-actions">
+// ── Router ────────────────────────────────────────────────────────────────
+function renderPage() {
+  if (PAGE === 'dashboard') return renderDash();
+  if (PAGE.startsWith('con_')) return renderCon(PAGE.slice(4));
+  if (PAGE === 'players')  return renderPlayers();
+  if (PAGE === 'economy')  return renderEcon();
+  if (PAGE === 'rights')   return renderRights();
+  if (PAGE === 'commands') return renderCmds();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────
+async function renderDash() {
+  setHdr('📊 Dashboard', `<button class="btn" onclick="renderDash()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="g3" id="srv-cards"><div class="empty">Lade…</div></div>
+    <div class="g4" id="stat-row"></div>
+  </div>`;
+
+  let totalOn = 0; let totalRun = 0;
+  let cards = '';
+  for (const [k, srv] of Object.entries(srvData)) {
+    if (srv.running) totalRun++;
+    let onStr = '—'; let cnt = 0;
+    if (srv.rcon && srv.running) {
+      try {
+        const r = await apiFetch(`/api/players/online?server=${k}`);
+        if (r?.ok) { const d = await r.json(); cnt = d.players?.length||0; onStr = cnt; totalOn += cnt; }
+      } catch {}
+    }
+    const up = srv.started ? fmtUp(Date.now() - new Date(srv.started).getTime()) : '—';
+    cards += `<div class="card">
+      <div class="srv-card-hdr">
+        <span class="srv-card-name">${escH(srv.label)}</span>
+        <span class="badge ${srv.running?'b-green':'b-red'}">${escH(srv.status)}</span>
+      </div>
+      <div class="srv-meta">
+        <div class="srv-row"><span>Spieler online</span><span>${onStr}</span></div>
+        <div class="srv-row"><span>Uptime</span><span>${up}</span></div>
+        <div class="srv-row"><span>Container</span><span style="font-family:var(--mono);font-size:.78rem">${escH(srv.container)}</span></div>
+      </div>
+      <div class="srv-actions">
         ${srv.running
-          ? `<button class="btn btn-danger"  onclick="serverAction('stop')"   >⏹ Stop</button>
-             <button class="btn"             onclick="serverAction('restart')" >🔄 Restart</button>`
-          : `<button class="btn btn-success" onclick="serverAction('start')"  >▶ Start</button>`}
+          ? `<button class="btn btn-d" style="font-size:.8rem" onclick="doSrv('${k}','stop')">⏹ Stop</button>
+             <button class="btn"       style="font-size:.8rem" onclick="doSrv('${k}','restart')">🔄 Restart</button>`
+          : `<button class="btn btn-s" style="font-size:.8rem" onclick="doSrv('${k}','start')">▶ Start</button>`}
+        <button class="btn" style="font-size:.8rem" onclick="nav('con_${k}')">🖥️ Konsole</button>
       </div>
-    </div>
-    <div class="console-wrap">
-      <div class="console-tabs">
-        <button class="tab-btn ${tab === 'console' ? 'active' : ''}" onclick="switchTab('console')">Konsole / Logs</button>
-        ${showPlayerTab ? `<button class="tab-btn ${tab === 'players' ? 'active' : ''}" onclick="switchTab('players')">👤 Spieler</button>` : ''}
-      </div>
-
-      <!-- Konsole -->
-      <div id="panel-console" class="tab-panel ${tab !== 'console' ? 'tab-hidden' : ''}">
-        <div id="console-output"></div>
-        <div class="console-input-row">
-          <input id="cmd-input" placeholder="Befehl eingeben (ohne /)…"
-                 ${!srv.rcon ? 'disabled title="Kein RCON für diesen Server"' : ''}>
-          <button id="cmd-send" onclick="sendCommand()">Senden</button>
-        </div>
-      </div>
-
-      <!-- Spielerverwaltung -->
-      ${showPlayerTab ? `
-      <div id="panel-players" class="tab-panel ${tab !== 'players' ? 'tab-hidden' : ''}">
-        <div class="player-wrap">
-          <div class="player-search-row">
-            <input id="player-search" type="text" placeholder="Spielername eingeben…"
-                   onkeydown="if(event.key==='Enter')searchPlayer()">
-            <button class="search-btn" onclick="searchPlayer()">🔍 Suchen</button>
-          </div>
-          <div class="online-chips" id="online-chips">
-            <span class="chips-label">Lade Online-Spieler…</span>
-          </div>
-          <div id="player-card" class="player-card-empty">Spieler suchen um Daten anzuzeigen</div>
-        </div>
-      </div>` : ''}
     </div>`;
-
-  // Event-Listener Konsole
-  document.getElementById('cmd-input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') sendCommand();
-    if (e.key === 'ArrowUp')   { historyIdx = Math.min(historyIdx + 1, cmdHistory.length - 1); e.target.value = cmdHistory[historyIdx] || ''; }
-    if (e.key === 'ArrowDown') { historyIdx = Math.max(historyIdx - 1, -1); e.target.value = cmdHistory[historyIdx] || ''; }
-  });
-  document.getElementById('console-output')?.addEventListener('scroll', e => {
-    const out = e.target;
-    autoScroll = out.scrollTop + out.clientHeight >= out.scrollHeight - 20;
-  });
-
-  if (tab === 'players') loadOnlinePlayers();
+    if (!document.getElementById('srv-cards')) return;
+  }
+  const sc = document.getElementById('srv-cards');
+  if (sc) sc.innerHTML = cards || '<div class="empty">Keine Server</div>';
+  const st = document.getElementById('stat-row');
+  if (st) st.innerHTML = `
+    <div class="card stat-card"><span class="stat-icon">🖥️</span><div><div class="stat-lbl">Server online</div><div class="stat-val">${totalRun}/${Object.keys(srvData).length}</div></div></div>
+    <div class="card stat-card"><span class="stat-icon">👥</span><div><div class="stat-lbl">Spieler online</div><div class="stat-val">${totalOn}</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('players')"><span class="stat-icon">👤</span><div><div class="stat-lbl">Spielerverwaltung</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('economy')"><span class="stat-icon">💰</span><div><div class="stat-lbl">Wirtschaft</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>`;
 }
 
-// ── Tab-Wechsel ──────────────────────────────────────────────────────────
+function fmtUp(ms) {
+  const m=Math.floor(ms/60000), h=Math.floor(m/60), d=Math.floor(h/24);
+  return d>0?`${d}d ${h%24}h`:h>0?`${h}h ${m%60}m`:`${m}m`;
+}
 
-function switchTab(tab) {
-  activeTab[activeServer] = tab;
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.toggle('active', b.textContent.includes(tab === 'console' ? 'Konsole' : 'Spieler'));
+async function doSrv(k, action) {
+  await apiFetch(`/api/servers/${k}/${action}`, { method:'POST' });
+  setTimeout(async ()=>{ const r=await apiFetch('/api/servers'); if(r?.ok) srvData=await r.json(); buildNav(); if(PAGE==='dashboard') renderDash(); }, 2000);
+}
+
+// ── Console ───────────────────────────────────────────────────────────────
+function renderCon(k) {
+  const srv = srvData[k];
+  if (!srv) { document.getElementById('page-content').innerHTML='<div class="empty">Server nicht gefunden</div>'; return; }
+  setHdr(`🖥️ ${srv.label}`, `
+    <span class="badge ${srv.running?'b-green':'b-red'}">${escH(srv.status)}</span>
+    ${srv.running
+      ? `<button class="btn btn-d" onclick="doSrv('${k}','stop')">⏹ Stop</button>
+         <button class="btn"       onclick="doSrv('${k}','restart')">🔄 Restart</button>`
+      : `<button class="btn btn-s" onclick="doSrv('${k}','start')">▶ Start</button>`}`);
+  const c = document.getElementById('page-content');
+  c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
+  c.innerHTML = `<div class="con-wrap">
+    <div class="con-out" id="con-out"></div>
+    <div class="con-in">
+      <input class="field" id="cmd-in" placeholder="Befehl eingeben…" ${!srv.rcon?'disabled':''}>
+      <button class="btn btn-p" onclick="sendCmd('${k}')">Senden</button>
+    </div>
+  </div>`;
+  // replay buffer
+  const out = document.getElementById('con-out');
+  for (const line of (logBuf[srv.container]||[])) addLine(out, line, false);
+  if (autoScroll && out) out.scrollTop = out.scrollHeight;
+  document.getElementById('cmd-in')?.addEventListener('keydown', e => {
+    if (e.key==='Enter') sendCmd(k);
+    if (e.key==='ArrowUp')   { histIdx=Math.min(histIdx+1,cmdHist.length-1); e.target.value=cmdHist[histIdx]||''; }
+    if (e.key==='ArrowDown') { histIdx=Math.max(histIdx-1,-1); e.target.value=cmdHist[histIdx]||''; }
   });
-  document.querySelectorAll('.tab-panel').forEach(p => {
-    p.classList.toggle('tab-hidden', p.id !== 'panel-' + tab);
-  });
-  if (tab === 'console') subscribeToLogs(serverData[activeServer].container);
-  if (tab === 'players') loadOnlinePlayers();
+  out?.addEventListener('scroll', ()=>{ autoScroll = out.scrollTop+out.clientHeight >= out.scrollHeight-20; });
+  subscribeLog(srv.container);
 }
 
-// ── Log-Streaming ────────────────────────────────────────────────────────
-
-function connectWs() {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}`);
-  ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'auth', token: TOKEN }));
-    if (activeServer && (activeTab[activeServer] || 'console') === 'console')
-      subscribeToLogs(serverData[activeServer]?.container);
-  };
-  ws.onmessage = e => {
-    const msg = JSON.parse(e.data);
-    if (msg.type === 'log') appendLog(msg.text);
-  };
-  ws.onclose = () => setTimeout(connectWs, 3000);
+async function sendCmd(k) {
+  const el = document.getElementById('cmd-in');
+  const cmd = el?.value?.trim(); if (!cmd) return;
+  el.value = ''; cmdHist.unshift(cmd); histIdx = -1;
+  const out = document.getElementById('con-out');
+  addLine(out, `> ${cmd}`, false, 'cmd');
+  const r = await apiFetch(`/api/servers/${k}/command`, { method:'POST', body:JSON.stringify({command:cmd}) });
+  if (!r) return;
+  const d = await r.json();
+  if (d.output) addLine(out, `← ${d.output}`, false);
+  if (d.error)  addLine(out, `✗ ${d.error}`,  false);
 }
 
-function subscribeToLogs(container) {
-  if (!container || ws?.readyState !== 1) return;
-  const out = document.getElementById('console-output');
-  if (out) out.innerHTML = '';
-  ws.send(JSON.stringify({ type: 'subscribe', container }));
-}
-
-function appendLog(text) {
-  const out = document.getElementById('console-output');
+function addLine(out, text, buf=true, cls='') {
+  if (buf && conSrv) { const b=logBuf[conSrv]||[]; b.push(text); while(b.length>500)b.shift(); logBuf[conSrv]=b; }
   if (!out) return;
   for (const line of text.split('\n')) {
     if (!line.trim()) continue;
-    const div = document.createElement('div');
-    div.className = 'log-line' + classifyLine(line);
-    div.textContent = line;
-    out.appendChild(div);
+    const d = document.createElement('div');
+    d.className = 'll ' + (cls || classLine(line));
+    d.textContent = line;
+    out.appendChild(d);
   }
-  while (out.children.length > 1000) out.removeChild(out.firstChild);
+  while (out.children.length>1000) out.removeChild(out.firstChild);
   if (autoScroll) out.scrollTop = out.scrollHeight;
 }
 
-function classifyLine(line) {
-  const l = line.toLowerCase();
-  if (l.includes('error') || l.includes('exception') || l.includes('fatal')) return ' error';
-  if (l.includes('warn'))  return ' warn';
-  if (l.includes('info'))  return ' info';
+function classLine(l) {
+  const s = l.toLowerCase();
+  if (s.includes('error')||s.includes('exception')||s.includes('fatal')) return 'error';
+  if (s.includes('warn')) return 'warn';
+  if (s.includes('info')) return 'info';
   return '';
 }
 
-// ── Konsole-Befehle ──────────────────────────────────────────────────────
-
-async function sendCommand() {
-  const input = document.getElementById('cmd-input');
-  const cmd = input?.value?.trim();
-  if (!cmd || !activeServer) return;
-  input.value = '';
-  cmdHistory.unshift(cmd);
-  historyIdx = -1;
-  appendLog(`> ${cmd}`);
-  document.querySelector('#console-output .log-line:last-child')?.classList.add('cmd-out');
-  const res = await apiFetch(`/api/servers/${activeServer}/command`, {
-    method: 'POST', body: JSON.stringify({ command: cmd })
-  });
-  if (!res) return;
-  const data = await res.json();
-  if (data.output) appendLog(`← ${data.output}`);
-  if (data.error)  appendLog(`✗ ${data.error}`);
+// ── Players ───────────────────────────────────────────────────────────────
+async function renderPlayers() {
+  setHdr('👥 Spielerverwaltung', '');
+  const c = document.getElementById('page-content');
+  c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
+  c.innerHTML = `<div class="pl-page">
+    <div class="pl-top">
+      <div class="irow">
+        <input class="field" id="pl-search" placeholder="Spielername suchen…" onkeydown="if(event.key==='Enter')doSearch()">
+        <button class="btn btn-p" onclick="doSearch()">🔍 Suchen</button>
+      </div>
+      <div class="chips" id="chips"><span class="chip-lbl">Lade Online-Spieler…</span></div>
+    </div>
+    <div class="pl-body" id="pl-body"><div class="empty">Spieler suchen oder online auswählen</div></div>
+  </div>`;
+  loadChips();
 }
 
-async function serverAction(action) {
-  const res = await apiFetch(`/api/servers/${activeServer}/${action}`, { method: 'POST' });
-  if (res?.ok) {
-    appendLog(`> Server ${action} ausgeführt…`);
-    setTimeout(loadServers, 2000);
-  }
+async function loadChips() {
+  const el = document.getElementById('chips'); if (!el) return;
+  const r = await apiFetch('/api/players/online?server=survival');
+  if (!r?.ok) { el.innerHTML='<span class="chip-lbl">Nicht verfügbar</span>'; return; }
+  const { players } = await r.json();
+  el.innerHTML = players.length
+    ? '<span class="chip-lbl">Online:</span>' + players.map(n=>`<button class="chip" onclick="loadPl('${escH(n)}')">${escH(n)}</button>`).join('')
+    : '<span class="chip-lbl">Keine Spieler online</span>';
 }
 
-// ── Spielerverwaltung ────────────────────────────────────────────────────
-
-async function loadOnlinePlayers() {
-  const el = document.getElementById('online-chips');
-  if (!el) return;
-  const res = await apiFetch('/api/players/online?server=survival');
-  if (!res) { el.innerHTML = '<span class="chips-label">Nicht verfügbar</span>'; return; }
-  const { players } = await res.json();
-  if (!players.length) {
-    el.innerHTML = '<span class="chips-label">Keine Spieler online</span>';
-    return;
-  }
-  el.innerHTML = '<span class="chips-label">Online:</span>' +
-    players.map(n => `<button class="chip" onclick="loadPlayer('${escHtml(n)}')">${escHtml(n)}</button>`).join('');
+async function doSearch() {
+  const name = document.getElementById('pl-search')?.value?.trim();
+  if (name) loadPl(name);
 }
 
-async function searchPlayer() {
-  const input = document.getElementById('player-search');
-  const name = input?.value?.trim();
-  if (!name) return;
-  await loadPlayer(name);
+async function loadPl(name) {
+  const si = document.getElementById('pl-search');
+  if (si) si.value = name;
+  const el = document.getElementById('pl-body'); if (!el) return;
+  el.innerHTML = '<div class="empty">Lade…</div>';
+  const r = await apiFetch('/api/players/info', { method:'POST', body:JSON.stringify({name}) });
+  if (!r) { el.innerHTML='<div class="empty" style="color:var(--red)">Verbindungsfehler</div>'; return; }
+  if (r.status===404) { el.innerHTML='<div class="empty" style="color:var(--red)">Spieler nicht gefunden</div>'; return; }
+  if (!r.ok) { const e=await r.json(); el.innerHTML=`<div class="empty" style="color:var(--red)">${escH(e.error||'Fehler')}</div>`; return; }
+  curPlayer = await r.json();
+  renderPlCard(curPlayer);
 }
 
-async function loadPlayer(name) {
-  const card = document.getElementById('player-card');
-  if (!card) return;
-  card.innerHTML = '<div class="player-card-empty">Lade…</div>';
-
-  const searchInput = document.getElementById('player-search');
-  if (searchInput) searchInput.value = name;
-
-  const res = await apiFetch('/api/players/info', {
-    method: 'POST', body: JSON.stringify({ name })
-  });
-  if (!res) { card.innerHTML = '<div class="player-card-empty" style="color:var(--red)">Verbindungsfehler</div>'; return; }
-
-  if (res.status === 404) {
-    card.innerHTML = '<div class="player-card-empty" style="color:var(--red)">Spieler nicht gefunden</div>';
-    return;
-  }
-  if (!res.ok) {
-    const err = await res.json();
-    card.innerHTML = `<div class="player-card-empty" style="color:var(--red)">${escHtml(err.error || 'Fehler')}</div>`;
-    return;
-  }
-
-  currentPlayer = await res.json();
-  renderPlayerCard(currentPlayer);
-}
-
-function renderPlayerCard(p) {
-  const card = document.getElementById('player-card');
-  if (!card) return;
-
-  const rankOptions = ['spieler','vip','mvp','mod','admin','owner']
-    .map(r => `<option value="${r}" ${r === p.rank ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`)
-    .join('');
-
-  const jobHtml = p.job === 'NONE'
-    ? '<span class="job-none">Kein aktiver Job</span>'
-    : `<span class="job-badge">${escHtml(p.jobDisplay)}</span>
-       <span style="font-size:.85rem;color:var(--muted)">Level ${p.jobLevel} · ${p.jobXp} XP</span>`;
-
-  card.innerHTML = `
-    <div class="player-card">
-      <!-- Header -->
-      <div class="pc-header">
-        <span class="pc-name">👤 ${escHtml(p.name)}</span>
-        <span class="rank-badge">${escHtml(p.rank)}</span>
-        <div class="rank-row">
-          <select id="rank-select">${rankOptions}</select>
-          <button class="btn" onclick="setRank()">Rang setzen</button>
-          <span class="rank-result" id="rank-result"></span>
+function renderPlCard(p) {
+  const el = document.getElementById('pl-body'); if (!el) return;
+  const rOpts = ['spieler','vip','mvp','mod','admin','owner'].map(r=>`<option value="${r}" ${r===p.rank?'selected':''}>${r[0].toUpperCase()+r.slice(1)}</option>`).join('');
+  const jobH = p.job==='NONE'
+    ? '<span style="color:var(--muted);font-size:.88rem">Kein aktiver Job</span>'
+    : `<span class="badge b-green">${escH(p.jobDisplay)}</span><span style="font-size:.85rem;color:var(--muted);margin-left:6px">Level ${p.jobLevel} · ${p.jobXp} XP</span>`;
+  el.innerHTML = `
+    <div class="pl-hdr">
+      <span class="pl-name">👤 ${escH(p.name)}</span>
+      <span class="badge b-purple">${escH(p.rank)}</span>
+      <div class="pl-acts">
+        <button class="btn btn-d" onclick="doKick('${escH(p.name)}')">⚡ Kick</button>
+        <button class="btn btn-d" onclick="doBan('${escH(p.name)}')">🔨 Ban</button>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">💰 Coins</div>
+        <div class="coin-big" id="coin-disp">${p.coins.toLocaleString('de-DE')}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+          <input class="field fsm" id="coin-amt" type="number" min="0" placeholder="Betrag…">
+          <div class="cbtns">
+            <button class="cbtn give" onclick="coinAct('give')">+ Hinzufügen</button>
+            <button class="cbtn take" onclick="coinAct('take')">– Abziehen</button>
+            <button class="cbtn setv" onclick="coinAct('set')">=  Setzen</button>
+          </div>
+          <div id="coin-msg" style="display:none" class="msg"></div>
         </div>
       </div>
-
-      <!-- Grid -->
-      <div class="pc-grid">
-
-        <!-- Coins -->
-        <div class="data-card">
-          <h3>💰 Coins</h3>
-          <div class="coin-big" id="coin-display">${p.coins.toLocaleString('de-DE')}</div>
-          <input class="coin-input" id="coin-amount" type="number" min="0" placeholder="Betrag">
-          <div class="coin-btns">
-            <button class="btn-give" onclick="coinAction('give')">+ Hinzufügen</button>
-            <button class="btn-take" onclick="coinAction('take')">– Abziehen</button>
-            <button class="btn-set"  onclick="coinAction('set')" >= Setzen</button>
-          </div>
-          <div class="action-result" id="coin-result"></div>
+      <div class="card">
+        <div class="card-title">📊 Statistiken</div>
+        <div class="stat-tbl">
+          <div class="stat-row"><span class="sl">Spielzeit</span><span class="sv">${p.playtimeH}h ${p.playtimeM}m</span></div>
+          <div class="stat-row"><span class="sl">Tode</span><span class="sv">${p.deaths.toLocaleString('de-DE')}</span></div>
+          <div class="stat-row"><span class="sl">Mob-Kills</span><span class="sv">${p.mobKills.toLocaleString('de-DE')}</span></div>
+          <div class="stat-row"><span class="sl">Spieler-Kills</span><span class="sv">${p.playerKills.toLocaleString('de-DE')}</span></div>
+          <div class="stat-row"><span class="sl">Blöcke abgebaut</span><span class="sv">${p.blocksBroken.toLocaleString('de-DE')}</span></div>
         </div>
-
-        <!-- Statistiken -->
-        <div class="data-card">
-          <h3>📊 Statistiken</h3>
-          <div class="stat-row"><span class="stat-lbl">Spielzeit</span><span class="stat-val">${p.playtimeH}h ${p.playtimeM}m</span></div>
-          <div class="stat-row"><span class="stat-lbl">Tode</span><span class="stat-val">${p.deaths.toLocaleString('de-DE')}</span></div>
-          <div class="stat-row"><span class="stat-lbl">Mob-Kills</span><span class="stat-val">${p.mobKills.toLocaleString('de-DE')}</span></div>
-          <div class="stat-row"><span class="stat-lbl">Spieler-Kills</span><span class="stat-val">${p.playerKills.toLocaleString('de-DE')}</span></div>
-          <div class="stat-row"><span class="stat-lbl">Blöcke abgebaut</span><span class="stat-val">${p.blocksBroken.toLocaleString('de-DE')}</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎖️ Rang ändern</div>
+        <div class="irow" style="margin-top:4px">
+          <select class="field fsm" id="rank-sel">${rOpts}</select>
+          <button class="btn" onclick="doRank()">Setzen</button>
+          <span id="rank-msg" style="font-size:.82rem"></span>
         </div>
-
-        <!-- Job -->
-        <div class="data-card" style="grid-column: span 2;">
-          <h3>💼 Job</h3>
-          <div class="job-row">${jobHtml}</div>
-        </div>
-
+      </div>
+      <div class="card">
+        <div class="card-title">💼 Job</div>
+        <div style="margin-top:4px">${jobH}</div>
       </div>
     </div>`;
 }
 
-async function coinAction(type) {
-  if (!currentPlayer) return;
-  const amountEl = document.getElementById('coin-amount');
-  const resultEl = document.getElementById('coin-result');
-  const amount = parseInt(amountEl?.value);
-  if (!amount || amount <= 0) {
-    showResult(resultEl, false, 'Bitte einen Betrag eingeben');
-    return;
-  }
-
-  resultEl.className = 'action-result';
-  const res = await apiFetch('/api/players/action', {
-    method: 'POST',
-    body: JSON.stringify({ name: currentPlayer.name, type: 'eco_' + type, value: amount })
-  });
-  if (!res) { showResult(resultEl, false, 'Verbindungsfehler'); return; }
-  const data = await res.json();
-
-  if (data.ok) {
-    showResult(resultEl, true, data.output || 'Erledigt');
-    // Coins-Anzeige neu laden
-    const infoRes = await apiFetch('/api/players/info', {
-      method: 'POST', body: JSON.stringify({ name: currentPlayer.name })
-    });
-    if (infoRes?.ok) {
-      currentPlayer = await infoRes.json();
-      const display = document.getElementById('coin-display');
-      if (display) display.textContent = currentPlayer.coins.toLocaleString('de-DE');
-    }
-  } else {
-    showResult(resultEl, false, data.error || 'Fehler');
+async function coinAct(type) {
+  if (!curPlayer) return;
+  const amt = parseInt(document.getElementById('coin-amt')?.value);
+  const msg = document.getElementById('coin-msg');
+  if (!amt||amt<=0) { showMsg(msg,false,'Betrag eingeben'); return; }
+  const r = await apiFetch('/api/players/action',{method:'POST',body:JSON.stringify({name:curPlayer.name,type:'eco_'+type,value:amt})});
+  const d = r?await r.json():null;
+  showMsg(msg, d?.ok, d?.output||d?.error||'Fehler');
+  if (d?.ok) {
+    const r2 = await apiFetch('/api/players/info',{method:'POST',body:JSON.stringify({name:curPlayer.name})});
+    if (r2?.ok) { curPlayer=await r2.json(); const el=document.getElementById('coin-disp'); if(el) el.textContent=curPlayer.coins.toLocaleString('de-DE'); }
   }
 }
 
-async function setRank() {
-  if (!currentPlayer) return;
-  const rank = document.getElementById('rank-select')?.value;
-  const resultEl = document.getElementById('rank-result');
-  if (!rank) return;
-
-  const res = await apiFetch('/api/players/action', {
-    method: 'POST',
-    body: JSON.stringify({ name: currentPlayer.name, type: 'rank_set', rank })
-  });
-  if (!res) { if (resultEl) { resultEl.textContent = 'Verbindungsfehler'; resultEl.className = 'rank-result err'; } return; }
-  const data = await res.json();
-
-  if (resultEl) {
-    resultEl.textContent = data.ok ? '✓ ' + (data.output || 'Gesetzt') : '✗ ' + (data.error || 'Fehler');
-    resultEl.className = 'rank-result ' + (data.ok ? 'ok' : 'err');
-    setTimeout(() => { resultEl.textContent = ''; resultEl.className = 'rank-result'; }, 4000);
-  }
-  if (data.ok) {
-    currentPlayer.rank = rank;
-    const badge = document.querySelector('.rank-badge');
-    if (badge) badge.textContent = rank;
-  }
+async function doRank() {
+  if (!curPlayer) return;
+  const rank = document.getElementById('rank-sel')?.value;
+  const msg  = document.getElementById('rank-msg');
+  const r = await apiFetch('/api/players/action',{method:'POST',body:JSON.stringify({name:curPlayer.name,type:'rank_set',rank})});
+  const d = r?await r.json():null;
+  if (msg) { msg.textContent=(d?.ok?'✓ ':'✗ ')+(d?.output||d?.error||'Fehler'); msg.style.color=d?.ok?'var(--green)':'var(--red)'; setTimeout(()=>{msg.textContent='';},4000); }
+  if (d?.ok) curPlayer.rank = rank;
 }
 
-// ── Hilfsfunktionen ──────────────────────────────────────────────────────
-
-function showResult(el, ok, msg) {
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'action-result ' + (ok ? 'ok' : 'err');
-  setTimeout(() => { el.className = 'action-result'; }, 5000);
+async function doKick(name) {
+  const reason = prompt(`Grund für Kick von ${name} (optional):`);
+  if (reason===null) return;
+  const r = await apiFetch('/api/players/kick',{method:'POST',body:JSON.stringify({name,reason:reason||undefined})});
+  const d = r?await r.json():null;
+  alert(d?.ok?`✓ ${name} wurde gekickt.`:`✗ Fehler: ${d?.error||'Unbekannt'}`);
 }
 
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+async function doBan(name) {
+  const reason = prompt(`Grund für Ban von ${name}:`);
+  if (!reason) return;
+  const r = await apiFetch('/api/players/ban',{method:'POST',body:JSON.stringify({name,reason})});
+  const d = r?await r.json():null;
+  alert(d?.ok?`✓ ${name} wurde gebannt.`:`✗ Fehler: ${d?.error||'Unbekannt'}`);
 }
 
-async function apiFetch(url, opts = {}) {
-  try {
-    return await fetch(url, {
-      ...opts,
-      headers: { 'Content-Type': 'application/json', 'x-dashboard-token': TOKEN, ...(opts.headers || {}) }
-    });
-  } catch (e) {
-    console.error('API Fehler:', e);
-    return null;
-  }
+// ── Economy ───────────────────────────────────────────────────────────────
+async function renderEcon() {
+  setHdr('💰 Wirtschaft', `<button class="btn" onclick="loadBaltop()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page"><div class="g2">
+    <div class="card">
+      <div class="card-title">🏆 Top-Spieler nach Coins</div>
+      <div id="bt-list"><div class="empty">Lade…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ Schnell-Aktion</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+        <input class="field fsm" id="eco-pl" placeholder="Spielername…">
+        <input class="field fsm" id="eco-amt" type="number" min="0" placeholder="Betrag…">
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-s" style="flex:1" onclick="ecoQ('give')">+ Geben</button>
+          <button class="btn btn-d" style="flex:1" onclick="ecoQ('take')">– Nehmen</button>
+          <button class="btn"       style="flex:1" onclick="ecoQ('set')">=  Setzen</button>
+        </div>
+        <div id="eco-msg" style="display:none" class="msg"></div>
+      </div>
+    </div>
+  </div></div>`;
+  loadBaltop();
 }
 
-// ── Befehlsreferenz ──────────────────────────────────────────────────────
+async function loadBaltop() {
+  const el = document.getElementById('bt-list'); if (!el) return;
+  const r = await apiFetch('/api/economy/baltop');
+  if (!r?.ok) { el.innerHTML='<div class="empty">Nicht verfügbar</div>'; return; }
+  const { baltop } = await r.json();
+  if (!baltop?.length) { el.innerHTML='<div class="empty">Keine Daten</div>'; return; }
+  const rc = ['gold','silver','bronze'];
+  el.innerHTML = '<div style="display:flex;flex-direction:column;gap:5px;margin-top:8px">' +
+    baltop.map(e=>`<div class="bt-row">
+      <span class="bt-rank ${rc[e.rank-1]||''}">#${e.rank}</span>
+      <span class="bt-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(e.name)}'),150)">${escH(e.name)}</span>
+      <span class="bt-coins">💰 ${e.coins.toLocaleString('de-DE')}</span>
+    </div>`).join('') + '</div>';
+}
 
-const COMMANDS = [
-  {
-    server: 'Lobby',
-    sections: [
-      { label: 'Allgemein', cmds: [
-        { n: '/navigator',     u: '/navigator',                                    d: 'Server-Navigator öffnen',                 admin: false },
-        { n: '/toggleplayers', u: '/toggleplayers',                                d: 'Andere Spieler ein-/ausblenden',           admin: false },
-        { n: '/tutorial',      u: '/tutorial',                                     d: 'Tutorial-GUI öffnen',                      admin: false },
-      ]},
-      { label: 'Admin', cmds: [
-        { n: '/setspawn',  u: '/setspawn',                                         d: 'Lobby-Spawn setzen',                       admin: true },
-        { n: '/border',    u: '/border <wand|create|remove|clear|info>',           d: 'Lobby-Border verwalten',                   admin: true },
-        { n: '/portal',    u: '/portal <wand|create|remove|clear|list>',           d: 'Portale zu Unterservern verwalten',        admin: true },
-        { n: '/vanish',    u: '/vanish',                                           d: 'Unsichtbar schalten',                      admin: true },
-        { n: '/build',     u: '/build',                                            d: 'Build-Modus (Creative) umschalten',        admin: true },
-        { n: '/rank',      u: '/rank <set|info|list>',                             d: 'Rang eines Spielers verwalten',            admin: true },
-        { n: '/hologram',  u: '/hologram <create|delete|list>',                    d: 'Holograms verwalten',                      admin: true },
-      ]},
-    ]
-  },
-  {
-    server: 'Survival',
-    sections: [
-      { label: 'Teleport', cmds: [
-        { n: '/spawn',     u: '/spawn',                                            d: 'Zum Spawn teleportieren',                  admin: false },
-        { n: '/back',      u: '/back',                                             d: 'Zum letzten Sterbeort teleportieren',       admin: false },
-        { n: '/rtp',       u: '/rtp',                                              d: 'Zufällig in der Welt teleportieren',        admin: false },
-        { n: '/sethome',   u: '/sethome [Name]',                                   d: 'Home setzen (max. je nach Rang)',           admin: false },
-        { n: '/home',      u: '/home [Name]',                                      d: 'Zu einem Home teleportieren',              admin: false },
-        { n: '/delhome',   u: '/delhome [Name]',                                   d: 'Home löschen',                             admin: false },
-        { n: '/homes',     u: '/homes',                                            d: 'Alle eigenen Homes auflisten',             admin: false },
-        { n: '/tpa',       u: '/tpa <Spieler>',                                    d: 'Teleportanfrage senden',                   admin: false },
-        { n: '/tpaccept',  u: '/tpaccept',                                         d: 'Teleportanfrage annehmen',                 admin: false },
-        { n: '/tpdeny',    u: '/tpdeny',                                           d: 'Teleportanfrage ablehnen',                 admin: false },
-        { n: '/warp',      u: '/warp <Name>',                                      d: 'Zu einem Warp-Punkt teleportieren',        admin: false },
-        { n: '/warps',     u: '/warps',                                            d: 'Alle verfügbaren Warps anzeigen',          admin: false },
-      ]},
-      { label: 'Claims', cmds: [
-        { n: '/claim',     u: '/claim',                                            d: 'Aktuellen Chunk beanspruchen',             admin: false },
-        { n: '/unclaim',   u: '/unclaim',                                          d: 'Chunk-Claim entfernen',                    admin: false },
-        { n: '/claimlist', u: '/claimlist',                                        d: 'Alle eigenen Claims auflisten',            admin: false },
-        { n: '/trust',     u: '/trust <Spieler>',                                  d: 'Spieler Rechte im eigenen Claim geben',    admin: false },
-        { n: '/untrust',   u: '/untrust <Spieler>',                                d: 'Vertrauen von einem Spieler entfernen',    admin: false },
-        { n: '/trustlist', u: '/trustlist',                                        d: 'Vertrauensliste des aktuellen Claims',     admin: false },
-      ]},
-      { label: 'Wirtschaft', cmds: [
-        { n: '/balance',   u: '/balance',                                          d: 'Eigenen Kontostand anzeigen',              admin: false },
-        { n: '/pay',       u: '/pay <Spieler> <Betrag>',                           d: 'Coins an einen Spieler überweisen',        admin: false },
-        { n: '/baltop',    u: '/baltop',                                           d: 'Top 10 Spieler nach Coins',                admin: false },
-        { n: '/sell',      u: '/sell <hand|all>',                                  d: 'Items aus Hand oder Inventar verkaufen',   admin: false },
-        { n: '/shop',      u: '/shop',                                             d: 'Server-Shop öffnen',                       admin: false },
-        { n: '/bank',      u: '/bank [deposit|withdraw] [Betrag]',                 d: 'Bank-Konto verwalten',                     admin: false },
-        { n: '/ah',        u: '/ah [sell <Preis>]',                                d: 'Auktionshaus öffnen oder Item einstellen', admin: false },
-        { n: '/createshop',u: '/createshop <Menge> <Kaufpreis> [Verkaufspreis]',   d: 'Eigenen Chest-Shop erstellen',             admin: false },
-        { n: '/removeshop',u: '/removeshop',                                       d: 'Eigenen Chest-Shop entfernen',             admin: false },
-      ]},
-      { label: 'Jobs & Fortschritt', cmds: [
-        { n: '/jobs',      u: '/jobs',                                             d: 'Job-System öffnen (beitreten/verlassen)',  admin: false },
-        { n: '/quests',    u: '/quests',                                           d: 'Tägliche Quests anzeigen',                 admin: false },
-        { n: '/achievements',u:'/achievements',                                    d: 'Achievements-Übersicht öffnen',            admin: false },
-        { n: '/stats',     u: '/stats [Spieler]',                                  d: 'Spielerstatistiken anzeigen',              admin: false },
-        { n: '/kit',       u: '/kit <starter>',                                    d: 'Starter-Kit erhalten (einmalig)',          admin: false },
-        { n: '/lb',        u: '/lb [coins|kills|playtime]',                        d: 'Leaderboard anzeigen',                     admin: false },
-        { n: '/tutorial',  u: '/tutorial',                                         d: 'Tutorial-GUI öffnen',                      admin: false },
-      ]},
-      { label: 'Social', cmds: [
-        { n: '/friend',    u: '/friend <add|remove|accept|deny|list|requests>',    d: 'Freundesliste verwalten',                  admin: false },
-        { n: '/mail',      u: '/mail <send|read|clear>',                           d: 'Nachrichten senden und lesen',             admin: false },
-        { n: '/trade',     u: '/trade <Spieler|accept|deny>',                      d: 'Handel mit einem anderen Spieler',         admin: false },
-        { n: '/report',    u: '/report <Spieler> <Grund>',                         d: 'Regelverstoß melden',                      admin: false },
-      ]},
-      { label: 'Admin', cmds: [
-        { n: '/eco',       u: '/eco <give|take|set|check> <Spieler> [Betrag]',     d: 'Wirtschaft verwalten',                     admin: true },
-        { n: '/srank',     u: '/srank <set|info|list>',                            d: 'Spielerrang verwalten',                    admin: true },
-        { n: '/setspawn',  u: '/setspawn',                                         d: 'Spawn-Punkt setzen',                       admin: true },
-        { n: '/setwarp',   u: '/setwarp <Name>',                                   d: 'Warp-Punkt setzen',                        admin: true },
-        { n: '/delwarp',   u: '/delwarp <Name>',                                   d: 'Warp-Punkt löschen',                       admin: true },
-        { n: '/spawnborder',u:'/spawnborder <wand|add|remove|list|clear|show|tp>', d: 'Spawn-Border-Polygon verwalten',           admin: true },
-        { n: '/resetworld',u: '/resetworld [confirm]',                             d: 'Survival-Welt komplett zurücksetzen',       admin: true },
-        { n: '/schem',     u: '/schem <list|load|paste|save>',                     d: 'Schematics verwalten (FAWE)',               admin: true },
-        { n: '/flatarea',  u: '/flatarea [radius] [y-level]',                      d: 'Fläche um Spieler planieren (FAWE)',        admin: true },
-        { n: '/npc',       u: '/npc <create|delete|addcmd|removecmd|info|list>',   d: 'NPCs erstellen und verwalten',             admin: true },
-        { n: '/helpholo',  u: '/helpholo [place|remove]',                          d: 'Hilfe-Hologramm platzieren/entfernen',     admin: true },
-        { n: '/phinfo',    u: '/phinfo <Spieler>',                                 d: 'Strukturierte Spielerdaten (Dashboard)',    admin: true },
-      ]},
-    ]
-  }
+async function ecoQ(type) {
+  const name = document.getElementById('eco-pl')?.value?.trim();
+  const amt  = parseInt(document.getElementById('eco-amt')?.value);
+  const msg  = document.getElementById('eco-msg');
+  if (!name||!amt||amt<=0) { showMsg(msg,false,'Spielername und Betrag eingeben'); return; }
+  const r = await apiFetch('/api/players/action',{method:'POST',body:JSON.stringify({name,type:'eco_'+type,value:amt})});
+  const d = r?await r.json():null;
+  showMsg(msg, d?.ok, d?.output||d?.error||'Fehler');
+}
+
+// ── Rights ────────────────────────────────────────────────────────────────
+async function renderRights() {
+  setHdr('🔑 Rechteverwaltung', '');
+  const c = document.getElementById('page-content');
+  c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
+  c.innerHTML = `<div class="page" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div class="rtabs">
+      <button class="rtab ${rTab==='lobby'?'active':''}"    onclick="switchR('lobby')">Lobby</button>
+      <button class="rtab ${rTab==='survival'?'active':''}" onclick="switchR('survival')">Survival</button>
+    </div>
+    <div class="rbody" id="rbody"><div class="empty">Lade…</div></div>
+  </div>`;
+  loadR(rTab);
+}
+
+function switchR(t) {
+  rTab = t;
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase()===t));
+  const el=document.getElementById('rbody'); if(el) el.innerHTML='<div class="empty">Lade…</div>';
+  loadR(t);
+}
+
+async function loadR(srv) {
+  const [or, wr] = await Promise.all([apiFetch(`/api/servers/${srv}/ops`), apiFetch(`/api/servers/${srv}/whitelist`)]);
+  const od = or?.ok?await or.json():{ops:[]};
+  const wd = wr?.ok?await wr.json():{whitelist:[],enabled:false};
+  rCache[srv] = { ops:od.ops||[], wl:wd.whitelist||[], wlOn:!!wd.enabled };
+  renderRBody(srv);
+}
+
+function renderRBody(srv) {
+  const el = document.getElementById('rbody'); if (!el) return;
+  const d = rCache[srv]||{ops:[],wl:[],wlOn:false};
+  const opRows = d.ops.length
+    ? d.ops.map(op=>`<div class="pentry"><span class="pentry-name">👑 ${escH(op.name||op)}</span><button class="btn-xs" onclick="rDeop('${srv}','${escH(op.name||op)}')">De-OP</button></div>`).join('')
+    : '<div style="color:var(--muted);font-size:.85rem;padding:4px">Keine Operatoren</div>';
+  const wlRows = d.wl.length
+    ? d.wl.map(w=>`<div class="pentry"><span class="pentry-name">${escH(w.name||w)}</span><button class="btn-xs" onclick="rWlRm('${srv}','${escH(w.name||w)}')">Entfernen</button></div>`).join('')
+    : '<div style="color:var(--muted);font-size:.85rem;padding:4px">Whitelist ist leer</div>';
+  el.innerHTML = `
+    <div class="rsec">
+      <div class="rhdr"><span class="rttl">👑 Operatoren (OP)</span></div>
+      <div class="pentries">${opRows}</div>
+      <div class="irow" style="margin-top:4px">
+        <input class="field fsm" id="op-in" placeholder="Spielername…" onkeydown="if(event.key==='Enter')rOp('${srv}')">
+        <button class="btn-xs g" onclick="rOp('${srv}')">OP geben</button>
+      </div>
+      <div id="op-msg" style="display:none" class="msg"></div>
+    </div>
+    <hr class="divider">
+    <div class="rsec">
+      <div class="rhdr">
+        <span class="rttl">📋 Whitelist</span>
+        <span class="wl-pill ${d.wlOn?'wl-on':'wl-off'}">${d.wlOn?'AN':'AUS'}</span>
+        <button class="btn-xs ${d.wlOn?'':'g'}" onclick="rWlToggle('${srv}')">${d.wlOn?'Deaktivieren':'Aktivieren'}</button>
+      </div>
+      <div class="pentries">${wlRows}</div>
+      <div class="irow" style="margin-top:4px">
+        <input class="field fsm" id="wl-in" placeholder="Spielername…" onkeydown="if(event.key==='Enter')rWlAdd('${srv}')">
+        <button class="btn-xs g" onclick="rWlAdd('${srv}')">Hinzufügen</button>
+      </div>
+      <div id="wl-msg" style="display:none" class="msg"></div>
+    </div>`;
+}
+
+async function rOp(srv) {
+  const n=document.getElementById('op-in')?.value?.trim(); if(!n) return;
+  const r=await apiFetch(`/api/servers/${srv}/op`,{method:'POST',body:JSON.stringify({player:n,action:'op'})});
+  const d=r?await r.json():null; showMsg(document.getElementById('op-msg'),d?.ok,d?.output||d?.error||'Fehler');
+  if(d?.ok){document.getElementById('op-in').value='';await loadR(srv);}
+}
+async function rDeop(srv,name) {
+  const r=await apiFetch(`/api/servers/${srv}/op`,{method:'POST',body:JSON.stringify({player:name,action:'deop'})});
+  const d=r?await r.json():null; showMsg(document.getElementById('op-msg'),d?.ok,d?.output||d?.error||'Fehler');
+  if(d?.ok) await loadR(srv);
+}
+async function rWlAdd(srv) {
+  const n=document.getElementById('wl-in')?.value?.trim(); if(!n) return;
+  const r=await apiFetch(`/api/servers/${srv}/whitelist`,{method:'POST',body:JSON.stringify({action:'add',player:n})});
+  const d=r?await r.json():null; showMsg(document.getElementById('wl-msg'),d?.ok,d?.output||d?.error||'Fehler');
+  if(d?.ok){document.getElementById('wl-in').value='';await loadR(srv);}
+}
+async function rWlRm(srv,name) {
+  const r=await apiFetch(`/api/servers/${srv}/whitelist`,{method:'POST',body:JSON.stringify({action:'remove',player:name})});
+  const d=r?await r.json():null; showMsg(document.getElementById('wl-msg'),d?.ok,d?.output||d?.error||'Fehler');
+  if(d?.ok) await loadR(srv);
+}
+async function rWlToggle(srv) {
+  const action=rCache[srv]?.wlOn?'off':'on';
+  const r=await apiFetch(`/api/servers/${srv}/whitelist`,{method:'POST',body:JSON.stringify({action})});
+  const d=r?await r.json():null; showMsg(document.getElementById('wl-msg'),d?.ok,d?.output||d?.error||'Fehler');
+  if(d?.ok) await loadR(srv);
+}
+
+// ── Commands ──────────────────────────────────────────────────────────────
+const CMD_DATA = [
+  { server:'Lobby', sections:[
+    { label:'Allgemein', cmds:[
+      {n:'/navigator',    u:'/navigator',                                   d:'Server-Navigator öffnen',              admin:false},
+      {n:'/toggleplayers',u:'/toggleplayers',                               d:'Andere Spieler ein-/ausblenden',       admin:false},
+      {n:'/tutorial',     u:'/tutorial',                                    d:'Tutorial-GUI öffnen',                  admin:false},
+    ]},
+    { label:'Admin', cmds:[
+      {n:'/setspawn', u:'/setspawn',                                        d:'Lobby-Spawn setzen',                   admin:true},
+      {n:'/border',   u:'/border <wand|create|remove|clear|info>',          d:'Lobby-Border verwalten',               admin:true},
+      {n:'/portal',   u:'/portal <wand|create|remove|clear|list>',          d:'Portale verwalten',                    admin:true},
+      {n:'/vanish',   u:'/vanish',                                          d:'Unsichtbar schalten',                  admin:true},
+      {n:'/build',    u:'/build',                                           d:'Build-Modus umschalten',               admin:true},
+      {n:'/rank',     u:'/rank <set|info|list>',                            d:'Rang verwalten',                       admin:true},
+      {n:'/hologram', u:'/hologram <create|delete|list>',                   d:'Holograms verwalten',                  admin:true},
+    ]},
+  ]},
+  { server:'Survival', sections:[
+    { label:'Teleport', cmds:[
+      {n:'/spawn',    u:'/spawn',                                           d:'Zum Spawn teleportieren',              admin:false},
+      {n:'/back',     u:'/back',                                            d:'Zum letzten Sterbeort',                admin:false},
+      {n:'/rtp',      u:'/rtp',                                             d:'Zufällig teleportieren',               admin:false},
+      {n:'/sethome',  u:'/sethome [Name]',                                  d:'Home setzen',                          admin:false},
+      {n:'/home',     u:'/home [Name]',                                     d:'Zu Home teleportieren',                admin:false},
+      {n:'/delhome',  u:'/delhome [Name]',                                  d:'Home löschen',                         admin:false},
+      {n:'/homes',    u:'/homes',                                           d:'Alle Homes anzeigen',                  admin:false},
+      {n:'/tpa',      u:'/tpa <Spieler>',                                   d:'Teleportanfrage senden',               admin:false},
+      {n:'/tpaccept', u:'/tpaccept',                                        d:'Teleportanfrage annehmen',             admin:false},
+      {n:'/tpdeny',   u:'/tpdeny',                                          d:'Teleportanfrage ablehnen',             admin:false},
+      {n:'/warp',     u:'/warp <Name>',                                     d:'Zu Warp teleportieren',                admin:false},
+      {n:'/warps',    u:'/warps',                                           d:'Alle Warps anzeigen',                  admin:false},
+    ]},
+    { label:'Claims', cmds:[
+      {n:'/claim',    u:'/claim',                                           d:'Chunk beanspruchen',                   admin:false},
+      {n:'/unclaim',  u:'/unclaim',                                         d:'Chunk-Claim entfernen',                admin:false},
+      {n:'/claimlist',u:'/claimlist',                                       d:'Claims auflisten',                     admin:false},
+      {n:'/trust',    u:'/trust <Spieler>',                                 d:'Spieler Rechte im Claim geben',        admin:false},
+      {n:'/untrust',  u:'/untrust <Spieler>',                               d:'Vertrauen entfernen',                  admin:false},
+      {n:'/trustlist',u:'/trustlist',                                       d:'Vertrauensliste anzeigen',             admin:false},
+    ]},
+    { label:'Wirtschaft', cmds:[
+      {n:'/balance',   u:'/balance',                                        d:'Kontostand anzeigen',                  admin:false},
+      {n:'/pay',       u:'/pay <Spieler> <Betrag>',                         d:'Coins überweisen',                     admin:false},
+      {n:'/baltop',    u:'/baltop',                                         d:'Top 10 nach Coins',                    admin:false},
+      {n:'/sell',      u:'/sell <hand|all>',                                d:'Items verkaufen',                      admin:false},
+      {n:'/shop',      u:'/shop',                                           d:'Server-Shop öffnen',                   admin:false},
+      {n:'/bank',      u:'/bank [deposit|withdraw] [Betrag]',               d:'Bank-Konto verwalten',                 admin:false},
+      {n:'/ah',        u:'/ah [sell <Preis>]',                              d:'Auktionshaus',                         admin:false},
+      {n:'/createshop',u:'/createshop <Menge> <Kauf> [Verkauf]',           d:'Chest-Shop erstellen',                 admin:false},
+      {n:'/removeshop',u:'/removeshop',                                     d:'Chest-Shop entfernen',                 admin:false},
+    ]},
+    { label:'Jobs & Fortschritt', cmds:[
+      {n:'/jobs',        u:'/jobs',                                         d:'Job-System öffnen',                    admin:false},
+      {n:'/quests',      u:'/quests',                                       d:'Tägliche Quests',                      admin:false},
+      {n:'/achievements',u:'/achievements',                                 d:'Achievements',                         admin:false},
+      {n:'/stats',       u:'/stats [Spieler]',                              d:'Statistiken anzeigen',                 admin:false},
+      {n:'/kit',         u:'/kit <starter>',                                d:'Starter-Kit',                          admin:false},
+      {n:'/lb',          u:'/lb [coins|kills|playtime]',                    d:'Leaderboard',                          admin:false},
+      {n:'/tutorial',    u:'/tutorial',                                     d:'Tutorial öffnen',                      admin:false},
+    ]},
+    { label:'Social', cmds:[
+      {n:'/friend', u:'/friend <add|remove|accept|deny|list|requests>',     d:'Freundesliste verwalten',              admin:false},
+      {n:'/mail',   u:'/mail <send|read|clear>',                            d:'Nachrichten',                          admin:false},
+      {n:'/trade',  u:'/trade <Spieler|accept|deny>',                       d:'Handel starten',                       admin:false},
+      {n:'/report', u:'/report <Spieler> <Grund>',                          d:'Spieler melden',                       admin:false},
+    ]},
+    { label:'Admin', cmds:[
+      {n:'/eco',         u:'/eco <give|take|set|check> <Spieler> [Betrag]', d:'Wirtschaft verwalten',                 admin:true},
+      {n:'/srank',       u:'/srank <set|info|list>',                        d:'Rang verwalten',                       admin:true},
+      {n:'/setspawn',    u:'/setspawn',                                     d:'Spawn setzen',                         admin:true},
+      {n:'/setwarp',     u:'/setwarp <Name>',                               d:'Warp setzen',                          admin:true},
+      {n:'/delwarp',     u:'/delwarp <Name>',                               d:'Warp löschen',                         admin:true},
+      {n:'/spawnborder', u:'/spawnborder <wand|add|remove|list|clear|show>',d:'Spawn-Border verwalten',               admin:true},
+      {n:'/resetworld',  u:'/resetworld [confirm]',                         d:'Welt zurücksetzen',                    admin:true},
+      {n:'/schem',       u:'/schem <list|load|paste|save>',                 d:'Schematics (FAWE)',                    admin:true},
+      {n:'/flatarea',    u:'/flatarea [radius] [y-level]',                  d:'Fläche planieren (FAWE)',               admin:true},
+      {n:'/npc',         u:'/npc <create|delete|addcmd|removecmd|info>',    d:'NPCs verwalten',                       admin:true},
+      {n:'/helpholo',    u:'/helpholo [place|remove]',                      d:'Hilfe-Hologramm',                      admin:true},
+      {n:'/phinfo',      u:'/phinfo <Spieler>',                             d:'Spielerdaten (Dashboard)',              admin:true},
+    ]},
+  ]},
 ];
 
-function renderCommandsPage() {
-  document.getElementById('main-panel').innerHTML = `
-    <div class="server-header">
-      <span class="server-name">📋 Befehlsreferenz</span>
-      <div style="flex:1"></div>
-      <input class="search-field" id="cmd-search" placeholder="Befehl suchen…" oninput="filterCommands()">
-    </div>
-    <div class="page-wrap" id="cmd-page">${buildCommandsHtml('')}</div>`;
+function renderCmds() {
+  setHdr('📋 Befehlsreferenz', `<input class="field fsm" id="cmd-q" placeholder="Suchen…" oninput="filterCmds()" style="width:200px">`);
+  document.getElementById('page-content').innerHTML = `<div class="page" id="cmd-page">${buildCmdHtml('')}</div>`;
 }
-
-function filterCommands() {
-  const q    = (document.getElementById('cmd-search')?.value || '').toLowerCase();
-  const page = document.getElementById('cmd-page');
-  if (page) page.innerHTML = buildCommandsHtml(q);
+function filterCmds() {
+  const q=(document.getElementById('cmd-q')?.value||'').toLowerCase();
+  const p=document.getElementById('cmd-page'); if(p) p.innerHTML=buildCmdHtml(q);
 }
-
-function buildCommandsHtml(q) {
-  let html = '';
-  for (const grp of COMMANDS) {
-    let gHtml = ''; let gVisible = false;
+function buildCmdHtml(q) {
+  let html='';
+  for (const grp of CMD_DATA) {
+    let gH=''; let gV=false;
     for (const sec of grp.sections) {
-      let sHtml = ''; let sVisible = false;
+      let sH=''; let sV=false;
       for (const cmd of sec.cmds) {
-        const show = !q || cmd.n.toLowerCase().includes(q)
-                        || cmd.d.toLowerCase().includes(q)
-                        || cmd.u.toLowerCase().includes(q);
-        if (show) { sVisible = true; gVisible = true; }
-        sHtml += `<div class="cmd-row${show ? '' : ' cmd-hidden'}">
-          <span class="cmd-name">${escHtml(cmd.n)}</span>
-          <span class="cmd-usage">${escHtml(cmd.u)}</span>
-          <span class="cmd-desc">${escHtml(cmd.d)}</span>
-          ${cmd.admin ? '<span class="cmd-badge">Admin</span>' : '<span></span>'}
-        </div>`;
+        const show=!q||cmd.n.toLowerCase().includes(q)||cmd.d.toLowerCase().includes(q)||cmd.u.toLowerCase().includes(q);
+        if(show){sV=true;gV=true;}
+        sH+=`<div class="crow${show?'':' ch'}"><span class="cn">${escH(cmd.n)}</span><span class="cu">${escH(cmd.u)}</span><span class="cd">${escH(cmd.d)}</span>${cmd.admin?'<span class="ca">Admin</span>':'<span></span>'}</div>`;
       }
-      gHtml += `<div class="cmd-section${sVisible ? '' : ' cmd-hidden'}">
-        <div class="cmd-section-title">${escHtml(sec.label)}</div>${sHtml}</div>`;
+      gH+=`<div class="csec${sV?'':' ch'}"><div class="csec-lbl">${escH(sec.label)}</div>${sH}</div>`;
     }
-    html += `<div${gVisible ? '' : ' class="cmd-hidden"'}>
-      <div class="cmd-group-title">${escHtml(grp.server)}</div>${gHtml}</div>`;
+    html+=`<div${gV?'':' class="ch"'}><div class="cg-title">${escH(grp.server)}</div>${gH}</div>`;
   }
-  return html || '<div style="color:var(--muted);text-align:center;padding:40px">Keine Befehle gefunden</div>';
+  return html||'<div class="empty">Keine Befehle gefunden</div>';
 }
 
-// ── Rechteverwaltung ─────────────────────────────────────────────────────
-
-function renderRightsPage() {
-  document.getElementById('main-panel').innerHTML = `
-    <div class="server-header">
-      <span class="server-name">🔑 Rechteverwaltung</span>
-    </div>
-    <div class="console-wrap">
-      <div class="rights-tabs">
-        <button class="rights-tab-btn ${rightsServer === 'lobby'    ? 'active' : ''}" onclick="switchRightsTab('lobby')">Lobby</button>
-        <button class="rights-tab-btn ${rightsServer === 'survival' ? 'active' : ''}" onclick="switchRightsTab('survival')">Survival</button>
-      </div>
-      <div class="rights-panel" id="rights-panel">
-        <div style="color:var(--muted);font-size:.9rem">Lade…</div>
-      </div>
-    </div>`;
-  loadRightsData(rightsServer);
+// ── WebSocket ─────────────────────────────────────────────────────────────
+function connectWs() {
+  const proto = location.protocol==='https:'?'wss':'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+  ws.onopen = ()=>{
+    ws.send(JSON.stringify({type:'auth',token:TOKEN}));
+    if(conSrv) ws.send(JSON.stringify({type:'subscribe',container:conSrv}));
+  };
+  ws.onmessage = e=>{
+    const msg=JSON.parse(e.data);
+    if(msg.type==='log') {
+      const cnt=msg.server;
+      const buf=logBuf[cnt]||[];
+      for(const line of msg.text.split('\n')) { if(line.trim()){buf.push(line);} }
+      while(buf.length>500)buf.shift();
+      logBuf[cnt]=buf;
+      if(conSrv===cnt) {
+        const out=document.getElementById('con-out');
+        if(out) {
+          for(const line of msg.text.split('\n')) {
+            if(!line.trim()) continue;
+            const d=document.createElement('div');
+            d.className='ll '+classLine(line); d.textContent=line;
+            out.appendChild(d);
+          }
+          while(out.children.length>1000) out.removeChild(out.firstChild);
+          if(autoScroll) out.scrollTop=out.scrollHeight;
+        }
+      }
+    }
+  };
+  ws.onclose = ()=>setTimeout(connectWs,3000);
 }
 
-function switchRightsTab(srv) {
-  rightsServer = srv;
-  document.querySelectorAll('.rights-tab-btn').forEach(b =>
-    b.classList.toggle('active', b.textContent.toLowerCase() === srv));
-  const panel = document.getElementById('rights-panel');
-  if (panel) panel.innerHTML = '<div style="color:var(--muted);font-size:.9rem">Lade…</div>';
-  loadRightsData(srv);
+function subscribeLog(cnt) {
+  conSrv=cnt;
+  if(ws?.readyState===1) ws.send(JSON.stringify({type:'subscribe',container:cnt}));
 }
 
-async function loadRightsData(srv) {
-  const [opsRes, wlRes] = await Promise.all([
-    apiFetch(`/api/servers/${srv}/ops`),
-    apiFetch(`/api/servers/${srv}/whitelist`)
-  ]);
-  const opsData = opsRes?.ok ? await opsRes.json() : { ops: [] };
-  const wlData  = wlRes?.ok  ? await wlRes.json()  : { whitelist: [], enabled: false };
-  rightsData[srv] = { ops: opsData.ops || [], whitelist: wlData.whitelist || [], wlEnabled: !!wlData.enabled };
-  renderRightsPanel(srv);
+// ── Helpers ───────────────────────────────────────────────────────────────
+function showMsg(el,ok,msg) {
+  if(!el) return;
+  el.textContent=msg; el.className='msg '+(ok?'msg-ok':'msg-err'); el.style.display='block';
+  setTimeout(()=>{el.style.display='none';},5000);
+}
+function escH(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+async function apiFetch(url,opts={}) {
+  try { return await fetch(url,{...opts,headers:{'Content-Type':'application/json','x-dashboard-token':TOKEN,...(opts.headers||{})}}); }
+  catch { return null; }
 }
 
-function renderRightsPanel(srv) {
-  const panel = document.getElementById('rights-panel');
-  if (!panel) return;
-  const d = rightsData[srv] || { ops: [], whitelist: [], wlEnabled: false };
-
-  const opRows = d.ops.length
-    ? d.ops.map(op => `<div class="player-entry">
-        <span class="player-entry-name">👑 ${escHtml(op.name || op)}</span>
-        <button class="btn-sm" onclick="removeOp('${srv}','${escHtml(op.name || op)}')">De-OP</button>
-      </div>`).join('')
-    : '<div style="color:var(--muted);font-size:.85rem;padding:4px 0">Keine Operatoren</div>';
-
-  const wlRows = d.whitelist.length
-    ? d.whitelist.map(wl => `<div class="player-entry">
-        <span class="player-entry-name">${escHtml(wl.name || wl)}</span>
-        <button class="btn-sm" onclick="removeWhitelist('${srv}','${escHtml(wl.name || wl)}')">Entfernen</button>
-      </div>`).join('')
-    : '<div style="color:var(--muted);font-size:.85rem;padding:4px 0">Whitelist ist leer</div>';
-
-  panel.innerHTML = `
-    <div class="rights-section">
-      <div class="rights-section-header">
-        <span class="rights-section-title">👑 Operatoren (OP)</span>
-      </div>
-      <div class="player-list">${opRows}</div>
-      <div class="add-row">
-        <input id="op-input" type="text" placeholder="Spielername…"
-               onkeydown="if(event.key==='Enter')addOp('${srv}')">
-        <button class="btn-sm green-btn" onclick="addOp('${srv}')">OP geben</button>
-      </div>
-      <div class="rights-msg" id="op-msg" style="display:none"></div>
-    </div>
-
-    <hr style="border:none;border-top:1px solid var(--border);flex-shrink:0">
-
-    <div class="rights-section">
-      <div class="rights-section-header">
-        <span class="rights-section-title">📋 Whitelist</span>
-        <div class="wl-toggle">
-          <span class="wl-status ${d.wlEnabled ? 'on' : 'off'}">${d.wlEnabled ? 'AN' : 'AUS'}</span>
-          <button class="btn-sm ${d.wlEnabled ? '' : 'green-btn'}" onclick="toggleWhitelist('${srv}')">
-            ${d.wlEnabled ? 'Deaktivieren' : 'Aktivieren'}
-          </button>
-        </div>
-      </div>
-      <div class="player-list">${wlRows}</div>
-      <div class="add-row">
-        <input id="wl-input" type="text" placeholder="Spielername…"
-               onkeydown="if(event.key==='Enter')addWhitelist('${srv}')">
-        <button class="btn-sm green-btn" onclick="addWhitelist('${srv}')">Hinzufügen</button>
-      </div>
-      <div class="rights-msg" id="wl-msg" style="display:none"></div>
-    </div>`;
+// ── Start ─────────────────────────────────────────────────────────────────
+if (TOKEN) {
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').classList.remove('hidden');
+  init();
 }
-
-async function addOp(srv) {
-  const input = document.getElementById('op-input');
-  const player = input?.value?.trim();
-  if (!player) return;
-  const res  = await apiFetch(`/api/servers/${srv}/op`, { method: 'POST', body: JSON.stringify({ player, action: 'op' }) });
-  const data = res ? await res.json() : null;
-  showRightsMsg('op-msg', data?.ok, data?.output || data?.error || 'Fehler');
-  if (data?.ok) { input.value = ''; await loadRightsData(srv); }
-}
-
-async function removeOp(srv, player) {
-  const res  = await apiFetch(`/api/servers/${srv}/op`, { method: 'POST', body: JSON.stringify({ player, action: 'deop' }) });
-  const data = res ? await res.json() : null;
-  showRightsMsg('op-msg', data?.ok, data?.output || data?.error || 'Fehler');
-  if (data?.ok) await loadRightsData(srv);
-}
-
-async function addWhitelist(srv) {
-  const input = document.getElementById('wl-input');
-  const player = input?.value?.trim();
-  if (!player) return;
-  const res  = await apiFetch(`/api/servers/${srv}/whitelist`, { method: 'POST', body: JSON.stringify({ action: 'add', player }) });
-  const data = res ? await res.json() : null;
-  showRightsMsg('wl-msg', data?.ok, data?.output || data?.error || 'Fehler');
-  if (data?.ok) { input.value = ''; await loadRightsData(srv); }
-}
-
-async function removeWhitelist(srv, player) {
-  const res  = await apiFetch(`/api/servers/${srv}/whitelist`, { method: 'POST', body: JSON.stringify({ action: 'remove', player }) });
-  const data = res ? await res.json() : null;
-  showRightsMsg('wl-msg', data?.ok, data?.output || data?.error || 'Fehler');
-  if (data?.ok) await loadRightsData(srv);
-}
-
-async function toggleWhitelist(srv) {
-  const action = rightsData[srv]?.wlEnabled ? 'off' : 'on';
-  const res  = await apiFetch(`/api/servers/${srv}/whitelist`, { method: 'POST', body: JSON.stringify({ action }) });
-  const data = res ? await res.json() : null;
-  showRightsMsg('wl-msg', data?.ok, data?.output || data?.error || 'Fehler');
-  if (data?.ok) await loadRightsData(srv);
-}
-
-function showRightsMsg(id, ok, msg) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = msg;
-  el.className = `rights-msg ${ok ? 'ok' : 'err'}`;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 5000);
-}
-
-// ── Start ────────────────────────────────────────────────────────────────
-
-if (TOKEN) init();
 </script>
 </body>
 </html>

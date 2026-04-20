@@ -303,6 +303,48 @@ app.post('/api/players/action', auth, async (req, res) => {
   }
 });
 
+// ── REST-API: Wirtschaft + Spieleraktionen ────────────────────────────────
+
+/** Baltop via RCON. */
+app.get('/api/economy/baltop', auth, async (req, res) => {
+  const cfg = SERVERS.survival;
+  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
+  try {
+    const raw   = await rconSend(cfg.rcon, 'baltop');
+    const clean = stripColors(raw);
+    const entries = [];
+    for (const line of clean.split('\n')) {
+      const m = /(\d+)\.\s+(.+?)\s+[–\-]\s+([\d.,]+)\s+Coins?/i.exec(line);
+      if (m) entries.push({ rank: parseInt(m[1]), name: m[2].trim(), coins: parseInt(m[3].replace(/[.,]/g,'')) });
+    }
+    res.json({ baltop: entries });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** Spieler kicken. */
+app.post('/api/players/kick', auth, async (req, res) => {
+  const { name, reason } = req.body;
+  if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
+  const cfg = SERVERS.survival;
+  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
+  try {
+    const out = await rconSend(cfg.rcon, reason ? `kick ${name} ${reason}` : `kick ${name}`);
+    res.json({ ok: true, output: stripColors(out) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+/** Spieler bannen. */
+app.post('/api/players/ban', auth, async (req, res) => {
+  const { name, reason } = req.body;
+  if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
+  const cfg = SERVERS.survival;
+  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
+  try {
+    const out = await rconSend(cfg.rcon, reason ? `ban ${name} ${reason}` : `ban ${name}`);
+    res.json({ ok: true, output: stripColors(out) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── REST-API: Rechteverwaltung ────────────────────────────────────────────
 
 const MANAGED_SERVERS = ['lobby', 'survival'];
