@@ -190,6 +190,8 @@ public class PHSurvival extends JavaPlugin {
         getCommand("tutorial").setExecutor(new de.pinkhorizon.survival.commands.TutorialCommand(tutorialGui));
         getServer().getPluginManager().registerEvents(tutorialGui, this);
 
+        getCommand("phinfo").setExecutor(new de.pinkhorizon.survival.commands.PlayerInfoCommand(this));
+
         de.pinkhorizon.survival.gui.AhGui ahGui = new de.pinkhorizon.survival.gui.AhGui(this);
         de.pinkhorizon.survival.commands.AhCommand ahCmd = new de.pinkhorizon.survival.commands.AhCommand(this, ahGui);
         getCommand("ah").setExecutor(ahCmd);

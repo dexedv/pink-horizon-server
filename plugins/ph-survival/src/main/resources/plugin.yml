@@ -155,6 +155,10 @@ commands:
   ah:
     description: Auktionshaus öffnen
     usage: /ah [sell <Preis>]
+  phinfo:
+    description: Strukturierte Spielerdaten (Dashboard-intern)
+    usage: /phinfo <Spieler>
+    permission: survival.admin
 
 permissions:
   survival.claim:

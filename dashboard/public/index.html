@@ -97,23 +97,23 @@
     background: var(--surface); color: var(--text); cursor: pointer; font-size: .85rem;
     display: flex; align-items: center; gap: 6px; transition: all .15s;
   }
-  .btn:hover           { border-color: var(--pink); color: var(--pink); }
-  .btn.btn-danger:hover { border-color: var(--red); color: var(--red); }
-  .btn.btn-success:hover { border-color: var(--green); color: var(--green); }
-  .btn:disabled        { opacity: .4; cursor: not-allowed; }
+  .btn:hover            { border-color: var(--pink); color: var(--pink); }
+  .btn.btn-danger:hover { border-color: var(--red);  color: var(--red); }
+  .btn.btn-success:hover{ border-color: var(--green); color: var(--green); }
+  .btn:disabled         { opacity: .4; cursor: not-allowed; }
 
-  /* ── Console ── */
-  .console-wrap {
-    flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 12px 16px;
-    gap: 10px;
-  }
-  .console-tabs { display: flex; gap: 4px; }
+  /* ── Tabs ── */
+  .console-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 12px 16px; gap: 10px; }
+  .console-tabs { display: flex; gap: 4px; flex-shrink: 0; }
   .tab-btn {
     padding: 5px 14px; border-radius: 6px 6px 0 0; border: 1px solid var(--border); border-bottom: none;
     background: none; color: var(--muted); cursor: pointer; font-size: .85rem;
   }
   .tab-btn.active { background: var(--bg); color: var(--text); }
+  .tab-panel { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .tab-hidden { display: none !important; }
 
+  /* ── Konsole ── */
   #console-output {
     flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 0 8px 8px 8px;
     padding: 12px 14px; overflow-y: auto; font-family: var(--mono); font-size: .8rem;
@@ -125,9 +125,7 @@
   #console-output .log-line.info    { color: #7ec8e3; }
   #console-output .log-line.cmd-out { color: var(--pink); }
 
-  .console-input-row {
-    display: flex; gap: 8px;
-  }
+  .console-input-row { display: flex; gap: 8px; flex-shrink: 0; }
   #cmd-input {
     flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
     padding: 10px 14px; color: var(--text); font-family: var(--mono); font-size: .9rem; outline: none;
@@ -139,7 +137,114 @@
   }
   #cmd-send:hover { opacity: .85; }
 
-  /* ── Empty state ── */
+  /* ── Spieler-Tab ── */
+  .player-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+
+  .player-search-row { display: flex; gap: 8px; flex-shrink: 0; }
+  .player-search-row input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; color: var(--text); font-size: .9rem; outline: none;
+  }
+  .player-search-row input:focus { border-color: var(--pink); }
+  .search-btn {
+    padding: 10px 18px; background: linear-gradient(135deg, var(--pink), var(--purple));
+    border: none; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; font-size: .9rem;
+    white-space: nowrap;
+  }
+  .search-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .online-chips { display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; min-height: 24px; align-items: center; }
+  .chip {
+    padding: 3px 12px; background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    border-radius: 20px; cursor: pointer; font-size: .82rem; color: var(--text); transition: all .15s;
+  }
+  .chip:hover { border-color: var(--pink); color: var(--pink); }
+  .chip::before { content: '● '; color: var(--green); }
+  .chips-label { font-size: .78rem; color: var(--muted); }
+
+  .player-card-empty {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: .9rem; border: 1px dashed var(--border); border-radius: 10px;
+  }
+
+  /* Spieler-Karte */
+  .player-card { display: flex; flex-direction: column; gap: 10px; }
+
+  .pc-header {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .pc-name { font-size: 1.15rem; font-weight: 700; flex: 1; }
+  .rank-row { display: flex; align-items: center; gap: 8px; }
+  .rank-row select {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 10px; border-radius: 6px; font-size: .85rem; outline: none; cursor: pointer;
+  }
+  .rank-row select:focus { border-color: var(--pink); }
+  .rank-badge {
+    font-size: .78rem; padding: 2px 10px; border-radius: 20px;
+    background: rgba(155,89,182,.15); border: 1px solid rgba(155,89,182,.3); color: var(--purple);
+  }
+
+  .pc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 700px) { .pc-grid { grid-template-columns: 1fr; } }
+
+  .data-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .data-card h3 {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin-bottom: 2px;
+  }
+
+  /* Coins */
+  .coin-big { font-size: 1.9rem; font-weight: 700; color: var(--yellow); }
+  .coin-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 12px; color: var(--text); font-size: .9rem; outline: none;
+  }
+  .coin-input:focus { border-color: var(--yellow); }
+  .coin-btns { display: flex; gap: 6px; }
+  .coin-btns button {
+    flex: 1; padding: 8px 4px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); cursor: pointer; font-size: .8rem; transition: all .15s;
+  }
+  .coin-btns .btn-give:hover { border-color: var(--green); color: var(--green); }
+  .coin-btns .btn-take:hover { border-color: var(--red);   color: var(--red); }
+  .coin-btns .btn-set:hover  { border-color: var(--blue);  color: var(--blue); }
+
+  /* Statistiken */
+  .stat-row {
+    display: flex; justify-content: space-between; padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,.05); font-size: .88rem;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-lbl { color: var(--muted); }
+  .stat-val { font-weight: 600; }
+
+  /* Job */
+  .job-row { display: flex; align-items: center; gap: 10px; }
+  .job-badge {
+    padding: 4px 14px; border-radius: 20px; font-size: .85rem; font-weight: 600;
+    background: rgba(46,204,113,.12); border: 1px solid rgba(46,204,113,.3); color: var(--green);
+  }
+  .job-none { color: var(--muted); font-size: .88rem; }
+
+  /* Aktionsergebnis */
+  .action-result {
+    font-size: .82rem; padding: 6px 12px; border-radius: 6px;
+    display: none; margin-top: 2px;
+  }
+  .action-result.ok  { display: block; background: rgba(46,204,113,.1); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
+  .action-result.err { display: block; background: rgba(231,76,60,.1);  color: var(--red);   border: 1px solid rgba(231,76,60,.3); }
+
+  /* Rank-Ergebnis */
+  .rank-result { font-size: .82rem; }
+  .rank-result.ok  { color: var(--green); }
+  .rank-result.err { color: var(--red); }
+
+  /* ── Leer ── */
   .empty-state {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     color: var(--muted); gap: 12px;
@@ -150,6 +255,8 @@
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  input[type=number]::-webkit-inner-spin-button { opacity: .4; }
 </style>
 </head>
 <body>
@@ -195,14 +302,16 @@ let ws = null;
 let cmdHistory = [];
 let historyIdx = -1;
 let autoScroll = true;
+let serverData = {};
+let activeTab  = {};           // serverKey → 'console' | 'players'
+let currentPlayer = null;      // zuletzt geladene Spielerdaten
 
 // ── Auth ────────────────────────────────────────────────────────────────
 
 async function login() {
   const pw = document.getElementById('pw-input').value;
   const res = await fetch('/api/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password: pw })
   });
   const data = await res.json();
@@ -216,16 +325,10 @@ async function login() {
   }
 }
 
-function logout() {
-  localStorage.removeItem('ph_token');
-  location.reload();
-}
-
+function logout() { localStorage.removeItem('ph_token'); location.reload(); }
 document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 
 // ── Init ────────────────────────────────────────────────────────────────
-
-let serverData = {};
 
 async function init() {
   if (!TOKEN) return;
@@ -248,26 +351,40 @@ function renderSidebar() {
   for (const [key, srv] of Object.entries(serverData)) {
     const btn = document.createElement('button');
     btn.className = 'server-btn' + (activeServer === key ? ' active' : '');
-    btn.innerHTML = `
-      <span class="dot ${srv.running ? 'online' : 'offline'}"></span>
-      <span>${srv.label}</span>`;
+    btn.innerHTML = `<span class="dot ${srv.running ? 'online' : 'offline'}"></span><span>${srv.label}</span>`;
     btn.onclick = () => selectServer(key);
     list.appendChild(btn);
   }
-  if (activeServer) renderMain();
+  // Nur Server-Status-Badge im Header aktualisieren, kein Full-Render
+  if (activeServer) updateStatusBadge();
+}
+
+function updateStatusBadge() {
+  const srv = serverData[activeServer];
+  if (!srv) return;
+  const dot = document.querySelector('.server-header .dot');
+  const badge = document.querySelector('.server-status');
+  if (dot)   { dot.className = 'dot ' + (srv.running ? 'online' : 'offline'); }
+  if (badge) { badge.textContent = srv.status; badge.className = 'server-status ' + (srv.running ? 'online' : 'offline'); }
 }
 
 // ── Server auswählen ────────────────────────────────────────────────────
 
 function selectServer(key) {
   activeServer = key;
+  currentPlayer = null;
   renderSidebar();
   renderMain();
-  subscribeToLogs(serverData[key].container);
+  if ((activeTab[key] || 'console') === 'console') {
+    subscribeToLogs(serverData[key].container);
+  }
 }
 
 function renderMain() {
   const srv = serverData[activeServer];
+  const tab = activeTab[activeServer] || 'console';
+  const showPlayerTab = activeServer === 'survival' && srv.rcon;
+
   document.getElementById('main-panel').innerHTML = `
     <div class="server-header">
       <div class="dot ${srv.running ? 'online' : 'offline'}"></div>
@@ -277,49 +394,84 @@ function renderMain() {
         ${srv.running
           ? `<button class="btn btn-danger"  onclick="serverAction('stop')"   >⏹ Stop</button>
              <button class="btn"             onclick="serverAction('restart')" >🔄 Restart</button>`
-          : `<button class="btn btn-success" onclick="serverAction('start')"  >▶ Start</button>`
-        }
+          : `<button class="btn btn-success" onclick="serverAction('start')"  >▶ Start</button>`}
       </div>
     </div>
     <div class="console-wrap">
       <div class="console-tabs">
-        <button class="tab-btn active">Konsole / Logs</button>
+        <button class="tab-btn ${tab === 'console' ? 'active' : ''}" onclick="switchTab('console')">Konsole / Logs</button>
+        ${showPlayerTab ? `<button class="tab-btn ${tab === 'players' ? 'active' : ''}" onclick="switchTab('players')">👤 Spieler</button>` : ''}
       </div>
-      <div id="console-output"></div>
-      <div class="console-input-row">
-        <input id="cmd-input" placeholder="Befehl eingeben (ohne /)…" ${!srv.rcon ? 'disabled title="Kein RCON für diesen Server"' : ''}>
-        <button id="cmd-send" onclick="sendCommand()">Senden</button>
+
+      <!-- Konsole -->
+      <div id="panel-console" class="tab-panel ${tab !== 'console' ? 'tab-hidden' : ''}">
+        <div id="console-output"></div>
+        <div class="console-input-row">
+          <input id="cmd-input" placeholder="Befehl eingeben (ohne /)…"
+                 ${!srv.rcon ? 'disabled title="Kein RCON für diesen Server"' : ''}>
+          <button id="cmd-send" onclick="sendCommand()">Senden</button>
+        </div>
       </div>
+
+      <!-- Spielerverwaltung -->
+      ${showPlayerTab ? `
+      <div id="panel-players" class="tab-panel ${tab !== 'players' ? 'tab-hidden' : ''}">
+        <div class="player-wrap">
+          <div class="player-search-row">
+            <input id="player-search" type="text" placeholder="Spielername eingeben…"
+                   onkeydown="if(event.key==='Enter')searchPlayer()">
+            <button class="search-btn" onclick="searchPlayer()">🔍 Suchen</button>
+          </div>
+          <div class="online-chips" id="online-chips">
+            <span class="chips-label">Lade Online-Spieler…</span>
+          </div>
+          <div id="player-card" class="player-card-empty">Spieler suchen um Daten anzuzeigen</div>
+        </div>
+      </div>` : ''}
     </div>`;
 
+  // Event-Listener Konsole
   document.getElementById('cmd-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') sendCommand();
     if (e.key === 'ArrowUp')   { historyIdx = Math.min(historyIdx + 1, cmdHistory.length - 1); e.target.value = cmdHistory[historyIdx] || ''; }
     if (e.key === 'ArrowDown') { historyIdx = Math.max(historyIdx - 1, -1); e.target.value = cmdHistory[historyIdx] || ''; }
   });
-
-  const out = document.getElementById('console-output');
-  out?.addEventListener('scroll', () => {
+  document.getElementById('console-output')?.addEventListener('scroll', e => {
+    const out = e.target;
     autoScroll = out.scrollTop + out.clientHeight >= out.scrollHeight - 20;
   });
+
+  if (tab === 'players') loadOnlinePlayers();
 }
 
-// ── Log-Streaming via WebSocket ──────────────────────────────────────────
+// ── Tab-Wechsel ──────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  activeTab[activeServer] = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.includes(tab === 'console' ? 'Konsole' : 'Spieler'));
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('tab-hidden', p.id !== 'panel-' + tab);
+  });
+  if (tab === 'console') subscribeToLogs(serverData[activeServer].container);
+  if (tab === 'players') loadOnlinePlayers();
+}
+
+// ── Log-Streaming ────────────────────────────────────────────────────────
 
 function connectWs() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${proto}://${location.host}`);
-
   ws.onopen = () => {
     ws.send(JSON.stringify({ type: 'auth', token: TOKEN }));
-    if (activeServer) subscribeToLogs(serverData[activeServer]?.container);
+    if (activeServer && (activeTab[activeServer] || 'console') === 'console')
+      subscribeToLogs(serverData[activeServer]?.container);
   };
-
   ws.onmessage = e => {
     const msg = JSON.parse(e.data);
     if (msg.type === 'log') appendLog(msg.text);
   };
-
   ws.onclose = () => setTimeout(connectWs, 3000);
 }
 
@@ -333,16 +485,13 @@ function subscribeToLogs(container) {
 function appendLog(text) {
   const out = document.getElementById('console-output');
   if (!out) return;
-
-  const lines = text.split('\n');
-  for (const line of lines) {
+  for (const line of text.split('\n')) {
     if (!line.trim()) continue;
     const div = document.createElement('div');
     div.className = 'log-line' + classifyLine(line);
     div.textContent = line;
     out.appendChild(div);
   }
-  // Maximal 1000 Zeilen behalten
   while (out.children.length > 1000) out.removeChild(out.firstChild);
   if (autoScroll) out.scrollTop = out.scrollHeight;
 }
@@ -355,23 +504,19 @@ function classifyLine(line) {
   return '';
 }
 
-// ── Befehle ─────────────────────────────────────────────────────────────
+// ── Konsole-Befehle ──────────────────────────────────────────────────────
 
 async function sendCommand() {
   const input = document.getElementById('cmd-input');
   const cmd = input?.value?.trim();
   if (!cmd || !activeServer) return;
-
   input.value = '';
   cmdHistory.unshift(cmd);
   historyIdx = -1;
-
   appendLog(`> ${cmd}`);
   document.querySelector('#console-output .log-line:last-child')?.classList.add('cmd-out');
-
   const res = await apiFetch(`/api/servers/${activeServer}/command`, {
-    method: 'POST',
-    body: JSON.stringify({ command: cmd })
+    method: 'POST', body: JSON.stringify({ command: cmd })
   });
   if (!res) return;
   const data = await res.json();
@@ -387,17 +532,195 @@ async function serverAction(action) {
   }
 }
 
-// ── API-Hilfsfunktion ────────────────────────────────────────────────────
+// ── Spielerverwaltung ────────────────────────────────────────────────────
+
+async function loadOnlinePlayers() {
+  const el = document.getElementById('online-chips');
+  if (!el) return;
+  const res = await apiFetch('/api/players/online?server=survival');
+  if (!res) { el.innerHTML = '<span class="chips-label">Nicht verfügbar</span>'; return; }
+  const { players } = await res.json();
+  if (!players.length) {
+    el.innerHTML = '<span class="chips-label">Keine Spieler online</span>';
+    return;
+  }
+  el.innerHTML = '<span class="chips-label">Online:</span>' +
+    players.map(n => `<button class="chip" onclick="loadPlayer('${escHtml(n)}')">${escHtml(n)}</button>`).join('');
+}
+
+async function searchPlayer() {
+  const input = document.getElementById('player-search');
+  const name = input?.value?.trim();
+  if (!name) return;
+  await loadPlayer(name);
+}
+
+async function loadPlayer(name) {
+  const card = document.getElementById('player-card');
+  if (!card) return;
+  card.innerHTML = '<div class="player-card-empty">Lade…</div>';
+
+  const searchInput = document.getElementById('player-search');
+  if (searchInput) searchInput.value = name;
+
+  const res = await apiFetch('/api/players/info', {
+    method: 'POST', body: JSON.stringify({ name })
+  });
+  if (!res) { card.innerHTML = '<div class="player-card-empty" style="color:var(--red)">Verbindungsfehler</div>'; return; }
+
+  if (res.status === 404) {
+    card.innerHTML = '<div class="player-card-empty" style="color:var(--red)">Spieler nicht gefunden</div>';
+    return;
+  }
+  if (!res.ok) {
+    const err = await res.json();
+    card.innerHTML = `<div class="player-card-empty" style="color:var(--red)">${escHtml(err.error || 'Fehler')}</div>`;
+    return;
+  }
+
+  currentPlayer = await res.json();
+  renderPlayerCard(currentPlayer);
+}
+
+function renderPlayerCard(p) {
+  const card = document.getElementById('player-card');
+  if (!card) return;
+
+  const rankOptions = ['spieler','vip','mvp','mod','admin','owner']
+    .map(r => `<option value="${r}" ${r === p.rank ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`)
+    .join('');
+
+  const jobHtml = p.job === 'NONE'
+    ? '<span class="job-none">Kein aktiver Job</span>'
+    : `<span class="job-badge">${escHtml(p.jobDisplay)}</span>
+       <span style="font-size:.85rem;color:var(--muted)">Level ${p.jobLevel} · ${p.jobXp} XP</span>`;
+
+  card.innerHTML = `
+    <div class="player-card">
+      <!-- Header -->
+      <div class="pc-header">
+        <span class="pc-name">👤 ${escHtml(p.name)}</span>
+        <span class="rank-badge">${escHtml(p.rank)}</span>
+        <div class="rank-row">
+          <select id="rank-select">${rankOptions}</select>
+          <button class="btn" onclick="setRank()">Rang setzen</button>
+          <span class="rank-result" id="rank-result"></span>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div class="pc-grid">
+
+        <!-- Coins -->
+        <div class="data-card">
+          <h3>💰 Coins</h3>
+          <div class="coin-big" id="coin-display">${p.coins.toLocaleString('de-DE')}</div>
+          <input class="coin-input" id="coin-amount" type="number" min="0" placeholder="Betrag">
+          <div class="coin-btns">
+            <button class="btn-give" onclick="coinAction('give')">+ Hinzufügen</button>
+            <button class="btn-take" onclick="coinAction('take')">– Abziehen</button>
+            <button class="btn-set"  onclick="coinAction('set')" >= Setzen</button>
+          </div>
+          <div class="action-result" id="coin-result"></div>
+        </div>
+
+        <!-- Statistiken -->
+        <div class="data-card">
+          <h3>📊 Statistiken</h3>
+          <div class="stat-row"><span class="stat-lbl">Spielzeit</span><span class="stat-val">${p.playtimeH}h ${p.playtimeM}m</span></div>
+          <div class="stat-row"><span class="stat-lbl">Tode</span><span class="stat-val">${p.deaths.toLocaleString('de-DE')}</span></div>
+          <div class="stat-row"><span class="stat-lbl">Mob-Kills</span><span class="stat-val">${p.mobKills.toLocaleString('de-DE')}</span></div>
+          <div class="stat-row"><span class="stat-lbl">Spieler-Kills</span><span class="stat-val">${p.playerKills.toLocaleString('de-DE')}</span></div>
+          <div class="stat-row"><span class="stat-lbl">Blöcke abgebaut</span><span class="stat-val">${p.blocksBroken.toLocaleString('de-DE')}</span></div>
+        </div>
+
+        <!-- Job -->
+        <div class="data-card" style="grid-column: span 2;">
+          <h3>💼 Job</h3>
+          <div class="job-row">${jobHtml}</div>
+        </div>
+
+      </div>
+    </div>`;
+}
+
+async function coinAction(type) {
+  if (!currentPlayer) return;
+  const amountEl = document.getElementById('coin-amount');
+  const resultEl = document.getElementById('coin-result');
+  const amount = parseInt(amountEl?.value);
+  if (!amount || amount <= 0) {
+    showResult(resultEl, false, 'Bitte einen Betrag eingeben');
+    return;
+  }
+
+  resultEl.className = 'action-result';
+  const res = await apiFetch('/api/players/action', {
+    method: 'POST',
+    body: JSON.stringify({ name: currentPlayer.name, type: 'eco_' + type, value: amount })
+  });
+  if (!res) { showResult(resultEl, false, 'Verbindungsfehler'); return; }
+  const data = await res.json();
+
+  if (data.ok) {
+    showResult(resultEl, true, data.output || 'Erledigt');
+    // Coins-Anzeige neu laden
+    const infoRes = await apiFetch('/api/players/info', {
+      method: 'POST', body: JSON.stringify({ name: currentPlayer.name })
+    });
+    if (infoRes?.ok) {
+      currentPlayer = await infoRes.json();
+      const display = document.getElementById('coin-display');
+      if (display) display.textContent = currentPlayer.coins.toLocaleString('de-DE');
+    }
+  } else {
+    showResult(resultEl, false, data.error || 'Fehler');
+  }
+}
+
+async function setRank() {
+  if (!currentPlayer) return;
+  const rank = document.getElementById('rank-select')?.value;
+  const resultEl = document.getElementById('rank-result');
+  if (!rank) return;
+
+  const res = await apiFetch('/api/players/action', {
+    method: 'POST',
+    body: JSON.stringify({ name: currentPlayer.name, type: 'rank_set', rank })
+  });
+  if (!res) { if (resultEl) { resultEl.textContent = 'Verbindungsfehler'; resultEl.className = 'rank-result err'; } return; }
+  const data = await res.json();
+
+  if (resultEl) {
+    resultEl.textContent = data.ok ? '✓ ' + (data.output || 'Gesetzt') : '✗ ' + (data.error || 'Fehler');
+    resultEl.className = 'rank-result ' + (data.ok ? 'ok' : 'err');
+    setTimeout(() => { resultEl.textContent = ''; resultEl.className = 'rank-result'; }, 4000);
+  }
+  if (data.ok) {
+    currentPlayer.rank = rank;
+    const badge = document.querySelector('.rank-badge');
+    if (badge) badge.textContent = rank;
+  }
+}
+
+// ── Hilfsfunktionen ──────────────────────────────────────────────────────
+
+function showResult(el, ok, msg) {
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'action-result ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'action-result'; }, 5000);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 async function apiFetch(url, opts = {}) {
   try {
     return await fetch(url, {
       ...opts,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-dashboard-token': TOKEN,
-        ...(opts.headers || {})
-      }
+      headers: { 'Content-Type': 'application/json', 'x-dashboard-token': TOKEN, ...(opts.headers || {}) }
     });
   } catch (e) {
     console.error('API Fehler:', e);
@@ -405,7 +728,7 @@ async function apiFetch(url, opts = {}) {
   }
 }
 
-// ── Start ───────────────────────────────────────────────────────────────
+// ── Start ────────────────────────────────────────────────────────────────
 
 if (TOKEN) init();
 </script>

@@ -39,6 +39,9 @@ const SERVERS = {
   }
 };
 
+// Verfügbare Survival-Ränge (für Validierung)
+const VALID_RANKS = ['spieler', 'vip', 'mvp', 'mod', 'admin', 'owner'];
+
 // ── Auth-Middleware ───────────────────────────────────────────────────────
 
 function auth(req, res, next) {
@@ -47,14 +50,42 @@ function auth(req, res, next) {
   next();
 }
 
+// ── Hilfsfunktionen ───────────────────────────────────────────────────────
+
+/** Entfernt Minecraft-Farbcodes (§x) aus Text. */
+function stripColors(s) {
+  return (s || '').replace(/§[0-9a-fk-orA-FK-OR]/g, '').trim();
+}
+
+/** Parst KEY:VALUE-Zeilen aus der /phinfo-Antwort. */
+function parseKeyValue(raw) {
+  const result = {};
+  for (const line of stripColors(raw).split('\n')) {
+    const idx = line.indexOf(':');
+    if (idx > 0) {
+      result[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+    }
+  }
+  return result;
+}
+
 // ── RCON-Client ───────────────────────────────────────────────────────────
 
+/**
+ * Sendet einen RCON-Befehl und sammelt ALLE Antwort-Pakete
+ * (Paper sendet sendMessage()-Zeilen teils als mehrere Pakete).
+ * Löst auf sobald 300 ms lang kein neues Paket kommt.
+ */
 function rconSend(rcon, command) {
   return new Promise((resolve, reject) => {
     const socket  = new net.Socket();
     const reqId   = Math.floor(Math.random() * 10000) + 1;
     let   authed  = false;
     let   buf     = Buffer.alloc(0);
+    let   bodies  = [];
+    let   timer   = null;
+
+    const finish = () => { socket.destroy(); resolve(bodies.join('\n') || '✓'); };
 
     const buildPacket = (id, type, body) => {
       const bodyBuf = Buffer.from(body + '\0\0', 'utf8');
@@ -69,7 +100,7 @@ function rconSend(rcon, command) {
 
     socket.setTimeout(6000);
     socket.connect(rcon.port, rcon.host, () => {
-      socket.write(buildPacket(reqId, 3, rcon.password)); // login
+      socket.write(buildPacket(reqId, 3, rcon.password));
     });
 
     socket.on('data', chunk => {
@@ -86,14 +117,16 @@ function rconSend(rcon, command) {
           authed = true;
           socket.write(buildPacket(reqId + 1, 2, command));
         } else {
-          socket.destroy();
-          resolve(body || '✓');
+          if (body) bodies.push(body);
+          clearTimeout(timer);
+          timer = setTimeout(finish, 300);
         }
       }
     });
 
-    socket.on('timeout', () => { socket.destroy(); reject(new Error('RCON Timeout')); });
-    socket.on('error', err  => { socket.destroy(); reject(err); });
+    socket.on('timeout', () => { clearTimeout(timer); socket.destroy(); reject(new Error('RCON Timeout')); });
+    socket.on('error',   err  => { clearTimeout(timer); socket.destroy(); reject(err); });
+    socket.on('close',   ()   => { clearTimeout(timer); finish(); });
   });
 }
 
@@ -113,7 +146,7 @@ async function getContainerStatus(containerName) {
   }
 }
 
-// ── REST-API ──────────────────────────────────────────────────────────────
+// ── REST-API: Server ──────────────────────────────────────────────────────
 
 app.post('/api/login', (req, res) => {
   if (req.body.password === DASHBOARD_PASSWORD)
@@ -131,10 +164,10 @@ app.get('/api/servers', auth, async (req, res) => {
 
 app.post('/api/servers/:name/command', auth, async (req, res) => {
   const cfg = SERVERS[req.params.name];
-  if (!cfg)        return res.status(404).json({ error: 'Unbekannter Server' });
-  if (!cfg.rcon)   return res.status(400).json({ error: 'Kein RCON für diesen Server' });
+  if (!cfg)      return res.status(404).json({ error: 'Unbekannter Server' });
+  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON für diesen Server' });
   const { command } = req.body;
-  if (!command)    return res.status(400).json({ error: 'Kein Befehl' });
+  if (!command)  return res.status(400).json({ error: 'Kein Befehl' });
   try {
     const out = await rconSend(cfg.rcon, command);
     res.json({ ok: true, output: out });
@@ -146,31 +179,124 @@ app.post('/api/servers/:name/command', auth, async (req, res) => {
 app.post('/api/servers/:name/restart', auth, async (req, res) => {
   const cfg = SERVERS[req.params.name];
   if (!cfg) return res.status(404).json({ error: 'Unbekannter Server' });
-  try {
-    await docker.getContainer(cfg.container).restart();
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
+  try { await docker.getContainer(cfg.container).restart(); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 app.post('/api/servers/:name/stop', auth, async (req, res) => {
   const cfg = SERVERS[req.params.name];
   if (!cfg) return res.status(404).json({ error: 'Unbekannter Server' });
-  try {
-    await docker.getContainer(cfg.container).stop();
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
+  try { await docker.getContainer(cfg.container).stop(); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 app.post('/api/servers/:name/start', auth, async (req, res) => {
   const cfg = SERVERS[req.params.name];
   if (!cfg) return res.status(404).json({ error: 'Unbekannter Server' });
+  try { await docker.getContainer(cfg.container).start(); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: Spielerverwaltung ───────────────────────────────────────────
+
+/** Online-Spieler eines Servers via RCON `list`. */
+app.get('/api/players/online', auth, async (req, res) => {
+  const serverKey = req.query.server || 'survival';
+  const cfg = SERVERS[serverKey];
+  if (!cfg || !cfg.rcon) return res.status(400).json({ players: [] });
   try {
-    await docker.getContainer(cfg.container).start();
-    res.json({ ok: true });
+    const raw   = await rconSend(cfg.rcon, 'list');
+    const clean = stripColors(raw);
+    const match = /players online:\s*(.+)/i.exec(clean);
+    const players = match
+      ? match[1].split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    res.json({ players });
+  } catch {
+    res.json({ players: [] });
+  }
+});
+
+/** Vollständige Spielerdaten via /phinfo (Survival-Plugin). */
+app.post('/api/players/info', auth, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Kein Spielername' });
+
+  const cfg = SERVERS.survival;
+  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
+
+  try {
+    const raw  = await rconSend(cfg.rcon, `phinfo ${name}`);
+    const text = stripColors(raw);
+
+    if (text === 'NOT_FOUND')      return res.status(404).json({ error: 'Spieler nicht gefunden' });
+    if (text === 'NOT_AUTHORIZED') return res.status(403).json({ error: 'Keine Berechtigung' });
+
+    const kv = parseKeyValue(raw);
+    if (!kv.NAME) return res.status(404).json({ error: 'Spieler nicht gefunden' });
+
+    const playtime = parseInt(kv.PLAYTIME) || 0;
+    res.json({
+      name:         kv.NAME,
+      coins:        parseInt(kv.COINS)         || 0,
+      rank:         kv.RANK                    || 'spieler',
+      playtimeMin:  playtime,
+      playtimeH:    Math.floor(playtime / 60),
+      playtimeM:    playtime % 60,
+      deaths:       parseInt(kv.DEATHS)        || 0,
+      mobKills:     parseInt(kv.MOB_KILLS)     || 0,
+      playerKills:  parseInt(kv.PLAYER_KILLS)  || 0,
+      blocksBroken: parseInt(kv.BLOCKS_BROKEN) || 0,
+      job:          kv.JOB                     || 'NONE',
+      jobDisplay:   kv.JOB_DISPLAY             || '-',
+      jobLevel:     parseInt(kv.JOB_LEVEL)     || 0,
+      jobXp:        parseInt(kv.JOB_XP)        || 0
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/** Spielerdaten ändern (Coins, Rang). */
+app.post('/api/players/action', auth, async (req, res) => {
+  const { name, type, value, rank } = req.body;
+  if (!name) return res.status(400).json({ error: 'Kein Spielername' });
+
+  const cfg = SERVERS.survival;
+  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
+
+  let cmd;
+  switch (type) {
+    case 'eco_give': {
+      const v = parseInt(value);
+      if (!Number.isInteger(v) || v <= 0) return res.status(400).json({ error: 'Ungültiger Betrag' });
+      cmd = `eco give ${name} ${v}`;
+      break;
+    }
+    case 'eco_take': {
+      const v = parseInt(value);
+      if (!Number.isInteger(v) || v <= 0) return res.status(400).json({ error: 'Ungültiger Betrag' });
+      cmd = `eco take ${name} ${v}`;
+      break;
+    }
+    case 'eco_set': {
+      const v = parseInt(value);
+      if (!Number.isInteger(v) || v < 0) return res.status(400).json({ error: 'Ungültiger Betrag' });
+      cmd = `eco set ${name} ${v}`;
+      break;
+    }
+    case 'rank_set': {
+      if (!VALID_RANKS.includes(rank)) return res.status(400).json({ error: 'Ungültiger Rang' });
+      cmd = `srank set ${name} ${rank}`;
+      break;
+    }
+    default:
+      return res.status(400).json({ error: 'Unbekannte Aktion' });
+  }
+
+  try {
+    const out = await rconSend(cfg.rcon, cmd);
+    res.json({ ok: true, output: stripColors(out) });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -178,9 +304,7 @@ app.post('/api/servers/:name/start', auth, async (req, res) => {
 
 // ── WebSocket – Echtzeit-Logs ─────────────────────────────────────────────
 
-/** Aktive Log-Streams pro Container: containerName -> Set<WebSocket> */
 const logSubscribers = {};
-/** Aktive dockerode-Streams: containerName -> stream */
 const activeStreams   = {};
 
 async function startLogStream(containerName) {
@@ -191,7 +315,6 @@ async function startLogStream(containerName) {
       follow: true, stdout: true, stderr: true, tail: 150
     });
 
-    // Strip 8-Byte Docker-Multiplexing-Header
     const stripHeader = (raw) => {
       const results = [];
       let i = 0;
@@ -216,7 +339,6 @@ async function startLogStream(containerName) {
 
     stream.on('end', () => {
       delete activeStreams[containerName];
-      // Automatisch neu verbinden nach 3s wenn noch Abonnenten
       setTimeout(() => {
         if (logSubscribers[containerName]?.size > 0) startLogStream(containerName);
       }, 3000);
@@ -228,7 +350,7 @@ async function startLogStream(containerName) {
   }
 }
 
-wss.on('connection', (ws, req) => {
+wss.on('connection', (ws) => {
   let subscribedContainer = null;
 
   ws.on('message', async raw => {
@@ -242,10 +364,7 @@ wss.on('connection', (ws, req) => {
       }
 
       if (msg.type === 'subscribe') {
-        // Vorherige Subscription aufheben
-        if (subscribedContainer) {
-          logSubscribers[subscribedContainer]?.delete(ws);
-        }
+        if (subscribedContainer) logSubscribers[subscribedContainer]?.delete(ws);
         subscribedContainer = msg.container;
         if (!logSubscribers[subscribedContainer]) logSubscribers[subscribedContainer] = new Set();
         logSubscribers[subscribedContainer].add(ws);
@@ -258,9 +377,7 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', () => {
-    if (subscribedContainer) {
-      logSubscribers[subscribedContainer]?.delete(ws);
-    }
+    if (subscribedContainer) logSubscribers[subscribedContainer]?.delete(ws);
   });
 });
 
