@@ -4,6 +4,7 @@ const http     = require('http');
 const Docker   = require('dockerode');
 const net      = require('net');
 const path     = require('path');
+const fs       = require('fs').promises;
 
 const app    = express();
 const server = http.createServer(app);
@@ -295,6 +296,77 @@ app.post('/api/players/action', auth, async (req, res) => {
   }
 
   try {
+    const out = await rconSend(cfg.rcon, cmd);
+    res.json({ ok: true, output: stripColors(out) });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── REST-API: Rechteverwaltung ────────────────────────────────────────────
+
+const MANAGED_SERVERS = ['lobby', 'survival'];
+
+/** Liest ops.json aus dem gemounteten Server-Verzeichnis. */
+app.get('/api/servers/:name/ops', auth, async (req, res) => {
+  const name = req.params.name;
+  if (!MANAGED_SERVERS.includes(name)) return res.status(400).json({ error: 'Unbekannter Server' });
+  try {
+    const raw = await fs.readFile(`/data/${name}/ops.json`, 'utf8');
+    res.json({ ops: JSON.parse(raw) });
+  } catch {
+    res.json({ ops: [] });
+  }
+});
+
+/** Liest whitelist.json und Whitelist-Status aus server.properties. */
+app.get('/api/servers/:name/whitelist', auth, async (req, res) => {
+  const name = req.params.name;
+  if (!MANAGED_SERVERS.includes(name)) return res.status(400).json({ error: 'Unbekannter Server' });
+  try {
+    const [wlRaw, propsRaw] = await Promise.all([
+      fs.readFile(`/data/${name}/whitelist.json`, 'utf8').catch(() => '[]'),
+      fs.readFile(`/data/${name}/server.properties`, 'utf8').catch(() => '')
+    ]);
+    const whitelist = JSON.parse(wlRaw);
+    const enabled   = /^white-list=true$/m.test(propsRaw);
+    res.json({ whitelist, enabled });
+  } catch {
+    res.json({ whitelist: [], enabled: false });
+  }
+});
+
+/** OP vergeben oder entziehen via RCON. */
+app.post('/api/servers/:name/op', auth, async (req, res) => {
+  const name = req.params.name;
+  const cfg  = SERVERS[name];
+  if (!cfg || !cfg.rcon) return res.status(400).json({ error: 'Kein RCON für diesen Server' });
+  const { player, action } = req.body;
+  if (!['op', 'deop'].includes(action)) return res.status(400).json({ error: 'Ungültige Aktion' });
+  if (!player || !/^[a-zA-Z0-9_]{1,16}$/.test(player))
+    return res.status(400).json({ error: 'Ungültiger Spielername' });
+  try {
+    const out = await rconSend(cfg.rcon, `${action} ${player}`);
+    res.json({ ok: true, output: stripColors(out) });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+/** Whitelist add/remove/on/off via RCON. */
+app.post('/api/servers/:name/whitelist', auth, async (req, res) => {
+  const name = req.params.name;
+  const cfg  = SERVERS[name];
+  if (!cfg || !cfg.rcon) return res.status(400).json({ error: 'Kein RCON für diesen Server' });
+  const { action, player } = req.body;
+  if (!['add', 'remove', 'on', 'off'].includes(action))
+    return res.status(400).json({ error: 'Ungültige Aktion' });
+  if ((action === 'add' || action === 'remove') && !/^[a-zA-Z0-9_]{1,16}$/.test(player))
+    return res.status(400).json({ error: 'Ungültiger Spielername' });
+  try {
+    const cmd = (action === 'on' || action === 'off')
+      ? `whitelist ${action}`
+      : `whitelist ${action} ${player}`;
     const out = await rconSend(cfg.rcon, cmd);
     res.json({ ok: true, output: stripColors(out) });
   } catch (e) {

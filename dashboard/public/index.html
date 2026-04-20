@@ -257,6 +257,45 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   input[type=number]::-webkit-inner-spin-button { opacity: .4; }
+
+  /* ── Befehle-Seite ── */
+  .page-wrap { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .search-field { flex: 1; max-width: 380px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; color: var(--text); font-size: .9rem; outline: none; }
+  .search-field:focus { border-color: var(--pink); }
+  .cmd-group-title { font-size: .95rem; font-weight: 700; color: var(--text); padding: 4px 0 8px; border-bottom: 2px solid var(--border); margin-bottom: 4px; }
+  .cmd-section { display: flex; flex-direction: column; gap: 4px; }
+  .cmd-section-title { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 6px 0 2px; }
+  .cmd-row { display: grid; grid-template-columns: 160px 1fr 2fr auto; align-items: center; gap: 10px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; font-size: .87rem; }
+  .cmd-name { font-family: var(--mono); color: var(--pink); font-weight: 600; }
+  .cmd-usage { font-family: var(--mono); color: var(--muted); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cmd-desc { color: var(--text); }
+  .cmd-badge { font-size: .7rem; padding: 2px 8px; border-radius: 10px; white-space: nowrap; background: rgba(231,76,60,.12); border: 1px solid rgba(231,76,60,.3); color: var(--red); }
+  .cmd-hidden { display: none !important; }
+
+  /* ── Rechte-Seite ── */
+  .rights-tabs { display: flex; gap: 4px; flex-shrink: 0; }
+  .rights-tab-btn { padding: 5px 18px; border-radius: 6px 6px 0 0; border: 1px solid var(--border); border-bottom: none; background: none; color: var(--muted); cursor: pointer; font-size: .88rem; }
+  .rights-tab-btn.active { background: var(--bg); color: var(--text); }
+  .rights-panel { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 0 8px 8px 8px; padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+  .rights-section { display: flex; flex-direction: column; gap: 8px; }
+  .rights-section-header { display: flex; align-items: center; gap: 10px; }
+  .rights-section-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); flex: 1; }
+  .wl-toggle { display: flex; align-items: center; gap: 8px; }
+  .wl-status { font-size: .78rem; padding: 3px 10px; border-radius: 12px; }
+  .wl-status.on  { background: rgba(46,204,113,.12); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
+  .wl-status.off { background: rgba(107,107,138,.12); color: var(--muted); border: 1px solid var(--border); }
+  .player-list { display: flex; flex-direction: column; gap: 4px; }
+  .player-entry { display: flex; align-items: center; gap: 10px; padding: 7px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
+  .player-entry-name { flex: 1; font-size: .88rem; font-family: var(--mono); }
+  .btn-sm { padding: 4px 12px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: .78rem; transition: all .15s; white-space: nowrap; }
+  .btn-sm:hover { border-color: var(--red); color: var(--red); }
+  .btn-sm.green-btn:hover { border-color: var(--green); color: var(--green); }
+  .add-row { display: flex; gap: 8px; }
+  .add-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: .88rem; outline: none; }
+  .add-row input:focus { border-color: var(--pink); }
+  .rights-msg { font-size: .8rem; padding: 5px 10px; border-radius: 5px; }
+  .rights-msg.ok  { background: rgba(46,204,113,.1); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
+  .rights-msg.err { background: rgba(231,76,60,.1);  color: var(--red);   border: 1px solid rgba(231,76,60,.3); }
 </style>
 </head>
 <body>
@@ -305,6 +344,9 @@ let autoScroll = true;
 let serverData = {};
 let activeTab  = {};           // serverKey → 'console' | 'players'
 let currentPlayer = null;      // zuletzt geladene Spielerdaten
+let activeTool   = null;       // null | 'commands' | 'rights'
+let rightsServer = 'lobby';    // aktiver Tab auf der Rechte-Seite
+let rightsData   = {};         // gecachte ops/whitelist-Daten
 
 // ── Auth ────────────────────────────────────────────────────────────────
 
@@ -350,13 +392,28 @@ function renderSidebar() {
   list.innerHTML = '';
   for (const [key, srv] of Object.entries(serverData)) {
     const btn = document.createElement('button');
-    btn.className = 'server-btn' + (activeServer === key ? ' active' : '');
+    btn.className = 'server-btn' + (activeServer === key && !activeTool ? ' active' : '');
     btn.innerHTML = `<span class="dot ${srv.running ? 'online' : 'offline'}"></span><span>${srv.label}</span>`;
     btn.onclick = () => selectServer(key);
     list.appendChild(btn);
   }
-  // Nur Server-Status-Badge im Header aktualisieren, kein Full-Render
-  if (activeServer) updateStatusBadge();
+  // Tools-Sektion
+  const toolLabel = document.createElement('div');
+  toolLabel.className = 'sidebar-label';
+  toolLabel.style.marginTop = '8px';
+  toolLabel.textContent = 'Tools';
+  list.appendChild(toolLabel);
+  for (const { key, icon, label } of [
+    { key: 'commands', icon: '📋', label: 'Befehle' },
+    { key: 'rights',   icon: '🔑', label: 'Rechte'  }
+  ]) {
+    const btn = document.createElement('button');
+    btn.className = 'server-btn' + (activeTool === key ? ' active' : '');
+    btn.innerHTML = `<span>${icon}</span><span>${label}</span>`;
+    btn.onclick = () => selectTool(key);
+    list.appendChild(btn);
+  }
+  if (activeServer && !activeTool) updateStatusBadge();
 }
 
 function updateStatusBadge() {
@@ -372,12 +429,22 @@ function updateStatusBadge() {
 
 function selectServer(key) {
   activeServer = key;
+  activeTool   = null;
   currentPlayer = null;
   renderSidebar();
   renderMain();
   if ((activeTab[key] || 'console') === 'console') {
     subscribeToLogs(serverData[key].container);
   }
+}
+
+function selectTool(name) {
+  activeTool   = name;
+  activeServer = null;
+  currentPlayer = null;
+  renderSidebar();
+  if (name === 'commands') renderCommandsPage();
+  else if (name === 'rights') renderRightsPage();
 }
 
 function renderMain() {
@@ -726,6 +793,285 @@ async function apiFetch(url, opts = {}) {
     console.error('API Fehler:', e);
     return null;
   }
+}
+
+// ── Befehlsreferenz ──────────────────────────────────────────────────────
+
+const COMMANDS = [
+  {
+    server: 'Lobby',
+    sections: [
+      { label: 'Allgemein', cmds: [
+        { n: '/navigator',     u: '/navigator',                                    d: 'Server-Navigator öffnen',                 admin: false },
+        { n: '/toggleplayers', u: '/toggleplayers',                                d: 'Andere Spieler ein-/ausblenden',           admin: false },
+        { n: '/tutorial',      u: '/tutorial',                                     d: 'Tutorial-GUI öffnen',                      admin: false },
+      ]},
+      { label: 'Admin', cmds: [
+        { n: '/setspawn',  u: '/setspawn',                                         d: 'Lobby-Spawn setzen',                       admin: true },
+        { n: '/border',    u: '/border <wand|create|remove|clear|info>',           d: 'Lobby-Border verwalten',                   admin: true },
+        { n: '/portal',    u: '/portal <wand|create|remove|clear|list>',           d: 'Portale zu Unterservern verwalten',        admin: true },
+        { n: '/vanish',    u: '/vanish',                                           d: 'Unsichtbar schalten',                      admin: true },
+        { n: '/build',     u: '/build',                                            d: 'Build-Modus (Creative) umschalten',        admin: true },
+        { n: '/rank',      u: '/rank <set|info|list>',                             d: 'Rang eines Spielers verwalten',            admin: true },
+        { n: '/hologram',  u: '/hologram <create|delete|list>',                    d: 'Holograms verwalten',                      admin: true },
+      ]},
+    ]
+  },
+  {
+    server: 'Survival',
+    sections: [
+      { label: 'Teleport', cmds: [
+        { n: '/spawn',     u: '/spawn',                                            d: 'Zum Spawn teleportieren',                  admin: false },
+        { n: '/back',      u: '/back',                                             d: 'Zum letzten Sterbeort teleportieren',       admin: false },
+        { n: '/rtp',       u: '/rtp',                                              d: 'Zufällig in der Welt teleportieren',        admin: false },
+        { n: '/sethome',   u: '/sethome [Name]',                                   d: 'Home setzen (max. je nach Rang)',           admin: false },
+        { n: '/home',      u: '/home [Name]',                                      d: 'Zu einem Home teleportieren',              admin: false },
+        { n: '/delhome',   u: '/delhome [Name]',                                   d: 'Home löschen',                             admin: false },
+        { n: '/homes',     u: '/homes',                                            d: 'Alle eigenen Homes auflisten',             admin: false },
+        { n: '/tpa',       u: '/tpa <Spieler>',                                    d: 'Teleportanfrage senden',                   admin: false },
+        { n: '/tpaccept',  u: '/tpaccept',                                         d: 'Teleportanfrage annehmen',                 admin: false },
+        { n: '/tpdeny',    u: '/tpdeny',                                           d: 'Teleportanfrage ablehnen',                 admin: false },
+        { n: '/warp',      u: '/warp <Name>',                                      d: 'Zu einem Warp-Punkt teleportieren',        admin: false },
+        { n: '/warps',     u: '/warps',                                            d: 'Alle verfügbaren Warps anzeigen',          admin: false },
+      ]},
+      { label: 'Claims', cmds: [
+        { n: '/claim',     u: '/claim',                                            d: 'Aktuellen Chunk beanspruchen',             admin: false },
+        { n: '/unclaim',   u: '/unclaim',                                          d: 'Chunk-Claim entfernen',                    admin: false },
+        { n: '/claimlist', u: '/claimlist',                                        d: 'Alle eigenen Claims auflisten',            admin: false },
+        { n: '/trust',     u: '/trust <Spieler>',                                  d: 'Spieler Rechte im eigenen Claim geben',    admin: false },
+        { n: '/untrust',   u: '/untrust <Spieler>',                                d: 'Vertrauen von einem Spieler entfernen',    admin: false },
+        { n: '/trustlist', u: '/trustlist',                                        d: 'Vertrauensliste des aktuellen Claims',     admin: false },
+      ]},
+      { label: 'Wirtschaft', cmds: [
+        { n: '/balance',   u: '/balance',                                          d: 'Eigenen Kontostand anzeigen',              admin: false },
+        { n: '/pay',       u: '/pay <Spieler> <Betrag>',                           d: 'Coins an einen Spieler überweisen',        admin: false },
+        { n: '/baltop',    u: '/baltop',                                           d: 'Top 10 Spieler nach Coins',                admin: false },
+        { n: '/sell',      u: '/sell <hand|all>',                                  d: 'Items aus Hand oder Inventar verkaufen',   admin: false },
+        { n: '/shop',      u: '/shop',                                             d: 'Server-Shop öffnen',                       admin: false },
+        { n: '/bank',      u: '/bank [deposit|withdraw] [Betrag]',                 d: 'Bank-Konto verwalten',                     admin: false },
+        { n: '/ah',        u: '/ah [sell <Preis>]',                                d: 'Auktionshaus öffnen oder Item einstellen', admin: false },
+        { n: '/createshop',u: '/createshop <Menge> <Kaufpreis> [Verkaufspreis]',   d: 'Eigenen Chest-Shop erstellen',             admin: false },
+        { n: '/removeshop',u: '/removeshop',                                       d: 'Eigenen Chest-Shop entfernen',             admin: false },
+      ]},
+      { label: 'Jobs & Fortschritt', cmds: [
+        { n: '/jobs',      u: '/jobs',                                             d: 'Job-System öffnen (beitreten/verlassen)',  admin: false },
+        { n: '/quests',    u: '/quests',                                           d: 'Tägliche Quests anzeigen',                 admin: false },
+        { n: '/achievements',u:'/achievements',                                    d: 'Achievements-Übersicht öffnen',            admin: false },
+        { n: '/stats',     u: '/stats [Spieler]',                                  d: 'Spielerstatistiken anzeigen',              admin: false },
+        { n: '/kit',       u: '/kit <starter>',                                    d: 'Starter-Kit erhalten (einmalig)',          admin: false },
+        { n: '/lb',        u: '/lb [coins|kills|playtime]',                        d: 'Leaderboard anzeigen',                     admin: false },
+        { n: '/tutorial',  u: '/tutorial',                                         d: 'Tutorial-GUI öffnen',                      admin: false },
+      ]},
+      { label: 'Social', cmds: [
+        { n: '/friend',    u: '/friend <add|remove|accept|deny|list|requests>',    d: 'Freundesliste verwalten',                  admin: false },
+        { n: '/mail',      u: '/mail <send|read|clear>',                           d: 'Nachrichten senden und lesen',             admin: false },
+        { n: '/trade',     u: '/trade <Spieler|accept|deny>',                      d: 'Handel mit einem anderen Spieler',         admin: false },
+        { n: '/report',    u: '/report <Spieler> <Grund>',                         d: 'Regelverstoß melden',                      admin: false },
+      ]},
+      { label: 'Admin', cmds: [
+        { n: '/eco',       u: '/eco <give|take|set|check> <Spieler> [Betrag]',     d: 'Wirtschaft verwalten',                     admin: true },
+        { n: '/srank',     u: '/srank <set|info|list>',                            d: 'Spielerrang verwalten',                    admin: true },
+        { n: '/setspawn',  u: '/setspawn',                                         d: 'Spawn-Punkt setzen',                       admin: true },
+        { n: '/setwarp',   u: '/setwarp <Name>',                                   d: 'Warp-Punkt setzen',                        admin: true },
+        { n: '/delwarp',   u: '/delwarp <Name>',                                   d: 'Warp-Punkt löschen',                       admin: true },
+        { n: '/spawnborder',u:'/spawnborder <wand|add|remove|list|clear|show|tp>', d: 'Spawn-Border-Polygon verwalten',           admin: true },
+        { n: '/resetworld',u: '/resetworld [confirm]',                             d: 'Survival-Welt komplett zurücksetzen',       admin: true },
+        { n: '/schem',     u: '/schem <list|load|paste|save>',                     d: 'Schematics verwalten (FAWE)',               admin: true },
+        { n: '/flatarea',  u: '/flatarea [radius] [y-level]',                      d: 'Fläche um Spieler planieren (FAWE)',        admin: true },
+        { n: '/npc',       u: '/npc <create|delete|addcmd|removecmd|info|list>',   d: 'NPCs erstellen und verwalten',             admin: true },
+        { n: '/helpholo',  u: '/helpholo [place|remove]',                          d: 'Hilfe-Hologramm platzieren/entfernen',     admin: true },
+        { n: '/phinfo',    u: '/phinfo <Spieler>',                                 d: 'Strukturierte Spielerdaten (Dashboard)',    admin: true },
+      ]},
+    ]
+  }
+];
+
+function renderCommandsPage() {
+  document.getElementById('main-panel').innerHTML = `
+    <div class="server-header">
+      <span class="server-name">📋 Befehlsreferenz</span>
+      <div style="flex:1"></div>
+      <input class="search-field" id="cmd-search" placeholder="Befehl suchen…" oninput="filterCommands()">
+    </div>
+    <div class="page-wrap" id="cmd-page">${buildCommandsHtml('')}</div>`;
+}
+
+function filterCommands() {
+  const q    = (document.getElementById('cmd-search')?.value || '').toLowerCase();
+  const page = document.getElementById('cmd-page');
+  if (page) page.innerHTML = buildCommandsHtml(q);
+}
+
+function buildCommandsHtml(q) {
+  let html = '';
+  for (const grp of COMMANDS) {
+    let gHtml = ''; let gVisible = false;
+    for (const sec of grp.sections) {
+      let sHtml = ''; let sVisible = false;
+      for (const cmd of sec.cmds) {
+        const show = !q || cmd.n.toLowerCase().includes(q)
+                        || cmd.d.toLowerCase().includes(q)
+                        || cmd.u.toLowerCase().includes(q);
+        if (show) { sVisible = true; gVisible = true; }
+        sHtml += `<div class="cmd-row${show ? '' : ' cmd-hidden'}">
+          <span class="cmd-name">${escHtml(cmd.n)}</span>
+          <span class="cmd-usage">${escHtml(cmd.u)}</span>
+          <span class="cmd-desc">${escHtml(cmd.d)}</span>
+          ${cmd.admin ? '<span class="cmd-badge">Admin</span>' : '<span></span>'}
+        </div>`;
+      }
+      gHtml += `<div class="cmd-section${sVisible ? '' : ' cmd-hidden'}">
+        <div class="cmd-section-title">${escHtml(sec.label)}</div>${sHtml}</div>`;
+    }
+    html += `<div${gVisible ? '' : ' class="cmd-hidden"'}>
+      <div class="cmd-group-title">${escHtml(grp.server)}</div>${gHtml}</div>`;
+  }
+  return html || '<div style="color:var(--muted);text-align:center;padding:40px">Keine Befehle gefunden</div>';
+}
+
+// ── Rechteverwaltung ─────────────────────────────────────────────────────
+
+function renderRightsPage() {
+  document.getElementById('main-panel').innerHTML = `
+    <div class="server-header">
+      <span class="server-name">🔑 Rechteverwaltung</span>
+    </div>
+    <div class="console-wrap">
+      <div class="rights-tabs">
+        <button class="rights-tab-btn ${rightsServer === 'lobby'    ? 'active' : ''}" onclick="switchRightsTab('lobby')">Lobby</button>
+        <button class="rights-tab-btn ${rightsServer === 'survival' ? 'active' : ''}" onclick="switchRightsTab('survival')">Survival</button>
+      </div>
+      <div class="rights-panel" id="rights-panel">
+        <div style="color:var(--muted);font-size:.9rem">Lade…</div>
+      </div>
+    </div>`;
+  loadRightsData(rightsServer);
+}
+
+function switchRightsTab(srv) {
+  rightsServer = srv;
+  document.querySelectorAll('.rights-tab-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent.toLowerCase() === srv));
+  const panel = document.getElementById('rights-panel');
+  if (panel) panel.innerHTML = '<div style="color:var(--muted);font-size:.9rem">Lade…</div>';
+  loadRightsData(srv);
+}
+
+async function loadRightsData(srv) {
+  const [opsRes, wlRes] = await Promise.all([
+    apiFetch(`/api/servers/${srv}/ops`),
+    apiFetch(`/api/servers/${srv}/whitelist`)
+  ]);
+  const opsData = opsRes?.ok ? await opsRes.json() : { ops: [] };
+  const wlData  = wlRes?.ok  ? await wlRes.json()  : { whitelist: [], enabled: false };
+  rightsData[srv] = { ops: opsData.ops || [], whitelist: wlData.whitelist || [], wlEnabled: !!wlData.enabled };
+  renderRightsPanel(srv);
+}
+
+function renderRightsPanel(srv) {
+  const panel = document.getElementById('rights-panel');
+  if (!panel) return;
+  const d = rightsData[srv] || { ops: [], whitelist: [], wlEnabled: false };
+
+  const opRows = d.ops.length
+    ? d.ops.map(op => `<div class="player-entry">
+        <span class="player-entry-name">👑 ${escHtml(op.name || op)}</span>
+        <button class="btn-sm" onclick="removeOp('${srv}','${escHtml(op.name || op)}')">De-OP</button>
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:.85rem;padding:4px 0">Keine Operatoren</div>';
+
+  const wlRows = d.whitelist.length
+    ? d.whitelist.map(wl => `<div class="player-entry">
+        <span class="player-entry-name">${escHtml(wl.name || wl)}</span>
+        <button class="btn-sm" onclick="removeWhitelist('${srv}','${escHtml(wl.name || wl)}')">Entfernen</button>
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:.85rem;padding:4px 0">Whitelist ist leer</div>';
+
+  panel.innerHTML = `
+    <div class="rights-section">
+      <div class="rights-section-header">
+        <span class="rights-section-title">👑 Operatoren (OP)</span>
+      </div>
+      <div class="player-list">${opRows}</div>
+      <div class="add-row">
+        <input id="op-input" type="text" placeholder="Spielername…"
+               onkeydown="if(event.key==='Enter')addOp('${srv}')">
+        <button class="btn-sm green-btn" onclick="addOp('${srv}')">OP geben</button>
+      </div>
+      <div class="rights-msg" id="op-msg" style="display:none"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);flex-shrink:0">
+
+    <div class="rights-section">
+      <div class="rights-section-header">
+        <span class="rights-section-title">📋 Whitelist</span>
+        <div class="wl-toggle">
+          <span class="wl-status ${d.wlEnabled ? 'on' : 'off'}">${d.wlEnabled ? 'AN' : 'AUS'}</span>
+          <button class="btn-sm ${d.wlEnabled ? '' : 'green-btn'}" onclick="toggleWhitelist('${srv}')">
+            ${d.wlEnabled ? 'Deaktivieren' : 'Aktivieren'}
+          </button>
+        </div>
+      </div>
+      <div class="player-list">${wlRows}</div>
+      <div class="add-row">
+        <input id="wl-input" type="text" placeholder="Spielername…"
+               onkeydown="if(event.key==='Enter')addWhitelist('${srv}')">
+        <button class="btn-sm green-btn" onclick="addWhitelist('${srv}')">Hinzufügen</button>
+      </div>
+      <div class="rights-msg" id="wl-msg" style="display:none"></div>
+    </div>`;
+}
+
+async function addOp(srv) {
+  const input = document.getElementById('op-input');
+  const player = input?.value?.trim();
+  if (!player) return;
+  const res  = await apiFetch(`/api/servers/${srv}/op`, { method: 'POST', body: JSON.stringify({ player, action: 'op' }) });
+  const data = res ? await res.json() : null;
+  showRightsMsg('op-msg', data?.ok, data?.output || data?.error || 'Fehler');
+  if (data?.ok) { input.value = ''; await loadRightsData(srv); }
+}
+
+async function removeOp(srv, player) {
+  const res  = await apiFetch(`/api/servers/${srv}/op`, { method: 'POST', body: JSON.stringify({ player, action: 'deop' }) });
+  const data = res ? await res.json() : null;
+  showRightsMsg('op-msg', data?.ok, data?.output || data?.error || 'Fehler');
+  if (data?.ok) await loadRightsData(srv);
+}
+
+async function addWhitelist(srv) {
+  const input = document.getElementById('wl-input');
+  const player = input?.value?.trim();
+  if (!player) return;
+  const res  = await apiFetch(`/api/servers/${srv}/whitelist`, { method: 'POST', body: JSON.stringify({ action: 'add', player }) });
+  const data = res ? await res.json() : null;
+  showRightsMsg('wl-msg', data?.ok, data?.output || data?.error || 'Fehler');
+  if (data?.ok) { input.value = ''; await loadRightsData(srv); }
+}
+
+async function removeWhitelist(srv, player) {
+  const res  = await apiFetch(`/api/servers/${srv}/whitelist`, { method: 'POST', body: JSON.stringify({ action: 'remove', player }) });
+  const data = res ? await res.json() : null;
+  showRightsMsg('wl-msg', data?.ok, data?.output || data?.error || 'Fehler');
+  if (data?.ok) await loadRightsData(srv);
+}
+
+async function toggleWhitelist(srv) {
+  const action = rightsData[srv]?.wlEnabled ? 'off' : 'on';
+  const res  = await apiFetch(`/api/servers/${srv}/whitelist`, { method: 'POST', body: JSON.stringify({ action }) });
+  const data = res ? await res.json() : null;
+  showRightsMsg('wl-msg', data?.ok, data?.output || data?.error || 'Fehler');
+  if (data?.ok) await loadRightsData(srv);
+}
+
+function showRightsMsg(id, ok, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `rights-msg ${ok ? 'ok' : 'err'}`;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
 }
 
 // ── Start ────────────────────────────────────────────────────────────────
