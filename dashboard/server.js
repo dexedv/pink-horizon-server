@@ -592,7 +592,7 @@ app.get('/api/permissions/players', auth, async (req, res) => {
       database: 'pinkhorizon', connectTimeout: 3000
     });
     const [rows] = await conn.execute(
-      "SELECT name, rank FROM players ORDER BY FIELD(rank,'owner','admin','dev','moderator','supporter','vip','spieler'), name"
+      "SELECT name, `rank` FROM players ORDER BY FIELD(`rank`,'owner','admin','dev','moderator','supporter','vip','spieler'), name"
     );
     await conn.end();
     res.json({ players: rows });
