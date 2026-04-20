@@ -497,7 +497,7 @@ app.post('/api/servers/:name/motd', auth, async (req, res) => {
 
 app.get('/api/stats/overview', auth, async (req, res) => {
   try {
-    const [[eco]]        = await poolSv.execute(`SELECT COUNT(*) AS players, COALESCE(SUM(balance),0) AS total_coins FROM sv_economy`);
+    const [[eco]]        = await poolSv.execute(`SELECT COUNT(*) AS players, COALESCE(SUM(coins),0) AS total_coins FROM sv_economy`);
     const [topPlaytime]  = await poolSv.execute(`SELECT p.name, s.playtime FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.playtime DESC LIMIT 10`);
     const [topKills]     = await poolSv.execute(`SELECT p.name, s.mob_kills FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.mob_kills DESC LIMIT 10`);
     const [topDeaths]    = await poolSv.execute(`SELECT p.name, s.deaths FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.deaths DESC LIMIT 10`);
