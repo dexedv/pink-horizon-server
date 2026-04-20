@@ -76,7 +76,7 @@ async function migrateHomes() {
       if (!loc?.world) continue;
       try {
         await exec(
-          `INSERT IGNORE INTO sv_homes (uuid, home_name, world, x, y, z, yaw, pitch)
+          `INSERT IGNORE INTO sv_homes (uuid, name, world, x, y, z, yaw, pitch)
            VALUES (?,?,?,?,?,?,?,?)`,
           [uuid, name, loc.world, loc.x ?? 0, loc.y ?? 64, loc.z ?? 0, loc.yaw ?? 0, loc.pitch ?? 0]
         );
@@ -132,23 +132,11 @@ async function migrateClaims() {
       const trustedList = trustMap[key];
       if (!Array.isArray(trustedList) || trustedList.length === 0) continue;
 
-      // Claim-ID holen
-      let claimId;
-      if (!DRY_RUN) {
-        const [[row]] = await conn.execute(
-          `SELECT id FROM sv_claims WHERE world=? AND chunk_x=? AND chunk_z=?`,
-          [world, chunkX, chunkZ]
-        );
-        claimId = row?.id;
-      } else {
-        claimId = 0;
-      }
-
       for (const trustedUuid of trustedList) {
         try {
           await exec(
-            `INSERT IGNORE INTO sv_claim_trusts (claim_id, trusted_uuid) VALUES (?,?)`,
-            [claimId, trustedUuid]
+            `INSERT IGNORE INTO sv_claim_trusts (world, chunk_x, chunk_z, trusted_uuid) VALUES (?,?,?,?)`,
+            [world, chunkX, chunkZ, trustedUuid]
           );
           nt++;
         } catch (e) { log(`  ✗ Trust ${key}/${trustedUuid}: ${e.message}`); }
