@@ -143,6 +143,9 @@ commands:
   resetworld:
     description: Survival-Welt komplett zurücksetzen (Admin)
     usage: /resetworld [confirm]
+  flatarea:
+    description: Fläche um den Spieler planieren (Admin, benötigt FAWE)
+    usage: /flatarea [radius] [y-level]
 
 permissions:
   survival.claim:

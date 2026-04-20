@@ -159,7 +159,8 @@ public class PHSurvival extends JavaPlugin {
             SchematicCommand schemCmd = new SchematicCommand(this);
             getCommand("schem").setExecutor(schemCmd);
             getCommand("schem").setTabCompleter(schemCmd);
-            getLogger().info("FAWE erkannt – /schem aktiviert.");
+            getCommand("flatarea").setExecutor(new FlatAreaCommand(this));
+            getLogger().info("FAWE erkannt – /schem und /flatarea aktiviert.");
             spawnPasteManager.checkAndExecute();
         }
 
