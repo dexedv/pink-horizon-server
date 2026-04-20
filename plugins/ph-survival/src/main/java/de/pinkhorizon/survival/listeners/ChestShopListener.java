@@ -465,7 +465,8 @@ public class ChestShopListener implements Listener {
         chest.getPersistentDataContainer().set(key, PersistentDataType.LONG, newPrice);
         chest.update();
         updateHologram(block);
-        openSettingsGUI(player, block);
+        // Nach dem cancelled-Event-Resync-Packet der GUI aktualisieren
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void adjustAmount(Player player, Block block, int delta) {
@@ -475,7 +476,7 @@ public class ChestShopListener implements Listener {
         chest.getPersistentDataContainer().set(amountKey, PersistentDataType.INTEGER, newAmt);
         chest.update();
         updateHologram(block);
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void detectItemFromChest(Player player, Block block) {
@@ -490,7 +491,7 @@ public class ChestShopListener implements Listener {
         updateHologram(block);
         updateItemDisplay(block, found);
         player.sendMessage("§aItem aktualisiert: §f" + formatName(found));
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void doDeposit(Player player, Block block, long amount) {
@@ -503,7 +504,7 @@ public class ChestShopListener implements Listener {
         chest.getPersistentDataContainer().set(balanceKey, PersistentDataType.LONG, newBal);
         chest.update();
         player.sendMessage("§a+" + amount + " Coins eingezahlt §7(Kasse: §f" + newBal + "§7)");
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void doWithdraw(Player player, Block block, long amount) {
@@ -517,7 +518,7 @@ public class ChestShopListener implements Listener {
         chest.update();
         plugin.getEconomyManager().deposit(player.getUniqueId(), amount);
         player.sendMessage("§a-" + amount + " Coins ausgezahlt §7(Kasse: §f" + (bal - amount) + "§7)");
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     private void doModeToggle(Player player, Block block) {
@@ -526,7 +527,7 @@ public class ChestShopListener implements Listener {
         chest.getPersistentDataContainer().set(useShopBalKey, PersistentDataType.INTEGER, newMode ? 1 : 0);
         chest.update();
         player.sendMessage("§7Zahlungsweise: " + (newMode ? "§a§lShop-Kasse" : "§e§lPersönlich"));
-        openSettingsGUI(player, block);
+        Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, block));
     }
 
     // ── Kaufen ──────────────────────────────────────────────────────────
