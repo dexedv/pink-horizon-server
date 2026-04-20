@@ -134,13 +134,20 @@ public class PHSurvival extends JavaPlugin {
         getCommand("friend").setExecutor(friendCmd);
         getCommand("friend").setTabCompleter(friendCmd);
 
-        BankCommand bankCmd = new BankCommand(this);
+        de.pinkhorizon.survival.gui.BankGui bankGui = new de.pinkhorizon.survival.gui.BankGui(this);
+        de.pinkhorizon.survival.gui.QuestGui questGui = new de.pinkhorizon.survival.gui.QuestGui(this);
+        de.pinkhorizon.survival.gui.AchievementGui achievementGui = new de.pinkhorizon.survival.gui.AchievementGui(this);
+        getServer().getPluginManager().registerEvents(bankGui, this);
+        getServer().getPluginManager().registerEvents(questGui, this);
+        getServer().getPluginManager().registerEvents(achievementGui, this);
+
+        BankCommand bankCmd = new BankCommand(this, bankGui);
         getCommand("bank").setExecutor(bankCmd);
         getCommand("bank").setTabCompleter(bankCmd);
 
-        getCommand("achievements").setExecutor(new AchievementCommand(this));
+        getCommand("achievements").setExecutor(new AchievementCommand(this, achievementGui));
 
-        getCommand("quests").setExecutor(new QuestCommand(this));
+        getCommand("quests").setExecutor(new QuestCommand(this, questGui));
 
         LeaderboardCommand lbCmd = new LeaderboardCommand(this);
         getCommand("lb").setExecutor(lbCmd);

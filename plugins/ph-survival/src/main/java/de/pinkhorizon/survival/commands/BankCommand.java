@@ -1,6 +1,7 @@
 package de.pinkhorizon.survival.commands;
 
 import de.pinkhorizon.survival.PHSurvival;
+import de.pinkhorizon.survival.gui.BankGui;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -13,9 +14,11 @@ import java.util.List;
 public class BankCommand implements CommandExecutor, TabCompleter {
 
     private final PHSurvival plugin;
+    private final BankGui    gui;
 
-    public BankCommand(PHSurvival plugin) {
+    public BankCommand(PHSurvival plugin, BankGui gui) {
         this.plugin = plugin;
+        this.gui    = gui;
     }
 
     @Override
@@ -26,11 +29,7 @@ public class BankCommand implements CommandExecutor, TabCompleter {
         var em = plugin.getEconomyManager();
 
         if (args.length == 0) {
-            player.sendMessage(Component.text("§6§l── Bank ──"));
-            player.sendMessage(Component.text("§7Wallet: §e" + em.getBalance(player.getUniqueId()) + " Coins"));
-            player.sendMessage(Component.text("§7Bank:   §e" + bm.getBalance(player.getUniqueId()) + " Coins"));
-            player.sendMessage(Component.text("§8Zinsen: §72% täglich auf max. 100.000 Coins"));
-            player.sendMessage(Component.text("§e/bank deposit <Betrag> §8| §e/bank withdraw <Betrag>"));
+            gui.open(player);
             return true;
         }
 
