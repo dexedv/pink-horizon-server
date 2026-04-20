@@ -15,6 +15,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
@@ -24,8 +25,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -49,6 +52,13 @@ public class ChestShopListener implements Listener {
 
     private final Set<UUID> pendingCreate = new HashSet<>();
     private final Set<UUID> pendingRemove = new HashSet<>();
+    private final Map<UUID, PendingChatInput> pendingChat = new HashMap<>();
+
+    private static class PendingChatInput {
+        final Block block;
+        final NamespacedKey key;
+        PendingChatInput(Block block, NamespacedKey key) { this.block = block; this.key = key; }
+    }
 
     public ChestShopListener(PHSurvival plugin) {
         this.plugin        = plugin;
@@ -165,8 +175,48 @@ public class ChestShopListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        pendingCreate.remove(event.getPlayer().getUniqueId());
-        pendingRemove.remove(event.getPlayer().getUniqueId());
+        UUID id = event.getPlayer().getUniqueId();
+        pendingCreate.remove(id);
+        pendingRemove.remove(id);
+        pendingChat.remove(id);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    @SuppressWarnings("deprecation")
+    public void onChat(AsyncPlayerChatEvent event) {
+        PendingChatInput pending = pendingChat.remove(event.getPlayer().getUniqueId());
+        if (pending == null) return;
+        event.setCancelled(true);
+
+        Player player = event.getPlayer();
+        String msg    = event.getMessage().trim();
+
+        if (msg.equalsIgnoreCase("cancel") || msg.equalsIgnoreCase("abbrechen")) {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                player.sendMessage("§7Eingabe abgebrochen.");
+                openSettingsGUI(player, pending.block);
+            });
+            return;
+        }
+        try {
+            long value = Long.parseLong(msg);
+            if (value < 1) throw new NumberFormatException();
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (pending.block.getType() != Material.CHEST) {
+                    player.sendMessage("§cShop nicht mehr gefunden!");
+                    return;
+                }
+                Chest chest = (Chest) pending.block.getState();
+                chest.getPersistentDataContainer().set(pending.key, PersistentDataType.LONG, value);
+                chest.update();
+                updateHologram(pending.block);
+                player.sendMessage("§aPreis gesetzt: §6" + value + " §7Coins");
+                openSettingsGUI(player, pending.block);
+            });
+        } catch (NumberFormatException e) {
+            player.sendMessage("§cUngültige Zahl! Nur positive ganze Zahlen erlaubt.");
+            Bukkit.getScheduler().runTask(plugin, () -> openSettingsGUI(player, pending.block));
+        }
     }
 
     // ── Shop erstellen / entfernen ───────────────────────────────────────
@@ -344,6 +394,7 @@ public class ChestShopListener implements Listener {
         gui.setItem(4, makeItem(Material.EMERALD, "§a§lKaufpreis",
             List.of("§6" + buyPrice + " §7Coins",
                     "",
+                    "§eKlicken → Zahl in Chat eingeben",
                     "§7Preis wenn Spieler kaufen")));
         gui.setItem(5, makeItem(Material.LIME_STAINED_GLASS_PANE, "§a+ 1",   List.of("§7Kaufpreis")));
         gui.setItem(6, makeItem(Material.LIME_STAINED_GLASS_PANE, "§a+ 10",  List.of("§7Kaufpreis")));
@@ -361,6 +412,7 @@ public class ChestShopListener implements Listener {
         gui.setItem(13, makeItem(Material.REDSTONE, "§c§lVerkaufspreis",
             List.of("§6" + sellPrice + " §7Coins",
                     "",
+                    "§eKlicken → Zahl in Chat eingeben",
                     "§7Preis den du zahlst wenn Spieler verkaufen")));
         gui.setItem(14, makeItem(Material.LIME_STAINED_GLASS_PANE, "§a+ 1",   List.of("§7Verkaufspreis")));
         gui.setItem(15, makeItem(Material.LIME_STAINED_GLASS_PANE, "§a+ 10",  List.of("§7Verkaufspreis")));
@@ -448,6 +500,7 @@ public class ChestShopListener implements Listener {
             case 1  -> adjustPrice(player, h.block, buyKey, -100);
             case 2  -> adjustPrice(player, h.block, buyKey, -10);
             case 3  -> adjustPrice(player, h.block, buyKey, -1);
+            case 4  -> startChatInput(player, h.block, buyKey,  "Kaufpreis");
             case 5  -> adjustPrice(player, h.block, buyKey, +1);
             case 6  -> adjustPrice(player, h.block, buyKey, +10);
             case 7  -> adjustPrice(player, h.block, buyKey, +100);
@@ -456,6 +509,7 @@ public class ChestShopListener implements Listener {
             case 10 -> adjustPrice(player, h.block, sellKey, -100);
             case 11 -> adjustPrice(player, h.block, sellKey, -10);
             case 12 -> adjustPrice(player, h.block, sellKey, -1);
+            case 13 -> startChatInput(player, h.block, sellKey, "Verkaufspreis");
             case 14 -> adjustPrice(player, h.block, sellKey, +1);
             case 15 -> adjustPrice(player, h.block, sellKey, +10);
             case 16 -> adjustPrice(player, h.block, sellKey, +100);
@@ -482,6 +536,13 @@ public class ChestShopListener implements Listener {
     }
 
     // ── Einstellungs-Aktionen ────────────────────────────────────────────
+
+    private void startChatInput(Player player, Block block, NamespacedKey key, String label) {
+        pendingChat.put(player.getUniqueId(), new PendingChatInput(block, key));
+        player.closeInventory();
+        player.sendMessage("§6§l[Shop] §e" + label + " eingeben:");
+        player.sendMessage("§7Schreib eine Zahl in den Chat. §8(Abbrechen: §7cancel§8)");
+    }
 
     private void toggleMode(Player player, Block block, NamespacedKey key) {
         Chest   chest   = (Chest) block.getState();
