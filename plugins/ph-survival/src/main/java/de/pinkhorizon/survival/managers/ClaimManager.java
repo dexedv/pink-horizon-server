@@ -2,82 +2,91 @@ package de.pinkhorizon.survival.managers;
 
 import de.pinkhorizon.survival.PHSurvival;
 import org.bukkit.Chunk;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.sql.*;
+import java.util.*;
 
 public class ClaimManager {
 
     private final PHSurvival plugin;
-    // Map: "world:chunkX:chunkZ" -> Besitzer-UUID
-    private final Map<String, UUID> claims = new HashMap<>();
-    // Map: UUID -> Set<claim-keys>
-    private final Map<UUID, Set<String>> playerClaims = new HashMap<>();
-    // Map: claim-key -> Set<trusted UUIDs>
-    private final Map<String, Set<UUID>> trust = new HashMap<>();
-    private File dataFile;
-    private YamlConfiguration data;
+    // In-memory cache — claims are checked on every player action
+    private final Map<String, UUID>        claims       = new HashMap<>();
+    private final Map<UUID, Set<String>>   playerClaims = new HashMap<>();
+    private final Map<String, Set<UUID>>   trust        = new HashMap<>();
 
     public ClaimManager(PHSurvival plugin) {
         this.plugin = plugin;
         load();
     }
 
+    private Connection con() throws SQLException {
+        return plugin.getSurvivalDb().getConnection();
+    }
+
     public String getKey(Chunk chunk) {
         return chunk.getWorld().getName() + ":" + chunk.getX() + ":" + chunk.getZ();
     }
 
-    public boolean isClaimed(Chunk chunk) {
-        return claims.containsKey(getKey(chunk));
+    /** Splits "world:cx:cz" — handles world names that contain colons */
+    private String[] splitKey(String key) {
+        int last = key.lastIndexOf(':');
+        int mid  = key.lastIndexOf(':', last - 1);
+        return new String[]{ key.substring(0, mid), key.substring(mid + 1, last), key.substring(last + 1) };
     }
 
-    public UUID getOwner(Chunk chunk) {
-        return claims.get(getKey(chunk));
-    }
+    public boolean isClaimed(Chunk chunk)                  { return claims.containsKey(getKey(chunk)); }
+    public UUID    getOwner(Chunk chunk)                   { return claims.get(getKey(chunk)); }
+    public boolean isOwner(Chunk chunk, UUID uuid)         { return uuid.equals(getOwner(chunk)); }
+    public int     getClaimCount(UUID uuid)                { return playerClaims.getOrDefault(uuid, Set.of()).size(); }
+    public Set<String> getPlayerClaims(UUID uuid)          { return playerClaims.getOrDefault(uuid, new HashSet<>()); }
 
-    public boolean isOwner(Chunk chunk, UUID uuid) {
-        return uuid.equals(getOwner(chunk));
-    }
-
-    public int getClaimCount(UUID uuid) {
-        return playerClaims.getOrDefault(uuid, Set.of()).size();
-    }
-
-    public Set<String> getPlayerClaims(UUID uuid) {
-        return playerClaims.getOrDefault(uuid, new HashSet<>());
-    }
-
-    /** Claim with explicit max (from SurvivalRankManager) */
     public boolean claim(Chunk chunk, UUID owner, int maxClaims) {
-        if (getClaimCount(owner) >= maxClaims) return false;
-        if (isClaimed(chunk)) return false;
-
-        String key = getKey(chunk);
+        if (getClaimCount(owner) >= maxClaims || isClaimed(chunk)) return false;
+        String   key   = getKey(chunk);
+        String[] parts = splitKey(key);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "INSERT IGNORE INTO sv_claims (world, chunk_x, chunk_z, owner_uuid) VALUES (?,?,?,?)")) {
+            st.setString(1, parts[0]);
+            st.setInt(2, Integer.parseInt(parts[1]));
+            st.setInt(3, Integer.parseInt(parts[2]));
+            st.setString(4, owner.toString());
+            if (st.executeUpdate() == 0) return false;
+        } catch (SQLException e) {
+            plugin.getLogger().warning("ClaimManager.claim: " + e.getMessage());
+            return false;
+        }
         claims.put(key, owner);
         playerClaims.computeIfAbsent(owner, k -> new HashSet<>()).add(key);
         return true;
     }
 
-    /** Legacy claim (reads max from config) */
     public boolean claim(Chunk chunk, UUID owner) {
-        int maxClaims = plugin.getConfig().getInt("claims.max-claims-per-player", 10);
-        return claim(chunk, owner, maxClaims);
+        return claim(chunk, owner, plugin.getConfig().getInt("claims.max-claims-per-player", 10));
     }
 
     public boolean unclaim(Chunk chunk, UUID requester) {
         if (!isOwner(chunk, requester)) return false;
-        String key = getKey(chunk);
+        String   key   = getKey(chunk);
+        String[] parts = splitKey(key);
+        try (Connection c = con()) {
+            try (PreparedStatement st = c.prepareStatement(
+                     "DELETE FROM sv_claim_trusts WHERE world=? AND chunk_x=? AND chunk_z=?")) {
+                st.setString(1, parts[0]); st.setInt(2, Integer.parseInt(parts[1])); st.setInt(3, Integer.parseInt(parts[2]));
+                st.executeUpdate();
+            }
+            try (PreparedStatement st = c.prepareStatement(
+                     "DELETE FROM sv_claims WHERE world=? AND chunk_x=? AND chunk_z=?")) {
+                st.setString(1, parts[0]); st.setInt(2, Integer.parseInt(parts[1])); st.setInt(3, Integer.parseInt(parts[2]));
+                st.executeUpdate();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("ClaimManager.unclaim: " + e.getMessage());
+            return false;
+        }
         claims.remove(key);
-        Set<String> playerSet = playerClaims.get(requester);
-        if (playerSet != null) playerSet.remove(key);
+        Set<String> ps = playerClaims.get(requester);
+        if (ps != null) ps.remove(key);
         trust.remove(key);
         return true;
     }
@@ -85,30 +94,39 @@ public class ClaimManager {
     // ---- Trust ----
 
     public void trustPlayer(Chunk chunk, UUID trusted) {
-        String key = getKey(chunk);
+        String   key   = getKey(chunk);
+        String[] parts = splitKey(key);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "INSERT IGNORE INTO sv_claim_trusts (world, chunk_x, chunk_z, trusted_uuid) VALUES (?,?,?,?)")) {
+            st.setString(1, parts[0]); st.setInt(2, Integer.parseInt(parts[1])); st.setInt(3, Integer.parseInt(parts[2]));
+            st.setString(4, trusted.toString());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("ClaimManager.trustPlayer: " + e.getMessage());
+        }
         trust.computeIfAbsent(key, k -> new HashSet<>()).add(trusted);
-        saveTrust(key);
     }
 
     public void untrustPlayer(Chunk chunk, UUID trusted) {
-        String key = getKey(chunk);
-        Set<UUID> set = trust.get(key);
-        if (set != null) {
-            set.remove(trusted);
-            if (set.isEmpty()) {
-                trust.remove(key);
-                data.set("trust." + key, null);
-            } else {
-                saveTrust(key);
-            }
-            saveFileSilent();
+        String   key   = getKey(chunk);
+        String[] parts = splitKey(key);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "DELETE FROM sv_claim_trusts WHERE world=? AND chunk_x=? AND chunk_z=? AND trusted_uuid=?")) {
+            st.setString(1, parts[0]); st.setInt(2, Integer.parseInt(parts[1])); st.setInt(3, Integer.parseInt(parts[2]));
+            st.setString(4, trusted.toString());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("ClaimManager.untrustPlayer: " + e.getMessage());
         }
+        Set<UUID> set = trust.get(key);
+        if (set != null) { set.remove(trusted); if (set.isEmpty()) trust.remove(key); }
     }
 
     public boolean isTrusted(Chunk chunk, UUID player) {
         if (isOwner(chunk, player)) return true;
-        String key = getKey(chunk);
-        Set<UUID> set = trust.get(key);
+        Set<UUID> set = trust.get(getKey(chunk));
         return set != null && set.contains(player);
     }
 
@@ -116,56 +134,30 @@ public class ClaimManager {
         return trust.getOrDefault(getKey(chunk), new HashSet<>());
     }
 
-    private void saveTrust(String key) {
-        Set<UUID> set = trust.get(key);
-        if (set == null || set.isEmpty()) return;
-        List<String> list = new ArrayList<>();
-        for (UUID uuid : set) list.add(uuid.toString());
-        data.set("trust." + key, list);
-        saveFileSilent();
-    }
-
-    private void saveFileSilent() {
-        try {
-            data.save(dataFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Claims konnten nicht gespeichert werden: " + e.getMessage());
-        }
-    }
-
     private void load() {
-        dataFile = new File(plugin.getDataFolder(), "claims.yml");
-        data = YamlConfiguration.loadConfiguration(dataFile);
-        if (data.contains("claims")) {
-            for (String key : data.getConfigurationSection("claims").getKeys(false)) {
-                UUID owner = UUID.fromString(data.getString("claims." + key));
-                claims.put(key, owner);
-                playerClaims.computeIfAbsent(owner, k -> new HashSet<>()).add(key);
-            }
-        }
-        if (data.contains("trust")) {
-            for (String key : data.getConfigurationSection("trust").getKeys(false)) {
-                List<String> uuidList = data.getStringList("trust." + key);
-                Set<UUID> set = new HashSet<>();
-                for (String uuidStr : uuidList) {
-                    try { set.add(UUID.fromString(uuidStr)); } catch (IllegalArgumentException ignored) {}
+        try (Connection c = con()) {
+            try (Statement st = c.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT world, chunk_x, chunk_z, owner_uuid FROM sv_claims")) {
+                while (rs.next()) {
+                    UUID   owner = UUID.fromString(rs.getString("owner_uuid"));
+                    String key   = rs.getString("world") + ":" + rs.getInt("chunk_x") + ":" + rs.getInt("chunk_z");
+                    claims.put(key, owner);
+                    playerClaims.computeIfAbsent(owner, k -> new HashSet<>()).add(key);
                 }
-                if (!set.isEmpty()) trust.put(key, set);
             }
+            try (Statement st = c.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT world, chunk_x, chunk_z, trusted_uuid FROM sv_claim_trusts")) {
+                while (rs.next()) {
+                    String key     = rs.getString("world") + ":" + rs.getInt("chunk_x") + ":" + rs.getInt("chunk_z");
+                    UUID   trusted = UUID.fromString(rs.getString("trusted_uuid"));
+                    trust.computeIfAbsent(key, k -> new HashSet<>()).add(trusted);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("ClaimManager.load: " + e.getMessage());
         }
     }
 
-    public void save() {
-        claims.forEach((key, uuid) -> data.set("claims." + key, uuid.toString()));
-        trust.forEach((key, set) -> {
-            List<String> list = new ArrayList<>();
-            for (UUID uuid : set) list.add(uuid.toString());
-            data.set("trust." + key, list);
-        });
-        try {
-            data.save(dataFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Claims konnten nicht gespeichert werden: " + e.getMessage());
-        }
-    }
+    /** No-op — writes go directly to DB. Kept for API compatibility. */
+    public void save() {}
 }

@@ -1,13 +1,13 @@
 package de.pinkhorizon.survival.managers;
 
 import de.pinkhorizon.survival.PHSurvival;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.File;
-import java.io.IOException;
+import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 public class MailManager {
 
@@ -17,75 +17,88 @@ public class MailManager {
     public record Mail(String sender, String message, String timestamp, boolean read) {}
 
     private final PHSurvival plugin;
-    private File dataFile;
-    private YamlConfiguration data;
 
     public MailManager(PHSurvival plugin) {
         this.plugin = plugin;
-        load();
+    }
+
+    private Connection con() throws SQLException {
+        return plugin.getSurvivalDb().getConnection();
     }
 
     public boolean send(String senderName, UUID recipientUuid, String message) {
-        List<Mail> mails = getMails(recipientUuid);
-        if (mails.size() >= MAX_MAILS) return false;
-        mails.add(new Mail(senderName, message, LocalDateTime.now().format(FORMATTER), false));
-        saveMails(recipientUuid, mails);
+        if (getMails(recipientUuid).size() >= MAX_MAILS) return false;
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "INSERT INTO sv_mails (to_uuid, sender_name, message) VALUES (?,?,?)")) {
+            st.setString(1, recipientUuid.toString());
+            st.setString(2, senderName);
+            st.setString(3, message);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("MailManager.send: " + e.getMessage());
+            return false;
+        }
         return true;
     }
 
     public List<Mail> getMails(UUID uuid) {
         List<Mail> result = new ArrayList<>();
-        List<?> list = data.getList("mails." + uuid);
-        if (list == null) return result;
-        for (Object obj : list) {
-            if (!(obj instanceof Map<?, ?> map)) continue;
-            result.add(new Mail(
-                (String) map.get("sender"),
-                (String) map.get("message"),
-                (String) map.get("timestamp"),
-                Boolean.TRUE.equals(map.get("read"))
-            ));
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT sender_name, message, sent_at, is_read FROM sv_mails WHERE to_uuid=? ORDER BY id ASC")) {
+            st.setString(1, uuid.toString());
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    String ts = rs.getTimestamp("sent_at")
+                                  .toLocalDateTime()
+                                  .format(FORMATTER);
+                    result.add(new Mail(
+                        rs.getString("sender_name"),
+                        rs.getString("message"),
+                        ts,
+                        rs.getBoolean("is_read")));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("MailManager.getMails: " + e.getMessage());
         }
         return result;
     }
 
     public int getUnreadCount(UUID uuid) {
-        return (int) getMails(uuid).stream().filter(m -> !m.read()).count();
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT COUNT(*) FROM sv_mails WHERE to_uuid=? AND is_read=FALSE")) {
+            st.setString(1, uuid.toString());
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("MailManager.getUnreadCount: " + e.getMessage());
+        }
+        return 0;
     }
 
     public void markAllRead(UUID uuid) {
-        List<Mail> updated = getMails(uuid).stream()
-            .map(m -> new Mail(m.sender(), m.message(), m.timestamp(), true))
-            .toList();
-        saveMails(uuid, updated);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "UPDATE sv_mails SET is_read=TRUE WHERE to_uuid=?")) {
+            st.setString(1, uuid.toString());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("MailManager.markAllRead: " + e.getMessage());
+        }
     }
 
     public void clearMails(UUID uuid) {
-        data.set("mails." + uuid, null);
-        save();
-    }
-
-    private void saveMails(UUID uuid, List<Mail> mails) {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (Mail m : mails) {
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("sender", m.sender());
-            entry.put("message", m.message());
-            entry.put("timestamp", m.timestamp());
-            entry.put("read", m.read());
-            list.add(entry);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "DELETE FROM sv_mails WHERE to_uuid=?")) {
+            st.setString(1, uuid.toString());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("MailManager.clearMails: " + e.getMessage());
         }
-        data.set("mails." + uuid, list);
-        save();
-    }
-
-    private void load() {
-        dataFile = new File(plugin.getDataFolder(), "mail.yml");
-        data = YamlConfiguration.loadConfiguration(dataFile);
-    }
-
-    private void save() {
-        try { data.save(dataFile); }
-        catch (IOException ex) { plugin.getLogger().warning("Mail konnte nicht gespeichert werden: " + ex.getMessage()); }
     }
 }

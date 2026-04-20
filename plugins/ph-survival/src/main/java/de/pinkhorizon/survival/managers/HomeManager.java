@@ -3,11 +3,8 @@ package de.pinkhorizon.survival.managers;
 import de.pinkhorizon.survival.PHSurvival;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.File;
-import java.io.IOException;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -15,90 +12,102 @@ import java.util.UUID;
 public class HomeManager {
 
     private final PHSurvival plugin;
-    private File dataFile;
-    private YamlConfiguration data;
-    // Map: UUID -> (homeName -> Location)
-    private final Map<UUID, Map<String, Location>> homes = new HashMap<>();
 
     public HomeManager(PHSurvival plugin) {
         this.plugin = plugin;
-        load();
     }
 
-    public void setHome(UUID uuid, String name, Location location) {
-        homes.computeIfAbsent(uuid, k -> new HashMap<>()).put(name.toLowerCase(), location);
-        saveHome(uuid, name.toLowerCase(), location);
+    private Connection con() throws SQLException {
+        return plugin.getSurvivalDb().getConnection();
+    }
+
+    public void setHome(UUID uuid, String name, Location loc) {
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "INSERT INTO sv_homes (uuid, name, world, x, y, z, yaw, pitch) VALUES (?,?,?,?,?,?,?,?)" +
+                 " ON DUPLICATE KEY UPDATE world=VALUES(world), x=VALUES(x), y=VALUES(y), z=VALUES(z)," +
+                 " yaw=VALUES(yaw), pitch=VALUES(pitch)")) {
+            st.setString(1, uuid.toString());
+            st.setString(2, name.toLowerCase());
+            st.setString(3, loc.getWorld().getName());
+            st.setDouble(4, loc.getX());
+            st.setDouble(5, loc.getY());
+            st.setDouble(6, loc.getZ());
+            st.setFloat(7, loc.getYaw());
+            st.setFloat(8, loc.getPitch());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("HomeManager.setHome: " + e.getMessage());
+        }
     }
 
     public Location getHome(UUID uuid, String name) {
-        Map<String, Location> playerHomes = homes.get(uuid);
-        if (playerHomes == null) return null;
-        return playerHomes.get(name.toLowerCase());
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT world, x, y, z, yaw, pitch FROM sv_homes WHERE uuid=? AND name=?")) {
+            st.setString(1, uuid.toString());
+            st.setString(2, name.toLowerCase());
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    var world = Bukkit.getWorld(rs.getString("world"));
+                    if (world == null) return null;
+                    return new Location(world,
+                        rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z"),
+                        rs.getFloat("yaw"), rs.getFloat("pitch"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("HomeManager.getHome: " + e.getMessage());
+        }
+        return null;
     }
 
     public boolean deleteHome(UUID uuid, String name) {
-        Map<String, Location> playerHomes = homes.get(uuid);
-        if (playerHomes == null || !playerHomes.containsKey(name.toLowerCase())) return false;
-        playerHomes.remove(name.toLowerCase());
-        data.set("homes." + uuid + "." + name.toLowerCase(), null);
-        saveToDisk();
-        return true;
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "DELETE FROM sv_homes WHERE uuid=? AND name=?")) {
+            st.setString(1, uuid.toString());
+            st.setString(2, name.toLowerCase());
+            return st.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().warning("HomeManager.deleteHome: " + e.getMessage());
+            return false;
+        }
     }
 
     public Map<String, Location> getHomes(UUID uuid) {
-        return homes.getOrDefault(uuid, new HashMap<>());
+        Map<String, Location> result = new HashMap<>();
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT name, world, x, y, z, yaw, pitch FROM sv_homes WHERE uuid=?")) {
+            st.setString(1, uuid.toString());
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    var world = Bukkit.getWorld(rs.getString("world"));
+                    if (world == null) continue;
+                    result.put(rs.getString("name"),
+                        new Location(world,
+                            rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z"),
+                            rs.getFloat("yaw"), rs.getFloat("pitch")));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("HomeManager.getHomes: " + e.getMessage());
+        }
+        return result;
     }
 
     public int getHomeCount(UUID uuid) {
-        return homes.getOrDefault(uuid, new HashMap<>()).size();
-    }
-
-    private void saveHome(UUID uuid, String name, Location loc) {
-        String path = "homes." + uuid + "." + name;
-        data.set(path + ".world", loc.getWorld().getName());
-        data.set(path + ".x", loc.getX());
-        data.set(path + ".y", loc.getY());
-        data.set(path + ".z", loc.getZ());
-        data.set(path + ".yaw", loc.getYaw());
-        data.set(path + ".pitch", loc.getPitch());
-        saveToDisk();
-    }
-
-    private void saveToDisk() {
-        try {
-            data.save(dataFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Homes konnten nicht gespeichert werden: " + e.getMessage());
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT COUNT(*) FROM sv_homes WHERE uuid=?")) {
+            st.setString(1, uuid.toString());
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("HomeManager.getHomeCount: " + e.getMessage());
         }
-    }
-
-    private void load() {
-        dataFile = new File(plugin.getDataFolder(), "homes.yml");
-        data = YamlConfiguration.loadConfiguration(dataFile);
-        if (!data.contains("homes")) return;
-        for (String uuidStr : data.getConfigurationSection("homes").getKeys(false)) {
-            UUID uuid;
-            try {
-                uuid = UUID.fromString(uuidStr);
-            } catch (IllegalArgumentException e) {
-                continue;
-            }
-            Map<String, Location> playerHomes = new HashMap<>();
-            for (String homeName : data.getConfigurationSection("homes." + uuidStr).getKeys(false)) {
-                String path = "homes." + uuidStr + "." + homeName;
-                String worldName = data.getString(path + ".world");
-                World world = Bukkit.getWorld(worldName);
-                if (world == null) continue;
-                double x = data.getDouble(path + ".x");
-                double y = data.getDouble(path + ".y");
-                double z = data.getDouble(path + ".z");
-                float yaw = (float) data.getDouble(path + ".yaw");
-                float pitch = (float) data.getDouble(path + ".pitch");
-                playerHomes.put(homeName, new Location(world, x, y, z, yaw, pitch));
-            }
-            if (!playerHomes.isEmpty()) {
-                homes.put(uuid, playerHomes);
-            }
-        }
+        return 0;
     }
 }

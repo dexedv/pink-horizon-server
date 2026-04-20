@@ -61,7 +61,6 @@ public class DatabaseManager {
                 CREATE TABLE IF NOT EXISTS players (
                     uuid       VARCHAR(36)  NOT NULL PRIMARY KEY,
                     name       VARCHAR(16)  NOT NULL,
-                    coins      BIGINT       NOT NULL DEFAULT 0,
                     rank       VARCHAR(32)  NOT NULL DEFAULT 'spieler',
                     first_join TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     last_join  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -72,7 +71,6 @@ public class DatabaseManager {
                 CREATE TABLE IF NOT EXISTS players (
                     uuid       VARCHAR(36) PRIMARY KEY,
                     name       VARCHAR(16) NOT NULL,
-                    coins      BIGINT      DEFAULT 0,
                     rank       VARCHAR(32) DEFAULT 'spieler',
                     first_join TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
                     last_join  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP

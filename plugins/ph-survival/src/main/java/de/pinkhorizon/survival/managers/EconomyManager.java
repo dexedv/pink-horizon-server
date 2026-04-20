@@ -1,8 +1,8 @@
 package de.pinkhorizon.survival.managers;
 
-import de.pinkhorizon.core.PHCore;
 import de.pinkhorizon.survival.PHSurvival;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,27 +19,37 @@ public class EconomyManager {
         this.plugin = plugin;
     }
 
+    private Connection con() throws SQLException {
+        return plugin.getSurvivalDb().getConnection();
+    }
+
     public long getBalance(UUID uuid) {
-        String sql = "SELECT coins FROM players WHERE uuid = ?";
-        try (PreparedStatement stmt = PHCore.getInstance().getDatabaseManager().getConnection().prepareStatement(sql)) {
-            stmt.setString(1, uuid.toString());
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) return rs.getLong("coins");
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement("SELECT coins FROM sv_economy WHERE uuid = ?")) {
+            st.setString(1, uuid.toString());
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) return rs.getLong("coins");
+            }
         } catch (SQLException e) {
-            plugin.getLogger().warning("Fehler beim Abrufen des Kontostands: " + e.getMessage());
+            plugin.getLogger().warning("EconomyManager.getBalance: " + e.getMessage());
         }
         return 0;
     }
 
     public void setBalance(UUID uuid, long amount) {
-        String sql = "UPDATE players SET coins = ? WHERE uuid = ?";
-        try (PreparedStatement stmt = PHCore.getInstance().getDatabaseManager().getConnection().prepareStatement(sql)) {
-            stmt.setLong(1, amount);
-            stmt.setString(2, uuid.toString());
-            stmt.execute();
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "INSERT INTO sv_economy (uuid, coins) VALUES (?, ?) ON DUPLICATE KEY UPDATE coins = VALUES(coins)")) {
+            st.setString(1, uuid.toString());
+            st.setLong(2, amount);
+            st.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().warning("Fehler beim Setzen des Kontostands: " + e.getMessage());
+            plugin.getLogger().warning("EconomyManager.setBalance: " + e.getMessage());
         }
+    }
+
+    public boolean has(UUID uuid, long amount) {
+        return getBalance(uuid) >= amount;
     }
 
     public boolean withdraw(UUID uuid, long amount) {
@@ -49,32 +59,28 @@ public class EconomyManager {
         return true;
     }
 
-    public boolean has(UUID uuid, long amount) {
-        return getBalance(uuid) >= amount;
-    }
-
     public void deposit(UUID uuid, long amount) {
         setBalance(uuid, getBalance(uuid) + amount);
-        // Achievement check (guard against null during startup)
         if (plugin.getAchievementManager() != null) {
             org.bukkit.entity.Player player = org.bukkit.Bukkit.getPlayer(uuid);
             if (player != null) plugin.getAchievementManager().checkCoins(player);
         }
     }
 
-    /** Returns top N players ordered by coins descending. */
     public List<AbstractMap.SimpleEntry<UUID, Long>> getTopCoins(int limit) {
-        String sql = "SELECT uuid, coins FROM players ORDER BY coins DESC LIMIT ?";
         List<AbstractMap.SimpleEntry<UUID, Long>> result = new ArrayList<>();
-        try (PreparedStatement stmt = PHCore.getInstance().getDatabaseManager().getConnection().prepareStatement(sql)) {
-            stmt.setInt(1, limit);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                result.add(new AbstractMap.SimpleEntry<>(
-                    UUID.fromString(rs.getString("uuid")), rs.getLong("coins")));
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT uuid, coins FROM sv_economy ORDER BY coins DESC LIMIT ?")) {
+            st.setInt(1, limit);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    result.add(new AbstractMap.SimpleEntry<>(
+                        UUID.fromString(rs.getString("uuid")), rs.getLong("coins")));
+                }
             }
         } catch (SQLException e) {
-            plugin.getLogger().warning("Fehler beim Abrufen des Leaderboards: " + e.getMessage());
+            plugin.getLogger().warning("EconomyManager.getTopCoins: " + e.getMessage());
         }
         return result;
     }

@@ -1,0 +1,12 @@
+-- Pink Horizon MySQL Init-Script
+-- Wird beim ersten Start des MySQL-Containers automatisch ausgeführt
+
+-- Survival-Datenbank anlegen
+CREATE DATABASE IF NOT EXISTS ph_survival
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+-- ph_user Zugriff auf beide Datenbanken gewähren
+GRANT ALL PRIVILEGES ON pinkhorizon.* TO 'ph_user'@'%';
+GRANT ALL PRIVILEGES ON ph_survival.* TO 'ph_user'@'%';
+FLUSH PRIVILEGES;

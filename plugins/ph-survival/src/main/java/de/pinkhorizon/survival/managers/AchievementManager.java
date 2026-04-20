@@ -2,11 +2,9 @@ package de.pinkhorizon.survival.managers;
 
 import de.pinkhorizon.survival.PHSurvival;
 import net.kyori.adventure.text.Component;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.io.IOException;
+import java.sql.*;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
@@ -32,7 +30,7 @@ public class AchievementManager {
 
         public final String displayName;
         public final String description;
-        public final long reward;
+        public final long   reward;
         public final String stars;
 
         Achievement(String displayName, String description, long reward, String stars) {
@@ -44,23 +42,41 @@ public class AchievementManager {
     }
 
     private final PHSurvival plugin;
-    private File dataFile;
-    private YamlConfiguration data;
 
     public AchievementManager(PHSurvival plugin) {
         this.plugin = plugin;
-        load();
+    }
+
+    private Connection con() throws SQLException {
+        return plugin.getSurvivalDb().getConnection();
     }
 
     public boolean hasAchievement(UUID uuid, Achievement achievement) {
-        return data.getBoolean("achievements." + uuid + "." + achievement.name(), false);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT 1 FROM sv_achievements WHERE uuid=? AND achievement=?")) {
+            st.setString(1, uuid.toString());
+            st.setString(2, achievement.name());
+            try (ResultSet rs = st.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("AchievementManager.hasAchievement: " + e.getMessage());
+        }
+        return false;
     }
 
-    /** Unlocks an achievement if not already unlocked. Returns true if newly unlocked. */
     public boolean unlock(Player player, Achievement achievement) {
-        if (hasAchievement(player.getUniqueId(), achievement)) return false;
-        data.set("achievements." + player.getUniqueId() + "." + achievement.name(), true);
-        save();
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "INSERT IGNORE INTO sv_achievements (uuid, achievement) VALUES (?,?)")) {
+            st.setString(1, player.getUniqueId().toString());
+            st.setString(2, achievement.name());
+            if (st.executeUpdate() == 0) return false;
+        } catch (SQLException e) {
+            plugin.getLogger().warning("AchievementManager.unlock: " + e.getMessage());
+            return false;
+        }
         plugin.getEconomyManager().deposit(player.getUniqueId(), achievement.reward);
         player.sendMessage(Component.text(
             "§6§l✦ Achievement: §f" + achievement.displayName + " §8(+" + achievement.reward + " Coins)"));
@@ -70,8 +86,18 @@ public class AchievementManager {
 
     public Set<Achievement> getUnlocked(UUID uuid) {
         Set<Achievement> result = EnumSet.noneOf(Achievement.class);
-        for (Achievement a : Achievement.values()) {
-            if (hasAchievement(uuid, a)) result.add(a);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT achievement FROM sv_achievements WHERE uuid=?")) {
+            st.setString(1, uuid.toString());
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    try { result.add(Achievement.valueOf(rs.getString(1))); }
+                    catch (IllegalArgumentException ignored) {}
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("AchievementManager.getUnlocked: " + e.getMessage());
         }
         return result;
     }
@@ -104,15 +130,5 @@ public class AchievementManager {
     public void checkFriends(Player player) {
         if (plugin.getFriendManager().getFriends(player.getUniqueId()).size() >= 3)
             unlock(player, Achievement.FRIENDS);
-    }
-
-    private void load() {
-        dataFile = new File(plugin.getDataFolder(), "achievements.yml");
-        data = YamlConfiguration.loadConfiguration(dataFile);
-    }
-
-    private void save() {
-        try { data.save(dataFile); }
-        catch (IOException ex) { plugin.getLogger().warning("Achievements konnten nicht gespeichert werden: " + ex.getMessage()); }
     }
 }

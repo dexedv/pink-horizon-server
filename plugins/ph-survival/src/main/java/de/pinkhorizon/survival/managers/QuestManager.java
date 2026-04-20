@@ -2,14 +2,15 @@ package de.pinkhorizon.survival.managers;
 
 import de.pinkhorizon.survival.PHSurvival;
 import net.kyori.adventure.text.Component;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.io.IOException;
+import java.sql.*;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 public class QuestManager {
 
@@ -21,7 +22,7 @@ public class QuestManager {
         HARVEST_CROPS("40 Pflanzen ernten",    40);
 
         public final String description;
-        public final int goal;
+        public final int    goal;
 
         QuestType(String description, int goal) {
             this.description = description;
@@ -32,81 +33,106 @@ public class QuestManager {
     public record Quest(QuestType type, int progress, boolean completed) {}
 
     private static final long QUEST_REWARD = 300L;
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final PHSurvival plugin;
-    private File dataFile;
-    private YamlConfiguration data;
 
     public QuestManager(PHSurvival plugin) {
         this.plugin = plugin;
-        load();
     }
 
-    /** Returns today's 3 quests for the player, resetting if the day changed. */
+    private Connection con() throws SQLException {
+        return plugin.getSurvivalDb().getConnection();
+    }
+
+    /** Returns today's quests for the player, generating new ones if needed. */
     public List<Quest> getDailyQuests(UUID uuid) {
-        String base = "quests." + uuid;
-        String today = LocalDate.now().format(DATE_FMT);
-        if (!today.equals(data.getString(base + ".date", ""))) {
-            resetQuests(uuid, today);
-        }
+        Date today = Date.valueOf(LocalDate.now());
         List<Quest> result = new ArrayList<>();
-        for (String typeStr : data.getStringList(base + ".types")) {
-            try {
-                QuestType type = QuestType.valueOf(typeStr);
-                int progress  = data.getInt(base + ".progress." + typeStr, 0);
-                boolean done  = data.getBoolean(base + ".completed." + typeStr, false);
-                result.add(new Quest(type, progress, done));
-            } catch (IllegalArgumentException ignored) {}
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT quest_id, progress, completed FROM sv_quests WHERE uuid=? AND quest_date=?")) {
+            st.setString(1, uuid.toString());
+            st.setDate(2, today);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    try {
+                        result.add(new Quest(
+                            QuestType.valueOf(rs.getString("quest_id")),
+                            rs.getInt("progress"),
+                            rs.getBoolean("completed")));
+                    } catch (IllegalArgumentException ignored) {}
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("QuestManager.getDailyQuests: " + e.getMessage());
         }
-        return result;
+        if (!result.isEmpty()) return result;
+        return generateDailyQuests(uuid, today);
     }
 
     /** Called from listeners to add quest progress. */
     public void addProgress(Player player, QuestType type, int amount) {
-        // Ensure quests are initialized / reset
-        getDailyQuests(player.getUniqueId());
+        UUID  uuid  = player.getUniqueId();
+        Date  today = Date.valueOf(LocalDate.now());
+        List<Quest> quests = getDailyQuests(uuid);
 
-        String base = "quests." + player.getUniqueId();
-        if (!data.getStringList(base + ".types").contains(type.name())) return;
-        if (data.getBoolean(base + ".completed." + type.name(), false)) return;
+        Quest quest = quests.stream().filter(q -> q.type() == type).findFirst().orElse(null);
+        if (quest == null || quest.completed()) return;
 
-        int current    = data.getInt(base + ".progress." + type.name(), 0);
-        int newProgress = Math.min(current + amount, type.goal);
-        data.set(base + ".progress." + type.name(), newProgress);
+        int  newProgress = Math.min(quest.progress() + amount, type.goal);
+        boolean done     = newProgress >= type.goal;
 
-        if (newProgress >= type.goal) {
-            data.set(base + ".completed." + type.name(), true);
-            plugin.getEconomyManager().deposit(player.getUniqueId(), QUEST_REWARD);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "UPDATE sv_quests SET progress=?, completed=? WHERE uuid=? AND quest_date=? AND quest_id=?")) {
+            st.setInt(1, newProgress);
+            st.setBoolean(2, done);
+            st.setString(3, uuid.toString());
+            st.setDate(4, today);
+            st.setString(5, type.name());
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("QuestManager.addProgress: " + e.getMessage());
+            return;
+        }
+
+        if (done) {
+            plugin.getEconomyManager().deposit(uuid, QUEST_REWARD);
             player.sendMessage(Component.text(
                 "§6§l✦ Quest abgeschlossen: §f" + type.description + " §8(+" + QUEST_REWARD + " Coins)"));
             player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.0f);
             plugin.getAchievementManager().unlock(player, AchievementManager.Achievement.QUEST_DONE);
             plugin.getAchievementManager().checkCoins(player);
         }
-        save();
     }
 
-    private void resetQuests(UUID uuid, String today) {
+    private List<Quest> generateDailyQuests(UUID uuid, Date today) {
         List<QuestType> all = new ArrayList<>(Arrays.asList(QuestType.values()));
         Collections.shuffle(all);
-        List<String> selected = all.subList(0, Math.min(3, all.size()))
-                                   .stream().map(Enum::name).toList();
-        String base = "quests." + uuid;
-        data.set(base + ".date", today);
-        data.set(base + ".types", selected);
-        data.set(base + ".progress", null);
-        data.set(base + ".completed", null);
-        save();
-    }
+        List<QuestType> selected = all.subList(0, Math.min(3, all.size()));
 
-    private void load() {
-        dataFile = new File(plugin.getDataFolder(), "quests.yml");
-        data = YamlConfiguration.loadConfiguration(dataFile);
-    }
+        try (Connection c = con()) {
+            // Remove stale quests for other dates
+            try (PreparedStatement del = c.prepareStatement(
+                     "DELETE FROM sv_quests WHERE uuid=? AND quest_date != ?")) {
+                del.setString(1, uuid.toString());
+                del.setDate(2, today);
+                del.executeUpdate();
+            }
+            try (PreparedStatement ins = c.prepareStatement(
+                     "INSERT INTO sv_quests (uuid, quest_date, quest_id, progress, completed) VALUES (?,?,?,0,FALSE)")) {
+                for (QuestType type : selected) {
+                    ins.setString(1, uuid.toString());
+                    ins.setDate(2, today);
+                    ins.setString(3, type.name());
+                    ins.addBatch();
+                }
+                ins.executeBatch();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("QuestManager.generateDailyQuests: " + e.getMessage());
+        }
 
-    private void save() {
-        try { data.save(dataFile); }
-        catch (IOException ex) { plugin.getLogger().warning("Quests konnten nicht gespeichert werden: " + ex.getMessage()); }
+        return selected.stream().map(t -> new Quest(t, 0, false)).toList();
     }
 }

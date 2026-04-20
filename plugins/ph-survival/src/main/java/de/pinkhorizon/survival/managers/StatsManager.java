@@ -1,112 +1,151 @@
 package de.pinkhorizon.survival.managers;
 
 import de.pinkhorizon.survival.PHSurvival;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.File;
-import java.io.IOException;
+import java.sql.*;
 import java.util.*;
 
 public class StatsManager {
 
     private final PHSurvival plugin;
-    private final File dataFile;
-    private final YamlConfiguration data;
 
     public StatsManager(PHSurvival plugin) {
         this.plugin = plugin;
-        dataFile = new File(plugin.getDataFolder(), "stats.yml");
-        data = YamlConfiguration.loadConfiguration(dataFile);
+    }
+
+    private Connection con() throws SQLException {
+        return plugin.getSurvivalDb().getConnection();
     }
 
     // ── Tode ────────────────────────────────────────────────────────────
 
     public void addDeath(UUID uuid) {
-        set(uuid, "deaths", getDeaths(uuid) + 1);
+        upsertIncrement(uuid, "deaths", 1);
     }
 
     public int getDeaths(UUID uuid) {
-        return data.getInt(uuid + ".deaths", 0);
+        return getInt(uuid, "deaths");
     }
 
     // ── Mob-Kills ────────────────────────────────────────────────────────
 
     public void addMobKill(UUID uuid) {
-        set(uuid, "mob_kills", getMobKills(uuid) + 1);
+        upsertIncrement(uuid, "mob_kills", 1);
     }
 
     public int getMobKills(UUID uuid) {
-        return data.getInt(uuid + ".mob_kills", 0);
+        return getInt(uuid, "mob_kills");
     }
 
     // ── Spieler-Kills ────────────────────────────────────────────────────
 
     public void addPlayerKill(UUID uuid) {
-        set(uuid, "player_kills", getPlayerKills(uuid) + 1);
+        upsertIncrement(uuid, "player_kills", 1);
     }
 
     public int getPlayerKills(UUID uuid) {
-        return data.getInt(uuid + ".player_kills", 0);
+        return getInt(uuid, "player_kills");
     }
 
     // ── Abgebaute Blöcke ─────────────────────────────────────────────────
 
     public void addBlocksBroken(UUID uuid, int count) {
-        set(uuid, "blocks_broken", getBlocksBroken(uuid) + count);
+        upsertIncrement(uuid, "blocks_broken", count);
     }
 
     public int getBlocksBroken(UUID uuid) {
-        return data.getInt(uuid + ".blocks_broken", 0);
+        return getInt(uuid, "blocks_broken");
     }
 
     // ── Spielzeit (Minuten) ──────────────────────────────────────────────
 
     public void addPlaytime(UUID uuid, long minutes) {
-        set(uuid, "playtime", getPlaytime(uuid) + minutes);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "INSERT INTO sv_stats (uuid, playtime) VALUES (?, ?)" +
+                 " ON DUPLICATE KEY UPDATE playtime = playtime + VALUES(playtime)")) {
+            st.setString(1, uuid.toString());
+            st.setLong(2, minutes);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("StatsManager.addPlaytime: " + e.getMessage());
+        }
     }
 
     public long getPlaytime(UUID uuid) {
-        return data.getLong(uuid + ".playtime", 0);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT playtime FROM sv_stats WHERE uuid=?")) {
+            st.setString(1, uuid.toString());
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) return rs.getLong(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("StatsManager.getPlaytime: " + e.getMessage());
+        }
+        return 0L;
     }
 
-    // ── Top-Listen (alle Spieler inkl. Offline) ──────────────────────────
+    // ── Top-Listen ───────────────────────────────────────────────────────
 
     public List<Map.Entry<UUID, Integer>> getTopMobKills(int limit) {
         List<Map.Entry<UUID, Integer>> result = new ArrayList<>();
-        for (String key : data.getKeys(false)) {
-            try {
-                UUID uuid = UUID.fromString(key);
-                result.add(Map.entry(uuid, data.getInt(key + ".mob_kills", 0)));
-            } catch (IllegalArgumentException ignored) {}
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT uuid, mob_kills FROM sv_stats ORDER BY mob_kills DESC LIMIT ?")) {
+            st.setInt(1, limit);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next())
+                    result.add(Map.entry(UUID.fromString(rs.getString("uuid")), rs.getInt("mob_kills")));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("StatsManager.getTopMobKills: " + e.getMessage());
         }
-        result.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
-        return result.subList(0, Math.min(limit, result.size()));
+        return result;
     }
 
     public List<Map.Entry<UUID, Long>> getTopPlaytime(int limit) {
         List<Map.Entry<UUID, Long>> result = new ArrayList<>();
-        for (String key : data.getKeys(false)) {
-            try {
-                UUID uuid = UUID.fromString(key);
-                result.add(Map.entry(uuid, data.getLong(key + ".playtime", 0)));
-            } catch (IllegalArgumentException ignored) {}
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT uuid, playtime FROM sv_stats ORDER BY playtime DESC LIMIT ?")) {
+            st.setInt(1, limit);
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next())
+                    result.add(Map.entry(UUID.fromString(rs.getString("uuid")), rs.getLong("playtime")));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("StatsManager.getTopPlaytime: " + e.getMessage());
         }
-        result.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
-        return result.subList(0, Math.min(limit, result.size()));
+        return result;
     }
 
     // ── Intern ───────────────────────────────────────────────────────────
 
-    private void set(UUID uuid, String key, Object value) {
-        data.set(uuid + "." + key, value);
-        save();
+    private void upsertIncrement(UUID uuid, String column, int amount) {
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "INSERT INTO sv_stats (uuid, " + column + ") VALUES (?, ?)" +
+                 " ON DUPLICATE KEY UPDATE " + column + " = " + column + " + VALUES(" + column + ")")) {
+            st.setString(1, uuid.toString());
+            st.setInt(2, amount);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("StatsManager.upsertIncrement(" + column + "): " + e.getMessage());
+        }
     }
 
-    private void save() {
-        try {
-            data.save(dataFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Stats konnten nicht gespeichert werden: " + e.getMessage());
+    private int getInt(UUID uuid, String column) {
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT " + column + " FROM sv_stats WHERE uuid=?")) {
+            st.setString(1, uuid.toString());
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("StatsManager.getInt(" + column + "): " + e.getMessage());
         }
+        return 0;
     }
 }
