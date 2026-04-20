@@ -107,6 +107,20 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
                 } catch (NumberFormatException e) { player.sendMessage(Component.text("§cUngültige ID!")); }
             }
 
+            case "rename" -> {
+                if (args.length < 3) {
+                    player.sendMessage(Component.text("§cNutzung: /npc rename <ID> <Name>"));
+                    player.sendMessage(Component.text("§8MiniMessage-Tags erlaubt, z.B. §e<gold>Händler</gold>"));
+                    return true;
+                }
+                try {
+                    int id = Integer.parseInt(args[1]);
+                    String name = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+                    if (nm.renameNpc(id, name)) player.sendMessage(Component.text("§aNPC §e#" + id + " §aumbenannt zu: §f" + name));
+                    else player.sendMessage(Component.text("§cNPC §e#" + id + " §cnicht gefunden."));
+                } catch (NumberFormatException e) { player.sendMessage(Component.text("§cUngültige ID!")); }
+            }
+
             case "list" -> {
                 var ids = nm.getAllIds();
                 if (ids.isEmpty()) { player.sendMessage(Component.text("§7Keine NPCs vorhanden.")); return true; }
@@ -132,6 +146,7 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(Component.text("§e/npc addcmd <ID> <Befehl>        §7- Befehl bei Rechtsklick hinzufügen"));
         player.sendMessage(Component.text("§e/npc removecmd <ID> <Index>      §7- Befehl entfernen"));
         player.sendMessage(Component.text("§e/npc info <ID>                   §7- Details anzeigen"));
+        player.sendMessage(Component.text("§e/npc rename <ID> <Name>          §7- NPC umbenennen (MiniMessage)"));
         player.sendMessage(Component.text("§e/npc list                        §7- Alle NPCs auflisten"));
         player.sendMessage(Component.text("§8Präfix §e[console] §8für Server-Befehle, §e{player} §8als Spieler-Name"));
     }
@@ -139,10 +154,10 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 1)
-            return List.of("create", "delete", "addcmd", "removecmd", "info", "list");
+            return List.of("create", "delete", "addcmd", "removecmd", "rename", "info", "list");
         if (args.length == 3 && args[0].equalsIgnoreCase("create"))
             return Arrays.stream(Villager.Profession.values()).map(p -> p.name()).collect(Collectors.toList());
-        if (args.length == 2 && List.of("delete", "addcmd", "removecmd", "info").contains(args[0].toLowerCase()))
+        if (args.length == 2 && List.of("delete", "addcmd", "removecmd", "rename", "info").contains(args[0].toLowerCase()))
             return new java.util.ArrayList<>(plugin.getNpcManager().getAllIds());
         return List.of();
     }

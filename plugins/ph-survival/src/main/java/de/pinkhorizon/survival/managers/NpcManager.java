@@ -95,6 +95,19 @@ public class NpcManager {
         return id;
     }
 
+    public boolean renameNpc(int id, String name) {
+        if (!data.contains("npcs." + id)) return false;
+        data.set("npcs." + id + ".name", name);
+        save();
+        // Live-Entity aktualisieren
+        UUID uid = spawnedEntities.get(id);
+        if (uid != null) {
+            var e = Bukkit.getEntity(uid);
+            if (e != null) e.customName(MiniMessage.miniMessage().deserialize(name));
+        }
+        return true;
+    }
+
     public boolean deleteNpc(int id) {
         if (!data.contains("npcs." + id)) return false;
         UUID uid = spawnedEntities.remove(id);
