@@ -467,10 +467,10 @@ async function migrateSurvivalHolograms() {
     const lines = Array.isArray(h.lines) ? h.lines.join('\0') : '';
     try {
       await exec(
-        `INSERT INTO sv_holograms (name, world, x, y, z, scale, lines)
+        `INSERT INTO sv_holograms (name, world, x, y, z, scale, \`lines\`)
          VALUES (?,?,?,?,?,?,?)
          ON DUPLICATE KEY UPDATE world=VALUES(world), x=VALUES(x), y=VALUES(y),
-           z=VALUES(z), scale=VALUES(scale), lines=VALUES(lines)`,
+           z=VALUES(z), scale=VALUES(scale), \`lines\`=VALUES(\`lines\`)`,
         [name, world, x, y, z, scale, lines]
       );
       n++;

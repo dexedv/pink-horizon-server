@@ -31,7 +31,7 @@ public class SurvivalHologramManager {
         active.values().forEach(list -> list.forEach(e -> { if (e != null && !e.isDead()) e.remove(); }));
         active.clear();
 
-        String sql = "SELECT name, world, x, y, z, scale, lines FROM sv_holograms";
+        String sql = "SELECT name, world, x, y, z, scale, `lines` FROM sv_holograms";
         try (Connection con = db.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
@@ -51,9 +51,9 @@ public class SurvivalHologramManager {
 
     public void create(String name, Location base, List<String> lines, float scale) {
         remove(name);
-        String sql = "INSERT INTO sv_holograms (name, world, x, y, z, scale, lines) VALUES (?, ?, ?, ?, ?, ?, ?) " +
+        String sql = "INSERT INTO sv_holograms (name, world, x, y, z, scale, `lines`) VALUES (?, ?, ?, ?, ?, ?, ?) " +
                      "ON DUPLICATE KEY UPDATE world=VALUES(world), x=VALUES(x), y=VALUES(y), z=VALUES(z), " +
-                     "scale=VALUES(scale), lines=VALUES(lines)";
+                     "scale=VALUES(scale), `lines`=VALUES(`lines`)";
         try (Connection con = db.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql)) {
             stmt.setString(1, name);
