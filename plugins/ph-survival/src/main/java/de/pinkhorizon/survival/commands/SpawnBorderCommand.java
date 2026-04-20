@@ -84,18 +84,10 @@ public class SpawnBorderCommand implements CommandExecutor, TabCompleter {
                 player.sendMessage(Component.text("§7Alle Border-Punkte gelöscht."));
             }
             case "show" -> {
-                if (!bm.hasPolygon()) {
-                    player.sendMessage(Component.text("§cNoch kein Polygon definiert (mind. 3 Punkte)."));
-                    return true;
-                }
                 player.sendMessage(Component.text("§aZeige Border für 15 Sekunden..."));
                 showBorderParticles(player, 15);
             }
             case "toggle" -> {
-                if (!bm.hasPolygon()) {
-                    player.sendMessage(Component.text("§cNoch kein Polygon definiert (mind. 3 Punkte)."));
-                    return true;
-                }
                 if (permanentTask != null) {
                     permanentTask.cancel();
                     permanentTask = null;
@@ -131,24 +123,44 @@ public class SpawnBorderCommand implements CommandExecutor, TabCompleter {
     public void startPermanentTask() {
         if (permanentTask != null) return; // bereits aktiv
         permanentTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
-            var pts = plugin.getSpawnBorderManager().getPoints();
-            if (pts.size() < 3) return;
-            int n = pts.size();
+            var bm = plugin.getSpawnBorderManager();
             for (org.bukkit.entity.Player online : plugin.getServer().getOnlinePlayers()) {
                 org.bukkit.Location ploc = online.getLocation();
                 double playerY = ploc.getY();
-                for (double wallY = playerY - 15; wallY <= playerY + 15; wallY += 3) {
-                    for (int i = 0, j = n - 1; i < n; j = i++) {
-                        double ax = pts.get(j).x(), az = pts.get(j).z();
-                        double bx = pts.get(i).x(), bz = pts.get(i).z();
-                        double dist = Math.sqrt((bx-ax)*(bx-ax) + (bz-az)*(bz-az));
-                        int steps = Math.max(1, (int)(dist / 1.0));
-                        for (int s = 0; s <= steps; s++) {
-                            double t = (double) s / steps;
-                            double px = ax + t * (bx - ax);
-                            double pz = az + t * (bz - az);
-                            double dx = px - ploc.getX(), dz = pz - ploc.getZ();
-                            if (dx*dx + dz*dz > 2500) continue;
+                if (bm.hasPolygon()) {
+                    var pts = bm.getPoints();
+                    int n = pts.size();
+                    for (double wallY = playerY - 15; wallY <= playerY + 15; wallY += 3) {
+                        for (int i = 0, j = n - 1; i < n; j = i++) {
+                            double ax = pts.get(j).x(), az = pts.get(j).z();
+                            double bx = pts.get(i).x(), bz = pts.get(i).z();
+                            double segDist = Math.sqrt((bx-ax)*(bx-ax) + (bz-az)*(bz-az));
+                            int steps = Math.max(1, (int)(segDist / 1.0));
+                            for (int s = 0; s <= steps; s++) {
+                                double t = (double) s / steps;
+                                double px = ax + t * (bx - ax);
+                                double pz = az + t * (bz - az);
+                                double dx = px - ploc.getX(), dz = pz - ploc.getZ();
+                                if (dx*dx + dz*dz > 2500) continue;
+                                online.spawnParticle(Particle.FLAME, px, wallY, pz, 1, 0, 0, 0, 0);
+                            }
+                        }
+                    }
+                } else {
+                    // Kreis-Modus
+                    double radius = plugin.getConfig().getDouble("spawn-zone.radius", 150);
+                    double cx = plugin.getConfig().getDouble("spawn.x");
+                    double cz = plugin.getConfig().getDouble("spawn.z");
+                    double dx = ploc.getX() - cx, dz = ploc.getZ() - cz;
+                    if (dx*dx + dz*dz > (radius + 50) * (radius + 50)) continue;
+                    int steps = (int)(2 * Math.PI * radius / 1.5);
+                    for (double wallY = playerY - 15; wallY <= playerY + 15; wallY += 3) {
+                        for (int s = 0; s < steps; s++) {
+                            double angle = 2 * Math.PI * s / steps;
+                            double px = cx + radius * Math.cos(angle);
+                            double pz = cz + radius * Math.sin(angle);
+                            double ddx = px - ploc.getX(), ddz = pz - ploc.getZ();
+                            if (ddx*ddx + ddz*ddz > 2500) continue;
                             online.spawnParticle(Particle.FLAME, px, wallY, pz, 1, 0, 0, 0, 0);
                         }
                     }
@@ -178,25 +190,40 @@ public class SpawnBorderCommand implements CommandExecutor, TabCompleter {
         return meta != null && meta.getPersistentDataContainer().has(WAND_KEY, PersistentDataType.BYTE);
     }
 
-    /** Zeigt für `seconds` Sekunden Partikel entlang aller Border-Kanten. */
+    /** Zeigt für `seconds` Sekunden Partikel entlang der Border (Polygon oder Kreis). */
     public void showBorderParticles(Player player, int seconds) {
-        var pts = plugin.getSpawnBorderManager().getPoints();
+        var bm = plugin.getSpawnBorderManager();
         int ticks = seconds * 20;
         int[] elapsed = {0};
         plugin.getServer().getScheduler().runTaskTimer(plugin, task -> {
             elapsed[0] += 5;
             if (elapsed[0] > ticks) { task.cancel(); return; }
             double y = player.getLocation().getY() + 1.5;
-            int n = pts.size();
-            for (int i = 0, j = n - 1; i < n; j = i++) {
-                double ax = pts.get(j).x(), az = pts.get(j).z();
-                double bx = pts.get(i).x(), bz = pts.get(i).z();
-                double dist = Math.sqrt((bx-ax)*(bx-ax) + (bz-az)*(bz-az));
-                int steps = Math.max(1, (int)(dist / 0.8));
-                for (int s = 0; s <= steps; s++) {
-                    double t = (double) s / steps;
-                    double px = ax + t * (bx - ax);
-                    double pz = az + t * (bz - az);
+            if (bm.hasPolygon()) {
+                var pts = bm.getPoints();
+                int n = pts.size();
+                for (int i = 0, j = n - 1; i < n; j = i++) {
+                    double ax = pts.get(j).x(), az = pts.get(j).z();
+                    double bx = pts.get(i).x(), bz = pts.get(i).z();
+                    double dist = Math.sqrt((bx-ax)*(bx-ax) + (bz-az)*(bz-az));
+                    int steps = Math.max(1, (int)(dist / 0.8));
+                    for (int s = 0; s <= steps; s++) {
+                        double t = (double) s / steps;
+                        double px = ax + t * (bx - ax);
+                        double pz = az + t * (bz - az);
+                        player.spawnParticle(Particle.FLAME, px, y, pz, 1, 0, 0, 0, 0);
+                    }
+                }
+            } else {
+                // Kreis-Modus
+                double radius = plugin.getConfig().getDouble("spawn-zone.radius", 150);
+                double cx = plugin.getConfig().getDouble("spawn.x");
+                double cz = plugin.getConfig().getDouble("spawn.z");
+                int steps = (int)(2 * Math.PI * radius / 0.8);
+                for (int s = 0; s < steps; s++) {
+                    double angle = 2 * Math.PI * s / steps;
+                    double px = cx + radius * Math.cos(angle);
+                    double pz = cz + radius * Math.sin(angle);
                     player.spawnParticle(Particle.FLAME, px, y, pz, 1, 0, 0, 0, 0);
                 }
             }
