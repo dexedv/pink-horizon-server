@@ -37,6 +37,7 @@ public class PHSurvival extends JavaPlugin {
     private QuestManager questManager;
     private TradeManager tradeManager;
     private SpawnPasteManager spawnPasteManager;
+    private SpawnBorderManager spawnBorderManager;
 
     @Override
     public void onEnable() {
@@ -65,6 +66,7 @@ public class PHSurvival extends JavaPlugin {
         questManager       = new QuestManager(this);
         tradeManager       = new TradeManager(this);
         spawnPasteManager  = new SpawnPasteManager(this);
+        spawnBorderManager = new SpawnBorderManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -144,6 +146,10 @@ public class PHSurvival extends JavaPlugin {
         getCommand("trade").setExecutor(tradeCmd);
         getCommand("trade").setTabCompleter(tradeCmd);
 
+        SpawnBorderCommand sbc = new SpawnBorderCommand(this);
+        getCommand("spawnborder").setExecutor(sbc);
+        getCommand("spawnborder").setTabCompleter(sbc);
+
         if (getServer().getPluginManager().getPlugin("FastAsyncWorldEdit") != null) {
             SchematicCommand schemCmd = new SchematicCommand(this);
             getCommand("schem").setExecutor(schemCmd);
@@ -190,6 +196,7 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new DeathChestListener(this), this);
         getServer().getPluginManager().registerEvents(new QuestListener(this), this);
         getServer().getPluginManager().registerEvents(new TradeListener(this), this);
+        getServer().getPluginManager().registerEvents(new SpawnBorderWandListener(this), this);
 
         // Holograms nach Weltlade spawnen
         getServer().getScheduler().runTaskLater(this, () -> hologramManager.spawnAll(), 60L);
@@ -228,4 +235,5 @@ public class PHSurvival extends JavaPlugin {
     public AchievementManager getAchievementManager() { return achievementManager; }
     public QuestManager getQuestManager()             { return questManager; }
     public TradeManager getTradeManager()             { return tradeManager; }
+    public SpawnBorderManager getSpawnBorderManager() { return spawnBorderManager; }
 }

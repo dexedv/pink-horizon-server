@@ -67,23 +67,37 @@ public class SpawnZoneListener implements Listener {
         World spawnWorld = plugin.getServer().getWorld(worldName);
         if (spawnWorld == null || !spawnWorld.equals(loc.getWorld())) return false;
 
+        var bm = plugin.getSpawnBorderManager();
+        if (bm.hasPolygon()) {
+            return bm.isInside(loc.getX(), loc.getZ());
+        }
+        // Fallback: Rechteck aus config (solange kein Polygon gesetzt)
         double radius = plugin.getConfig().getDouble("spawn-zone.radius", 50);
         double cx = plugin.getConfig().getDouble("spawn.x");
         double cz = plugin.getConfig().getDouble("spawn.z");
-
-        return Math.abs(loc.getX() - cx) <= radius
-            && Math.abs(loc.getZ() - cz) <= radius;
+        return Math.abs(loc.getX() - cx) <= radius && Math.abs(loc.getZ() - cz) <= radius;
     }
 
     /**
-     * Klemmt X und Z auf den inneren Rand der Zone (0.5 Blöcke Puffer),
-     * damit der Spieler nicht über die Kante gleitet.
+     * Klemmt X/Z auf den nächstgelegenen Punkt AUF dem Polygon-Rand
+     * und schiebt den Spieler minimal nach innen (0.4 Blöcke zum Schwerpunkt).
      */
     private Location clampToBorder(Location to) {
+        var bm = plugin.getSpawnBorderManager();
+        if (bm.hasPolygon()) {
+            double[] nearest  = bm.nearestBoundaryPoint(to.getX(), to.getZ());
+            double[] centroid = bm.centroid();
+            double dx = centroid[0] - nearest[0];
+            double dz = centroid[1] - nearest[1];
+            double len = Math.sqrt(dx * dx + dz * dz);
+            double push = 0.4;
+            if (len > 0) { dx = dx / len * push; dz = dz / len * push; }
+            return new Location(to.getWorld(), nearest[0] + dx, to.getY(), nearest[1] + dz, to.getYaw(), to.getPitch());
+        }
+        // Fallback: Rechteck
         double radius = plugin.getConfig().getDouble("spawn-zone.radius", 50) - 0.6;
         double cx = plugin.getConfig().getDouble("spawn.x");
         double cz = plugin.getConfig().getDouble("spawn.z");
-
         double x = Math.max(cx - radius, Math.min(cx + radius, to.getX()));
         double z = Math.max(cz - radius, Math.min(cz + radius, to.getZ()));
         return new Location(to.getWorld(), x, to.getY(), z, to.getYaw(), to.getPitch());

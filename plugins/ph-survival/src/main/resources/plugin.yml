@@ -137,6 +137,9 @@ commands:
   schem:
     description: Schematics laden und einfügen (Admin)
     usage: /schem <list|load|paste|save>
+  spawnborder:
+    description: Spawn-Border Polygon verwalten (Admin)
+    usage: /spawnborder <wand|add|remove|list|clear|show|tp>
 
 permissions:
   survival.claim:
