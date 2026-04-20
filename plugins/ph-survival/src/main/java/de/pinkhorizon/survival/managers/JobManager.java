@@ -57,10 +57,18 @@ public class JobManager {
 
     // ── Player-Daten ─────────────────────────────────────────────────────
 
+    private static class JobProgress {
+        int level = 1;
+        int xp    = 0;
+    }
+
     private static class PlayerData {
         Job job = null;
-        int level = 1;
-        int xp = 0;
+        final Map<Job, JobProgress> progress = new HashMap<>();
+
+        JobProgress getProgress(Job j) {
+            return progress.computeIfAbsent(j, k -> new JobProgress());
+        }
     }
 
     private final PHSurvival plugin;
@@ -80,11 +88,19 @@ public class JobManager {
     }
 
     public int getLevel(UUID uuid) {
-        return get(uuid).level;
+        PlayerData pd = get(uuid);
+        if (pd.job == null) return 1;
+        return pd.getProgress(pd.job).level;
     }
 
     public int getXp(UUID uuid) {
-        return get(uuid).xp;
+        PlayerData pd = get(uuid);
+        if (pd.job == null) return 0;
+        return pd.getProgress(pd.job).xp;
+    }
+
+    public int getLevelForJob(UUID uuid, Job job) {
+        return get(uuid).getProgress(job).level;
     }
 
     public void setJob(Player player, Job job) {
@@ -108,31 +124,32 @@ public class JobManager {
         PlayerData pd = get(player.getUniqueId());
         if (pd.job == null) return false;
 
-        double mult = getMultiplier(pd.level);
-        long coins = Math.round(baseCoins * mult);
-        int xp = (int) Math.round(baseXp * mult);
+        JobProgress jp   = pd.getProgress(pd.job);
+        double      mult = getMultiplier(jp.level);
+        long        coins = Math.round(baseCoins * mult);
+        int         xp    = (int) Math.round(baseXp * mult);
 
         plugin.getEconomyManager().deposit(player.getUniqueId(), coins);
         player.sendActionBar(Component.text(
-                "§6+" + coins + " Coins §8| §a+" + xp + " XP §8[" + pd.job.displayName + " Lv." + pd.level + "]"));
+                "§6+" + coins + " Coins §8| §a+" + xp + " XP §8[" + pd.job.displayName + " Lv." + jp.level + "]"));
 
-        boolean levelUp = addXp(player, pd, xp);
+        boolean levelUp = addXp(player, pd, jp, xp);
         saveToDisk();
         return levelUp;
     }
 
     // ── Intern ───────────────────────────────────────────────────────────
 
-    private boolean addXp(Player player, PlayerData pd, int xp) {
-        if (pd.level >= getMaxLevel()) return false;
-        pd.xp += xp;
-        int needed = xpForNextLevel(pd.level);
-        if (pd.xp >= needed) {
-            pd.xp -= needed;
-            pd.level++;
+    private boolean addXp(Player player, PlayerData pd, JobProgress jp, int xp) {
+        if (jp.level >= getMaxLevel()) return false;
+        jp.xp += xp;
+        int needed = xpForNextLevel(jp.level);
+        if (jp.xp >= needed) {
+            jp.xp -= needed;
+            jp.level++;
             player.sendMessage(Component.text(
                     "§6§lLevel-Up! §r§aDein Job §f" + pd.job.displayName
-                    + " §aist jetzt §6§lLevel " + pd.level + "§a!",
+                    + " §aist jetzt §6§lLevel " + jp.level + "§a!",
                     NamedTextColor.GREEN));
             player.playSound(player.getLocation(),
                     org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.0f);
@@ -153,12 +170,30 @@ public class JobManager {
             try {
                 UUID uuid = UUID.fromString(uuidStr);
                 PlayerData pd = new PlayerData();
-                String jobStr = data.getString("players." + uuidStr + ".job");
+                String base = "players." + uuidStr;
+                String jobStr = data.getString(base + ".job");
                 if (jobStr != null && !jobStr.equals("NONE")) {
                     try { pd.job = Job.valueOf(jobStr); } catch (IllegalArgumentException ignored) {}
                 }
-                pd.level = data.getInt("players." + uuidStr + ".level", 1);
-                pd.xp    = data.getInt("players." + uuidStr + ".xp",    0);
+                // Per-Job-Level laden (neues Format)
+                if (data.contains(base + ".jobs")) {
+                    for (Job j : Job.values()) {
+                        String jp = base + ".jobs." + j.name();
+                        if (data.contains(jp)) {
+                            JobProgress prog = pd.getProgress(j);
+                            prog.level = data.getInt(jp + ".level", 1);
+                            prog.xp    = data.getInt(jp + ".xp",    0);
+                        }
+                    }
+                } else {
+                    // Altes Format (globales Level) → auf aktuellen Job übertragen
+                    int oldLevel = data.getInt(base + ".level", 1);
+                    int oldXp    = data.getInt(base + ".xp",    0);
+                    if (pd.job != null) {
+                        pd.getProgress(pd.job).level = oldLevel;
+                        pd.getProgress(pd.job).xp    = oldXp;
+                    }
+                }
                 players.put(uuid, pd);
             } catch (IllegalArgumentException ignored) {}
         }
@@ -166,11 +201,14 @@ public class JobManager {
 
     private void saveToDisk() {
         for (Map.Entry<UUID, PlayerData> e : players.entrySet()) {
-            String path = "players." + e.getKey();
+            String base = "players." + e.getKey();
             PlayerData pd = e.getValue();
-            data.set(path + ".job",   pd.job != null ? pd.job.name() : "NONE");
-            data.set(path + ".level", pd.level);
-            data.set(path + ".xp",    pd.xp);
+            data.set(base + ".job", pd.job != null ? pd.job.name() : "NONE");
+            for (Map.Entry<Job, JobProgress> jp : pd.progress.entrySet()) {
+                String path = base + ".jobs." + jp.getKey().name();
+                data.set(path + ".level", jp.getValue().level);
+                data.set(path + ".xp",    jp.getValue().xp);
+            }
         }
         try { data.save(dataFile); }
         catch (IOException ex) { plugin.getLogger().warning("Jobs konnten nicht gespeichert werden: " + ex.getMessage()); }

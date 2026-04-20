@@ -88,21 +88,25 @@ public class JobsCommand implements CommandExecutor {
         lore.add(Component.text(job.description, NamedTextColor.GRAY));
         lore.add(Component.text(""));
 
+        int jobLevel = jm.getLevelForJob(uuid, job);
         if (isActive) {
-            int level = jm.getLevel(uuid);
-            int xp    = jm.getXp(uuid);
-            int next  = JobManager.xpForNextLevel(level);
+            int xp   = jm.getXp(uuid);
+            int next = JobManager.xpForNextLevel(jobLevel);
             lore.add(Component.text("§aAktiver Job §6✔"));
-            lore.add(Component.text("§7Level: §e" + level + " §8/ §e" + JobManager.getMaxLevel()));
+            lore.add(Component.text("§7Level: §e" + jobLevel + " §8/ §e" + JobManager.getMaxLevel()));
             if (next > 0) {
                 lore.add(Component.text("§7XP: §b" + xp + " §8/ §b" + next));
-                lore.add(Component.text("§7Bonus: §6+" + (int)((JobManager.getMultiplier(level) - 1.0) * 100) + "%"));
+                lore.add(Component.text("§7Bonus: §6+" + (int)((JobManager.getMultiplier(jobLevel) - 1.0) * 100) + "%"));
             } else {
                 lore.add(Component.text("§6§lMAX LEVEL"));
             }
             lore.add(Component.text(""));
             lore.add(Component.text("§cKlicken zum Verlassen", NamedTextColor.RED));
         } else {
+            if (jobLevel > 1) {
+                lore.add(Component.text("§7Erreichtes Level: §e" + jobLevel));
+                lore.add(Component.text("§7Bonus: §6+" + (int)((JobManager.getMultiplier(jobLevel) - 1.0) * 100) + "%"));
+            }
             lore.add(Component.text("§7Klicken zum Beitreten", NamedTextColor.YELLOW));
         }
 
