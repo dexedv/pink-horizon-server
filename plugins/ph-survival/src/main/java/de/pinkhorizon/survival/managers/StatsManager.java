@@ -5,7 +5,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.UUID;
+import java.util.*;;
 
 public class StatsManager {
 
@@ -67,6 +67,32 @@ public class StatsManager {
 
     public long getPlaytime(UUID uuid) {
         return data.getLong(uuid + ".playtime", 0);
+    }
+
+    // ── Top-Listen (alle Spieler inkl. Offline) ──────────────────────────
+
+    public List<Map.Entry<UUID, Integer>> getTopMobKills(int limit) {
+        List<Map.Entry<UUID, Integer>> result = new ArrayList<>();
+        for (String key : data.getKeys(false)) {
+            try {
+                UUID uuid = UUID.fromString(key);
+                result.add(Map.entry(uuid, data.getInt(key + ".mob_kills", 0)));
+            } catch (IllegalArgumentException ignored) {}
+        }
+        result.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+        return result.subList(0, Math.min(limit, result.size()));
+    }
+
+    public List<Map.Entry<UUID, Long>> getTopPlaytime(int limit) {
+        List<Map.Entry<UUID, Long>> result = new ArrayList<>();
+        for (String key : data.getKeys(false)) {
+            try {
+                UUID uuid = UUID.fromString(key);
+                result.add(Map.entry(uuid, data.getLong(key + ".playtime", 0)));
+            } catch (IllegalArgumentException ignored) {}
+        }
+        result.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+        return result.subList(0, Math.min(limit, result.size()));
     }
 
     // ── Intern ───────────────────────────────────────────────────────────

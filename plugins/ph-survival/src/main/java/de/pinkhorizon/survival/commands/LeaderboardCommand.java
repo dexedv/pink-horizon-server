@@ -143,8 +143,8 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
     private void refreshType(String type) {
         switch (type) {
             case "coins"    -> refreshCoins();
-            case "kills"    -> { /* hologram kills would need full offline scan – skip for now */ }
-            case "playtime" -> { /* same */ }
+            case "kills"    -> refreshKills();
+            case "playtime" -> refreshPlaytime();
         }
     }
 
@@ -167,6 +167,52 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
             var loc = getLocation("coins");
             if (loc == null) return;
             plugin.getHologramManager().create("lb_coins", loc, lines, 0.9f);
+        });
+    }
+
+    private void refreshKills() {
+        if (!lbConfig.contains("kills")) return;
+        var top = plugin.getStatsManager().getTopMobKills(TOP);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            List<String> lines = new ArrayList<>();
+            lines.add("<gold><bold>Top " + TOP + " Mob-Kills</bold></gold>");
+            lines.add("<gray>─────────────────</gray>");
+            int rank = 1;
+            for (var entry : top) {
+                @SuppressWarnings("deprecation")
+                OfflinePlayer op = Bukkit.getOfflinePlayer(entry.getKey());
+                String name = op.getName() != null ? op.getName() : "???";
+                String color = rank == 1 ? "<gold>" : rank == 2 ? "<gray>" : rank == 3 ? "<#CD7F32>" : "<white>";
+                lines.add(color + rank + ". " + name + " <yellow>" + entry.getValue() + " Kills");
+                rank++;
+            }
+            var loc = getLocation("kills");
+            if (loc == null) return;
+            plugin.getHologramManager().create("lb_kills", loc, lines, 0.9f);
+        });
+    }
+
+    private void refreshPlaytime() {
+        if (!lbConfig.contains("playtime")) return;
+        var top = plugin.getStatsManager().getTopPlaytime(TOP);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            List<String> lines = new ArrayList<>();
+            lines.add("<gold><bold>Top " + TOP + " Spielzeit</bold></gold>");
+            lines.add("<gray>─────────────────</gray>");
+            int rank = 1;
+            for (var entry : top) {
+                @SuppressWarnings("deprecation")
+                OfflinePlayer op = Bukkit.getOfflinePlayer(entry.getKey());
+                String name = op.getName() != null ? op.getName() : "???";
+                String color = rank == 1 ? "<gold>" : rank == 2 ? "<gray>" : rank == 3 ? "<#CD7F32>" : "<white>";
+                long h = entry.getValue() / 60;
+                long m = entry.getValue() % 60;
+                lines.add(color + rank + ". " + name + " <yellow>" + h + "h " + m + "m");
+                rank++;
+            }
+            var loc = getLocation("playtime");
+            if (loc == null) return;
+            plugin.getHologramManager().create("lb_playtime", loc, lines, 0.9f);
         });
     }
 

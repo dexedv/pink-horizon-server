@@ -38,6 +38,7 @@ public class PHSurvival extends JavaPlugin {
     private TradeManager tradeManager;
     private SpawnPasteManager spawnPasteManager;
     private SpawnBorderManager spawnBorderManager;
+    private de.pinkhorizon.survival.managers.NpcManager npcManager;
 
     @Override
     public void onEnable() {
@@ -67,6 +68,7 @@ public class PHSurvival extends JavaPlugin {
         tradeManager       = new TradeManager(this);
         spawnPasteManager  = new SpawnPasteManager(this);
         spawnBorderManager = new SpawnBorderManager(this);
+        npcManager         = new de.pinkhorizon.survival.managers.NpcManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -178,6 +180,10 @@ public class PHSurvival extends JavaPlugin {
 
         getCommand("rtp").setExecutor(new RtpCommand(this));
 
+        de.pinkhorizon.survival.commands.NpcCommand npcCmd = new de.pinkhorizon.survival.commands.NpcCommand(this);
+        getCommand("npc").setExecutor(npcCmd);
+        getCommand("npc").setTabCompleter(npcCmd);
+
         HelpHoloCommand helpHoloCmd = new HelpHoloCommand(this);
         getCommand("helpholo").setExecutor(helpHoloCmd);
         getCommand("helpholo").setTabCompleter(helpHoloCmd);
@@ -203,9 +209,13 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new QuestListener(this), this);
         getServer().getPluginManager().registerEvents(new TradeListener(this), this);
         getServer().getPluginManager().registerEvents(new SpawnBorderWandListener(this), this);
+        getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.NpcListener(this), this);
 
-        // Holograms nach Weltlade spawnen
-        getServer().getScheduler().runTaskLater(this, () -> hologramManager.spawnAll(), 60L);
+        // Holograms + NPCs nach Weltlade spawnen
+        getServer().getScheduler().runTaskLater(this, () -> {
+            hologramManager.spawnAll();
+            npcManager.spawnAll();
+        }, 60L);
 
         getLogger().info("PH-Survival gestartet!");
     }
@@ -242,4 +252,5 @@ public class PHSurvival extends JavaPlugin {
     public QuestManager getQuestManager()             { return questManager; }
     public TradeManager getTradeManager()             { return tradeManager; }
     public SpawnBorderManager getSpawnBorderManager() { return spawnBorderManager; }
+    public de.pinkhorizon.survival.managers.NpcManager getNpcManager() { return npcManager; }
 }
