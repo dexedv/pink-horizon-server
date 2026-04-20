@@ -184,6 +184,10 @@ public class PHSurvival extends JavaPlugin {
         getCommand("npc").setExecutor(npcCmd);
         getCommand("npc").setTabCompleter(npcCmd);
 
+        de.pinkhorizon.survival.gui.TutorialGui tutorialGui = new de.pinkhorizon.survival.gui.TutorialGui();
+        getCommand("tutorial").setExecutor(new de.pinkhorizon.survival.commands.TutorialCommand(tutorialGui));
+        getServer().getPluginManager().registerEvents(tutorialGui, this);
+
         HelpHoloCommand helpHoloCmd = new HelpHoloCommand(this);
         getCommand("helpholo").setExecutor(helpHoloCmd);
         getCommand("helpholo").setTabCompleter(helpHoloCmd);

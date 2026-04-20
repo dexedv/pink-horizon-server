@@ -149,6 +149,9 @@ commands:
   npc:
     description: NPCs erstellen und verwalten (Admin)
     usage: /npc <create|delete|addcmd|removecmd|info|list>
+  tutorial:
+    description: Tutorial-GUI öffnen
+    usage: /tutorial
 
 permissions:
   survival.claim:
