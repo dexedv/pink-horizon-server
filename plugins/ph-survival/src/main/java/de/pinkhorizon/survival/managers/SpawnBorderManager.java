@@ -52,6 +52,16 @@ public class SpawnBorderManager {
         return points.size() >= 3;
     }
 
+    public boolean isPermanentDisplay() {
+        return data.getBoolean("permanent-display", false);
+    }
+
+    public void setPermanentDisplay(boolean value) {
+        data.set("permanent-display", value);
+        try { data.save(dataFile); }
+        catch (IOException e) { plugin.getLogger().warning("spawn_border.yml konnte nicht gespeichert werden: " + e.getMessage()); }
+    }
+
     // ── Point-in-Polygon (Ray-Casting) ────────────────────────────────────
 
     public boolean isInside(double x, double z) {

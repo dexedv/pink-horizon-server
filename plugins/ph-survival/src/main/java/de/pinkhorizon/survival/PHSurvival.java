@@ -149,6 +149,9 @@ public class PHSurvival extends JavaPlugin {
         SpawnBorderCommand sbc = new SpawnBorderCommand(this);
         getCommand("spawnborder").setExecutor(sbc);
         getCommand("spawnborder").setTabCompleter(sbc);
+        if (spawnBorderManager.isPermanentDisplay()) {
+            getServer().getScheduler().runTaskLater(this, sbc::startPermanentTask, 20L);
+        }
 
         if (getServer().getPluginManager().getPlugin("FastAsyncWorldEdit") != null) {
             SchematicCommand schemCmd = new SchematicCommand(this);
