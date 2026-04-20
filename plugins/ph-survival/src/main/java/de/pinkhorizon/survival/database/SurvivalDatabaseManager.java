@@ -229,7 +229,7 @@ public class SurvivalDatabaseManager {
                     y     DOUBLE       NOT NULL,
                     z     DOUBLE       NOT NULL,
                     scale FLOAT        NOT NULL DEFAULT 1.0,
-                    lines TEXT         NOT NULL
+                    `lines` TEXT       NOT NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
                 """);
 
