@@ -1,5 +1,26 @@
 services:
 
+  # ── MySQL Datenbank ───────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: ph-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "ph-root-2024"
+      MYSQL_DATABASE:      "pinkhorizon"
+      MYSQL_USER:          "ph_user"
+      MYSQL_PASSWORD:      "ph-db-2024"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    networks:
+      - ph-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uph_user", "-pph-db-2024"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   # ── Velocity Proxy ────────────────────────────────────────────────────
   velocity:
     image: itzg/bungeecord:latest
@@ -43,6 +64,9 @@ services:
     networks:
       - ph-net
     restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
 
   # ── Survival ──────────────────────────────────────────────────────────
   survival:
@@ -69,6 +93,9 @@ services:
     networks:
       - ph-net
     restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
 
 
   # ── Dashboard ─────────────────────────────────────────────────────────

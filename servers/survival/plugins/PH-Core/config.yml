@@ -1,14 +1,12 @@
 # Pink Horizon Core - Konfiguration
 database:
-  # 'sqlite' fuer lokal, 'mysql' fuer Produktion
-  type: sqlite
-  # MySQL-Einstellungen (nur wenn type: mysql)
+  type: mysql
   mysql:
-    host: localhost
+    host: ph-mysql
     port: 3306
     database: pinkhorizon
     username: ph_user
-    password: AENDERN
+    password: ph-db-2024
 
 messages:
   prefix: '&d[&5Pink&dHorizon&d] &r'

@@ -4,6 +4,7 @@ import de.pinkhorizon.core.commands.HubCommand;
 import de.pinkhorizon.core.commands.MsgCommand;
 import de.pinkhorizon.core.commands.ReportCommand;
 import de.pinkhorizon.core.database.DatabaseManager;
+import de.pinkhorizon.core.database.RankRepository;
 import de.pinkhorizon.core.integration.LuckPermsHook;
 import de.pinkhorizon.core.listeners.ChatListener;
 import de.pinkhorizon.core.listeners.JoinQuitListener;
@@ -13,6 +14,7 @@ public class PHCore extends JavaPlugin {
 
     private static PHCore instance;
     private DatabaseManager databaseManager;
+    private RankRepository rankRepository;
 
     @Override
     public void onEnable() {
@@ -26,6 +28,7 @@ public class PHCore extends JavaPlugin {
         // Datenbank initialisieren
         databaseManager = new DatabaseManager(this);
         databaseManager.init();
+        rankRepository = new RankRepository(databaseManager, getLogger());
 
         // Plugin-Messaging für Velocity/BungeeCord
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
@@ -54,7 +57,6 @@ public class PHCore extends JavaPlugin {
         return instance;
     }
 
-    public DatabaseManager getDatabaseManager() {
-        return databaseManager;
-    }
+    public DatabaseManager getDatabaseManager() { return databaseManager; }
+    public RankRepository getRankRepository()   { return rankRepository; }
 }

@@ -23,12 +23,12 @@ public class JoinQuitListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         event.joinMessage(Component.text(event.getPlayer().getName() + " hat den Server betreten.", NamedTextColor.GREEN));
 
-        // Spieler in DB speichern / updaten
-        String sql = """
-                INSERT INTO players (uuid, name, last_join) VALUES (?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(uuid) DO UPDATE SET name = excluded.name, last_join = CURRENT_TIMESTAMP;
-                """;
-        try (PreparedStatement stmt = plugin.getDatabaseManager().getConnection().prepareStatement(sql)) {
+        String sql = plugin.getDatabaseManager().getDbType().equals("mysql")
+            ? "INSERT INTO players (uuid, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), last_join = CURRENT_TIMESTAMP"
+            : "INSERT INTO players (uuid, name) VALUES (?, ?) ON CONFLICT(uuid) DO UPDATE SET name = excluded.name, last_join = CURRENT_TIMESTAMP";
+
+        try (var con  = plugin.getDatabaseManager().getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
             stmt.setString(1, event.getPlayer().getUniqueId().toString());
             stmt.setString(2, event.getPlayer().getName());
             stmt.execute();
