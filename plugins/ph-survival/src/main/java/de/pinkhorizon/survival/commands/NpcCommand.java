@@ -91,11 +91,12 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
                 if (args.length < 2) { player.sendMessage(Component.text("§cNutzung: /npc info <ID>")); return true; }
                 try {
                     int id = Integer.parseInt(args[1]);
-                    var d = nm.getData();
-                    if (!d.contains("npcs." + id)) { player.sendMessage(Component.text("§cNPC §e#" + id + " §cnicht gefunden.")); return true; }
+                    var info = nm.getNpcInfo(id);
+                    if (info == null) { player.sendMessage(Component.text("§cNPC §e#" + id + " §cnicht gefunden.")); return true; }
                     player.sendMessage(Component.text("§6§l── NPC #" + id + " ──"));
-                    player.sendMessage(Component.text("§7Name:       §f" + d.getString("npcs." + id + ".name")));
-                    player.sendMessage(Component.text("§7Profession: §f" + d.getString("npcs." + id + ".profession")));
+                    player.sendMessage(Component.text("§7Name:       §f" + info.name()));
+                    player.sendMessage(Component.text("§7Profession: §f" + info.profession()));
+                    player.sendMessage(Component.text("§7Welt:       §f" + info.world()));
                     var cmds = nm.getCommands(id);
                     if (cmds.isEmpty()) {
                         player.sendMessage(Component.text("§7Befehle: §ckeine"));
@@ -122,15 +123,13 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
             }
 
             case "list" -> {
-                var ids = nm.getAllIds();
-                if (ids.isEmpty()) { player.sendMessage(Component.text("§7Keine NPCs vorhanden.")); return true; }
-                player.sendMessage(Component.text("§6§l── NPCs (" + ids.size() + ") ──"));
-                for (String key : ids) {
-                    var d = nm.getData();
-                    String name  = d.getString("npcs." + key + ".name", "?");
-                    String world = d.getString("npcs." + key + ".world", "?");
-                    int cmdCount = nm.getCommands(Integer.parseInt(key)).size();
-                    player.sendMessage(Component.text("§e#" + key + " §f" + name + " §8(" + world + ") §7" + cmdCount + " Befehle"));
+                var infos = nm.getAllInfo();
+                if (infos.isEmpty()) { player.sendMessage(Component.text("§7Keine NPCs vorhanden.")); return true; }
+                player.sendMessage(Component.text("§6§l── NPCs (" + infos.size() + ") ──"));
+                for (var info : infos) {
+                    int cmdCount = nm.getCommands(info.id()).size();
+                    player.sendMessage(Component.text("§e#" + info.id() + " §f" + info.name()
+                        + " §8(" + info.world() + ") §7" + cmdCount + " Befehle"));
                 }
             }
 

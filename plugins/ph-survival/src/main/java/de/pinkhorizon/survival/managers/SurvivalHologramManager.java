@@ -1,87 +1,93 @@
 package de.pinkhorizon.survival.managers;
 
 import de.pinkhorizon.survival.PHSurvival;
+import de.pinkhorizon.survival.database.SurvivalDatabaseManager;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.*;
+import java.util.*;
 
 public class SurvivalHologramManager {
 
     private static final double LINE_SPACING = 0.28;
 
     private final PHSurvival plugin;
-    private final File dataFile;
-    private final YamlConfiguration data;
-    // name -> Liste der gespawnten Entities (eine pro Zeile)
+    private final SurvivalDatabaseManager db;
     private final Map<String, List<TextDisplay>> active = new HashMap<>();
 
     public SurvivalHologramManager(PHSurvival plugin) {
         this.plugin = plugin;
-        dataFile = new File(plugin.getDataFolder(), "holograms.yml");
-        data = YamlConfiguration.loadConfiguration(dataFile);
+        this.db     = plugin.getSurvivalDb();
     }
 
     public void spawnAll() {
         active.values().forEach(list -> list.forEach(e -> { if (e != null && !e.isDead()) e.remove(); }));
         active.clear();
 
-        if (!data.contains("holograms")) return;
-        for (String name : data.getConfigurationSection("holograms").getKeys(false)) {
-            String path = "holograms." + name;
-            String worldName = data.getString(path + ".world", "world");
-            double x = data.getDouble(path + ".x");
-            double y = data.getDouble(path + ".y");
-            double z = data.getDouble(path + ".z");
-            float scale = (float) data.getDouble(path + ".scale", 1.0);
-            List<String> lines = data.getStringList(path + ".lines");
-
-            World world = plugin.getServer().getWorld(worldName);
-            if (world == null) continue;
-            spawnLines(name, new Location(world, x, y, z), lines, scale);
+        String sql = "SELECT name, world, x, y, z, scale, lines FROM sv_holograms";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                World world = plugin.getServer().getWorld(rs.getString("world"));
+                if (world == null) continue;
+                spawnLines(rs.getString("name"),
+                    new Location(world, rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z")),
+                    splitLines(rs.getString("lines")),
+                    rs.getFloat("scale"));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[HologramManager] spawnAll: " + e.getMessage());
         }
         plugin.getLogger().info(active.size() + " Hologram(e) gespawnt.");
     }
 
     public void create(String name, Location base, List<String> lines, float scale) {
         remove(name);
-        String path = "holograms." + name;
-        data.set(path + ".world", base.getWorld().getName());
-        data.set(path + ".x", base.getX());
-        data.set(path + ".y", base.getY());
-        data.set(path + ".z", base.getZ());
-        data.set(path + ".scale", scale);
-        data.set(path + ".lines", lines);
-        save();
+        String sql = "INSERT INTO sv_holograms (name, world, x, y, z, scale, lines) VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                     "ON DUPLICATE KEY UPDATE world=VALUES(world), x=VALUES(x), y=VALUES(y), z=VALUES(z), " +
+                     "scale=VALUES(scale), lines=VALUES(lines)";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, name);
+            stmt.setString(2, base.getWorld().getName());
+            stmt.setDouble(3, base.getX());
+            stmt.setDouble(4, base.getY());
+            stmt.setDouble(5, base.getZ());
+            stmt.setFloat(6, scale);
+            stmt.setString(7, joinLines(lines));
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[HologramManager] create: " + e.getMessage());
+        }
         spawnLines(name, base, lines, scale);
     }
 
     public boolean remove(String name) {
         List<TextDisplay> entities = active.remove(name);
         if (entities != null) entities.forEach(e -> { if (!e.isDead()) e.remove(); });
-        if (!data.contains("holograms." + name)) return false;
-        data.set("holograms." + name, null);
-        save();
-        return true;
+        String sql = "DELETE FROM sv_holograms WHERE name=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, name);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[HologramManager] remove: " + e.getMessage());
+            return false;
+        }
     }
 
     public Map<String, List<TextDisplay>> getAll() { return active; }
 
     private void spawnLines(String name, Location base, List<String> lines, float scale) {
         List<TextDisplay> entities = new ArrayList<>();
-        // Erste Zeile oben, jede weitere 0.28 * scale Blöcke tiefer
         double offset = (lines.size() - 1) * LINE_SPACING * scale;
         for (int i = 0; i < lines.size(); i++) {
             final int idx = i;
@@ -93,20 +99,20 @@ public class SurvivalHologramManager {
                 entity.setShadowed(true);
                 entity.setPersistent(false);
                 entity.setTransformation(new Transformation(
-                    new Vector3f(0, 0, 0),
-                    new AxisAngle4f(0, 0, 0, 1),
-                    new Vector3f(scale, scale, scale),
-                    new AxisAngle4f(0, 0, 0, 1)
-                ));
+                    new Vector3f(0, 0, 0), new AxisAngle4f(0, 0, 0, 1),
+                    new Vector3f(scale, scale, scale), new AxisAngle4f(0, 0, 0, 1)));
             });
             entities.add(display);
         }
         active.put(name, entities);
     }
 
-    private void save() {
-        try { data.save(dataFile); } catch (IOException e) {
-            plugin.getLogger().warning("holograms.yml konnte nicht gespeichert werden: " + e.getMessage());
-        }
+    private static String joinLines(List<String> lines) {
+        return String.join("\0", lines);
+    }
+
+    private static List<String> splitLines(String raw) {
+        if (raw == null || raw.isEmpty()) return new ArrayList<>();
+        return new ArrayList<>(Arrays.asList(raw.split("\0", -1)));
     }
 }

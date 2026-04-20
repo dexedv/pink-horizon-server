@@ -1,6 +1,7 @@
 package de.pinkhorizon.survival;
 
 import de.pinkhorizon.survival.commands.*;
+import de.pinkhorizon.survival.database.SurvivalDatabaseManager;
 import de.pinkhorizon.survival.listeners.*;
 import de.pinkhorizon.survival.managers.*;
 import de.pinkhorizon.survival.managers.AchievementManager;
@@ -40,11 +41,16 @@ public class PHSurvival extends JavaPlugin {
     private SpawnBorderManager spawnBorderManager;
     private de.pinkhorizon.survival.managers.NpcManager npcManager;
     private de.pinkhorizon.survival.managers.AuctionManager auctionManager;
+    private SurvivalDatabaseManager survivalDb;
 
     @Override
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+
+        // Survival-Datenbank initialisieren (ph_survival, exklusiv für diesen Server)
+        survivalDb = new SurvivalDatabaseManager(this);
+        survivalDb.init();
 
         // Managers
         claimManager = new ClaimManager(this);
@@ -232,10 +238,11 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SpawnBorderWandListener(this), this);
         getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.NpcListener(this), this);
 
-        // Holograms + NPCs nach Weltlade spawnen
+        // Holograms + NPCs + ChestShops nach Weltlade spawnen
         getServer().getScheduler().runTaskLater(this, () -> {
             hologramManager.spawnAll();
             npcManager.spawnAll();
+            chestShopListener.loadAll();
         }, 60L);
 
         getLogger().info("PH-Survival gestartet!");
@@ -243,8 +250,7 @@ public class PHSurvival extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (claimManager != null) claimManager.save();
-        if (auctionManager != null) auctionManager.save();
+        if (survivalDb != null) survivalDb.close();
         if (claimBorderVisualizer != null) claimBorderVisualizer.stop();
         if (scoreboardManager != null) scoreboardManager.stopAll();
         if (tabManager != null) tabManager.stop();
@@ -252,6 +258,7 @@ public class PHSurvival extends JavaPlugin {
     }
 
     public static PHSurvival getInstance() { return instance; }
+    public SurvivalDatabaseManager getSurvivalDb() { return survivalDb; }
     public ClaimManager getClaimManager() { return claimManager; }
     public EconomyManager getEconomyManager() { return economyManager; }
     public HomeManager getHomeManager() { return homeManager; }

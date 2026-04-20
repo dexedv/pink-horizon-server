@@ -1,72 +1,76 @@
 package de.pinkhorizon.lobby.managers;
 
+import de.pinkhorizon.core.PHCore;
+import de.pinkhorizon.core.database.DatabaseManager;
 import de.pinkhorizon.lobby.PHLobby;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
-import java.io.File;
-import java.io.IOException;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
 public class HologramManager {
 
     private final PHLobby plugin;
-    private final File dataFile;
-    private final YamlConfiguration data;
-
-    // name -> aktive Entity
     private final Map<String, TextDisplay> active = new HashMap<>();
 
     public HologramManager(PHLobby plugin) {
         this.plugin = plugin;
-        dataFile = new File(plugin.getDataFolder(), "holograms.yml");
-        data = YamlConfiguration.loadConfiguration(dataFile);
     }
 
-    /** Alle gespeicherten Holograms spawnen (nach Entity-Cleanup aufrufen!) */
+    private DatabaseManager db() {
+        return PHCore.getInstance().getDatabaseManager();
+    }
+
     public void spawnAll() {
         active.values().forEach(e -> { if (e != null && !e.isDead()) e.remove(); });
         active.clear();
 
-        if (!data.contains("holograms")) return;
-        for (String name : data.getConfigurationSection("holograms").getKeys(false)) {
-            String path = "holograms." + name;
-            String worldName = data.getString(path + ".world", "world");
-            double x = data.getDouble(path + ".x");
-            double y = data.getDouble(path + ".y");
-            double z = data.getDouble(path + ".z");
-            String text = data.getString(path + ".text", name);
-            float scale = (float) data.getDouble(path + ".scale", 3.0);
-
-            World world = Bukkit.getWorld(worldName);
-            if (world == null) continue;
-            spawnEntity(name, new Location(world, x, y, z), text, scale);
+        String sql = "SELECT name, world, x, y, z, scale, text FROM lb_holograms";
+        try (Connection con = db().getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                World world = Bukkit.getWorld(rs.getString("world"));
+                if (world == null) continue;
+                spawnEntity(rs.getString("name"),
+                    new Location(world, rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z")),
+                    rs.getString("text"),
+                    rs.getFloat("scale"));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[HologramManager] spawnAll: " + e.getMessage());
         }
         plugin.getLogger().info(active.size() + " Hologram(e) gespawnt.");
     }
 
     public boolean create(String name, Location loc, String text, float scale) {
-        // Altes entfernen falls vorhanden
         remove(name);
-
-        String path = "holograms." + name;
-        data.set(path + ".world", loc.getWorld().getName());
-        data.set(path + ".x", loc.getX());
-        data.set(path + ".y", loc.getY());
-        data.set(path + ".z", loc.getZ());
-        data.set(path + ".text", text);
-        data.set(path + ".scale", scale);
-        save();
-
+        String sql = "INSERT INTO lb_holograms (name, world, x, y, z, scale, text) VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                     "ON DUPLICATE KEY UPDATE world=VALUES(world), x=VALUES(x), y=VALUES(y), z=VALUES(z), " +
+                     "scale=VALUES(scale), text=VALUES(text)";
+        try (Connection con = db().getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, name);
+            stmt.setString(2, loc.getWorld().getName());
+            stmt.setDouble(3, loc.getX());
+            stmt.setDouble(4, loc.getY());
+            stmt.setDouble(5, loc.getZ());
+            stmt.setFloat(6, scale);
+            stmt.setString(7, text);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[HologramManager] create: " + e.getMessage());
+            return false;
+        }
         spawnEntity(name, loc, text, scale);
         return true;
     }
@@ -74,15 +78,18 @@ public class HologramManager {
     public boolean remove(String name) {
         TextDisplay entity = active.remove(name);
         if (entity != null && !entity.isDead()) entity.remove();
-        if (!data.contains("holograms." + name)) return false;
-        data.set("holograms." + name, null);
-        save();
-        return true;
+        String sql = "DELETE FROM lb_holograms WHERE name=?";
+        try (Connection con = db().getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, name);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[HologramManager] remove: " + e.getMessage());
+            return false;
+        }
     }
 
-    public Map<String, TextDisplay> getAll() {
-        return active;
-    }
+    public Map<String, TextDisplay> getAll() { return active; }
 
     private void spawnEntity(String name, Location loc, String text, float scale) {
         TextDisplay display = loc.getWorld().spawn(loc, TextDisplay.class, entity -> {
@@ -92,18 +99,9 @@ public class HologramManager {
             entity.setShadowed(true);
             entity.setPersistent(false);
             entity.setTransformation(new Transformation(
-                new Vector3f(0, 0, 0),
-                new AxisAngle4f(0, 0, 0, 1),
-                new Vector3f(scale, scale, scale),
-                new AxisAngle4f(0, 0, 0, 1)
-            ));
+                new Vector3f(0, 0, 0), new AxisAngle4f(0, 0, 0, 1),
+                new Vector3f(scale, scale, scale), new AxisAngle4f(0, 0, 0, 1)));
         });
         active.put(name, display);
-    }
-
-    private void save() {
-        try { data.save(dataFile); } catch (IOException e) {
-            plugin.getLogger().warning("holograms.yml konnte nicht gespeichert werden: " + e.getMessage());
-        }
     }
 }

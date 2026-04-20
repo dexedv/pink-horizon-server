@@ -219,6 +219,62 @@ public class SurvivalDatabaseManager {
                     claim_purchases  INT     NOT NULL DEFAULT 0
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
                 """);
+
+            // Holograms
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS sv_holograms (
+                    name  VARCHAR(128) NOT NULL PRIMARY KEY,
+                    world VARCHAR(64)  NOT NULL,
+                    x     DOUBLE       NOT NULL,
+                    y     DOUBLE       NOT NULL,
+                    z     DOUBLE       NOT NULL,
+                    scale FLOAT        NOT NULL DEFAULT 1.0,
+                    lines TEXT         NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """);
+
+            // NPCs
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS sv_npcs (
+                    id         INT AUTO_INCREMENT PRIMARY KEY,
+                    name       VARCHAR(64)  NOT NULL,
+                    world      VARCHAR(64)  NOT NULL,
+                    x          DOUBLE       NOT NULL,
+                    y          DOUBLE       NOT NULL,
+                    z          DOUBLE       NOT NULL,
+                    yaw        FLOAT        NOT NULL DEFAULT 0,
+                    profession VARCHAR(32)  NOT NULL DEFAULT 'FARMER'
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """);
+
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS sv_npc_commands (
+                    npc_id  INT          NOT NULL,
+                    idx     INT          NOT NULL,
+                    command VARCHAR(256) NOT NULL,
+                    PRIMARY KEY (npc_id, idx)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """);
+
+            // ChestShops
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS sv_chestshops (
+                    world        VARCHAR(64) NOT NULL,
+                    x            INT         NOT NULL,
+                    y            INT         NOT NULL,
+                    z            INT         NOT NULL,
+                    owner_uuid   VARCHAR(36) NOT NULL,
+                    item         VARCHAR(64) NOT NULL,
+                    amount       INT         NOT NULL DEFAULT 1,
+                    buy_price    BIGINT      NOT NULL DEFAULT 10,
+                    sell_price   BIGINT      NOT NULL DEFAULT 5,
+                    buy_on       BOOLEAN     NOT NULL DEFAULT FALSE,
+                    sell_on      BOOLEAN     NOT NULL DEFAULT FALSE,
+                    balance      BIGINT      NOT NULL DEFAULT 0,
+                    use_shop_bal BOOLEAN     NOT NULL DEFAULT FALSE,
+                    PRIMARY KEY (world, x, y, z)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """);
         }
     }
 

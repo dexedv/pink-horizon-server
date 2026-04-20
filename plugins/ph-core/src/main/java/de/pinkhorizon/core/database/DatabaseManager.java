@@ -81,6 +81,37 @@ public class DatabaseManager {
              PreparedStatement stmt = con.prepareStatement(playersTable)) {
             stmt.execute();
         }
+
+        String holoTable;
+        if (dbType.equals("mysql")) {
+            holoTable = """
+                CREATE TABLE IF NOT EXISTS lb_holograms (
+                    name  VARCHAR(128) NOT NULL PRIMARY KEY,
+                    world VARCHAR(64)  NOT NULL,
+                    x     DOUBLE       NOT NULL,
+                    y     DOUBLE       NOT NULL,
+                    z     DOUBLE       NOT NULL,
+                    scale FLOAT        NOT NULL DEFAULT 3.0,
+                    text  TEXT         NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """;
+        } else {
+            holoTable = """
+                CREATE TABLE IF NOT EXISTS lb_holograms (
+                    name  VARCHAR(128) PRIMARY KEY,
+                    world VARCHAR(64)  NOT NULL,
+                    x     DOUBLE       NOT NULL,
+                    y     DOUBLE       NOT NULL,
+                    z     DOUBLE       NOT NULL,
+                    scale FLOAT        NOT NULL DEFAULT 3.0,
+                    text  TEXT         NOT NULL
+                );
+                """;
+        }
+        try (Connection con = getConnection();
+             PreparedStatement stmt = con.prepareStatement(holoTable)) {
+            stmt.execute();
+        }
     }
 
     /** Liefert den DB-Typ ("mysql" oder "sqlite"). */
