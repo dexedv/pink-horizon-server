@@ -17,7 +17,8 @@ const fs    = require('fs');
 const path  = require('path');
 
 // ── Konfiguration ──────────────────────────────────────────────────────────
-const DATA_DIR = process.env.DATA_DIR || '/data/survival/plugins/PH-Survival';
+const DATA_DIR       = process.env.DATA_DIR       || '/data/survival/plugins/PH-Survival';
+const LOBBY_DATA_DIR = process.env.LOBBY_DATA_DIR || '/data/lobby/plugins/PH-Lobby';
 const DB_HOST  = process.env.DB_HOST  || 'ph-mysql';
 const DB_PORT  = parseInt(process.env.DB_PORT  || '3306');
 const DB_USER  = process.env.DB_USER  || 'ph_user';
@@ -26,7 +27,8 @@ const DRY_RUN  = process.env.DRY_RUN  === '1';
 
 const EXPIRE_MS = 7 * 24 * 60 * 60 * 1000; // 7 Tage (Auktionshaus)
 
-let conn;
+let conn;       // ph_survival DB
+let connCore;   // pinkhorizon DB (für Lobby)
 let stats = {};
 
 // ── Hilfsfunktionen ────────────────────────────────────────────────────────
@@ -50,6 +52,11 @@ function track(table, n) {
 async function exec(sql, params) {
   if (DRY_RUN) return [{ affectedRows: 0, insertId: 0 }];
   return conn.execute(sql, params);
+}
+
+async function execCore(sql, params) {
+  if (DRY_RUN) return [{ affectedRows: 0, insertId: 0 }];
+  return connCore.execute(sql, params);
 }
 
 /** Parst "world:cx:cz" – world-Name darf Doppelpunkte enthalten */
@@ -402,17 +409,121 @@ async function migrateQuests() {
   log(`  ✓ ${n} heutige Quest-Einträge migriert (ältere Quests werden übersprungen)`);
 }
 
+async function migrateNpcs() {
+  log('\n── NPCs (npcs.yml → sv_npcs + sv_npc_commands) ──');
+  const data = loadYaml('npcs.yml');
+  if (!data?.npcs) { log('  (leer)'); return; }
+  let nn = 0, nc = 0;
+  for (const [key, npc] of Object.entries(data.npcs)) {
+    if (typeof npc !== 'object') continue;
+    const id         = parseInt(key);
+    const name       = npc.name       ?? 'NPC';
+    const world      = npc.world      ?? 'world';
+    const x          = npc.x          ?? 0;
+    const y          = npc.y          ?? 64;
+    const z          = npc.z          ?? 0;
+    const yaw        = npc.yaw        ?? 0;
+    const profession = npc.profession ?? 'NONE';
+    try {
+      const [res] = await exec(
+        `INSERT INTO sv_npcs (id, name, world, x, y, z, yaw, profession)
+         VALUES (?,?,?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE name=VALUES(name), world=VALUES(world),
+           x=VALUES(x), y=VALUES(y), z=VALUES(z), yaw=VALUES(yaw), profession=VALUES(profession)`,
+        [id, name, world, x, y, z, yaw, profession]
+      );
+      nn++;
+      // Befehle
+      const commands = Array.isArray(npc.commands) ? npc.commands : [];
+      if (commands.length > 0) {
+        await exec(`DELETE FROM sv_npc_commands WHERE npc_id=?`, [id]);
+        for (let i = 0; i < commands.length; i++) {
+          await exec(
+            `INSERT INTO sv_npc_commands (npc_id, idx, command) VALUES (?,?,?)`,
+            [id, i, commands[i]]
+          );
+          nc++;
+        }
+      }
+    } catch (e) { log(`  ✗ NPC ${key}: ${e.message}`); }
+  }
+  track('sv_npcs', nn);
+  track('sv_npc_commands', nc);
+  log(`  ✓ ${nn} NPCs, ${nc} Befehle migriert`);
+}
+
+async function migrateSurvivalHolograms() {
+  log('\n── Survival-Holograms (holograms.yml → sv_holograms) ──');
+  const data = loadYaml('holograms.yml');
+  if (!data?.holograms) { log('  (leer)'); return; }
+  let n = 0;
+  for (const [name, h] of Object.entries(data.holograms)) {
+    if (typeof h !== 'object') continue;
+    const world = h.world ?? 'world';
+    const x     = h.x     ?? 0;
+    const y     = h.y     ?? 64;
+    const z     = h.z     ?? 0;
+    const scale = h.scale ?? 1.0;
+    const lines = Array.isArray(h.lines) ? h.lines.join('\0') : '';
+    try {
+      await exec(
+        `INSERT INTO sv_holograms (name, world, x, y, z, scale, lines)
+         VALUES (?,?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE world=VALUES(world), x=VALUES(x), y=VALUES(y),
+           z=VALUES(z), scale=VALUES(scale), lines=VALUES(lines)`,
+        [name, world, x, y, z, scale, lines]
+      );
+      n++;
+    } catch (e) { log(`  ✗ Hologram ${name}: ${e.message}`); }
+  }
+  track('sv_holograms', n);
+  log(`  ✓ ${n} Survival-Holograms migriert`);
+}
+
+async function migrateLobbyHolograms() {
+  log('\n── Lobby-Holograms (holograms.yml → lb_holograms) ──');
+  const file = path.join(LOBBY_DATA_DIR, 'holograms.yml');
+  if (!fs.existsSync(file)) { log(`  ⚠  ${file} nicht gefunden – überspringe`); return; }
+  let raw;
+  try { raw = yaml.load(fs.readFileSync(file, 'utf8')) || {}; }
+  catch (e) { log(`  ✗  Fehler beim Lesen: ${e.message}`); return; }
+  if (!raw?.holograms) { log('  (leer)'); return; }
+  let n = 0;
+  for (const [name, h] of Object.entries(raw.holograms)) {
+    if (typeof h !== 'object') continue;
+    const world = h.world ?? 'world';
+    const x     = h.x     ?? 0;
+    const y     = h.y     ?? 64;
+    const z     = h.z     ?? 0;
+    const scale = h.scale ?? 3.0;
+    const text  = h.text  ?? name;
+    try {
+      await execCore(
+        `INSERT INTO lb_holograms (name, world, x, y, z, scale, text)
+         VALUES (?,?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE world=VALUES(world), x=VALUES(x), y=VALUES(y),
+           z=VALUES(z), scale=VALUES(scale), text=VALUES(text)`,
+        [name, world, x, y, z, scale, text]
+      );
+      n++;
+    } catch (e) { log(`  ✗ Lobby-Hologram ${name}: ${e.message}`); }
+  }
+  track('lb_holograms', n);
+  log(`  ✓ ${n} Lobby-Holograms migriert`);
+}
+
 // ── Hauptprogramm ──────────────────────────────────────────────────────────
 async function main() {
   log('╔══════════════════════════════════════════════╗');
   log('║  Pink Horizon – YAML → MySQL Migration       ║');
   log('╚══════════════════════════════════════════════╝');
-  log(`\nDateien-Ordner : ${DATA_DIR}`);
-  log(`Datenbank      : ${DB_USER}@${DB_HOST}:${DB_PORT}/ph_survival`);
-  log(`Modus          : ${DRY_RUN ? 'DRY-RUN (keine Änderungen)' : 'LIVE (schreibt in DB)'}\n`);
+  log(`\nSurvival-Ordner : ${DATA_DIR}`);
+  log(`Lobby-Ordner    : ${LOBBY_DATA_DIR}`);
+  log(`Datenbank       : ${DB_USER}@${DB_HOST}:${DB_PORT}/ph_survival + pinkhorizon`);
+  log(`Modus           : ${DRY_RUN ? 'DRY-RUN (keine Änderungen)' : 'LIVE (schreibt in DB)'}\n`);
 
   if (!fs.existsSync(DATA_DIR)) {
-    log(`FEHLER: Ordner nicht gefunden: ${DATA_DIR}`);
+    log(`FEHLER: Survival-Ordner nicht gefunden: ${DATA_DIR}`);
     log('Starte den Container mit korrektem Volume-Mount oder setze DATA_DIR.');
     process.exit(1);
   }
@@ -423,7 +534,11 @@ async function main() {
         host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
         database: 'ph_survival', connectTimeout: 5000
       });
-      log('✓ MySQL-Verbindung hergestellt\n');
+      connCore = await mysql.createConnection({
+        host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+        database: 'pinkhorizon', connectTimeout: 5000
+      });
+      log('✓ MySQL-Verbindungen hergestellt\n');
     } catch (e) {
       log(`FEHLER: MySQL-Verbindung fehlgeschlagen: ${e.message}`);
       process.exit(1);
@@ -442,8 +557,12 @@ async function main() {
   await migrateAuction();
   await migrateUpgrades();
   await migrateQuests();
+  await migrateNpcs();
+  await migrateSurvivalHolograms();
+  await migrateLobbyHolograms();
 
   if (conn) await conn.end();
+  if (connCore) await connCore.end();
 
   log('\n══════════════════ Zusammenfassung ═══════════════');
   for (const [table, count] of Object.entries(stats)) {
