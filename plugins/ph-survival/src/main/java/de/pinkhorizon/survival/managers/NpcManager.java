@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 
 import java.io.File;
@@ -13,6 +14,12 @@ import java.io.IOException;
 import java.util.*;
 
 public class NpcManager {
+
+    private static final Villager.Type[]       TYPES       = Villager.Type.values();
+    private static final Villager.Profession[] PROFESSIONS = Arrays.stream(Villager.Profession.values())
+        .filter(p -> p != Villager.Profession.NONE && p != Villager.Profession.NITWIT)
+        .toArray(Villager.Profession[]::new);
+    private static final Random RANDOM = new Random();
 
     private final PHSurvival plugin;
     private final File dataFile;
@@ -43,6 +50,9 @@ public class NpcManager {
             catch (NumberFormatException ignored) {}
         }
         plugin.getLogger().info(spawnedEntities.size() + " NPC(s) gespawnt.");
+
+        // Alle 2 Ticks: NPCs zum nächsten Spieler drehen
+        plugin.getServer().getScheduler().runTaskTimer(plugin, this::updateLookAt, 2L, 2L);
     }
 
     private void spawnNpc(int id) {
@@ -50,16 +60,15 @@ public class NpcManager {
         World world = Bukkit.getWorld(data.getString(path + ".world", "world"));
         if (world == null) return;
 
-        double x = data.getDouble(path + ".x");
-        double y = data.getDouble(path + ".y");
-        double z = data.getDouble(path + ".z");
-        float yaw = (float) data.getDouble(path + ".yaw");
+        double x   = data.getDouble(path + ".x");
+        double y   = data.getDouble(path + ".y");
+        double z   = data.getDouble(path + ".z");
+        float  yaw = (float) data.getDouble(path + ".yaw");
         String name = data.getString(path + ".name", "NPC");
 
-        Villager.Profession prof;
-        try { prof = Villager.Profession.valueOf(data.getString(path + ".profession", "NONE")); }
-        catch (Exception e) { prof = Villager.Profession.NONE; }
-        final Villager.Profession finalProf = prof;
+        // Zufälliger Look bei jedem Start
+        Villager.Type       type = TYPES[RANDOM.nextInt(TYPES.length)];
+        Villager.Profession prof = PROFESSIONS[RANDOM.nextInt(PROFESSIONS.length)];
 
         Villager v = world.spawn(new Location(world, x, y, z, yaw, 0), Villager.class, entity -> {
             entity.customName(MiniMessage.miniMessage().deserialize(name));
@@ -67,12 +76,40 @@ public class NpcManager {
             entity.setAI(false);
             entity.setInvulnerable(true);
             entity.setSilent(true);
-            entity.setProfession(finalProf);
-            entity.setVillagerType(Villager.Type.PLAINS);
+            entity.setProfession(prof);
+            entity.setVillagerType(type);
             entity.setPersistent(false);
             entity.setRemoveWhenFarAway(false);
         });
         spawnedEntities.put(id, v.getUniqueId());
+    }
+
+    // ── Look-At-Player Task ───────────────────────────────────────────────
+
+    private void updateLookAt() {
+        for (UUID uid : spawnedEntities.values()) {
+            if (!(Bukkit.getEntity(uid) instanceof Villager villager)) continue;
+            Location npcLoc = villager.getLocation();
+
+            // Nächsten Spieler in 12 Blöcken finden
+            Player nearest = null;
+            double nearestSq = 12.0 * 12.0;
+            for (Player p : villager.getWorld().getPlayers()) {
+                double sq = p.getLocation().distanceSquared(npcLoc);
+                if (sq < nearestSq) { nearestSq = sq; nearest = p; }
+            }
+            if (nearest == null) continue;
+
+            // Yaw & Pitch berechnen
+            double dx = nearest.getX() - npcLoc.getX();
+            double dy = nearest.getEyeLocation().getY() - (npcLoc.getY() + 1.62);
+            double dz = nearest.getZ() - npcLoc.getZ();
+
+            float yaw   = (float) Math.toDegrees(Math.atan2(-dx, dz));
+            float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)));
+
+            villager.setRotation(yaw, pitch);
+        }
     }
 
     // ── CRUD ──────────────────────────────────────────────────────────────
@@ -99,7 +136,6 @@ public class NpcManager {
         if (!data.contains("npcs." + id)) return false;
         data.set("npcs." + id + ".name", name);
         save();
-        // Live-Entity aktualisieren
         UUID uid = spawnedEntities.get(id);
         if (uid != null) {
             var e = Bukkit.getEntity(uid);
