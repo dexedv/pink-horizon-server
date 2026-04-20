@@ -76,6 +76,7 @@
   .b-red    { background: rgba(231,76,60,.12);  border: 1px solid rgba(231,76,60,.3);  color: var(--red); }
   .b-purple { background: rgba(155,89,182,.12); border: 1px solid rgba(155,89,182,.3); color: var(--purple); }
   .b-yellow { background: rgba(243,156,18,.12); border: 1px solid rgba(243,156,18,.3); color: var(--yellow); }
+  .b-blue   { background: rgba(52,152,219,.12); border: 1px solid rgba(52,152,219,.3); color: var(--blue); }
 
   /* Form */
   .field { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 13px; color: var(--text); font-size: .9rem; outline: none; width: 100%; font-family: inherit; }
@@ -110,6 +111,16 @@
   .stat-icon { font-size: 1.8rem; }
   .stat-lbl  { font-size: .75rem; color: var(--muted); }
   .stat-val  { font-size: 1.5rem; font-weight: 700; }
+
+  /* DB Status */
+  .db-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+  .db-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .db-dot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .db-dot.err { background: var(--red); }
+  .db-name { flex: 1; font-family: var(--mono); font-size: .85rem; }
+  .db-status { font-size: .8rem; }
+  .db-status.ok  { color: var(--green); }
+  .db-status.err { color: var(--red); }
 
   /* Console */
   .con-wrap  { display: flex; flex-direction: column; height: 100%; padding: 12px 16px; gap: 10px; }
@@ -174,6 +185,25 @@
   .wl-on  { background: rgba(46,204,113,.12); color: var(--green); border: 1px solid rgba(46,204,113,.3); }
   .wl-off { background: rgba(107,107,138,.12); color: var(--muted); border: 1px solid var(--border); }
 
+  /* Permissions */
+  .rank-hierarchy { display: flex; flex-direction: column; gap: 6px; }
+  .rank-card { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 10px; border: 1px solid; }
+  .rank-icon  { font-size: 1.4rem; }
+  .rank-label { font-size: 1rem; font-weight: 700; }
+  .rank-desc  { font-size: .82rem; color: var(--muted); }
+  .rank-count { margin-left: auto; font-size: .82rem; font-family: var(--mono); }
+
+  .perm-player-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+  .perm-row { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
+  .perm-name { flex: 1; font-family: var(--mono); font-size: .88rem; cursor: pointer; }
+  .perm-name:hover { color: var(--pink); }
+  .rank-badge { font-size: .72rem; padding: 2px 8px; border-radius: 10px; border: 1px solid; font-weight: 600; }
+
+  /* Ban list */
+  .ban-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); border: 1px solid rgba(231,76,60,.25); border-radius: 7px; }
+  .ban-name { flex: 1; font-family: var(--mono); font-size: .9rem; font-weight: 600; color: var(--red); }
+  .ban-reason { font-size: .82rem; color: var(--muted); flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   /* Commands */
   .cg-title { font-size: .95rem; font-weight: 700; padding: 4px 0 8px; border-bottom: 2px solid var(--border); margin-bottom: 4px; }
   .csec { display: flex; flex-direction: column; gap: 4px; }
@@ -184,6 +214,18 @@
   .cd { color: var(--text); }
   .ca { font-size: .7rem; padding: 2px 8px; border-radius: 10px; background: rgba(231,76,60,.12); border: 1px solid rgba(231,76,60,.3); color: var(--red); white-space: nowrap; }
   .ch { display: none !important; }
+
+  /* Modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 200; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+  .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; width: 400px; max-width: 90vw; display: flex; flex-direction: column; gap: 16px; }
+  .modal-box h3 { font-size: 1.05rem; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* Toast */
+  .toast-wrap { position: fixed; top: 16px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+  .toast { padding: 10px 18px; border-radius: 10px; font-size: .88rem; font-weight: 600; border: 1px solid; transition: opacity .5s; max-width: 320px; }
+  .toast-ok  { background: rgba(46,204,113,.15); border-color: rgba(46,204,113,.4); color: var(--green); }
+  .toast-err { background: rgba(231,76,60,.15);  border-color: rgba(231,76,60,.4);  color: var(--red); }
 
   /* Misc */
   .empty { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .9rem; padding: 32px; }
@@ -205,6 +247,8 @@
     <div class="lerr" id="lerr">Falsches Passwort!</div>
   </div>
 </div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
 
 <div id="app" class="hidden">
   <nav id="sidebar">
@@ -236,6 +280,24 @@ let conSrv = null;
 let cmdHist = [], histIdx = -1;
 let autoScroll = true;
 const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [] };
+
+// ── Rang-Definitionen ─────────────────────────────────────────────────────
+const RANK_DEFS = [
+  { id:'owner',     label:'Owner',     color:'#ff4444', bg:'rgba(255,68,68,.1)',  border:'rgba(255,68,68,.3)',  icon:'👑', desc:'Serverbesitzer'  },
+  { id:'admin',     label:'Admin',     color:'#ff7722', bg:'rgba(255,119,34,.1)', border:'rgba(255,119,34,.3)', icon:'⚙️',  desc:'Administrator'   },
+  { id:'dev',       label:'DEV',       color:'#aa44ff', bg:'rgba(170,68,255,.1)', border:'rgba(170,68,255,.3)', icon:'💻', desc:'Entwickler'       },
+  { id:'moderator', label:'Moderator', color:'#3388ff', bg:'rgba(51,136,255,.1)', border:'rgba(51,136,255,.3)', icon:'🛡️', desc:'Moderator'        },
+  { id:'supporter', label:'Supporter', color:'#00ccaa', bg:'rgba(0,204,170,.1)',  border:'rgba(0,204,170,.3)',  icon:'🎧', desc:'Support-Team'     },
+  { id:'vip',       label:'VIP',       color:'#ffcc00', bg:'rgba(255,204,0,.1)',  border:'rgba(255,204,0,.3)',  icon:'⭐', desc:'VIP-Spieler'      },
+  { id:'spieler',   label:'Spieler',   color:'#888888', bg:'rgba(136,136,136,.1)',border:'rgba(136,136,136,.3)',icon:'🎮', desc:'Standard-Rang'    },
+];
+
+function rankDef(id) { return RANK_DEFS.find(r=>r.id===id) || RANK_DEFS[6]; }
+
+function rankBadge(rankId) {
+  const rd = rankDef(rankId);
+  return `<span class="rank-badge" style="color:${rd.color};border-color:${rd.border};background:${rd.bg}">${rd.icon} ${rd.label}</span>`;
+}
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 async function login() {
@@ -270,17 +332,18 @@ async function loadSrv() {
 // ── Navigation ────────────────────────────────────────────────────────────
 const NAV_DEF = [
   { sec: 'Übersicht' },
-  { id:'dashboard',        icon:'📊', label:'Dashboard' },
+  { id:'dashboard',    icon:'📊', label:'Dashboard' },
   { sec: 'Konsolen' },
-  { id:'con_velocity',     dot:true,  label:'Velocity Proxy', srv:'velocity' },
-  { id:'con_lobby',        dot:true,  label:'Lobby',          srv:'lobby'    },
-  { id:'con_survival',     dot:true,  label:'Survival',       srv:'survival' },
+  { id:'con_velocity', dot:true,  label:'Velocity Proxy', srv:'velocity' },
+  { id:'con_lobby',    dot:true,  label:'Lobby',          srv:'lobby'    },
+  { id:'con_survival', dot:true,  label:'Survival',       srv:'survival' },
   { sec: 'Verwaltung' },
-  { id:'players',          icon:'👥', label:'Spieler' },
-  { id:'economy',          icon:'💰', label:'Wirtschaft' },
-  { id:'rights',           icon:'🔑', label:'Rechte' },
+  { id:'players',      icon:'👥', label:'Spieler'         },
+  { id:'permissions',  icon:'🎖️', label:'Permissions'    },
+  { id:'economy',      icon:'💰', label:'Wirtschaft'      },
+  { id:'rights',       icon:'🔑', label:'Rechte'          },
   { sec: 'Tools' },
-  { id:'commands',         icon:'📋', label:'Befehlsreferenz' },
+  { id:'commands',     icon:'📋', label:'Befehlsreferenz' },
 ];
 
 function buildNav() {
@@ -305,9 +368,7 @@ function buildNav() {
   }
 }
 
-function nav(p) {
-  PAGE = p; buildNav(); renderPage();
-}
+function nav(p) { PAGE = p; buildNav(); renderPage(); }
 
 function setHdr(title, html) {
   document.getElementById('page-title').textContent = title;
@@ -318,12 +379,13 @@ function setHdr(title, html) {
 
 // ── Router ────────────────────────────────────────────────────────────────
 function renderPage() {
-  if (PAGE === 'dashboard') return renderDash();
+  if (PAGE === 'dashboard')    return renderDash();
   if (PAGE.startsWith('con_')) return renderCon(PAGE.slice(4));
-  if (PAGE === 'players')  return renderPlayers();
-  if (PAGE === 'economy')  return renderEcon();
-  if (PAGE === 'rights')   return renderRights();
-  if (PAGE === 'commands') return renderCmds();
+  if (PAGE === 'players')      return renderPlayers();
+  if (PAGE === 'permissions')  return renderPermissions();
+  if (PAGE === 'economy')      return renderEcon();
+  if (PAGE === 'rights')       return renderRights();
+  if (PAGE === 'commands')     return renderCmds();
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -333,6 +395,7 @@ async function renderDash() {
   c.innerHTML = `<div class="page">
     <div class="g3" id="srv-cards"><div class="empty">Lade…</div></div>
     <div class="g4" id="stat-row"></div>
+    <div class="g3" id="db-section"><div class="empty">Lade Datenbankstatus…</div></div>
   </div>`;
 
   let totalOn = 0; let totalRun = 0;
@@ -369,12 +432,44 @@ async function renderDash() {
   }
   const sc = document.getElementById('srv-cards');
   if (sc) sc.innerHTML = cards || '<div class="empty">Keine Server</div>';
+
   const st = document.getElementById('stat-row');
   if (st) st.innerHTML = `
     <div class="card stat-card"><span class="stat-icon">🖥️</span><div><div class="stat-lbl">Server online</div><div class="stat-val">${totalRun}/${Object.keys(srvData).length}</div></div></div>
     <div class="card stat-card"><span class="stat-icon">👥</span><div><div class="stat-lbl">Spieler online</div><div class="stat-val">${totalOn}</div></div></div>
     <div class="card stat-card" style="cursor:pointer" onclick="nav('players')"><span class="stat-icon">👤</span><div><div class="stat-lbl">Spielerverwaltung</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>
-    <div class="card stat-card" style="cursor:pointer" onclick="nav('economy')"><span class="stat-icon">💰</span><div><div class="stat-lbl">Wirtschaft</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>`;
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('permissions')"><span class="stat-icon">🎖️</span><div><div class="stat-lbl">Permissions</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>`;
+
+  loadDbStatus();
+}
+
+async function loadDbStatus() {
+  const el = document.getElementById('db-section');
+  if (!el) return;
+  const r = await apiFetch('/api/databases');
+  if (!r?.ok) { el.innerHTML='<div class="empty">Datenbankstatus nicht verfügbar</div>'; return; }
+  const d = await r.json();
+
+  const ctrOk = d.container?.running;
+  const rows = [
+    { name:'ph-mysql (Container)',  ok: ctrOk,           detail: d.container?.status || '—' },
+    { name:'pinkhorizon (DB)',       ok: d.pinkhorizon,   detail: d.pinkhorizon ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph_survival (DB)',       ok: d.ph_survival,   detail: d.ph_survival  ? 'Verbunden' : 'Nicht erreichbar' },
+  ];
+
+  el.innerHTML = `
+    <div class="card" style="grid-column:1/-1">
+      <div class="card-title">🗄️ Datenbankstatus</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${rows.map(row=>`
+          <div class="db-row">
+            <span class="db-dot ${row.ok?'ok':'err'}"></span>
+            <span class="db-name">${escH(row.name)}</span>
+            <span class="db-status ${row.ok?'ok':'err'}">${row.ok?'● Online':'✗ Offline'}</span>
+            <span style="font-size:.78rem;color:var(--muted);margin-left:8px">${escH(row.detail)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
 }
 
 function fmtUp(ms) {
@@ -406,7 +501,6 @@ function renderCon(k) {
       <button class="btn btn-p" onclick="sendCmd('${k}')">Senden</button>
     </div>
   </div>`;
-  // replay buffer
   const out = document.getElementById('con-out');
   for (const line of (logBuf[srv.container]||[])) addLine(out, line, false);
   if (autoScroll && out) out.scrollTop = out.scrollHeight;
@@ -464,6 +558,7 @@ async function renderPlayers() {
       <div class="irow">
         <input class="field" id="pl-search" placeholder="Spielername suchen…" onkeydown="if(event.key==='Enter')doSearch()">
         <button class="btn btn-p" onclick="doSearch()">🔍 Suchen</button>
+        <button class="btn" onclick="nav('permissions');setTimeout(()=>showBanList(),100)" style="margin-left:4px">🔨 Banliste</button>
       </div>
       <div class="chips" id="chips"><span class="chip-lbl">Lade Online-Spieler…</span></div>
     </div>
@@ -502,14 +597,14 @@ async function loadPl(name) {
 
 function renderPlCard(p) {
   const el = document.getElementById('pl-body'); if (!el) return;
-  const rOpts = ['spieler','vip','mvp','mod','admin','owner'].map(r=>`<option value="${r}" ${r===p.rank?'selected':''}>${r[0].toUpperCase()+r.slice(1)}</option>`).join('');
+  const rOpts = RANK_DEFS.map(r=>`<option value="${r.id}" ${r.id===p.rank?'selected':''}>${r.icon} ${r.label}</option>`).join('');
   const jobH = p.job==='NONE'
     ? '<span style="color:var(--muted);font-size:.88rem">Kein aktiver Job</span>'
     : `<span class="badge b-green">${escH(p.jobDisplay)}</span><span style="font-size:.85rem;color:var(--muted);margin-left:6px">Level ${p.jobLevel} · ${p.jobXp} XP</span>`;
   el.innerHTML = `
     <div class="pl-hdr">
       <span class="pl-name">👤 ${escH(p.name)}</span>
-      <span class="badge b-purple">${escH(p.rank)}</span>
+      ${rankBadge(p.rank)}
       <div class="pl-acts">
         <button class="btn btn-d" onclick="doKick('${escH(p.name)}')">⚡ Kick</button>
         <button class="btn btn-d" onclick="doBan('${escH(p.name)}')">🔨 Ban</button>
@@ -575,24 +670,209 @@ async function doRank() {
   const r = await apiFetch('/api/players/action',{method:'POST',body:JSON.stringify({name:curPlayer.name,type:'rank_set',rank})});
   const d = r?await r.json():null;
   if (msg) { msg.textContent=(d?.ok?'✓ ':'✗ ')+(d?.output||d?.error||'Fehler'); msg.style.color=d?.ok?'var(--green)':'var(--red)'; setTimeout(()=>{msg.textContent='';},4000); }
-  if (d?.ok) curPlayer.rank = rank;
+  if (d?.ok) { curPlayer.rank = rank; showToast(`✓ Rang von ${curPlayer.name} auf ${rank} gesetzt`); }
 }
 
-async function doKick(name) {
-  const reason = prompt(`Grund für Kick von ${name} (optional):`);
-  if (reason===null) return;
-  const r = await apiFetch('/api/players/kick',{method:'POST',body:JSON.stringify({name,reason:reason||undefined})});
-  const d = r?await r.json():null;
-  alert(d?.ok?`✓ ${name} wurde gekickt.`:`✗ Fehler: ${d?.error||'Unbekannt'}`);
+function doKick(name) {
+  showModal(`⚡ Spieler kicken: ${name}`, `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label style="color:var(--muted);font-size:.85rem">Grund (optional):</label>
+      <input class="field" id="m-reason" placeholder="Grund eingeben…">
+    </div>`, 'Kick', async () => {
+    const reason = document.getElementById('m-reason')?.value?.trim();
+    const r = await apiFetch('/api/players/kick',{method:'POST',body:JSON.stringify({name,reason:reason||undefined})});
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? `✓ ${name} wurde gekickt.` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+  });
 }
 
-async function doBan(name) {
-  const reason = prompt(`Grund für Ban von ${name}:`);
-  if (!reason) return;
-  const r = await apiFetch('/api/players/ban',{method:'POST',body:JSON.stringify({name,reason})});
-  const d = r?await r.json():null;
-  alert(d?.ok?`✓ ${name} wurde gebannt.`:`✗ Fehler: ${d?.error||'Unbekannt'}`);
+function doBan(name) {
+  showModal(`🔨 Spieler bannen: ${name}`, `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label style="color:var(--muted);font-size:.85rem">Grund (Pflicht):</label>
+      <input class="field" id="m-reason" placeholder="Ban-Grund eingeben…">
+    </div>`, 'Bannen', async () => {
+    const reason = document.getElementById('m-reason')?.value?.trim();
+    if (!reason) { showToast('Bitte einen Grund angeben!', false); return; }
+    const r = await apiFetch('/api/players/ban',{method:'POST',body:JSON.stringify({name,reason})});
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? `✓ ${name} wurde gebannt.` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+  });
 }
+
+// ── Permissions ───────────────────────────────────────────────────────────
+let permTab = 'ranks';
+
+async function renderPermissions() {
+  setHdr('🎖️ Permissions & Ränge', `<button class="btn" onclick="renderPermissions()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);padding-bottom:0;margin-bottom:-4px">
+      <button class="rtab ${permTab==='ranks'?'active':''}"    onclick="switchPermTab('ranks')">Rang-Übersicht</button>
+      <button class="rtab ${permTab==='players'?'active':''}"  onclick="switchPermTab('players')">Spieler</button>
+      <button class="rtab ${permTab==='banlist'?'active':''}"  onclick="switchPermTab('banlist')">Banliste</button>
+    </div>
+    <div id="perm-body" style="flex:1"></div>
+  </div>`;
+  loadPermTab(permTab);
+}
+
+function switchPermTab(t) {
+  permTab = t;
+  document.querySelectorAll('.rtab').forEach(b => {
+    const labels = { ranks:'Rang-Übersicht', players:'Spieler', banlist:'Banliste' };
+    b.classList.toggle('active', b.textContent === labels[t]);
+  });
+  loadPermTab(t);
+}
+
+async function loadPermTab(t) {
+  const el = document.getElementById('perm-body'); if (!el) return;
+  if (t === 'ranks')   return renderPermRanks(el);
+  if (t === 'players') return renderPermPlayers(el);
+  if (t === 'banlist') return renderPermBanlist(el);
+}
+
+function renderPermRanks(el) {
+  const rankOpts = RANK_DEFS.map(r=>`<option value="${r.id}">${r.icon} ${r.label}</option>`).join('');
+  el.innerHTML = `
+    <div class="g2" style="margin-top:4px">
+      <div>
+        <div class="card-title" style="margin-bottom:8px">Rang-Hierarchie</div>
+        <div class="rank-hierarchy" id="rank-hier">
+          ${RANK_DEFS.map((r,i)=>`
+            <div class="rank-card" style="border-color:${r.border};background:${r.bg}">
+              <span class="rank-icon">${r.icon}</span>
+              <div>
+                <div class="rank-label" style="color:${r.color}">${r.label}</div>
+                <div class="rank-desc">${r.desc}</div>
+              </div>
+              <span style="color:var(--muted);font-size:.78rem;margin-left:auto">#${i+1}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="card-title" style="margin-bottom:8px">Rang eines Spielers ändern</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <input class="field" id="perm-player" placeholder="Spielername…" onkeydown="if(event.key==='Enter')doPermRank()">
+          <select class="field" id="perm-rank">${rankOpts}</select>
+          <button class="btn btn-p" onclick="doPermRank()">🎖️ Rang setzen</button>
+          <div id="perm-rank-msg" style="display:none" class="msg"></div>
+        </div>
+        <div class="card-title" style="margin:12px 0 8px">Info: LuckPerms-Sync</div>
+        <div class="card" style="font-size:.85rem;color:var(--muted);line-height:1.6">
+          Rang-Änderungen werden automatisch mit LuckPerms synchronisiert.<br>
+          Der Befehl <span style="font-family:var(--mono);color:var(--pink)">/srank set</span> schreibt gleichzeitig in die Datenbank und aktualisiert die LuckPerms-Gruppe.<br><br>
+          <strong style="color:var(--text)">Gruppen:</strong> owner › admin › dev › moderator › supporter › vip › spieler (= default)
+        </div>
+      </div>
+    </div>`;
+}
+
+async function doPermRank() {
+  const name = document.getElementById('perm-player')?.value?.trim();
+  const rank = document.getElementById('perm-rank')?.value;
+  const msg  = document.getElementById('perm-rank-msg');
+  if (!name) { showMsg(msg, false, 'Spielername eingeben'); return; }
+  const r = await apiFetch('/api/players/action',{method:'POST',body:JSON.stringify({name,type:'rank_set',rank})});
+  const d = r ? await r.json() : null;
+  showMsg(msg, d?.ok, d?.ok ? `✓ ${name} → ${rank}` : (d?.error||'Fehler'));
+  if (d?.ok) showToast(`✓ ${name} wurde zu ${rank} gesetzt`);
+}
+
+async function renderPermPlayers(el) {
+  el.innerHTML = `<div style="margin-top:8px"><div class="empty">Lade Spielerliste…</div></div>`;
+  const r = await apiFetch('/api/permissions/players');
+  if (!r?.ok) { el.innerHTML=`<div class="empty" style="color:var(--red)">Datenbankfehler – Spielerliste nicht verfügbar</div>`; return; }
+  const { players } = await r.json();
+  if (!players?.length) { el.innerHTML=`<div class="empty">Keine Spieler in der Datenbank</div>`; return; }
+
+  // Group by rank
+  const grouped = {};
+  for (const rd of RANK_DEFS) grouped[rd.id] = [];
+  for (const p of players) (grouped[p.rank] || (grouped['spieler'])).push(p);
+
+  let html = `<div style="margin-top:8px;display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+    <input class="field fsm" id="perm-search" placeholder="Spieler filtern…" oninput="filterPermPlayers()" style="width:220px">
+    <span style="color:var(--muted);font-size:.85rem;align-self:center">${players.length} Spieler gesamt</span>
+  </div>
+  <div id="perm-player-grid" style="display:flex;flex-direction:column;gap:12px">`;
+
+  for (const rd of RANK_DEFS) {
+    const list = grouped[rd.id];
+    if (!list.length) continue;
+    html += `<div class="perm-group" data-rank="${rd.id}">
+      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${rd.color};margin-bottom:4px">
+        ${rd.icon} ${rd.label} (${list.length})
+      </div>
+      <div class="perm-player-list">
+        ${list.map(p=>`<div class="perm-row" data-name="${escH(p.name.toLowerCase())}">
+          <span class="perm-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),150)">${escH(p.name)}</span>
+          ${rankBadge(rd.id)}
+          <button class="btn-xs g" onclick="quickRankChange('${escH(p.name)}','${rd.id}')">Ändern</button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function filterPermPlayers() {
+  const q = (document.getElementById('perm-search')?.value || '').toLowerCase();
+  document.querySelectorAll('#perm-player-grid .perm-row').forEach(row => {
+    const name = row.dataset.name || '';
+    row.style.display = name.includes(q) ? '' : 'none';
+  });
+  document.querySelectorAll('#perm-player-grid .perm-group').forEach(grp => {
+    const visible = [...grp.querySelectorAll('.perm-row')].some(r => r.style.display !== 'none');
+    grp.style.display = visible ? '' : 'none';
+  });
+}
+
+function quickRankChange(name, currentRank) {
+  const rankOpts = RANK_DEFS.map(r=>`<option value="${r.id}" ${r.id===currentRank?'selected':''}>${r.icon} ${r.label}</option>`).join('');
+  showModal(`🎖️ Rang ändern: ${name}`, `
+    <select class="field" id="m-rank">${rankOpts}</select>
+  `, 'Setzen', async () => {
+    const rank = document.getElementById('m-rank')?.value;
+    const r = await apiFetch('/api/players/action',{method:'POST',body:JSON.stringify({name,type:'rank_set',rank})});
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? `✓ ${name} → ${rank}` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+    if (d?.ok) loadPermTab('players');
+  });
+}
+
+async function renderPermBanlist(el) {
+  el.innerHTML = `<div style="margin-top:8px"><div class="empty">Lade Banliste…</div></div>`;
+  const r = await apiFetch('/api/players/banlist');
+  if (!r?.ok) { el.innerHTML=`<div class="empty" style="color:var(--red)">Banliste nicht verfügbar</div>`; return; }
+  const { bans } = await r.json();
+  if (!bans.length) { el.innerHTML=`<div style="margin-top:8px"><div class="empty">Keine gebannten Spieler</div></div>`; return; }
+
+  el.innerHTML = `<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:4px">${bans.length} gebannte Spieler</div>
+    ${bans.map(b=>`
+      <div class="ban-row">
+        <span class="ban-name">🔨 ${escH(b.name)}</span>
+        <span class="ban-reason">${escH(b.reason)}</span>
+        <button class="btn-xs g" onclick="doUnban('${escH(b.name)}')">Entbannen</button>
+      </div>`).join('')}
+  </div>`;
+}
+
+async function doUnban(name) {
+  showModal(`🔓 Spieler entbannen: ${name}`, `
+    <p style="color:var(--muted);font-size:.9rem">Möchtest du den Ban von <strong style="color:var(--text)">${escH(name)}</strong> aufheben?</p>
+  `, 'Entbannen', async () => {
+    const r = await apiFetch('/api/players/unban',{method:'POST',body:JSON.stringify({name})});
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? `✓ ${name} wurde entbannt.` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+    if (d?.ok) loadPermTab('banlist');
+  });
+}
+
+function showBanList() { switchPermTab('banlist'); }
 
 // ── Economy ───────────────────────────────────────────────────────────────
 async function renderEcon() {
@@ -748,37 +1028,37 @@ const CMD_DATA = [
       {n:'/tutorial',     u:'/tutorial',                                    d:'Tutorial-GUI öffnen',                  admin:false},
     ]},
     { label:'Admin', cmds:[
-      {n:'/setspawn', u:'/setspawn',                                        d:'Lobby-Spawn setzen',                   admin:true},
-      {n:'/border',   u:'/border <wand|create|remove|clear|info>',          d:'Lobby-Border verwalten',               admin:true},
-      {n:'/portal',   u:'/portal <wand|create|remove|clear|list>',          d:'Portale verwalten',                    admin:true},
-      {n:'/vanish',   u:'/vanish',                                          d:'Unsichtbar schalten',                  admin:true},
-      {n:'/build',    u:'/build',                                           d:'Build-Modus umschalten',               admin:true},
-      {n:'/rank',     u:'/rank <set|info|list>',                            d:'Rang verwalten',                       admin:true},
-      {n:'/hologram', u:'/hologram <create|delete|list>',                   d:'Holograms verwalten',                  admin:true},
+      {n:'/setspawn',    u:'/setspawn',                                     d:'Lobby-Spawn setzen',                   admin:true},
+      {n:'/border',      u:'/border <wand|create|remove|clear|info>',       d:'Lobby-Border verwalten',               admin:true},
+      {n:'/portal',      u:'/portal <wand|create|remove|clear|list>',       d:'Portale verwalten',                    admin:true},
+      {n:'/vanish',      u:'/vanish',                                       d:'Unsichtbar schalten',                  admin:true},
+      {n:'/build',       u:'/build',                                        d:'Build-Modus umschalten',               admin:true},
+      {n:'/rank',        u:'/rank <set|info|list>',                         d:'Rang verwalten',                       admin:true},
+      {n:'/hologram',    u:'/hologram <create|delete|list>',                d:'Holograms verwalten',                  admin:true},
     ]},
   ]},
   { server:'Survival', sections:[
     { label:'Teleport', cmds:[
-      {n:'/spawn',    u:'/spawn',                                           d:'Zum Spawn teleportieren',              admin:false},
-      {n:'/back',     u:'/back',                                            d:'Zum letzten Sterbeort',                admin:false},
-      {n:'/rtp',      u:'/rtp',                                             d:'Zufällig teleportieren',               admin:false},
-      {n:'/sethome',  u:'/sethome [Name]',                                  d:'Home setzen',                          admin:false},
-      {n:'/home',     u:'/home [Name]',                                     d:'Zu Home teleportieren',                admin:false},
-      {n:'/delhome',  u:'/delhome [Name]',                                  d:'Home löschen',                         admin:false},
-      {n:'/homes',    u:'/homes',                                           d:'Alle Homes anzeigen',                  admin:false},
-      {n:'/tpa',      u:'/tpa <Spieler>',                                   d:'Teleportanfrage senden',               admin:false},
-      {n:'/tpaccept', u:'/tpaccept',                                        d:'Teleportanfrage annehmen',             admin:false},
-      {n:'/tpdeny',   u:'/tpdeny',                                          d:'Teleportanfrage ablehnen',             admin:false},
-      {n:'/warp',     u:'/warp <Name>',                                     d:'Zu Warp teleportieren',                admin:false},
-      {n:'/warps',    u:'/warps',                                           d:'Alle Warps anzeigen',                  admin:false},
+      {n:'/spawn',     u:'/spawn',                                          d:'Zum Spawn teleportieren',              admin:false},
+      {n:'/back',      u:'/back',                                           d:'Zum letzten Sterbeort',                admin:false},
+      {n:'/rtp',       u:'/rtp',                                            d:'Zufällig teleportieren',               admin:false},
+      {n:'/sethome',   u:'/sethome [Name]',                                 d:'Home setzen',                          admin:false},
+      {n:'/home',      u:'/home [Name]',                                    d:'Zu Home teleportieren',                admin:false},
+      {n:'/delhome',   u:'/delhome [Name]',                                 d:'Home löschen',                         admin:false},
+      {n:'/homes',     u:'/homes',                                          d:'Alle Homes anzeigen',                  admin:false},
+      {n:'/tpa',       u:'/tpa <Spieler>',                                  d:'Teleportanfrage senden',               admin:false},
+      {n:'/tpaccept',  u:'/tpaccept',                                       d:'Teleportanfrage annehmen',             admin:false},
+      {n:'/tpdeny',    u:'/tpdeny',                                         d:'Teleportanfrage ablehnen',             admin:false},
+      {n:'/warp',      u:'/warp <Name>',                                    d:'Zu Warp teleportieren',                admin:false},
+      {n:'/warps',     u:'/warps',                                          d:'Alle Warps anzeigen',                  admin:false},
     ]},
     { label:'Claims', cmds:[
-      {n:'/claim',    u:'/claim',                                           d:'Chunk beanspruchen',                   admin:false},
-      {n:'/unclaim',  u:'/unclaim',                                         d:'Chunk-Claim entfernen',                admin:false},
-      {n:'/claimlist',u:'/claimlist',                                       d:'Claims auflisten',                     admin:false},
-      {n:'/trust',    u:'/trust <Spieler>',                                 d:'Spieler Rechte im Claim geben',        admin:false},
-      {n:'/untrust',  u:'/untrust <Spieler>',                               d:'Vertrauen entfernen',                  admin:false},
-      {n:'/trustlist',u:'/trustlist',                                       d:'Vertrauensliste anzeigen',             admin:false},
+      {n:'/claim',     u:'/claim',                                          d:'Chunk beanspruchen',                   admin:false},
+      {n:'/unclaim',   u:'/unclaim',                                        d:'Chunk-Claim entfernen',                admin:false},
+      {n:'/claimlist', u:'/claimlist',                                      d:'Claims auflisten',                     admin:false},
+      {n:'/trust',     u:'/trust <Spieler>',                                d:'Spieler Rechte im Claim geben',        admin:false},
+      {n:'/untrust',   u:'/untrust <Spieler>',                              d:'Vertrauen entfernen',                  admin:false},
+      {n:'/trustlist', u:'/trustlist',                                      d:'Vertrauensliste anzeigen',             admin:false},
     ]},
     { label:'Wirtschaft', cmds:[
       {n:'/balance',   u:'/balance',                                        d:'Kontostand anzeigen',                  admin:false},
@@ -801,14 +1081,14 @@ const CMD_DATA = [
       {n:'/tutorial',    u:'/tutorial',                                     d:'Tutorial öffnen',                      admin:false},
     ]},
     { label:'Social', cmds:[
-      {n:'/friend', u:'/friend <add|remove|accept|deny|list|requests>',     d:'Freundesliste verwalten',              admin:false},
-      {n:'/mail',   u:'/mail <send|read|clear>',                            d:'Nachrichten',                          admin:false},
-      {n:'/trade',  u:'/trade <Spieler|accept|deny>',                       d:'Handel starten',                       admin:false},
-      {n:'/report', u:'/report <Spieler> <Grund>',                          d:'Spieler melden',                       admin:false},
+      {n:'/friend',  u:'/friend <add|remove|accept|deny|list|requests>',    d:'Freundesliste verwalten',              admin:false},
+      {n:'/mail',    u:'/mail <send|read|clear>',                           d:'Nachrichten',                          admin:false},
+      {n:'/trade',   u:'/trade <Spieler|accept|deny>',                      d:'Handel starten',                       admin:false},
+      {n:'/report',  u:'/report <Spieler> <Grund>',                         d:'Spieler melden',                       admin:false},
     ]},
     { label:'Admin', cmds:[
       {n:'/eco',         u:'/eco <give|take|set|check> <Spieler> [Betrag]', d:'Wirtschaft verwalten',                 admin:true},
-      {n:'/srank',       u:'/srank <set|info|list>',                        d:'Rang verwalten',                       admin:true},
+      {n:'/srank',       u:'/srank <set|info|list>',                        d:'Rang verwalten (LuckPerms-Sync)',       admin:true},
       {n:'/setspawn',    u:'/setspawn',                                     d:'Spawn setzen',                         admin:true},
       {n:'/setwarp',     u:'/setwarp <Name>',                               d:'Warp setzen',                          admin:true},
       {n:'/delwarp',     u:'/delwarp <Name>',                               d:'Warp löschen',                         admin:true},
@@ -818,7 +1098,7 @@ const CMD_DATA = [
       {n:'/flatarea',    u:'/flatarea [radius] [y-level]',                  d:'Fläche planieren (FAWE)',               admin:true},
       {n:'/npc',         u:'/npc <create|delete|addcmd|removecmd|info>',    d:'NPCs verwalten',                       admin:true},
       {n:'/helpholo',    u:'/helpholo [place|remove]',                      d:'Hilfe-Hologramm',                      admin:true},
-      {n:'/phinfo',      u:'/phinfo <Spieler>',                             d:'Spielerdaten (Dashboard)',              admin:true},
+      {n:'/phinfo',      u:'/phinfo <Spieler>',                             d:'Spielerdaten (Dashboard-API)',          admin:true},
     ]},
   ]},
 ];
@@ -847,6 +1127,38 @@ function buildCmdHtml(q) {
     html+=`<div${gV?'':' class="ch"'}><div class="cg-title">${escH(grp.server)}</div>${gH}</div>`;
   }
   return html||'<div class="empty">Keine Befehle gefunden</div>';
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────
+function showModal(title, bodyHtml, okLabel, onOk) {
+  document.getElementById('active-modal')?.remove();
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg'; bg.id = 'active-modal';
+  bg.innerHTML = `
+    <div class="modal-box">
+      <h3>${escH(title)}</h3>
+      <div id="modal-body">${bodyHtml}</div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()">Abbrechen</button>
+        <button class="btn btn-p" id="modal-ok">${escH(okLabel||'OK')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(bg);
+  document.getElementById('modal-ok').onclick = () => { closeModal(); if(onOk) onOk(); };
+  bg.addEventListener('click', e => { if(e.target===bg) closeModal(); });
+  setTimeout(() => bg.querySelector('input,select')?.focus(), 50);
+}
+function closeModal() { document.getElementById('active-modal')?.remove(); }
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function showToast(msg, ok=true) {
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = `toast ${ok?'toast-ok':'toast-err'}`;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => t.style.opacity='0', 2800);
+  setTimeout(() => t.remove(), 3400);
 }
 
 // ── WebSocket ─────────────────────────────────────────────────────────────

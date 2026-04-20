@@ -5,6 +5,7 @@ const Docker   = require('dockerode');
 const net      = require('net');
 const path     = require('path');
 const fs       = require('fs').promises;
+const mysql    = require('mysql2/promise');
 
 const app    = express();
 const server = http.createServer(app);
@@ -18,6 +19,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'pinkhorizon2024';
 const PORT = process.env.PORT || 3000;
+
+const DB_HOST = process.env.DB_HOST || 'ph-mysql';
+const DB_PORT = parseInt(process.env.DB_PORT || '3306');
+const DB_USER = process.env.DB_USER || 'ph_user';
+const DB_PASS = process.env.DB_PASS || 'ph-db-2024';
 
 const SERVERS = {
   velocity: {
@@ -40,8 +46,7 @@ const SERVERS = {
   }
 };
 
-// Verfügbare Survival-Ränge (für Validierung)
-const VALID_RANKS = ['spieler', 'vip', 'mvp', 'mod', 'admin', 'owner'];
+const VALID_RANKS = ['spieler', 'vip', 'supporter', 'moderator', 'dev', 'admin', 'owner'];
 
 // ── Auth-Middleware ───────────────────────────────────────────────────────
 
@@ -53,30 +58,34 @@ function auth(req, res, next) {
 
 // ── Hilfsfunktionen ───────────────────────────────────────────────────────
 
-/** Entfernt Minecraft-Farbcodes (§x) aus Text. */
 function stripColors(s) {
   return (s || '').replace(/§[0-9a-fk-orA-FK-OR]/g, '').trim();
 }
 
-/** Parst KEY:VALUE-Zeilen aus der /phinfo-Antwort. */
 function parseKeyValue(raw) {
   const result = {};
   for (const line of stripColors(raw).split('\n')) {
     const idx = line.indexOf(':');
-    if (idx > 0) {
-      result[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
-    }
+    if (idx > 0) result[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
   }
   return result;
 }
 
+async function checkDb(database) {
+  let conn;
+  try {
+    conn = await mysql.createConnection({
+      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+      database, connectTimeout: 3000
+    });
+    await conn.ping();
+    return true;
+  } catch { return false; }
+  finally { if (conn) try { await conn.end(); } catch {} }
+}
+
 // ── RCON-Client ───────────────────────────────────────────────────────────
 
-/**
- * Sendet einen RCON-Befehl und sammelt ALLE Antwort-Pakete
- * (Paper sendet sendMessage()-Zeilen teils als mehrere Pakete).
- * Löst auf sobald 300 ms lang kein neues Paket kommt.
- */
 function rconSend(rcon, command) {
   return new Promise((resolve, reject) => {
     const socket  = new net.Socket();
@@ -147,13 +156,15 @@ async function getContainerStatus(containerName) {
   }
 }
 
-// ── REST-API: Server ──────────────────────────────────────────────────────
+// ── REST-API: Login ───────────────────────────────────────────────────────
 
 app.post('/api/login', (req, res) => {
   if (req.body.password === DASHBOARD_PASSWORD)
     return res.json({ ok: true, token: DASHBOARD_PASSWORD });
   res.status(401).json({ ok: false });
 });
+
+// ── REST-API: Server ──────────────────────────────────────────────────────
 
 app.get('/api/servers', auth, async (req, res) => {
   const result = {};
@@ -198,9 +209,8 @@ app.post('/api/servers/:name/start', auth, async (req, res) => {
   catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
-// ── REST-API: Spielerverwaltung ───────────────────────────────────────────
+// ── REST-API: Spieler ─────────────────────────────────────────────────────
 
-/** Online-Spieler eines Servers via RCON `list`. */
 app.get('/api/players/online', auth, async (req, res) => {
   const serverKey = req.query.server || 'survival';
   const cfg = SERVERS[serverKey];
@@ -218,7 +228,6 @@ app.get('/api/players/online', auth, async (req, res) => {
   }
 });
 
-/** Vollständige Spielerdaten via /phinfo (Survival-Plugin). */
 app.post('/api/players/info', auth, async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'Kein Spielername' });
@@ -258,7 +267,6 @@ app.post('/api/players/info', auth, async (req, res) => {
   }
 });
 
-/** Spielerdaten ändern (Coins, Rang). */
 app.post('/api/players/action', auth, async (req, res) => {
   const { name, type, value, rank } = req.body;
   if (!name) return res.status(400).json({ error: 'Kein Spielername' });
@@ -303,9 +311,74 @@ app.post('/api/players/action', auth, async (req, res) => {
   }
 });
 
-// ── REST-API: Wirtschaft + Spieleraktionen ────────────────────────────────
+app.post('/api/players/kick', auth, async (req, res) => {
+  const { name, reason } = req.body;
+  if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
+  const cfg = SERVERS.survival;
+  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
+  try {
+    const out = await rconSend(cfg.rcon, reason ? `kick ${name} ${reason}` : `kick ${name}`);
+    res.json({ ok: true, output: stripColors(out) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
 
-/** Baltop via RCON. */
+app.post('/api/players/ban', auth, async (req, res) => {
+  const { name, reason } = req.body;
+  if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
+  const cfg = SERVERS.survival;
+  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
+  try {
+    const out = await rconSend(cfg.rcon, reason ? `ban ${name} ${reason}` : `ban ${name}`);
+    res.json({ ok: true, output: stripColors(out) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/players/banlist', auth, async (req, res) => {
+  const cfg = SERVERS.survival;
+  if (!cfg?.rcon) return res.json({ bans: [] });
+  try {
+    const raw   = await rconSend(cfg.rcon, 'banlist');
+    const clean = stripColors(raw);
+    const bans  = [];
+    for (const line of clean.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (/^there are/i.test(trimmed) || /^banned players:/i.test(trimmed)) continue;
+      const m = /^(.+?):\s*(.*)$/.exec(trimmed);
+      if (m) bans.push({ name: m[1].trim(), reason: m[2].trim() || 'Kein Grund angegeben' });
+    }
+    res.json({ bans });
+  } catch { res.json({ bans: [] }); }
+});
+
+app.post('/api/players/unban', auth, async (req, res) => {
+  const { name } = req.body;
+  if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
+  const cfg = SERVERS.survival;
+  if (!cfg?.rcon) return res.status(400).json({ error: 'Kein RCON' });
+  try {
+    const out = await rconSend(cfg.rcon, `pardon ${name}`);
+    res.json({ ok: true, output: stripColors(out) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: Datenbanken ─────────────────────────────────────────────────
+
+app.get('/api/databases', auth, async (req, res) => {
+  const [ctr, ph, sv] = await Promise.allSettled([
+    getContainerStatus('ph-mysql'),
+    checkDb('pinkhorizon'),
+    checkDb('ph_survival')
+  ]);
+  res.json({
+    container:   ctr.status === 'fulfilled' ? ctr.value : { running: false, status: 'error' },
+    pinkhorizon: ph.status  === 'fulfilled' ? ph.value  : false,
+    ph_survival: sv.status  === 'fulfilled' ? sv.value  : false
+  });
+});
+
+// ── REST-API: Wirtschaft ──────────────────────────────────────────────────
+
 app.get('/api/economy/baltop', auth, async (req, res) => {
   const cfg = SERVERS.survival;
   if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
@@ -321,47 +394,38 @@ app.get('/api/economy/baltop', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-/** Spieler kicken. */
-app.post('/api/players/kick', auth, async (req, res) => {
-  const { name, reason } = req.body;
-  if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
-  const cfg = SERVERS.survival;
-  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
-  try {
-    const out = await rconSend(cfg.rcon, reason ? `kick ${name} ${reason}` : `kick ${name}`);
-    res.json({ ok: true, output: stripColors(out) });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
-});
+// ── REST-API: Permissions / Ränge ─────────────────────────────────────────
 
-/** Spieler bannen. */
-app.post('/api/players/ban', auth, async (req, res) => {
-  const { name, reason } = req.body;
-  if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
-  const cfg = SERVERS.survival;
-  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
+/** Alle Spieler mit Rang aus der DB */
+app.get('/api/permissions/players', auth, async (req, res) => {
   try {
-    const out = await rconSend(cfg.rcon, reason ? `ban ${name} ${reason}` : `ban ${name}`);
-    res.json({ ok: true, output: stripColors(out) });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+    const conn = await mysql.createConnection({
+      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+      database: 'pinkhorizon', connectTimeout: 3000
+    });
+    const [rows] = await conn.execute(
+      "SELECT name, rank FROM players ORDER BY FIELD(rank,'owner','admin','dev','moderator','supporter','vip','spieler'), name"
+    );
+    await conn.end();
+    res.json({ players: rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message, players: [] });
+  }
 });
 
 // ── REST-API: Rechteverwaltung ────────────────────────────────────────────
 
 const MANAGED_SERVERS = ['lobby', 'survival'];
 
-/** Liest ops.json aus dem gemounteten Server-Verzeichnis. */
 app.get('/api/servers/:name/ops', auth, async (req, res) => {
   const name = req.params.name;
   if (!MANAGED_SERVERS.includes(name)) return res.status(400).json({ error: 'Unbekannter Server' });
   try {
     const raw = await fs.readFile(`/data/${name}/ops.json`, 'utf8');
     res.json({ ops: JSON.parse(raw) });
-  } catch {
-    res.json({ ops: [] });
-  }
+  } catch { res.json({ ops: [] }); }
 });
 
-/** Liest whitelist.json und Whitelist-Status aus server.properties. */
 app.get('/api/servers/:name/whitelist', auth, async (req, res) => {
   const name = req.params.name;
   if (!MANAGED_SERVERS.includes(name)) return res.status(400).json({ error: 'Unbekannter Server' });
@@ -370,15 +434,10 @@ app.get('/api/servers/:name/whitelist', auth, async (req, res) => {
       fs.readFile(`/data/${name}/whitelist.json`, 'utf8').catch(() => '[]'),
       fs.readFile(`/data/${name}/server.properties`, 'utf8').catch(() => '')
     ]);
-    const whitelist = JSON.parse(wlRaw);
-    const enabled   = /^white-list=true$/m.test(propsRaw);
-    res.json({ whitelist, enabled });
-  } catch {
-    res.json({ whitelist: [], enabled: false });
-  }
+    res.json({ whitelist: JSON.parse(wlRaw), enabled: /^white-list=true$/m.test(propsRaw) });
+  } catch { res.json({ whitelist: [], enabled: false }); }
 });
 
-/** OP vergeben oder entziehen via RCON. */
 app.post('/api/servers/:name/op', auth, async (req, res) => {
   const name = req.params.name;
   const cfg  = SERVERS[name];
@@ -390,12 +449,9 @@ app.post('/api/servers/:name/op', auth, async (req, res) => {
   try {
     const out = await rconSend(cfg.rcon, `${action} ${player}`);
     res.json({ ok: true, output: stripColors(out) });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
-/** Whitelist add/remove/on/off via RCON. */
 app.post('/api/servers/:name/whitelist', auth, async (req, res) => {
   const name = req.params.name;
   const cfg  = SERVERS[name];
@@ -406,14 +462,10 @@ app.post('/api/servers/:name/whitelist', auth, async (req, res) => {
   if ((action === 'add' || action === 'remove') && !/^[a-zA-Z0-9_]{1,16}$/.test(player))
     return res.status(400).json({ error: 'Ungültiger Spielername' });
   try {
-    const cmd = (action === 'on' || action === 'off')
-      ? `whitelist ${action}`
-      : `whitelist ${action} ${player}`;
+    const cmd = (action === 'on' || action === 'off') ? `whitelist ${action}` : `whitelist ${action} ${player}`;
     const out = await rconSend(cfg.rcon, cmd);
     res.json({ ok: true, output: stripColors(out) });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 // ── WebSocket – Echtzeit-Logs ─────────────────────────────────────────────
@@ -425,9 +477,7 @@ async function startLogStream(containerName) {
   if (activeStreams[containerName]) return;
   try {
     const container = docker.getContainer(containerName);
-    const stream    = await container.logs({
-      follow: true, stdout: true, stderr: true, tail: 150
-    });
+    const stream    = await container.logs({ follow: true, stdout: true, stderr: true, tail: 150 });
 
     const stripHeader = (raw) => {
       const results = [];
@@ -445,10 +495,8 @@ async function startLogStream(containerName) {
       const text = stripHeader(chunk);
       const subs = logSubscribers[containerName];
       if (!subs) return;
-      for (const ws of subs) {
-        if (ws.readyState === 1)
-          ws.send(JSON.stringify({ type: 'log', server: containerName, text }));
-      }
+      for (const ws of subs)
+        if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'log', server: containerName, text }));
     });
 
     stream.on('end', () => {
@@ -459,9 +507,7 @@ async function startLogStream(containerName) {
     });
 
     activeStreams[containerName] = stream;
-  } catch (e) {
-    console.error('Log-Stream Fehler:', containerName, e.message);
-  }
+  } catch (e) { console.error('Log-Stream Fehler:', containerName, e.message); }
 }
 
 wss.on('connection', (ws) => {
@@ -470,13 +516,11 @@ wss.on('connection', (ws) => {
   ws.on('message', async raw => {
     try {
       const msg = JSON.parse(raw.toString());
-
       if (msg.type === 'auth') {
         if (msg.token !== DASHBOARD_PASSWORD) { ws.close(1008, 'Unauthorized'); return; }
         ws.send(JSON.stringify({ type: 'auth_ok' }));
         return;
       }
-
       if (msg.type === 'subscribe') {
         if (subscribedContainer) logSubscribers[subscribedContainer]?.delete(ws);
         subscribedContainer = msg.container;
@@ -485,9 +529,7 @@ wss.on('connection', (ws) => {
         startLogStream(subscribedContainer);
         return;
       }
-    } catch (e) {
-      console.error('WS Message Fehler:', e.message);
-    }
+    } catch (e) { console.error('WS Message Fehler:', e.message); }
   });
 
   ws.on('close', () => {
@@ -497,6 +539,4 @@ wss.on('connection', (ws) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────
 
-server.listen(PORT, () => {
-  console.log(`Pink Horizon Dashboard läuft auf Port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Pink Horizon Dashboard läuft auf Port ${PORT}`));

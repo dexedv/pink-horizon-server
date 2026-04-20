@@ -11,6 +11,7 @@ services:
       MYSQL_PASSWORD:      "ph-db-2024"
     volumes:
       - ./data/mysql:/var/lib/mysql
+      - ./data/mysql-init:/docker-entrypoint-initdb.d:ro
     networks:
       - ph-net
     restart: unless-stopped
@@ -113,6 +114,10 @@ services:
       LOBBY_RCON_HOST:    "lobby"
       SURVIVAL_RCON_HOST: "survival"
       RCON_PASSWORD:      "ph-admin-2024"
+      DB_HOST:            "ph-mysql"
+      DB_PORT:            "3306"
+      DB_USER:            "ph_user"
+      DB_PASS:            "ph-db-2024"
     networks:
       - ph-net
     restart: unless-stopped
