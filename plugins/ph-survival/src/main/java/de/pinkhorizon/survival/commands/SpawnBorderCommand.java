@@ -23,6 +23,7 @@ public class SpawnBorderCommand implements CommandExecutor, TabCompleter {
     public static final NamespacedKey WAND_KEY = new NamespacedKey("ph-survival", "spawn_border_wand");
 
     private final PHSurvival plugin;
+    private org.bukkit.scheduler.BukkitTask permanentTask = null;
 
     public SpawnBorderCommand(PHSurvival plugin) {
         this.plugin = plugin;
@@ -89,6 +90,40 @@ public class SpawnBorderCommand implements CommandExecutor, TabCompleter {
                 }
                 player.sendMessage(Component.text("§aZeige Border für 15 Sekunden..."));
                 showBorderParticles(player, 15);
+            }
+            case "toggle" -> {
+                if (!bm.hasPolygon()) {
+                    player.sendMessage(Component.text("§cNoch kein Polygon definiert (mind. 3 Punkte)."));
+                    return true;
+                }
+                if (permanentTask != null) {
+                    permanentTask.cancel();
+                    permanentTask = null;
+                    player.sendMessage(Component.text("§7Border-Anzeige §cdeaktiviert§7."));
+                } else {
+                    permanentTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+                        var pts = plugin.getSpawnBorderManager().getPoints();
+                        if (pts.size() < 3) return;
+                        int n = pts.size();
+                        for (org.bukkit.entity.Player online : plugin.getServer().getOnlinePlayers()) {
+                            if (!online.hasPermission("survival.admin")) continue;
+                            double y = online.getLocation().getY() + 1.5;
+                            for (int i = 0, j = n - 1; i < n; j = i++) {
+                                double ax = pts.get(j).x(), az = pts.get(j).z();
+                                double bx = pts.get(i).x(), bz = pts.get(i).z();
+                                double dist = Math.sqrt((bx-ax)*(bx-ax) + (bz-az)*(bz-az));
+                                int steps = Math.max(1, (int)(dist / 0.8));
+                                for (int s = 0; s <= steps; s++) {
+                                    double t = (double) s / steps;
+                                    double px = ax + t * (bx - ax);
+                                    double pz = az + t * (bz - az);
+                                    online.spawnParticle(Particle.FLAME, px, y, pz, 1, 0, 0, 0, 0);
+                                }
+                            }
+                        }
+                    }, 0L, 5L);
+                    player.sendMessage(Component.text("§aBorder-Anzeige §adauerhaft aktiviert§a. §7(/spawnborder toggle zum Deaktivieren)"));
+                }
             }
             case "tp" -> {
                 if (args.length < 2) { player.sendMessage(Component.text("§cNutzung: /spawnborder tp <Index>")); return true; }
@@ -176,12 +211,13 @@ public class SpawnBorderCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(Component.text("§e/spawnborder list §7- Alle Punkte anzeigen"));
         player.sendMessage(Component.text("§e/spawnborder clear §7- Alle Punkte löschen"));
         player.sendMessage(Component.text("§e/spawnborder show §7- Border 15s sichtbar machen"));
+        player.sendMessage(Component.text("§e/spawnborder toggle §7- Border dauerhaft ein/ausblenden"));
         player.sendMessage(Component.text("§e/spawnborder tp <#> §7- Zu Punkt teleportieren"));
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length == 1) return List.of("wand", "add", "remove", "list", "clear", "show", "tp");
+        if (args.length == 1) return List.of("wand", "add", "remove", "list", "clear", "show", "toggle", "tp");
         if (args.length == 2 && (args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("tp"))) {
             var pts = plugin.getSpawnBorderManager().getPoints();
             return java.util.stream.IntStream.rangeClosed(1, pts.size())
