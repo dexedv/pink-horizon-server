@@ -146,6 +146,8 @@ public class PHSurvival extends JavaPlugin {
         getCommand("trade").setExecutor(tradeCmd);
         getCommand("trade").setTabCompleter(tradeCmd);
 
+        getCommand("resetworld").setExecutor(new ResetWorldCommand(this));
+
         SpawnBorderCommand sbc = new SpawnBorderCommand(this);
         getCommand("spawnborder").setExecutor(sbc);
         getCommand("spawnborder").setTabCompleter(sbc);

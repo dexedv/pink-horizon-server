@@ -140,6 +140,9 @@ commands:
   spawnborder:
     description: Spawn-Border Polygon verwalten (Admin)
     usage: /spawnborder <wand|add|remove|list|clear|show|tp>
+  resetworld:
+    description: Survival-Welt komplett zurücksetzen (Admin)
+    usage: /resetworld [confirm]
 
 permissions:
   survival.claim:
