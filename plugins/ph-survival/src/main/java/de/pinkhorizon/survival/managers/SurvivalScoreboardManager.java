@@ -45,7 +45,7 @@ public class SurvivalScoreboardManager {
             Component.text(TITLE));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 15; i++) {
             Team team = board.registerNewTeam("line" + i);
             team.addEntry(ENTRIES[i]);
             obj.getScore(ENTRIES[i]).setScore(i);
@@ -72,23 +72,45 @@ public class SurvivalScoreboardManager {
     }
 
     private void refreshLines(Player player, Scoreboard board) {
+        UUID uuid = player.getUniqueId();
+
         String date   = LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
         int online    = Bukkit.getOnlinePlayers().size();
-        long coins    = plugin.getEconomyManager().getBalance(player.getUniqueId());
-        int claims    = plugin.getClaimManager().getClaimCount(player.getUniqueId());
-        int maxClaims = plugin.getRankManager().getMaxClaims(player.getUniqueId());
-        String rank   = plugin.getRankManager().getRank(player.getUniqueId()).chatPrefix;
+        long coins    = plugin.getEconomyManager().getBalance(uuid);
+        long bank     = plugin.getBankManager().getBalance(uuid);
+        int claims    = plugin.getClaimManager().getClaimCount(uuid);
+        int maxClaims = plugin.getRankManager().getMaxClaims(uuid);
+        String rank   = plugin.getRankManager().getRank(uuid).chatPrefix;
 
-        setLine(board, 11, " ");
-        setLine(board, 10, "§a§l» §fSurvival-Server");
-        setLine(board, 9,  "  ");
-        setLine(board, 8,  "§7Online: §a§l" + online);
-        setLine(board, 7,  "§7Datum:  §f" + date);
-        setLine(board, 6,  "   ");
-        setLine(board, 5,  "§7Rang:   " + rank.trim());
-        setLine(board, 4,  "§7Coins:  §6§l" + coins);
-        setLine(board, 3,  "§7Claims: §a" + claims + "§7/§a" + maxClaims);
-        setLine(board, 2,  "    ");
+        // Job
+        JobManager.Job job = plugin.getJobManager().getJob(uuid);
+        String jobLine;
+        if (job == null) {
+            jobLine = "§7Job:    §8Kein Job";
+        } else {
+            int level  = plugin.getJobManager().getLevel(uuid);
+            int xp     = plugin.getJobManager().getXp(uuid);
+            int needed = JobManager.xpForNextLevel(level);
+            jobLine = "§7Job: §b" + job.displayName + " §7Lv." + level + " §8(" + xp + "/" + needed + ")";
+        }
+
+        // Freunde online
+        java.util.Set<UUID> friends = plugin.getFriendManager().getFriends(uuid);
+        long friendsOnline = friends.stream().filter(f -> Bukkit.getPlayer(f) != null).count();
+
+        setLine(board, 14, " ");
+        setLine(board, 13, "§a§l» §fSurvival-Server");
+        setLine(board, 12, "  ");
+        setLine(board, 11, "§7Online: §a§l" + online);
+        setLine(board, 10, "§7Datum:  §f" + date);
+        setLine(board, 9,  "   ");
+        setLine(board, 8,  "§7Rang:   " + rank.trim());
+        setLine(board, 7,  "§7Coins:  §6§l" + coins);
+        setLine(board, 6,  "§7Bank:   §e" + bank);
+        setLine(board, 5,  "§7Claims: §a" + claims + "§7/§a" + maxClaims);
+        setLine(board, 4,  "    ");
+        setLine(board, 3,  jobLine);
+        setLine(board, 2,  "§7Freunde: §a" + friendsOnline + " §7online");
         setLine(board, 1,  "§aplay.pinkhorizon.de");
         setLine(board, 0,  "     ");
     }
