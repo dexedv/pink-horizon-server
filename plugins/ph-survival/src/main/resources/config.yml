@@ -28,6 +28,6 @@ claims:
 homes:
   max-per-player: 3
 
-# Spawn-Schutzzone (Radius in Blöcken um den Spawn-Punkt)
+# Spawn-Schutzzone (Radius in Blöcken um den Spawn-Punkt, kreisförmig)
 spawn-zone:
-  radius: 50
+  radius: 150

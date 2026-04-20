@@ -71,11 +71,13 @@ public class SpawnZoneListener implements Listener {
         if (bm.hasPolygon()) {
             return bm.isInside(loc.getX(), loc.getZ());
         }
-        // Fallback: Rechteck aus config (solange kein Polygon gesetzt)
-        double radius = plugin.getConfig().getDouble("spawn-zone.radius", 50);
+        // Fallback: Kreis aus config (solange kein Polygon gesetzt)
+        double radius = plugin.getConfig().getDouble("spawn-zone.radius", 150);
         double cx = plugin.getConfig().getDouble("spawn.x");
         double cz = plugin.getConfig().getDouble("spawn.z");
-        return Math.abs(loc.getX() - cx) <= radius && Math.abs(loc.getZ() - cz) <= radius;
+        double dx = loc.getX() - cx;
+        double dz = loc.getZ() - cz;
+        return dx * dx + dz * dz <= radius * radius;
     }
 
     /**
@@ -94,13 +96,17 @@ public class SpawnZoneListener implements Listener {
             if (len > 0) { dx = dx / len * push; dz = dz / len * push; }
             return new Location(to.getWorld(), nearest[0] + dx, to.getY(), nearest[1] + dz, to.getYaw(), to.getPitch());
         }
-        // Fallback: Rechteck
-        double radius = plugin.getConfig().getDouble("spawn-zone.radius", 50) - 0.6;
+        // Fallback: Kreis – Spieler auf die Kreislinie schieben
+        double radius = plugin.getConfig().getDouble("spawn-zone.radius", 150) - 0.6;
         double cx = plugin.getConfig().getDouble("spawn.x");
         double cz = plugin.getConfig().getDouble("spawn.z");
-        double x = Math.max(cx - radius, Math.min(cx + radius, to.getX()));
-        double z = Math.max(cz - radius, Math.min(cz + radius, to.getZ()));
-        return new Location(to.getWorld(), x, to.getY(), z, to.getYaw(), to.getPitch());
+        double dx = to.getX() - cx;
+        double dz = to.getZ() - cz;
+        double dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist == 0) dist = 1;
+        double nx = cx + dx / dist * radius;
+        double nz = cz + dz / dist * radius;
+        return new Location(to.getWorld(), nx, to.getY(), nz, to.getYaw(), to.getPitch());
     }
 
     private boolean isAdmin(Player p) {
