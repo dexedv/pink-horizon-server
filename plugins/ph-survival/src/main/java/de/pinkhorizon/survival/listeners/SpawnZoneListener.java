@@ -3,6 +3,7 @@ package de.pinkhorizon.survival.listeners;
 import de.pinkhorizon.survival.PHSurvival;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
+import org.bukkit.WeatherType;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
@@ -55,6 +56,7 @@ public class SpawnZoneListener implements Listener {
                 Player p = plugin.getServer().getPlayer(uuid);
                 if (p == null) { inZone.remove(uuid); continue; }
                 p.setPlayerTime(6000L, false); // Immer Mittag
+                p.setPlayerWeather(WeatherType.CLEAR); // Immer klar
                 if (p.getFoodLevel() < 20) p.setFoodLevel(20);
                 p.setSaturation(20f);
             }
@@ -120,6 +122,7 @@ public class SpawnZoneListener implements Listener {
     private void onEnter(Player player) {
         if (inZone.add(player.getUniqueId())) {
             player.setPlayerTime(6000L, false);
+            player.setPlayerWeather(WeatherType.CLEAR);
             player.setFoodLevel(20);
             player.setSaturation(20f);
         }
@@ -128,6 +131,7 @@ public class SpawnZoneListener implements Listener {
     private void onLeave(Player player) {
         if (inZone.remove(player.getUniqueId())) {
             player.resetPlayerTime();
+            player.resetPlayerWeather();
         }
     }
 
