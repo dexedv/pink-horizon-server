@@ -394,6 +394,194 @@ app.get('/api/economy/baltop', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── REST-API: Broadcast ───────────────────────────────────────────────────
+
+app.post('/api/broadcast', auth, async (req, res) => {
+  const { message } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: 'Keine Nachricht' });
+  const results = {};
+  for (const [key, cfg] of Object.entries(SERVERS)) {
+    if (!cfg.rcon) continue;
+    try { await rconSend(cfg.rcon, `broadcast ${message}`); results[key] = true; }
+    catch { results[key] = false; }
+  }
+  res.json({ ok: true, results });
+});
+
+// ── REST-API: Container-Ressourcen ────────────────────────────────────────
+
+app.get('/api/containers/stats', auth, async (req, res) => {
+  const result = {};
+  await Promise.all(Object.entries(SERVERS).map(async ([key, cfg]) => {
+    try {
+      const s = await docker.getContainer(cfg.container).stats({ stream: false });
+      const cpuDelta = s.cpu_stats.cpu_usage.total_usage  - s.precpu_stats.cpu_usage.total_usage;
+      const sysDelta = s.cpu_stats.system_cpu_usage       - s.precpu_stats.system_cpu_usage;
+      const nCpus    = s.cpu_stats.online_cpus            || s.cpu_stats.cpu_usage.percpu_usage?.length || 1;
+      result[key] = {
+        cpu:      sysDelta > 0 ? parseFloat(((cpuDelta / sysDelta) * nCpus * 100).toFixed(1)) : 0,
+        memUsed:  s.memory_stats.usage  || 0,
+        memLimit: s.memory_stats.limit  || 1,
+        memPct:   parseFloat(((s.memory_stats.usage || 0) / (s.memory_stats.limit || 1) * 100).toFixed(1))
+      };
+    } catch { result[key] = null; }
+  }));
+  res.json(result);
+});
+
+// ── REST-API: Backup ──────────────────────────────────────────────────────
+
+app.post('/api/backup/:server', auth, async (req, res) => {
+  const serverName = req.params.server;
+  if (!['lobby', 'survival'].includes(serverName))
+    return res.status(400).json({ error: 'Unbekannter Server' });
+  const cfg = SERVERS[serverName];
+  const ts  = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+  const arc = `backup-${ts}.tar.gz`;
+  try {
+    if (cfg.rcon) {
+      try { await rconSend(cfg.rcon, 'save-all'); await new Promise(r => setTimeout(r, 2000)); } catch {}
+    }
+    const exec = await docker.getContainer(`ph-${serverName}`).exec({
+      Cmd: ['bash', '-c', `cd /data && tar -czf ${arc} world world_nether world_the_end --ignore-failed-read 2>/dev/null; echo ok`],
+      AttachStdout: true, AttachStderr: true
+    });
+    const stream = await exec.start({ hijack: true });
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Backup-Timeout (5 min)')), 300000);
+      stream.on('end', () => { clearTimeout(t); resolve(); });
+      stream.on('error', e => { clearTimeout(t); reject(e); });
+    });
+    res.json({ ok: true, message: `Backup erstellt: ${arc}` });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: MOTD ────────────────────────────────────────────────────────
+
+app.get('/api/servers/:name/motd', auth, async (req, res) => {
+  const name = req.params.name;
+  if (!MANAGED_SERVERS.includes(name)) return res.status(400).json({ error: 'Unbekannter Server' });
+  try {
+    const props = await fs.readFile(`/data/${name}/server.properties`, 'utf8');
+    const m = /^motd=(.*)$/m.exec(props);
+    res.json({ motd: m ? m[1] : '' });
+  } catch { res.json({ motd: '' }); }
+});
+
+app.post('/api/servers/:name/motd', auth, async (req, res) => {
+  const name = req.params.name;
+  if (!MANAGED_SERVERS.includes(name)) return res.status(400).json({ error: 'Unbekannter Server' });
+  const { motd } = req.body;
+  if (motd === undefined) return res.status(400).json({ error: 'Kein MOTD' });
+  const safe = String(motd).replace(/[`$\\|]/g, '').slice(0, 256);
+  try {
+    const exec = await docker.getContainer(`ph-${name}`).exec({
+      Cmd: ['bash', '-c', `sed -i "s/^motd=.*/motd=${safe.replace(/\//g, '\\/')}/" /data/server.properties && echo ok`],
+      AttachStdout: true, AttachStderr: true
+    });
+    const stream = await exec.start({ hijack: true });
+    await new Promise((resolve, reject) => {
+      stream.on('end', resolve); stream.on('error', reject);
+    });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: Statistiken ─────────────────────────────────────────────────
+
+app.get('/api/stats/overview', auth, async (req, res) => {
+  try {
+    const conn = await mysql.createConnection({
+      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+      database: 'ph_survival', connectTimeout: 3000
+    });
+    const [[eco]] = await conn.execute(
+      `SELECT COUNT(*) AS players, COALESCE(SUM(balance),0) AS total_coins FROM sv_economy`
+    );
+    const [topPlaytime] = await conn.execute(
+      `SELECT p.name, s.playtime FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.playtime DESC LIMIT 10`
+    );
+    const [topKills] = await conn.execute(
+      `SELECT p.name, s.mob_kills FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.mob_kills DESC LIMIT 10`
+    );
+    const [topDeaths] = await conn.execute(
+      `SELECT p.name, s.deaths FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.deaths DESC LIMIT 10`
+    );
+    const [topBlocks] = await conn.execute(
+      `SELECT p.name, s.blocks_broken FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.blocks_broken DESC LIMIT 10`
+    );
+    const [jobs] = await conn.execute(
+      `SELECT job_id, COUNT(*) AS players, MAX(level) AS max_level FROM sv_jobs WHERE active=TRUE GROUP BY job_id ORDER BY players DESC`
+    );
+    const [[quest]] = await conn.execute(
+      `SELECT COUNT(*) AS completed FROM sv_quests WHERE completed=TRUE`
+    );
+    await conn.end();
+    res.json({ eco, topPlaytime, topKills, topDeaths, topBlocks, jobs, quest });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: Auktionshaus ────────────────────────────────────────────────
+
+app.get('/api/auction', auth, async (req, res) => {
+  try {
+    const conn = await mysql.createConnection({
+      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+      database: 'ph_survival', connectTimeout: 3000
+    });
+    const [rows] = await conn.execute(
+      `SELECT id, seller_name, price, listed_at FROM sv_auction ORDER BY listed_at DESC LIMIT 100`
+    );
+    const [[{ total }]] = await conn.execute(`SELECT COUNT(*) AS total FROM sv_auction`);
+    const [[{ totalValue }]] = await conn.execute(`SELECT COALESCE(SUM(price),0) AS totalValue FROM sv_auction`);
+    await conn.end();
+    const now = Date.now();
+    const EXPIRE = 7 * 24 * 60 * 60 * 1000;
+    const listings = rows.map(l => ({
+      id:        l.id,
+      seller:    l.seller_name,
+      price:     Number(l.price),
+      listedAt:  l.listed_at,
+      expiresIn: Math.max(0, EXPIRE - (now - Number(l.listed_at)))
+    }));
+    res.json({ listings, total: Number(total), totalValue: Number(totalValue) });
+  } catch (e) { res.status(500).json({ error: e.message, listings: [], total: 0, totalValue: 0 }); }
+});
+
+app.delete('/api/auction/:id', auth, async (req, res) => {
+  const { id } = req.params;
+  if (!id) return res.status(400).json({ error: 'Keine ID' });
+  try {
+    const conn = await mysql.createConnection({
+      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+      database: 'ph_survival', connectTimeout: 3000
+    });
+    const [result] = await conn.execute(`DELETE FROM sv_auction WHERE id=?`, [id]);
+    await conn.end();
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Listing nicht gefunden' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: SQL-Konsole (nur SELECT) ───────────────────────────────────
+
+app.post('/api/db/query', auth, async (req, res) => {
+  const { query, database } = req.body;
+  if (!query?.trim()) return res.status(400).json({ error: 'Keine Abfrage' });
+  if (!/^\s*SELECT\s/i.test(query)) return res.status(400).json({ error: 'Nur SELECT-Abfragen erlaubt' });
+  if (!/^(pinkhorizon|ph_survival)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
+  try {
+    const conn = await mysql.createConnection({
+      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+      database, connectTimeout: 3000
+    });
+    const lq = /\blimit\b/i.test(query) ? query.trimEnd().replace(/;$/, '') : `${query.trimEnd().replace(/;$/, '')} LIMIT 200`;
+    const [rows, fields] = await conn.execute(lq);
+    await conn.end();
+    res.json({ ok: true, columns: fields.map(f => f.name), rows, count: rows.length });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── REST-API: Permissions / Ränge ─────────────────────────────────────────
 
 /** Alle Spieler mit Rang aus der DB */
