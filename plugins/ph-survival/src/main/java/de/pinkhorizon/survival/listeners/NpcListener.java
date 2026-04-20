@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 public class NpcListener implements Listener {
 
@@ -16,6 +17,7 @@ public class NpcListener implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEntityEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) return;
         Integer npcId = plugin.getNpcManager().getNpcIdByEntityUuid(event.getRightClicked().getUniqueId());
         if (npcId == null) return;
         event.setCancelled(true);
