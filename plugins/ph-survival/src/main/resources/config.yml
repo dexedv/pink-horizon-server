@@ -1,4 +1,13 @@
 # PH-Survival Konfiguration
+
+# Survival-eigene Datenbank (nur Survival-Daten, kein Sharing mit anderen Servern)
+database:
+  host: ph-mysql
+  port: 3306
+  database: ph_survival
+  username: ph_user
+  password: ph-db-2024
+
 economy:
   start-balance: 500
 
