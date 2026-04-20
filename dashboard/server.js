@@ -71,17 +71,23 @@ function parseKeyValue(raw) {
   return result;
 }
 
-async function checkDb(database) {
-  let conn;
-  try {
-    conn = await mysql.createConnection({
-      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
-      database, connectTimeout: 3000
-    });
-    await conn.ping();
-    return true;
-  } catch { return false; }
-  finally { if (conn) try { await conn.end(); } catch {} }
+// ── Connection-Pools ──────────────────────────────────────────────────────
+
+const poolCore = mysql.createPool({
+  host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+  database: 'pinkhorizon', waitForConnections: true,
+  connectionLimit: 5, connectTimeout: 5000
+});
+
+const poolSv = mysql.createPool({
+  host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+  database: 'ph_survival', waitForConnections: true,
+  connectionLimit: 5, connectTimeout: 5000
+});
+
+async function checkDb(pool) {
+  try { await pool.query('SELECT 1'); return true; }
+  catch { return false; }
 }
 
 // ── RCON-Client ───────────────────────────────────────────────────────────
@@ -367,8 +373,8 @@ app.post('/api/players/unban', auth, async (req, res) => {
 app.get('/api/databases', auth, async (req, res) => {
   const [ctr, ph, sv] = await Promise.allSettled([
     getContainerStatus('ph-mysql'),
-    checkDb('pinkhorizon'),
-    checkDb('ph_survival')
+    checkDb(poolCore),
+    checkDb(poolSv)
   ]);
   res.json({
     container:   ctr.status === 'fulfilled' ? ctr.value : { running: false, status: 'error' },
@@ -491,32 +497,13 @@ app.post('/api/servers/:name/motd', auth, async (req, res) => {
 
 app.get('/api/stats/overview', auth, async (req, res) => {
   try {
-    const conn = await mysql.createConnection({
-      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
-      database: 'ph_survival', connectTimeout: 3000
-    });
-    const [[eco]] = await conn.execute(
-      `SELECT COUNT(*) AS players, COALESCE(SUM(balance),0) AS total_coins FROM sv_economy`
-    );
-    const [topPlaytime] = await conn.execute(
-      `SELECT p.name, s.playtime FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.playtime DESC LIMIT 10`
-    );
-    const [topKills] = await conn.execute(
-      `SELECT p.name, s.mob_kills FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.mob_kills DESC LIMIT 10`
-    );
-    const [topDeaths] = await conn.execute(
-      `SELECT p.name, s.deaths FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.deaths DESC LIMIT 10`
-    );
-    const [topBlocks] = await conn.execute(
-      `SELECT p.name, s.blocks_broken FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.blocks_broken DESC LIMIT 10`
-    );
-    const [jobs] = await conn.execute(
-      `SELECT job_id, COUNT(*) AS players, MAX(level) AS max_level FROM sv_jobs WHERE active=TRUE GROUP BY job_id ORDER BY players DESC`
-    );
-    const [[quest]] = await conn.execute(
-      `SELECT COUNT(*) AS completed FROM sv_quests WHERE completed=TRUE`
-    );
-    await conn.end();
+    const [[eco]]        = await poolSv.execute(`SELECT COUNT(*) AS players, COALESCE(SUM(balance),0) AS total_coins FROM sv_economy`);
+    const [topPlaytime]  = await poolSv.execute(`SELECT p.name, s.playtime FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.playtime DESC LIMIT 10`);
+    const [topKills]     = await poolSv.execute(`SELECT p.name, s.mob_kills FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.mob_kills DESC LIMIT 10`);
+    const [topDeaths]    = await poolSv.execute(`SELECT p.name, s.deaths FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.deaths DESC LIMIT 10`);
+    const [topBlocks]    = await poolSv.execute(`SELECT p.name, s.blocks_broken FROM sv_stats s JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.blocks_broken DESC LIMIT 10`);
+    const [jobs]         = await poolSv.execute(`SELECT job_id, COUNT(*) AS players, MAX(level) AS max_level FROM sv_jobs WHERE active=TRUE GROUP BY job_id ORDER BY players DESC`);
+    const [[quest]]      = await poolSv.execute(`SELECT COUNT(*) AS completed FROM sv_quests WHERE completed=TRUE`);
     res.json({ eco, topPlaytime, topKills, topDeaths, topBlocks, jobs, quest });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -525,16 +512,9 @@ app.get('/api/stats/overview', auth, async (req, res) => {
 
 app.get('/api/auction', auth, async (req, res) => {
   try {
-    const conn = await mysql.createConnection({
-      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
-      database: 'ph_survival', connectTimeout: 3000
-    });
-    const [rows] = await conn.execute(
-      `SELECT id, seller_name, price, listed_at FROM sv_auction ORDER BY listed_at DESC LIMIT 100`
-    );
-    const [[{ total }]] = await conn.execute(`SELECT COUNT(*) AS total FROM sv_auction`);
-    const [[{ totalValue }]] = await conn.execute(`SELECT COALESCE(SUM(price),0) AS totalValue FROM sv_auction`);
-    await conn.end();
+    const [rows]             = await poolSv.execute(`SELECT id, seller_name, price, listed_at FROM sv_auction ORDER BY listed_at DESC LIMIT 100`);
+    const [[{ total }]]      = await poolSv.execute(`SELECT COUNT(*) AS total FROM sv_auction`);
+    const [[{ totalValue }]] = await poolSv.execute(`SELECT COALESCE(SUM(price),0) AS totalValue FROM sv_auction`);
     const now = Date.now();
     const EXPIRE = 7 * 24 * 60 * 60 * 1000;
     const listings = rows.map(l => ({
@@ -552,12 +532,7 @@ app.delete('/api/auction/:id', auth, async (req, res) => {
   const { id } = req.params;
   if (!id) return res.status(400).json({ error: 'Keine ID' });
   try {
-    const conn = await mysql.createConnection({
-      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
-      database: 'ph_survival', connectTimeout: 3000
-    });
-    const [result] = await conn.execute(`DELETE FROM sv_auction WHERE id=?`, [id]);
-    await conn.end();
+    const [result] = await poolSv.execute(`DELETE FROM sv_auction WHERE id=?`, [id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Listing nicht gefunden' });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
@@ -571,13 +546,9 @@ app.post('/api/db/query', auth, async (req, res) => {
   if (!/^\s*SELECT\s/i.test(query)) return res.status(400).json({ error: 'Nur SELECT-Abfragen erlaubt' });
   if (!/^(pinkhorizon|ph_survival)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
   try {
-    const conn = await mysql.createConnection({
-      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
-      database, connectTimeout: 3000
-    });
+    const pool = database === 'pinkhorizon' ? poolCore : poolSv;
     const lq = /\blimit\b/i.test(query) ? query.trimEnd().replace(/;$/, '') : `${query.trimEnd().replace(/;$/, '')} LIMIT 200`;
-    const [rows, fields] = await conn.execute(lq);
-    await conn.end();
+    const [rows, fields] = await pool.execute(lq);
     res.json({ ok: true, columns: fields.map(f => f.name), rows, count: rows.length });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -587,14 +558,9 @@ app.post('/api/db/query', auth, async (req, res) => {
 /** Alle Spieler mit Rang aus der DB */
 app.get('/api/permissions/players', auth, async (req, res) => {
   try {
-    const conn = await mysql.createConnection({
-      host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
-      database: 'pinkhorizon', connectTimeout: 3000
-    });
-    const [rows] = await conn.execute(
+    const [rows] = await poolCore.execute(
       "SELECT name, `rank` FROM players ORDER BY FIELD(`rank`,'owner','admin','dev','moderator','supporter','vip','spieler'), name"
     );
-    await conn.end();
     res.json({ players: rows });
   } catch (e) {
     res.status(500).json({ error: e.message, players: [] });
