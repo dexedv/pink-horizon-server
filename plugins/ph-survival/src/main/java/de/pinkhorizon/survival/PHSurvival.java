@@ -3,6 +3,12 @@ package de.pinkhorizon.survival;
 import de.pinkhorizon.survival.commands.*;
 import de.pinkhorizon.survival.listeners.*;
 import de.pinkhorizon.survival.managers.*;
+import de.pinkhorizon.survival.managers.AchievementManager;
+import de.pinkhorizon.survival.managers.BankManager;
+import de.pinkhorizon.survival.managers.FriendManager;
+import de.pinkhorizon.survival.managers.MailManager;
+import de.pinkhorizon.survival.managers.QuestManager;
+import de.pinkhorizon.survival.managers.TradeManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class PHSurvival extends JavaPlugin {
@@ -24,6 +30,13 @@ public class PHSurvival extends JavaPlugin {
     private de.pinkhorizon.survival.listeners.ChestShopListener chestShopListener;
     private ShopCommand shopCommand;
     private JobsCommand jobsCommand;
+    private MailManager mailManager;
+    private FriendManager friendManager;
+    private BankManager bankManager;
+    private AchievementManager achievementManager;
+    private QuestManager questManager;
+    private TradeManager tradeManager;
+    private SpawnPasteManager spawnPasteManager;
 
     @Override
     public void onEnable() {
@@ -45,6 +58,13 @@ public class PHSurvival extends JavaPlugin {
         afkManager = new AfkManager(this);
         claimBorderVisualizer = new ClaimBorderVisualizer(this);
         new PlaytimeRewardManager(this);
+        mailManager        = new MailManager(this);
+        friendManager      = new FriendManager(this);
+        achievementManager = new AchievementManager(this);
+        bankManager        = new BankManager(this);
+        questManager       = new QuestManager(this);
+        tradeManager       = new TradeManager(this);
+        spawnPasteManager  = new SpawnPasteManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -100,6 +120,38 @@ public class PHSurvival extends JavaPlugin {
 
         getCommand("jobs").setExecutor(jobsCommand);
 
+        MailCommand mailCmd = new MailCommand(this);
+        getCommand("mail").setExecutor(mailCmd);
+        getCommand("mail").setTabCompleter(mailCmd);
+
+        FriendCommand friendCmd = new FriendCommand(this);
+        getCommand("friend").setExecutor(friendCmd);
+        getCommand("friend").setTabCompleter(friendCmd);
+
+        BankCommand bankCmd = new BankCommand(this);
+        getCommand("bank").setExecutor(bankCmd);
+        getCommand("bank").setTabCompleter(bankCmd);
+
+        getCommand("achievements").setExecutor(new AchievementCommand(this));
+
+        getCommand("quests").setExecutor(new QuestCommand(this));
+
+        LeaderboardCommand lbCmd = new LeaderboardCommand(this);
+        getCommand("lb").setExecutor(lbCmd);
+        getCommand("lb").setTabCompleter(lbCmd);
+
+        TradeCommand tradeCmd = new TradeCommand(this);
+        getCommand("trade").setExecutor(tradeCmd);
+        getCommand("trade").setTabCompleter(tradeCmd);
+
+        if (getServer().getPluginManager().getPlugin("FastAsyncWorldEdit") != null) {
+            SchematicCommand schemCmd = new SchematicCommand(this);
+            getCommand("schem").setExecutor(schemCmd);
+            getCommand("schem").setTabCompleter(schemCmd);
+            getLogger().info("FAWE erkannt – /schem aktiviert.");
+            spawnPasteManager.checkAndExecute();
+        }
+
         StatsCommand statsCmd = new StatsCommand(this);
         getCommand("stats").setExecutor(statsCmd);
         getCommand("stats").setTabCompleter(statsCmd);
@@ -136,6 +188,8 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new StatsListener(this), this);
         getServer().getPluginManager().registerEvents(new PortalProtectionListener(), this);
         getServer().getPluginManager().registerEvents(new DeathChestListener(this), this);
+        getServer().getPluginManager().registerEvents(new QuestListener(this), this);
+        getServer().getPluginManager().registerEvents(new TradeListener(this), this);
 
         // Holograms nach Weltlade spawnen
         getServer().getScheduler().runTaskLater(this, () -> hologramManager.spawnAll(), 60L);
@@ -168,4 +222,10 @@ public class PHSurvival extends JavaPlugin {
     public StatsManager getStatsManager() { return statsManager; }
     public SurvivalHologramManager getHologramManager() { return hologramManager; }
     public de.pinkhorizon.survival.listeners.ChestShopListener getChestShopListener() { return chestShopListener; }
+    public MailManager getMailManager()               { return mailManager; }
+    public FriendManager getFriendManager()           { return friendManager; }
+    public BankManager getBankManager()               { return bankManager; }
+    public AchievementManager getAchievementManager() { return achievementManager; }
+    public QuestManager getQuestManager()             { return questManager; }
+    public TradeManager getTradeManager()             { return tradeManager; }
 }

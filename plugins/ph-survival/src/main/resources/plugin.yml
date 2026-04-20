@@ -5,6 +5,7 @@ api-version: '1.21'
 description: Survival-Plugin fuer Pink Horizon
 authors: [ PinkHorizon ]
 depend: [ PH-Core ]
+softdepend: [ FastAsyncWorldEdit ]
 
 commands:
   claim:
@@ -112,6 +113,30 @@ commands:
   removeshop:
     description: Chest-Shop entfernen
     usage: /removeshop
+  mail:
+    description: Nachrichten senden und lesen
+    usage: /mail <send|read|clear>
+  friend:
+    description: Freundesliste verwalten
+    usage: /friend <add|remove|accept|deny|list|requests>
+  bank:
+    description: Bank-Konto verwalten
+    usage: /bank [deposit|withdraw] [Betrag]
+  achievements:
+    description: Achievements anzeigen
+    usage: /achievements
+  quests:
+    description: Tägliche Quests anzeigen
+    usage: /quests
+  lb:
+    description: Leaderboard anzeigen
+    usage: /lb [coins|kills|playtime]
+  trade:
+    description: Mit einem Spieler handeln
+    usage: /trade <Spieler|accept|deny>
+  schem:
+    description: Schematics laden und einfügen (Admin)
+    usage: /schem <list|load|paste|save>
 
 permissions:
   survival.claim:

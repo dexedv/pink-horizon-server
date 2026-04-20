@@ -83,6 +83,18 @@ public class SurvivalJoinListener implements Listener {
 
             // Aktiven Fly wiederherstellen
             plugin.getUpgradeManager().restoreFly(player);
+
+            // Ungelesene Mails
+            int unread = plugin.getMailManager().getUnreadCount(player.getUniqueId());
+            if (unread > 0) {
+                player.sendMessage(Component.text("§e✉ §7Du hast §e" + unread + " §7ungelesene Nachricht" + (unread == 1 ? "" : "en") + "! §e/mail read"));
+            }
+
+            // Achievement: FIRST_STEPS
+            plugin.getAchievementManager().unlock(player, de.pinkhorizon.survival.managers.AchievementManager.Achievement.FIRST_STEPS);
+
+            // Playtime-Achievements prüfen
+            plugin.getAchievementManager().checkPlaytime(player);
         }, 5L);
     }
 

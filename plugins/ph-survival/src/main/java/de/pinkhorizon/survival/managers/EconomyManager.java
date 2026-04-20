@@ -6,6 +6,9 @@ import de.pinkhorizon.survival.PHSurvival;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class EconomyManager {
@@ -46,7 +49,33 @@ public class EconomyManager {
         return true;
     }
 
+    public boolean has(UUID uuid, long amount) {
+        return getBalance(uuid) >= amount;
+    }
+
     public void deposit(UUID uuid, long amount) {
         setBalance(uuid, getBalance(uuid) + amount);
+        // Achievement check (guard against null during startup)
+        if (plugin.getAchievementManager() != null) {
+            org.bukkit.entity.Player player = org.bukkit.Bukkit.getPlayer(uuid);
+            if (player != null) plugin.getAchievementManager().checkCoins(player);
+        }
+    }
+
+    /** Returns top N players ordered by coins descending. */
+    public List<AbstractMap.SimpleEntry<UUID, Long>> getTopCoins(int limit) {
+        String sql = "SELECT uuid, coins FROM players ORDER BY coins DESC LIMIT ?";
+        List<AbstractMap.SimpleEntry<UUID, Long>> result = new ArrayList<>();
+        try (PreparedStatement stmt = PHCore.getInstance().getDatabaseManager().getConnection().prepareStatement(sql)) {
+            stmt.setInt(1, limit);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                result.add(new AbstractMap.SimpleEntry<>(
+                    UUID.fromString(rs.getString("uuid")), rs.getLong("coins")));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Fehler beim Abrufen des Leaderboards: " + e.getMessage());
+        }
+        return result;
     }
 }
