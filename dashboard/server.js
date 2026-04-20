@@ -386,17 +386,14 @@ app.get('/api/databases', auth, async (req, res) => {
 // ── REST-API: Wirtschaft ──────────────────────────────────────────────────
 
 app.get('/api/economy/baltop', auth, async (req, res) => {
-  const cfg = SERVERS.survival;
-  if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
   try {
-    const raw   = await rconSend(cfg.rcon, 'baltop');
-    const clean = stripColors(raw);
-    const entries = [];
-    for (const line of clean.split('\n')) {
-      const m = /(\d+)\.\s+(.+?)\s+[–\-]\s+([\d.,]+)\s+Coins?/i.exec(line);
-      if (m) entries.push({ rank: parseInt(m[1]), name: m[2].trim(), coins: parseInt(m[3].replace(/[.,]/g,'')) });
-    }
-    res.json({ baltop: entries });
+    const [rows] = await poolSv.execute(
+      `SELECT p.name, e.coins FROM sv_economy e
+       JOIN pinkhorizon.players p ON e.uuid = p.uuid
+       ORDER BY e.coins DESC LIMIT 10`
+    );
+    const baltop = rows.map((r, i) => ({ rank: i + 1, name: r.name, coins: Number(r.coins) }));
+    res.json({ baltop });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
