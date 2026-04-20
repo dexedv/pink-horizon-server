@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pink Horizon – Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0f0f13;
+    --surface:  #1a1a24;
+    --border:   #2a2a3a;
+    --text:     #e0e0f0;
+    --muted:    #6b6b8a;
+    --pink:     #ff69b4;
+    --purple:   #9b59b6;
+    --green:    #2ecc71;
+    --red:      #e74c3c;
+    --blue:     #3498db;
+    --yellow:   #f39c12;
+    --font:     'Segoe UI', system-ui, sans-serif;
+    --mono:     'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: var(--font); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Login ── */
+  #login-screen {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 40px; width: 360px; text-align: center;
+  }
+  .login-box h1 { font-size: 1.6rem; background: linear-gradient(135deg, var(--pink), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  .login-box p  { color: var(--muted); margin-bottom: 28px; font-size: .9rem; }
+  .login-box input {
+    width: 100%; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 1rem; outline: none; margin-bottom: 12px;
+  }
+  .login-box input:focus { border-color: var(--pink); }
+  .login-box button {
+    width: 100%; padding: 12px; background: linear-gradient(135deg, var(--pink), var(--purple));
+    border: none; border-radius: 8px; color: #fff; font-size: 1rem; font-weight: 600;
+    cursor: pointer; transition: opacity .2s;
+  }
+  .login-box button:hover { opacity: .85; }
+  .login-error { color: var(--red); font-size: .85rem; margin-top: 10px; display: none; }
+
+  /* ── Header ── */
+  header {
+    height: 52px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0;
+  }
+  .logo { font-size: 1.1rem; font-weight: 700; background: linear-gradient(135deg, var(--pink), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .header-sep { flex: 1; }
+  .btn-logout { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: .85rem; }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── Layout ── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  aside {
+    width: 200px; background: var(--surface); border-right: 1px solid var(--border);
+    padding: 12px 8px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;
+  }
+  .sidebar-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 8px 10px 4px; }
+  .server-btn {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: 8px; cursor: pointer; border: 1px solid transparent;
+    background: none; color: var(--text); font-size: .9rem; text-align: left; width: 100%;
+    transition: background .15s;
+  }
+  .server-btn:hover   { background: rgba(255,255,255,.05); }
+  .server-btn.active  { background: rgba(255,105,180,.1); border-color: rgba(255,105,180,.3); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
+  .dot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.offline { background: var(--red); }
+
+  /* ── Main Panel ── */
+  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .server-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  .server-name  { font-size: 1.2rem; font-weight: 700; }
+  .server-status { font-size: .8rem; padding: 3px 10px; border-radius: 20px; background: rgba(255,255,255,.08); }
+  .server-status.online  { color: var(--green); }
+  .server-status.offline { color: var(--red); }
+  .header-actions { margin-left: auto; display: flex; gap: 8px; }
+
+  .btn {
+    padding: 7px 14px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); cursor: pointer; font-size: .85rem;
+    display: flex; align-items: center; gap: 6px; transition: all .15s;
+  }
+  .btn:hover           { border-color: var(--pink); color: var(--pink); }
+  .btn.btn-danger:hover { border-color: var(--red); color: var(--red); }
+  .btn.btn-success:hover { border-color: var(--green); color: var(--green); }
+  .btn:disabled        { opacity: .4; cursor: not-allowed; }
+
+  /* ── Console ── */
+  .console-wrap {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 12px 16px;
+    gap: 10px;
+  }
+  .console-tabs { display: flex; gap: 4px; }
+  .tab-btn {
+    padding: 5px 14px; border-radius: 6px 6px 0 0; border: 1px solid var(--border); border-bottom: none;
+    background: none; color: var(--muted); cursor: pointer; font-size: .85rem;
+  }
+  .tab-btn.active { background: var(--bg); color: var(--text); }
+
+  #console-output {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 0 8px 8px 8px;
+    padding: 12px 14px; overflow-y: auto; font-family: var(--mono); font-size: .8rem;
+    line-height: 1.55; white-space: pre-wrap; word-break: break-all;
+  }
+  #console-output .log-line         { color: #c0c0d0; }
+  #console-output .log-line.warn    { color: var(--yellow); }
+  #console-output .log-line.error   { color: var(--red); }
+  #console-output .log-line.info    { color: #7ec8e3; }
+  #console-output .log-line.cmd-out { color: var(--pink); }
+
+  .console-input-row {
+    display: flex; gap: 8px;
+  }
+  #cmd-input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; color: var(--text); font-family: var(--mono); font-size: .9rem; outline: none;
+  }
+  #cmd-input:focus { border-color: var(--pink); }
+  #cmd-send {
+    padding: 10px 20px; background: linear-gradient(135deg, var(--pink), var(--purple));
+    border: none; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; font-size: .9rem;
+  }
+  #cmd-send:hover { opacity: .85; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--muted); gap: 12px;
+  }
+  .empty-state svg { opacity: .3; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>✦ Pink Horizon</h1>
+    <p>Server Dashboard</p>
+    <input type="password" id="pw-input" placeholder="Passwort" autocomplete="current-password">
+    <button onclick="login()">Einloggen</button>
+    <div class="login-error" id="login-err">Falsches Passwort!</div>
+  </div>
+</div>
+
+<!-- App -->
+<header>
+  <span class="logo">✦ Pink Horizon Dashboard</span>
+  <span class="header-sep"></span>
+  <button class="btn-logout" onclick="logout()">Abmelden</button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="sidebar-label">Server</div>
+    <div id="server-list"></div>
+  </aside>
+
+  <main id="main-panel">
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+      </svg>
+      <p>Server auswählen</p>
+    </div>
+  </main>
+</div>
+
+<script>
+let TOKEN = localStorage.getItem('ph_token') || '';
+let activeServer = null;
+let ws = null;
+let cmdHistory = [];
+let historyIdx = -1;
+let autoScroll = true;
+
+// ── Auth ────────────────────────────────────────────────────────────────
+
+async function login() {
+  const pw = document.getElementById('pw-input').value;
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    TOKEN = data.token;
+    localStorage.setItem('ph_token', TOKEN);
+    document.getElementById('login-screen').style.display = 'none';
+    init();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('ph_token');
+  location.reload();
+}
+
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+// ── Init ────────────────────────────────────────────────────────────────
+
+let serverData = {};
+
+async function init() {
+  if (!TOKEN) return;
+  document.getElementById('login-screen').style.display = 'none';
+  connectWs();
+  await loadServers();
+  setInterval(loadServers, 8000);
+}
+
+async function loadServers() {
+  const res = await apiFetch('/api/servers');
+  if (!res) return;
+  serverData = await res.json();
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const list = document.getElementById('server-list');
+  list.innerHTML = '';
+  for (const [key, srv] of Object.entries(serverData)) {
+    const btn = document.createElement('button');
+    btn.className = 'server-btn' + (activeServer === key ? ' active' : '');
+    btn.innerHTML = `
+      <span class="dot ${srv.running ? 'online' : 'offline'}"></span>
+      <span>${srv.label}</span>`;
+    btn.onclick = () => selectServer(key);
+    list.appendChild(btn);
+  }
+  if (activeServer) renderMain();
+}
+
+// ── Server auswählen ────────────────────────────────────────────────────
+
+function selectServer(key) {
+  activeServer = key;
+  renderSidebar();
+  renderMain();
+  subscribeToLogs(serverData[key].container);
+}
+
+function renderMain() {
+  const srv = serverData[activeServer];
+  document.getElementById('main-panel').innerHTML = `
+    <div class="server-header">
+      <div class="dot ${srv.running ? 'online' : 'offline'}"></div>
+      <span class="server-name">${srv.label}</span>
+      <span class="server-status ${srv.running ? 'online' : 'offline'}">${srv.status}</span>
+      <div class="header-actions">
+        ${srv.running
+          ? `<button class="btn btn-danger"  onclick="serverAction('stop')"   >⏹ Stop</button>
+             <button class="btn"             onclick="serverAction('restart')" >🔄 Restart</button>`
+          : `<button class="btn btn-success" onclick="serverAction('start')"  >▶ Start</button>`
+        }
+      </div>
+    </div>
+    <div class="console-wrap">
+      <div class="console-tabs">
+        <button class="tab-btn active">Konsole / Logs</button>
+      </div>
+      <div id="console-output"></div>
+      <div class="console-input-row">
+        <input id="cmd-input" placeholder="Befehl eingeben (ohne /)…" ${!srv.rcon ? 'disabled title="Kein RCON für diesen Server"' : ''}>
+        <button id="cmd-send" onclick="sendCommand()">Senden</button>
+      </div>
+    </div>`;
+
+  document.getElementById('cmd-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendCommand();
+    if (e.key === 'ArrowUp')   { historyIdx = Math.min(historyIdx + 1, cmdHistory.length - 1); e.target.value = cmdHistory[historyIdx] || ''; }
+    if (e.key === 'ArrowDown') { historyIdx = Math.max(historyIdx - 1, -1); e.target.value = cmdHistory[historyIdx] || ''; }
+  });
+
+  const out = document.getElementById('console-output');
+  out?.addEventListener('scroll', () => {
+    autoScroll = out.scrollTop + out.clientHeight >= out.scrollHeight - 20;
+  });
+}
+
+// ── Log-Streaming via WebSocket ──────────────────────────────────────────
+
+function connectWs() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'auth', token: TOKEN }));
+    if (activeServer) subscribeToLogs(serverData[activeServer]?.container);
+  };
+
+  ws.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'log') appendLog(msg.text);
+  };
+
+  ws.onclose = () => setTimeout(connectWs, 3000);
+}
+
+function subscribeToLogs(container) {
+  if (!container || ws?.readyState !== 1) return;
+  const out = document.getElementById('console-output');
+  if (out) out.innerHTML = '';
+  ws.send(JSON.stringify({ type: 'subscribe', container }));
+}
+
+function appendLog(text) {
+  const out = document.getElementById('console-output');
+  if (!out) return;
+
+  const lines = text.split('\n');
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const div = document.createElement('div');
+    div.className = 'log-line' + classifyLine(line);
+    div.textContent = line;
+    out.appendChild(div);
+  }
+  // Maximal 1000 Zeilen behalten
+  while (out.children.length > 1000) out.removeChild(out.firstChild);
+  if (autoScroll) out.scrollTop = out.scrollHeight;
+}
+
+function classifyLine(line) {
+  const l = line.toLowerCase();
+  if (l.includes('error') || l.includes('exception') || l.includes('fatal')) return ' error';
+  if (l.includes('warn'))  return ' warn';
+  if (l.includes('info'))  return ' info';
+  return '';
+}
+
+// ── Befehle ─────────────────────────────────────────────────────────────
+
+async function sendCommand() {
+  const input = document.getElementById('cmd-input');
+  const cmd = input?.value?.trim();
+  if (!cmd || !activeServer) return;
+
+  input.value = '';
+  cmdHistory.unshift(cmd);
+  historyIdx = -1;
+
+  appendLog(`> ${cmd}`);
+  document.querySelector('#console-output .log-line:last-child')?.classList.add('cmd-out');
+
+  const res = await apiFetch(`/api/servers/${activeServer}/command`, {
+    method: 'POST',
+    body: JSON.stringify({ command: cmd })
+  });
+  if (!res) return;
+  const data = await res.json();
+  if (data.output) appendLog(`← ${data.output}`);
+  if (data.error)  appendLog(`✗ ${data.error}`);
+}
+
+async function serverAction(action) {
+  const res = await apiFetch(`/api/servers/${activeServer}/${action}`, { method: 'POST' });
+  if (res?.ok) {
+    appendLog(`> Server ${action} ausgeführt…`);
+    setTimeout(loadServers, 2000);
+  }
+}
+
+// ── API-Hilfsfunktion ────────────────────────────────────────────────────
+
+async function apiFetch(url, opts = {}) {
+  try {
+    return await fetch(url, {
+      ...opts,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-dashboard-token': TOKEN,
+        ...(opts.headers || {})
+      }
+    });
+  } catch (e) {
+    console.error('API Fehler:', e);
+    return null;
+  }
+}
+
+// ── Start ───────────────────────────────────────────────────────────────
+
+if (TOKEN) init();
+</script>
+</body>
+</html>
