@@ -28,8 +28,9 @@ public class StatsCommand implements CommandExecutor, TabCompleter {
         String name;
 
         if (args.length >= 1) {
-            OfflinePlayer op = Bukkit.getOfflinePlayer(args[0]);
-            if (!op.hasPlayedBefore() && Bukkit.getPlayer(args[0]) == null) {
+            Player onlineTarget = Bukkit.getPlayer(args[0]);
+            OfflinePlayer op = onlineTarget != null ? onlineTarget : Bukkit.getOfflinePlayerIfCached(args[0]);
+            if (op == null || !op.hasPlayedBefore()) {
                 sender.sendMessage("§cSpieler nicht gefunden!");
                 return true;
             }

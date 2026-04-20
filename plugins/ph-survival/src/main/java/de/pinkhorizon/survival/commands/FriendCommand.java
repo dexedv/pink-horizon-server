@@ -79,8 +79,9 @@ public class FriendCommand implements CommandExecutor, TabCompleter {
             }
             case "remove" -> {
                 if (args.length < 2) { player.sendMessage(Component.text("§cNutzung: /friend remove <Spieler>")); return true; }
-                @SuppressWarnings("deprecation")
-                OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
+                Player onlineTarget = Bukkit.getPlayer(args[1]);
+                OfflinePlayer target = onlineTarget != null ? onlineTarget : Bukkit.getOfflinePlayerIfCached(args[1]);
+                if (target == null || !target.hasPlayedBefore()) { player.sendMessage(Component.text("§cSpieler nicht gefunden!")); return true; }
                 if (!fm.areFriends(player.getUniqueId(), target.getUniqueId())) {
                     player.sendMessage(Component.text("§cDieser Spieler ist nicht dein Freund!"));
                     return true;

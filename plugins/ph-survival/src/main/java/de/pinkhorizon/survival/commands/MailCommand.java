@@ -37,9 +37,9 @@ public class MailCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage(Component.text("§cNutzung: /mail send <Spieler> <Nachricht>"));
                     return true;
                 }
-                @SuppressWarnings("deprecation")
-                OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
-                if (!target.hasPlayedBefore() && Bukkit.getPlayer(args[1]) == null) {
+                Player onlineTarget = Bukkit.getPlayer(args[1]);
+                OfflinePlayer target = onlineTarget != null ? onlineTarget : Bukkit.getOfflinePlayerIfCached(args[1]);
+                if (target == null || !target.hasPlayedBefore()) {
                     player.sendMessage(Component.text("§cSpieler nicht gefunden!"));
                     return true;
                 }

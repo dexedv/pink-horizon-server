@@ -100,36 +100,37 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
     }
 
     private void showKills(Player player) {
-        var sm = plugin.getStatsManager();
-        List<Map.Entry<String, Integer>> top = new ArrayList<>();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            top.add(Map.entry(p.getName(), sm.getMobKills(p.getUniqueId())));
-        }
-        // Also offline players from YAML would require iterating stats.yml – show online only for simplicity
-        top.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
-        player.sendMessage(Component.text("§6§l── Top Mob-Kills (Online) ──"));
-        int rank = 1;
-        for (var e : top.subList(0, Math.min(TOP, top.size()))) {
-            player.sendMessage(Component.text(rankColor(rank) + rank + ". §f" + e.getKey() + " §8- §e" + e.getValue() + " Kills"));
-            rank++;
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            var top = plugin.getStatsManager().getTopMobKills(TOP);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                player.sendMessage(Component.text("§6§l── Top " + TOP + " Mob-Kills ──"));
+                int rank = 1;
+                for (var entry : top) {
+                    OfflinePlayer op = Bukkit.getOfflinePlayer(entry.getKey());
+                    String name = op.getName() != null ? op.getName() : "???";
+                    player.sendMessage(Component.text(rankColor(rank) + rank + ". §f" + name + " §8- §e" + entry.getValue() + " Kills"));
+                    rank++;
+                }
+            });
+        });
     }
 
     private void showPlaytime(Player player) {
-        var sm = plugin.getStatsManager();
-        List<Map.Entry<String, Long>> top = new ArrayList<>();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            top.add(Map.entry(p.getName(), sm.getPlaytime(p.getUniqueId())));
-        }
-        top.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
-        player.sendMessage(Component.text("§6§l── Top Spielzeit (Online) ──"));
-        int rank = 1;
-        for (var e : top.subList(0, Math.min(TOP, top.size()))) {
-            long h = e.getValue() / 60;
-            long m = e.getValue() % 60;
-            player.sendMessage(Component.text(rankColor(rank) + rank + ". §f" + e.getKey() + " §8- §e" + h + "h " + m + "m"));
-            rank++;
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            var top = plugin.getStatsManager().getTopPlaytime(TOP);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                player.sendMessage(Component.text("§6§l── Top " + TOP + " Spielzeit ──"));
+                int rank = 1;
+                for (var entry : top) {
+                    OfflinePlayer op = Bukkit.getOfflinePlayer(entry.getKey());
+                    String name = op.getName() != null ? op.getName() : "???";
+                    long h = entry.getValue() / 60;
+                    long m = entry.getValue() % 60;
+                    player.sendMessage(Component.text(rankColor(rank) + rank + ". §f" + name + " §8- §e" + h + "h " + m + "m"));
+                    rank++;
+                }
+            });
+        });
     }
 
     // ── Hologram refresh ─────────────────────────────────────────────────
