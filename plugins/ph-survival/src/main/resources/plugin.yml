@@ -152,6 +152,9 @@ commands:
   tutorial:
     description: Tutorial-GUI öffnen
     usage: /tutorial
+  ah:
+    description: Auktionshaus öffnen
+    usage: /ah [sell <Preis>]
 
 permissions:
   survival.claim:

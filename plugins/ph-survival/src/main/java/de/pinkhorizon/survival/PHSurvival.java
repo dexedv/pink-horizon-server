@@ -39,6 +39,7 @@ public class PHSurvival extends JavaPlugin {
     private SpawnPasteManager spawnPasteManager;
     private SpawnBorderManager spawnBorderManager;
     private de.pinkhorizon.survival.managers.NpcManager npcManager;
+    private de.pinkhorizon.survival.managers.AuctionManager auctionManager;
 
     @Override
     public void onEnable() {
@@ -69,6 +70,7 @@ public class PHSurvival extends JavaPlugin {
         spawnPasteManager  = new SpawnPasteManager(this);
         spawnBorderManager = new SpawnBorderManager(this);
         npcManager         = new de.pinkhorizon.survival.managers.NpcManager(this);
+        auctionManager     = new de.pinkhorizon.survival.managers.AuctionManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -188,6 +190,12 @@ public class PHSurvival extends JavaPlugin {
         getCommand("tutorial").setExecutor(new de.pinkhorizon.survival.commands.TutorialCommand(tutorialGui));
         getServer().getPluginManager().registerEvents(tutorialGui, this);
 
+        de.pinkhorizon.survival.gui.AhGui ahGui = new de.pinkhorizon.survival.gui.AhGui(this);
+        de.pinkhorizon.survival.commands.AhCommand ahCmd = new de.pinkhorizon.survival.commands.AhCommand(this, ahGui);
+        getCommand("ah").setExecutor(ahCmd);
+        getCommand("ah").setTabCompleter(ahCmd);
+        getServer().getPluginManager().registerEvents(ahGui, this);
+
         HelpHoloCommand helpHoloCmd = new HelpHoloCommand(this);
         getCommand("helpholo").setExecutor(helpHoloCmd);
         getCommand("helpholo").setTabCompleter(helpHoloCmd);
@@ -227,6 +235,7 @@ public class PHSurvival extends JavaPlugin {
     @Override
     public void onDisable() {
         if (claimManager != null) claimManager.save();
+        if (auctionManager != null) auctionManager.save();
         if (claimBorderVisualizer != null) claimBorderVisualizer.stop();
         if (scoreboardManager != null) scoreboardManager.stopAll();
         if (tabManager != null) tabManager.stop();
@@ -257,4 +266,5 @@ public class PHSurvival extends JavaPlugin {
     public TradeManager getTradeManager()             { return tradeManager; }
     public SpawnBorderManager getSpawnBorderManager() { return spawnBorderManager; }
     public de.pinkhorizon.survival.managers.NpcManager getNpcManager() { return npcManager; }
+    public de.pinkhorizon.survival.managers.AuctionManager getAuctionManager() { return auctionManager; }
 }
