@@ -36,12 +36,13 @@ public class SurvivalRankManager {
     public static final LinkedHashMap<String, Rank> RANKS = new LinkedHashMap<>();
 
     static {
-        RANKS.put("owner",   new Rank("owner",   "\u00a74\u00a7l[Owner] ", TextColor.color(0xCC0000), 9999, 20, 1));
-        RANKS.put("admin",   new Rank("admin",   "\u00a7c\u00a7l[Admin] ", NamedTextColor.RED,          9999, 10, 2));
-        RANKS.put("mod",     new Rank("mod",     "\u00a79\u00a7l[Mod] ",   NamedTextColor.BLUE,          100,  8, 3));
-        RANKS.put("mvp",     new Rank("mvp",     "\u00a76\u00a7l[MVP] ",   NamedTextColor.GOLD,           30,  5, 4));
-        RANKS.put("vip",     new Rank("vip",     "\u00a7a[VIP] ",          NamedTextColor.GREEN,          15,  3, 5));
-        RANKS.put("spieler", new Rank("spieler", "",                       NamedTextColor.WHITE,          10,  2, 6));
+        RANKS.put("owner",     new Rank("owner",     "\u00a74\u00a7l[Owner] ",   TextColor.color(0xCC0000),  9999, 20, 1));
+        RANKS.put("admin",     new Rank("admin",     "\u00a7c\u00a7l[Admin] ",   NamedTextColor.RED,         9999, 15, 2));
+        RANKS.put("dev",       new Rank("dev",       "\u00a7b\u00a7l[DEV] ",     TextColor.color(0x00CCCC),  9999, 15, 3));
+        RANKS.put("moderator", new Rank("moderator", "\u00a79\u00a7l[Mod] ",     NamedTextColor.BLUE,         100,  8, 4));
+        RANKS.put("supporter", new Rank("supporter", "\u00a73\u00a7l[Support] ", TextColor.color(0x00AAAA),   50,  6, 5));
+        RANKS.put("vip",       new Rank("vip",       "\u00a76[VIP] ",            NamedTextColor.GOLD,          15,  3, 6));
+        RANKS.put("spieler",   new Rank("spieler",   "",                         NamedTextColor.WHITE,         10,  2, 7));
     }
 
     private final PHSurvival plugin;

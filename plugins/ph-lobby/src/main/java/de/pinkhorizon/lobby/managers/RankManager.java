@@ -42,12 +42,13 @@ public class RankManager {
     // Reihenfolge: Owner > Admin > Mod > MVP > VIP > Spieler
     public static final LinkedHashMap<String, Rank> RANKS = new LinkedHashMap<>();
     static {
-        RANKS.put("owner",   new Rank("owner",   "§4§l[Owner] §r",  "§4[Owner] ",  TextColor.color(0xCC0000), 1));
-        RANKS.put("admin",   new Rank("admin",   "§c§l[Admin] §r",  "§c[Admin] ",  NamedTextColor.RED,        2));
-        RANKS.put("mod",     new Rank("mod",     "§9§l[Mod] §r",    "§9[Mod] ",    NamedTextColor.BLUE,       3));
-        RANKS.put("mvp",     new Rank("mvp",     "§6§l[MVP] §r",    "§6[MVP] ",    NamedTextColor.GOLD,       4));
-        RANKS.put("vip",     new Rank("vip",     "§a[VIP] §r",      "§a[VIP] ",    NamedTextColor.GREEN,      5));
-        RANKS.put("spieler", new Rank("spieler", "",                "",            NamedTextColor.WHITE,      6));
+        RANKS.put("owner",     new Rank("owner",     "§4§l[Owner] §r",   "§4[Owner] ",   TextColor.color(0xCC0000),  1));
+        RANKS.put("admin",     new Rank("admin",     "§c§l[Admin] §r",   "§c[Admin] ",   NamedTextColor.RED,         2));
+        RANKS.put("dev",       new Rank("dev",       "§b§l[DEV] §r",     "§b[DEV] ",     TextColor.color(0x00CCCC),  3));
+        RANKS.put("moderator", new Rank("moderator", "§9§l[Mod] §r",     "§9[Mod] ",     NamedTextColor.BLUE,        4));
+        RANKS.put("supporter", new Rank("supporter", "§3§l[Support] §r", "§3[Support] ", TextColor.color(0x00AAAA),  5));
+        RANKS.put("vip",       new Rank("vip",       "§6[VIP] §r",       "§6[VIP] ",     NamedTextColor.GOLD,        6));
+        RANKS.put("spieler",   new Rank("spieler",   "",                 "",             NamedTextColor.WHITE,       7));
     }
 
     public RankManager(PHLobby plugin) {
