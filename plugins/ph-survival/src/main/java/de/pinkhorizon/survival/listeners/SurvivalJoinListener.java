@@ -34,17 +34,12 @@ public class SurvivalJoinListener implements Listener {
         );
 
         // Spielmodus
-        if (player.isOp()) {
+        if (player.hasPermission("survival.admin")) {
             player.setGameMode(GameMode.CREATIVE);
         } else {
             player.setGameMode(GameMode.SURVIVAL);
             player.setHealth(20.0);
             player.setFoodLevel(20);
-        }
-
-        // Owner-Rank für OPs automatisch setzen
-        if (player.isOp()) {
-            plugin.getRankManager().setRank(player.getUniqueId(), player.getName(), "owner");
         }
 
         // AFK-Timer starten

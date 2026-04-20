@@ -5,6 +5,7 @@ api-version: '1.21'
 description: Lobby-Plugin fuer Pink Horizon Hub
 authors: [ PinkHorizon ]
 depend: [ PH-Core ]
+softdepend: [ LuckPerms ]
 
 commands:
   navigator:
@@ -36,9 +37,12 @@ commands:
     usage: /hologram <create|delete|list>
 
 permissions:
+  lobby.admin:
+    description: Vollzugriff auf alle Lobby-Admin-Befehle (setspawn, border, portal, vanish, build, rank, hologram)
+    default: op
+  lobby.mod:
+    description: Moderator-Rechte in der Lobby (zukünftige Erweiterungen)
+    default: false
   lobby.navigator:
     description: Navigator benutzen
     default: true
-  lobby.admin:
-    description: Lobby-Admin
-    default: op

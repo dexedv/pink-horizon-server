@@ -48,8 +48,8 @@ public class RtpCommand implements CommandExecutor {
 
         UUID uuid = player.getUniqueId();
 
-        // Cooldown prüfen (OPs sind exempt)
-        if (!player.isOp()) {
+        // Cooldown prüfen (Admins sind exempt)
+        if (!player.hasPermission("survival.admin")) {
             long lastUsed = cooldowns.getOrDefault(uuid, 0L);
             long remaining = COOLDOWN_MS - (System.currentTimeMillis() - lastUsed);
             if (remaining > 0) {

@@ -42,7 +42,7 @@ public class JoinTitleListener implements Listener {
         );
 
         // Spielmodus + Status
-        if (player.isOp()) {
+        if (player.hasPermission("lobby.admin")) {
             player.setGameMode(GameMode.CREATIVE);
         } else {
             player.setGameMode(GameMode.ADVENTURE);
@@ -56,11 +56,6 @@ public class JoinTitleListener implements Listener {
 
         // Hotbar-Items
         HotbarManager.giveHotbar(player, plugin);
-
-        // Owner-Rank für OPs automatisch setzen
-        if (player.isOp()) {
-            plugin.getRankManager().setRank(player.getUniqueId(), player.getName(), "owner");
-        }
 
         // Server-Status BossBar anzeigen
         plugin.getBossBarManager().showAll(player);

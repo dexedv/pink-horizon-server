@@ -4,6 +4,7 @@ main: de.pinkhorizon.core.PHCore
 api-version: '1.21'
 description: Core-Plugin fuer alle Pink Horizon Server
 authors: [ PinkHorizon ]
+softdepend: [ LuckPerms ]
 
 commands:
   hub:

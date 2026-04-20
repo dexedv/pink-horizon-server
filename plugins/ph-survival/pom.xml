@@ -31,6 +31,10 @@
             <version>2.15.0</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

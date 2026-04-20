@@ -4,6 +4,7 @@ import de.pinkhorizon.core.commands.HubCommand;
 import de.pinkhorizon.core.commands.MsgCommand;
 import de.pinkhorizon.core.commands.ReportCommand;
 import de.pinkhorizon.core.database.DatabaseManager;
+import de.pinkhorizon.core.integration.LuckPermsHook;
 import de.pinkhorizon.core.listeners.ChatListener;
 import de.pinkhorizon.core.listeners.JoinQuitListener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -18,6 +19,9 @@ public class PHCore extends JavaPlugin {
         instance = this;
 
         saveDefaultConfig();
+
+        // LuckPerms-Integration initialisieren
+        LuckPermsHook.init();
 
         // Datenbank initialisieren
         databaseManager = new DatabaseManager(this);

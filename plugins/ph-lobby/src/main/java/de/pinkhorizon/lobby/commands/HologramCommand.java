@@ -22,7 +22,7 @@ public class HologramCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.isOp()) {
+        if (!sender.hasPermission("lobby.admin")) {
             sender.sendMessage("§cKeine Berechtigung!");
             return true;
         }

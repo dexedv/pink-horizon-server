@@ -1,5 +1,6 @@
 package de.pinkhorizon.survival.managers;
 
+import de.pinkhorizon.core.integration.LuckPermsHook;
 import de.pinkhorizon.survival.PHSurvival;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -65,6 +66,7 @@ public class SurvivalRankManager {
         data.set("ranks." + uuid + ".rank", rankId);
         data.set("ranks." + uuid + ".name", playerName);
         saveToDisk();
+        LuckPermsHook.setGroup(uuid, rankId);
     }
 
     public int getMaxClaims(UUID uuid) {

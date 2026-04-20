@@ -16,7 +16,7 @@ public class BackCommand implements CommandExecutor {
             return true;
         }
 
-        if (!player.isOp()) {
+        if (!player.hasPermission("survival.admin")) {
             player.sendMessage("§cDieser Befehl ist nicht verfügbar!");
             return true;
         }

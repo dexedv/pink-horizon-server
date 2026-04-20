@@ -30,7 +30,7 @@ public class SurvivalChatListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onChat(AsyncChatEvent event) {
         Player player = event.getPlayer();
-        if (player.isOp()) {
+        if (player.hasPermission("survival.admin")) {
             sendFormatted(player, PlainTextComponentSerializer.plainText().serialize(event.message()));
             event.setCancelled(true);
             return;

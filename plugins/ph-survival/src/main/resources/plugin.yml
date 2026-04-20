@@ -5,7 +5,7 @@ api-version: '1.21'
 description: Survival-Plugin fuer Pink Horizon
 authors: [ PinkHorizon ]
 depend: [ PH-Core ]
-softdepend: [ FastAsyncWorldEdit ]
+softdepend: [ FastAsyncWorldEdit, LuckPerms ]
 
 commands:
   claim:
@@ -161,9 +161,15 @@ commands:
     permission: survival.admin
 
 permissions:
+  survival.admin:
+    description: Vollzugriff auf alle Admin-Befehle (eco, setspawn, srank, schem, resetworld, etc.)
+    default: op
+  survival.mod:
+    description: Moderator-Rechte (zukünftige Erweiterungen)
+    default: false
+  survival.vip:
+    description: VIP-Vorteile (zukünftige Erweiterungen)
+    default: false
   survival.claim:
     description: Chunks claimen
     default: true
-  survival.admin:
-    description: Admin-Befehle fuer Survival
-    default: op

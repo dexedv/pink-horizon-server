@@ -1,5 +1,6 @@
 package de.pinkhorizon.lobby.managers;
 
+import de.pinkhorizon.core.integration.LuckPermsHook;
 import de.pinkhorizon.lobby.PHLobby;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -79,6 +80,7 @@ public class RankManager {
         } catch (IOException e) {
             plugin.getLogger().warning("Rang konnte nicht gespeichert werden: " + e.getMessage());
         }
+        LuckPermsHook.setGroup(uuid, rankId);
     }
 
     // ── Abfragemethoden ──────────────────────────────────────────────────
