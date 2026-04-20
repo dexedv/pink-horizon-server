@@ -106,23 +106,29 @@ public class SpawnBorderCommand implements CommandExecutor, TabCompleter {
                         if (pts.size() < 3) return;
                         int n = pts.size();
                         for (org.bukkit.entity.Player online : plugin.getServer().getOnlinePlayers()) {
-                            if (!online.hasPermission("survival.admin")) continue;
-                            double y = online.getLocation().getY() + 1.5;
-                            for (int i = 0, j = n - 1; i < n; j = i++) {
-                                double ax = pts.get(j).x(), az = pts.get(j).z();
-                                double bx = pts.get(i).x(), bz = pts.get(i).z();
-                                double dist = Math.sqrt((bx-ax)*(bx-ax) + (bz-az)*(bz-az));
-                                int steps = Math.max(1, (int)(dist / 0.8));
-                                for (int s = 0; s <= steps; s++) {
-                                    double t = (double) s / steps;
-                                    double px = ax + t * (bx - ax);
-                                    double pz = az + t * (bz - az);
-                                    online.spawnParticle(Particle.FLAME, px, y, pz, 1, 0, 0, 0, 0);
+                            org.bukkit.Location ploc = online.getLocation();
+                            double playerY = ploc.getY();
+                            // Vertikale Ebenen: ±15 Blöcke um den Spieler, alle 3 Blöcke
+                            for (double wallY = playerY - 15; wallY <= playerY + 15; wallY += 3) {
+                                for (int i = 0, j = n - 1; i < n; j = i++) {
+                                    double ax = pts.get(j).x(), az = pts.get(j).z();
+                                    double bx = pts.get(i).x(), bz = pts.get(i).z();
+                                    double dist = Math.sqrt((bx-ax)*(bx-ax) + (bz-az)*(bz-az));
+                                    int steps = Math.max(1, (int)(dist / 1.0));
+                                    for (int s = 0; s <= steps; s++) {
+                                        double t = (double) s / steps;
+                                        double px = ax + t * (bx - ax);
+                                        double pz = az + t * (bz - az);
+                                        // Nur rendern wenn nah genug am Spieler (50 Blöcke)
+                                        double dx = px - ploc.getX(), dz = pz - ploc.getZ();
+                                        if (dx*dx + dz*dz > 2500) continue;
+                                        online.spawnParticle(Particle.FLAME, px, wallY, pz, 1, 0, 0, 0, 0);
+                                    }
                                 }
                             }
                         }
-                    }, 0L, 5L);
-                    player.sendMessage(Component.text("§aBorder-Anzeige §adauerhaft aktiviert§a. §7(/spawnborder toggle zum Deaktivieren)"));
+                    }, 0L, 10L);
+                    player.sendMessage(Component.text("§aBorder-Wand §adauerhaft aktiviert §7(für alle Spieler). §e/spawnborder toggle §7zum Deaktivieren."));
                 }
             }
             case "tp" -> {
