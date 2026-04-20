@@ -1,4 +1,11 @@
 # PH-Survival Konfiguration
+database:
+  host: ph-mysql
+  port: 3306
+  database: ph_survival
+  username: ph_user
+  password: ph-db-2024
+
 economy:
   start-balance: 500
   max-claims-per-player: 10

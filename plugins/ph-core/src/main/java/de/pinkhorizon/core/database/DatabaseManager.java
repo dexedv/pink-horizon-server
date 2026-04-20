@@ -61,7 +61,7 @@ public class DatabaseManager {
                 CREATE TABLE IF NOT EXISTS players (
                     uuid       VARCHAR(36)  NOT NULL PRIMARY KEY,
                     name       VARCHAR(16)  NOT NULL,
-                    rank       VARCHAR(32)  NOT NULL DEFAULT 'spieler',
+                    `rank`     VARCHAR(32)  NOT NULL DEFAULT 'spieler',
                     first_join TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     last_join  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

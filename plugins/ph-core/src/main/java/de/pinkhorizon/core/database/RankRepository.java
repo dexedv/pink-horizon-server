@@ -32,7 +32,7 @@ public class RankRepository {
      */
     public Map<UUID, String> loadAll() {
         Map<UUID, String> result = new HashMap<>();
-        String sql = "SELECT uuid, rank FROM players WHERE rank IS NOT NULL";
+        String sql = "SELECT uuid, `rank` FROM players WHERE `rank` IS NOT NULL";
         try (Connection con = db.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
@@ -52,7 +52,7 @@ public class RankRepository {
      * @return rankId oder "spieler" falls nicht vorhanden
      */
     public String getRank(UUID uuid) {
-        String sql = "SELECT rank FROM players WHERE uuid = ?";
+        String sql = "SELECT `rank` FROM players WHERE uuid = ?";
         try (Connection con = db.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql)) {
             stmt.setString(1, uuid.toString());
@@ -74,7 +74,7 @@ public class RankRepository {
      */
     public void setRank(UUID uuid, String playerName, String rankId) {
         String sql = db.getDbType().equals("mysql")
-            ? "INSERT INTO players (uuid, name, rank) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE rank = VALUES(rank), name = VALUES(name)"
+            ? "INSERT INTO players (uuid, name, `rank`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `rank` = VALUES(`rank`), name = VALUES(name)"
             : "INSERT INTO players (uuid, name, rank) VALUES (?, ?, ?) ON CONFLICT(uuid) DO UPDATE SET rank = excluded.rank, name = excluded.name";
 
         try (Connection con = db.getConnection();
