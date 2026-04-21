@@ -46,28 +46,31 @@ public class DeathChestListener implements Listener {
 
         Location loc = findChestLocation(player.getLocation());
         if (loc == null) {
-            player.sendMessage("§cKein Platz für Death-Chest – Items fallen auf den Boden!");
+            player.sendMessage("§cKein freier Platz für eine Todeskiste – deine Items fallen auf den Boden!");
             return;
         }
 
+        // Truhe platzieren und PDC speichern (Truhe ist noch leer – update() überschreibt kein Inventar)
         loc.getBlock().setType(Material.CHEST);
         Chest chestState = (Chest) loc.getBlock().getState();
-
-        List<ItemStack> drops = List.copyOf(event.getDrops());
-        for (ItemStack item : drops) {
-            HashMap<Integer, ItemStack> leftover = chestState.getInventory().addItem(item);
-            leftover.values().forEach(i -> loc.getWorld().dropItemNaturally(loc, i));
-        }
-        event.getDrops().clear();
-
         long expiry = System.currentTimeMillis() + EXPIRY_MS;
         chestState.getPersistentDataContainer().set(ownerKey,  PersistentDataType.STRING, player.getUniqueId().toString());
         chestState.getPersistentDataContainer().set(expiryKey, PersistentDataType.LONG,   expiry);
         chestState.update();
 
-        player.sendMessage("§c☠ Death-Chest §7bei §fX:" + loc.getBlockX()
+        // Items erst NACH update() in das Live-Inventar der Truhe legen
+        Chest liveChest = (Chest) loc.getBlock().getState();
+        List<ItemStack> drops = List.copyOf(event.getDrops());
+        event.getDrops().clear();
+        for (ItemStack item : drops) {
+            if (item == null || item.getType().isAir()) continue;
+            HashMap<Integer, ItemStack> leftover = liveChest.getInventory().addItem(item.clone());
+            leftover.values().forEach(i -> loc.getWorld().dropItemNaturally(loc, i));
+        }
+
+        player.sendMessage("§c☠ Todeskiste §7erstellt bei §fX:" + loc.getBlockX()
             + " Y:" + loc.getBlockY() + " Z:" + loc.getBlockZ());
-        player.sendMessage("§7Exklusiv für dich für §f5 Minuten§7, danach öffentlich.");
+        player.sendMessage("§75 Minuten lang nur für dich zugänglich§7, danach für alle.");
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -91,7 +94,7 @@ public class DeathChestListener implements Listener {
 
         event.setCancelled(true);
         long remaining = (expiry - System.currentTimeMillis()) / 1000;
-        player.sendMessage("§cDas ist ein Death-Chest! Noch §f" + remaining + "s §cbis er öffentlich wird.");
+        player.sendMessage("§cDas ist eine Todeskiste! Noch §f" + remaining + " §cSekunden bis sie öffentlich wird.");
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -110,7 +113,7 @@ public class DeathChestListener implements Listener {
         if (player.getUniqueId().equals(owner) || player.isOp()) return;
 
         event.setCancelled(true);
-        player.sendMessage("§cDas ist ein Death-Chest und gehört einem anderen Spieler!");
+        player.sendMessage("§cDiese Todeskiste gehört einem anderen Spieler!");
     }
 
     @EventHandler
