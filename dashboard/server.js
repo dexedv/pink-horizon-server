@@ -505,6 +505,7 @@ async function fetchAllStats() {
       };
     } catch { result[key] = null; }
   }));
+
   return result;
 }
 
