@@ -25,6 +25,12 @@ border:
   centerZ: -67.4661148306987
   size: 133.84216366051436
   enabled: true
+servers:
+  survival:
+    display: "Survival"
+    host: survival
+    port: 25567
+
 portals:
   survival:
     server: survival
