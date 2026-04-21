@@ -1,5 +1,14 @@
 # PH-Minigames Konfiguration
-arenas:
-  bedwars-max-players: 8
-  skywars-max-players: 12
-  max-game-time-seconds: 600
+
+database:
+  host: ph-mysql
+  port: 3306
+  user: ph_user
+  password: ph-db-2024
+  name: ph_minigames
+
+bedwars:
+  default-max-teams: 4
+  default-team-size: 2
+  countdown-seconds: 30
+  respawn-seconds: 5
