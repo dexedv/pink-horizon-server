@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -131,24 +132,29 @@ public class TutorialGui implements Listener {
 
     // ── Events ────────────────────────────────────────────────────────────
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         if (openMenus.containsKey(player.getUniqueId())) event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         String page = openMenus.get(player.getUniqueId());
         if (page == null) return;
-        event.setCancelled(true);
-        if (event.getClickedInventory() == null || event.getClickedInventory().equals(player.getInventory())) return;
 
-        int slot = event.getSlot();
+        // Immer canceln – kein Item darf sich bewegen
+        event.setCancelled(true);
+
+        // Nur Klicks im GUI-Bereich (rawSlot < Größe des oberen Inventars) verarbeiten
+        int topSize = event.getView().getTopInventory().getSize();
+        if (event.getRawSlot() < 0 || event.getRawSlot() >= topSize) return;
+
         ItemStack item = event.getCurrentItem();
         if (item == null || item.getType() == Material.AIR || item.getType() == Material.GRAY_STAINED_GLASS_PANE) return;
 
+        int slot = event.getRawSlot();
         if (page.equals("main")) {
             switch (slot) {
                 case 20 -> openAllgemein(player);
