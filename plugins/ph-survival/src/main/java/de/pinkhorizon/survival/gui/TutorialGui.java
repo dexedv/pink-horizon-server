@@ -39,8 +39,8 @@ public class TutorialGui implements Listener {
         inv.setItem(31, cat(Material.GOLD_INGOT,    "<gold><bold>💰 Wirtschaft</bold></gold>",      "/balance, /pay, /shop, /jobs …"));
         inv.setItem(33, cat(Material.WRITABLE_BOOK, "<light_purple><bold>💬 Soziales</bold></light_purple>", "/friend, /mail, /trade …"));
 
-        openMenus.put(player.getUniqueId(), "main");
         player.openInventory(inv);
+        openMenus.put(player.getUniqueId(), "main");
     }
 
     // ── Sub-Menüs ─────────────────────────────────────────────────────────
@@ -57,8 +57,8 @@ public class TutorialGui implements Listener {
         inv.setItem(19, cmd(Material.CLOCK,          "/playtime",       "Deine Spielzeit anzeigen."));
         inv.setItem(20, cmd(Material.FEATHER,        "/back",           "Zum letzten Sterbeort teleportieren."));
         back(inv);
-        openMenus.put(player.getUniqueId(), "allgemein");
         player.openInventory(inv);
+        openMenus.put(player.getUniqueId(), "allgemein");
     }
 
     private void openClaims(Player player) {
@@ -72,8 +72,8 @@ public class TutorialGui implements Listener {
         inv.setItem(19, cmd(Material.GOLD_NUGGET,    "Preis",           "Jeder Chunk-Claim kostet Coins.", "Sieh dein Guthaben mit /balance."));
         inv.setItem(20, cmd(Material.GRASS_BLOCK,    "Was ist ein Chunk?","16x16 Blöcke großer Bereich.", "Sichtbar mit F3+G."));
         back(inv);
-        openMenus.put(player.getUniqueId(), "claims");
         player.openInventory(inv);
+        openMenus.put(player.getUniqueId(), "claims");
     }
 
     private void openHomes(Player player) {
@@ -83,8 +83,8 @@ public class TutorialGui implements Listener {
         inv.setItem(12, cmd(Material.BOOK,           "/homes",          "Alle gesetzten Homes anzeigen."));
         inv.setItem(13, cmd(Material.SHEARS,         "/delhome [Name]", "Einen Home löschen."));
         back(inv);
-        openMenus.put(player.getUniqueId(), "homes");
         player.openInventory(inv);
+        openMenus.put(player.getUniqueId(), "homes");
     }
 
     private void openTeleport(Player player) {
@@ -96,8 +96,8 @@ public class TutorialGui implements Listener {
         inv.setItem(14, cmd(Material.MAP,            "/warp <Name>",    "Zu einem öffentlichen Warp-Punkt."));
         inv.setItem(15, cmd(Material.BOOK,           "/warps",          "Alle verfügbaren Warps auflisten."));
         back(inv);
-        openMenus.put(player.getUniqueId(), "teleport");
         player.openInventory(inv);
+        openMenus.put(player.getUniqueId(), "teleport");
     }
 
     private void openWirtschaft(Player player) {
@@ -112,8 +112,8 @@ public class TutorialGui implements Listener {
         inv.setItem(20, cmd(Material.PAPER,          "/bank deposit <B>","Coins einzahlen."));
         inv.setItem(21, cmd(Material.PAPER,          "/bank withdraw <B>","Coins abheben."));
         back(inv);
-        openMenus.put(player.getUniqueId(), "wirtschaft");
         player.openInventory(inv);
+        openMenus.put(player.getUniqueId(), "wirtschaft");
     }
 
     private void openSoziales(Player player) {
@@ -126,8 +126,8 @@ public class TutorialGui implements Listener {
         inv.setItem(15, cmd(Material.REDSTONE,       "/report <Sp.> <Gr.>","Regelverstoß melden."));
         inv.setItem(19, cmd(Material.IRON_DOOR,      "/hub",            "Zur Lobby zurückkehren."));
         back(inv);
-        openMenus.put(player.getUniqueId(), "soziales");
         player.openInventory(inv);
+        openMenus.put(player.getUniqueId(), "soziales");
     }
 
     // ── Events ────────────────────────────────────────────────────────────
@@ -171,6 +171,8 @@ public class TutorialGui implements Listener {
 
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
+        // OPEN_NEW = Spieler öffnet ein anderes Inventar → Tracking NICHT löschen
+        if (event.getReason() == InventoryCloseEvent.Reason.OPEN_NEW) return;
         openMenus.remove(event.getPlayer().getUniqueId());
     }
 
