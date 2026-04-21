@@ -74,36 +74,36 @@ public class ShopCommand implements CommandExecutor {
 
         addItem(inv, 10, Material.FEATHER,  "§b§lFly §7– 10 Minuten",
                 "§7Fliege frei durch die Welt.", "§8Stapelt sich mit aktiver Zeit.",
-                800, FLY_10, flyPermStatus);
+                2_400, FLY_10, flyPermStatus);
         addItem(inv, 11, Material.FEATHER,  "§b§lFly §7– 30 Minuten",
                 "§7Fliege frei durch die Welt.", "§8Stapelt sich mit aktiver Zeit.",
-                1_800, FLY_30, flyPermStatus);
+                5_400, FLY_30, flyPermStatus);
         addItem(inv, 12, Material.FEATHER,  "§b§lFly §7– 1 Stunde",
                 "§7Fliege frei durch die Welt.", "§8Stapelt sich mit aktiver Zeit.",
-                3_500, FLY_60, flyPermStatus);
+                10_500, FLY_60, flyPermStatus);
         addItem(inv, 13, Material.ELYTRA,   "§b§l§nFly §7– Dauerhaft",
                 "§7Fliege §limmer§r§7 – niemals ablaufend.", "§cEinmaliger Kauf.",
-                150_000, FLY_PERM, flyPerm ? "§a§lBereits besessen!" : null);
+                1_500_000, FLY_PERM, flyPerm ? "§a§lBereits besessen!" : null);
 
         // ── Claim-Sektion (rechts, Slots 14–15) ──────────────────────────
         int extra = um.getExtraClaims(uuid);
         String claimMax = extra >= 50 ? "§cMaximum erreicht (+50)!" : null;
-        long price5  = um.getClaimPrice(uuid, 1_500);
-        long price15 = um.getClaimPrice(uuid, 4_000);
-        long nextPrice5  = um.getClaimPrice(uuid, 1_500) * 3 / 2; // nach diesem Kauf
-        long nextPrice15 = um.getClaimPrice(uuid, 4_000) * 3 / 2;
+        long price5  = um.getClaimPrice(uuid, 4_500);
+        long price15 = um.getClaimPrice(uuid, 12_000);
+        long nextPrice5  = um.getClaimPrice(uuid, 4_500) * 3 / 2; // nach diesem Kauf
+        long nextPrice15 = um.getClaimPrice(uuid, 12_000) * 3 / 2;
         int purchases = um.getClaimPurchases(uuid);
 
         addItemDynamic(inv, 14, Material.GRASS_BLOCK, "§a§l+5 Claim-Slots",
                 "§7Erhöht dein Claim-Limit dauerhaft.",
                 "§7Extra bisher: §a+" + extra + "§7/§a+50",
-                "§8Kauf #" + (purchases + 1) + (purchases > 0 ? " §8(war §7" + um.getClaimPrice(uuid, 1_500) * 2 / 3 + "§8)" : ""),
+                "§8Kauf #" + (purchases + 1) + (purchases > 0 ? " §8(war §7" + um.getClaimPrice(uuid, 4_500) * 2 / 3 + "§8)" : ""),
                 "§7Nächster Kauf: §c" + nextPrice5 + " §7Coins",
                 price5, CLAIMS_5, claimMax);
         addItemDynamic(inv, 15, Material.PODZOL,      "§a§l+15 Claim-Slots",
                 "§7Erhöht dein Claim-Limit dauerhaft.",
                 "§7Extra bisher: §a+" + extra + "§7/§a+50",
-                "§8Kauf #" + (purchases + 1) + (purchases > 0 ? " §8(war §7" + um.getClaimPrice(uuid, 4_000) * 2 / 3 + "§8)" : ""),
+                "§8Kauf #" + (purchases + 1) + (purchases > 0 ? " §8(war §7" + um.getClaimPrice(uuid, 12_000) * 2 / 3 + "§8)" : ""),
                 "§7Nächster Kauf: §c" + nextPrice15 + " §7Coins",
                 price15, CLAIMS_15, claimMax);
 
@@ -116,16 +116,16 @@ public class ShopCommand implements CommandExecutor {
 
         addItem(inv, 19, Material.TOTEM_OF_UNDYING, "§6§lKeepInventory §7– 10 Min.",
                 "§7Inventar bleibt beim Tod erhalten.", "§8Stapelt sich mit aktiver Zeit.",
-                500, KI_10, kiStatus);
+                1_500, KI_10, kiStatus);
         addItem(inv, 20, Material.TOTEM_OF_UNDYING, "§6§lKeepInventory §7– 30 Min.",
                 "§7Inventar bleibt beim Tod erhalten.", "§8Stapelt sich mit aktiver Zeit.",
-                1_200, KI_30, kiStatus);
+                3_600, KI_30, kiStatus);
         addItem(inv, 21, Material.TOTEM_OF_UNDYING, "§6§lKeepInventory §7– 1 Std.",
                 "§7Inventar bleibt beim Tod erhalten.", "§8Stapelt sich mit aktiver Zeit.",
-                2_500, KI_60, kiStatus);
+                7_500, KI_60, kiStatus);
         addItem(inv, 22, Material.NETHER_STAR,      "§6§l§nKeepInventory §7– Dauerhaft",
                 "§7Inventar §limmer§r §7beim Tod erhalten.", "§cEinmaliger Kauf – niemals ablaufend.",
-                150_000, KI_PERM, hasPerm ? "§a§lBereits besessen!" : null);
+                1_500_000, KI_PERM, hasPerm ? "§a§lBereits besessen!" : null);
 
         // ── Status-Item (Slot 31) ─────────────────────────────────────────
         long coins = plugin.getEconomyManager().getBalance(uuid);
