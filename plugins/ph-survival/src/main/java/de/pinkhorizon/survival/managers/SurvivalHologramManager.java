@@ -86,6 +86,21 @@ public class SurvivalHologramManager {
 
     public Map<String, List<TextDisplay>> getAll() { return active; }
 
+    /** Temporäres Hologramm ohne DB-Eintrag (z.B. Todeskiste). */
+    public void createTemporary(String name, Location base, List<String> lines, float scale) {
+        remove(name);
+        spawnLines(name, base, lines, scale);
+    }
+
+    /** Aktualisiert den Text einer einzelnen Zeile eines aktiven Holograms. */
+    public void updateLine(String name, int lineIndex, String text) {
+        List<TextDisplay> entities = active.get(name);
+        if (entities == null || lineIndex >= entities.size()) return;
+        TextDisplay entity = entities.get(lineIndex);
+        if (entity == null || entity.isDead()) return;
+        entity.text(MiniMessage.miniMessage().deserialize(text));
+    }
+
     private void spawnLines(String name, Location base, List<String> lines, float scale) {
         List<TextDisplay> entities = new ArrayList<>();
         double offset = (lines.size() - 1) * LINE_SPACING * scale;
