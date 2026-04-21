@@ -6,6 +6,8 @@ import de.pinkhorizon.minigames.bedwars.BedWarsTeamColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
+import org.bukkit.block.sign.Side;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -19,6 +21,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.entity.Villager;
 
@@ -171,6 +174,33 @@ public class BedWarsListener implements Listener {
         if (game == null || game.getState() != BedWarsGame.GameState.RUNNING) return;
         event.setCancelled(true);
         plugin.getShopGui().open(player);
+    }
+
+    @EventHandler
+    public void onSignClick(PlayerInteractEvent event) {
+        if (event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
+        Block block = event.getClickedBlock();
+        if (block == null) return;
+        if (!(block.getState() instanceof Sign sign)) return;
+
+        String line1 = org.bukkit.ChatColor.stripColor(sign.getSide(Side.FRONT).getLine(0)).trim();
+        if (!line1.equalsIgnoreCase("[BedWars]")) return;
+
+        event.setCancelled(true);
+        Player player = event.getPlayer();
+
+        if (plugin.getArenaManager().getGameOf(player.getUniqueId()) != null) {
+            player.sendMessage("§cDu bist bereits in einem Spiel.");
+            return;
+        }
+
+        String arenaName = org.bukkit.ChatColor.stripColor(sign.getSide(Side.FRONT).getLine(1)).trim();
+        BedWarsGame game = arenaName.isEmpty()
+                ? plugin.getArenaManager().findOrCreateAnyGame()
+                : plugin.getArenaManager().findOrCreateGame(arenaName);
+
+        if (game == null) { player.sendMessage("§cKeine Arena verfügbar."); return; }
+        if (!game.addPlayer(player)) player.sendMessage("§cArena voll oder Spiel läuft bereits.");
     }
 
     @EventHandler
