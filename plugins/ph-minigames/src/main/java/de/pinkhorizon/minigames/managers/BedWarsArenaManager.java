@@ -1,14 +1,12 @@
 package de.pinkhorizon.minigames.managers;
 
 import de.pinkhorizon.minigames.PHMinigames;
-import de.pinkhorizon.minigames.VoidGenerator;
 import de.pinkhorizon.minigames.bedwars.BedWarsArenaConfig;
 import de.pinkhorizon.minigames.bedwars.BedWarsGame;
 import de.pinkhorizon.minigames.bedwars.BedWarsTeamColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.WorldCreator;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -58,14 +56,11 @@ public class BedWarsArenaManager {
                     if (cfg == null) continue;
                     BedWarsTeamColor color = BedWarsTeamColor.fromString(rs.getString("team"));
                     if (color == null) continue;
+                    double x = rs.getDouble("x"), y = rs.getDouble("y"), z = rs.getDouble("z");
+                    float yaw = rs.getFloat("yaw"), pitch = rs.getFloat("pitch");
+                    cfg.teamSpawnData.put(color, new double[]{x, y, z, yaw, pitch});
                     World world = Bukkit.getWorld(cfg.world);
-                    if (world == null) {
-                        world = new WorldCreator(cfg.world).generator(new VoidGenerator()).createWorld();
-                    }
-                    if (world == null) continue;
-                    cfg.teamSpawns.put(color, new Location(world,
-                            rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z"),
-                            rs.getFloat("yaw"), rs.getFloat("pitch")));
+                    if (world != null) cfg.teamSpawns.put(color, new Location(world, x, y, z, yaw, pitch));
                 }
             }
 
@@ -137,6 +132,7 @@ public class BedWarsArenaManager {
             ps.setFloat(6, loc.getYaw());
             ps.setFloat(7, loc.getPitch());
             ps.executeUpdate();
+            cfg.teamSpawnData.put(team, new double[]{loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch()});
             cfg.teamSpawns.put(team, loc.clone());
             return true;
         } catch (SQLException e) {

@@ -82,7 +82,7 @@ public class BedWarsGame {
         teams.get(team).add(player.getUniqueId());
 
         // Spawn-Teleport
-        Location spawn = arena.teamSpawns.get(team);
+        Location spawn = arena.getSpawnLocation(team);
         if (spawn != null) player.teleport(spawn);
 
         broadcastGame("§7" + team.chatColor + player.getName() + " §7hat das Spiel betreten. §8("
@@ -168,7 +168,7 @@ public class BedWarsGame {
             p.setHealth(20);
             p.setFoodLevel(20);
             giveStartKit(p, team);
-            Location spawn = arena.teamSpawns.get(team);
+            Location spawn = arena.getSpawnLocation(team);
             if (spawn != null) p.teleport(spawn);
         }
 
@@ -220,7 +220,7 @@ public class BedWarsGame {
                     p.setGameMode(GameMode.SURVIVAL);
                     p.setHealth(20);
                     p.setFoodLevel(20);
-                    Location spawn = arena.teamSpawns.get(team);
+                    Location spawn = arena.getSpawnLocation(team);
                     if (spawn != null) p.teleport(spawn);
                     giveStartKit(p, team);
                     p.sendMessage("§aRespawnt!");
