@@ -412,6 +412,7 @@ public class BedWarsGame {
     public GameState        getState()                                      { return state; }
     public int              getCountdown()                                   { return countdown; }
     public BedWarsArenaConfig getArena()                                    { return arena; }
+    public boolean          isJoinable()                                      { return (state == GameState.WAITING || state == GameState.STARTING) && getTotalPlayers() < arena.maxTeams * arena.teamSize; }
     public BedWarsTeamColor getTeamOf(UUID uuid)                           { return playerTeams.get(uuid); }
     public boolean          isInGame(UUID uuid)                             { return playerTeams.containsKey(uuid); }
     public boolean          isSpectator(UUID uuid)                          { return spectators.contains(uuid); }

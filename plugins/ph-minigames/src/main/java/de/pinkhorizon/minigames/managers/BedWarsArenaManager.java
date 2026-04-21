@@ -198,9 +198,7 @@ public class BedWarsArenaManager {
         if (cfg == null) return null;
 
         for (BedWarsGame game : activeGames) {
-            if (game.getArena().name.equals(arenaName)
-                    && (game.getState() == BedWarsGame.GameState.WAITING
-                     || game.getState() == BedWarsGame.GameState.STARTING)) {
+            if (game.getArena().name.equals(arenaName) && game.isJoinable()) {
                 return game;
             }
         }

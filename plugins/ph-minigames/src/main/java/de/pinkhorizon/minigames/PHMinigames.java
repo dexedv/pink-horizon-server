@@ -8,6 +8,7 @@ import de.pinkhorizon.minigames.hub.HubListener;
 import de.pinkhorizon.minigames.hub.HubManager;
 import de.pinkhorizon.minigames.listeners.BedWarsListener;
 import de.pinkhorizon.minigames.managers.BedWarsArenaManager;
+import de.pinkhorizon.minigames.managers.BedWarsSignManager;
 import de.pinkhorizon.minigames.managers.BedWarsStatsManager;
 import de.pinkhorizon.minigames.managers.MinigamesHologramManager;
 import org.bukkit.generator.ChunkGenerator;
@@ -24,6 +25,7 @@ public class PHMinigames extends JavaPlugin {
     private BedWarsArenaManager      arenaManager;
     private BedWarsStatsManager      statsManager;
     private MinigamesHologramManager hologramManager;
+    private BedWarsSignManager       signManager;
     private BedWarsShopGui           shopGui;
     private HubManager               hubManager;
     private HubGui                   hubGui;
@@ -46,6 +48,7 @@ public class PHMinigames extends JavaPlugin {
         arenaManager    = new BedWarsArenaManager(this);
         statsManager    = new BedWarsStatsManager(this);
         hologramManager = new MinigamesHologramManager(this);
+        signManager     = new BedWarsSignManager(this);
         shopGui         = new BedWarsShopGui(this);
         hubManager      = new HubManager(this);
         hubGui          = new HubGui(this);
@@ -59,10 +62,11 @@ public class PHMinigames extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BedWarsListener(this), this);
         getServer().getPluginManager().registerEvents(new HubListener(this), this);
 
-        // Holograms + Hub-Regeln nach Welt-Load anwenden
+        // Holograms + Hub-Regeln + Sign-Updates nach Welt-Load starten
         getServer().getScheduler().runTaskLater(this, () -> {
             hologramManager.spawnAll();
             hubManager.applyHubWorldRulesFromConfig();
+            signManager.start();
         }, 60L);
 
         getLogger().info("PH-Minigames gestartet! Arenen: " + arenaManager.getArenas().size() + " | Hub+TabList aktiv");
@@ -70,6 +74,7 @@ public class PHMinigames extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (signManager     != null) signManager.stop();
         if (arenaManager    != null) arenaManager.stopAll();
         if (hologramManager != null) hologramManager.stopAll();
         if (db              != null) db.close();
@@ -89,4 +94,5 @@ public class PHMinigames extends JavaPlugin {
     public BedWarsShopGui           getShopGui()        { return shopGui; }
     public HubManager               getHubManager()     { return hubManager; }
     public HubGui                   getHubGui()         { return hubGui; }
+    public BedWarsSignManager       getSignManager()    { return signManager; }
 }

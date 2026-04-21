@@ -186,17 +186,20 @@ public class BedWarsListener implements Listener {
         plugin.getShopGui().open(player);
     }
 
-    /** Wachst BedWars-Schilder automatisch beim Beschriften, damit kein Editor mehr öffnet. */
+    /** Registriert BedWars-Schilder beim Beschriften und wachst sie. */
     @EventHandler
     public void onSignWrite(SignChangeEvent event) {
         @SuppressWarnings("deprecation")
-        String line1 = org.bukkit.ChatColor.stripColor(event.getLine(0) != null ? event.getLine(0) : "").trim();
-        if (!line1.equalsIgnoreCase("[BedWars]")) return;
+        String line0 = org.bukkit.ChatColor.stripColor(event.getLine(0) != null ? event.getLine(0) : "").trim();
+        if (!line0.equalsIgnoreCase("[BedWars]")) return;
+        @SuppressWarnings("deprecation")
+        String arenaName = org.bukkit.ChatColor.stripColor(event.getLine(1) != null ? event.getLine(1) : "").trim();
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (event.getBlock().getState() instanceof Sign s) {
                 s.setWaxed(true);
                 s.update();
-                event.getPlayer().sendMessage("§aBedWars-Schild gespeichert! Spieler können es jetzt anklicken.");
+                plugin.getSignManager().addSign(event.getBlock().getLocation(), arenaName);
+                event.getPlayer().sendMessage("§aBedWars-Schild für Arena §f" + (arenaName.isEmpty() ? "beliebig" : arenaName) + " §aregistriert!");
             }
         }, 1L);
     }
@@ -209,33 +212,35 @@ public class BedWarsListener implements Listener {
         if (block == null) return;
         if (!(block.getState() instanceof Sign sign)) return;
 
-        // Legacy getLine(0) ist zuverlässiger als getSide() in Paper 1.21
-        @SuppressWarnings("deprecation")
-        String line1 = org.bukkit.ChatColor.stripColor(sign.getLine(0)).trim();
-        if (!line1.equalsIgnoreCase("[BedWars]")) return;
-
-        // Schild wachsen falls noch nicht gewachst (z.B. bereits existierende Schilder)
-        if (!sign.isWaxed()) {
-            sign.setWaxed(true);
-            sign.update();
+        // Im Sign-Manager prüfen; alternativ Legacy-Fallback für alte Schilder
+        String arenaName = plugin.getSignManager().getArenaForSign(block.getLocation());
+        if (arenaName == null) {
+            @SuppressWarnings("deprecation")
+            String line0 = org.bukkit.ChatColor.stripColor(sign.getLine(0)).trim();
+            if (!line0.equalsIgnoreCase("[BedWars]")) return;
+            @SuppressWarnings("deprecation")
+            String arena = org.bukkit.ChatColor.stripColor(sign.getLine(1)).trim();
+            arenaName = arena;
+            // Nachträglich registrieren
+            plugin.getSignManager().addSign(block.getLocation(), arenaName);
         }
 
+        if (!sign.isWaxed()) { sign.setWaxed(true); sign.update(); }
         event.setCancelled(true);
-        Player player = event.getPlayer();
 
+        Player player = event.getPlayer();
         if (plugin.getArenaManager().getGameOf(player.getUniqueId()) != null) {
             player.sendMessage("§cDu bist bereits in einem Spiel.");
             return;
         }
 
-        @SuppressWarnings("deprecation")
-        String arenaName = org.bukkit.ChatColor.stripColor(sign.getLine(1)).trim();
         BedWarsGame game = arenaName.isEmpty()
                 ? plugin.getArenaManager().findOrCreateAnyGame()
                 : plugin.getArenaManager().findOrCreateGame(arenaName);
 
         if (game == null) { player.sendMessage("§cKeine Arena verfügbar."); return; }
         if (!game.addPlayer(player)) player.sendMessage("§cArena voll oder Spiel läuft bereits.");
+        else plugin.getSignManager().updateAll();
     }
 
     @EventHandler
