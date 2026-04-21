@@ -1,9 +1,13 @@
 package de.pinkhorizon.minigames.commands;
 
 import de.pinkhorizon.minigames.PHMinigames;
+import de.pinkhorizon.minigames.VoidGenerator;
 import de.pinkhorizon.minigames.bedwars.BedWarsGame;
 import de.pinkhorizon.minigames.bedwars.BedWarsTeamColor;
 import de.pinkhorizon.minigames.managers.BedWarsStatsManager;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -144,6 +148,33 @@ public class BedWarsCommand implements CommandExecutor, TabCompleter {
                 }
             }
 
+            case "createworld" -> {
+                if (!sender.hasPermission("minigames.admin")) { sender.sendMessage("§cKeine Berechtigung."); return true; }
+                if (args.length < 2) { sender.sendMessage("§cNutzung: /bw createworld <name>"); return true; }
+                String worldName = args[1];
+                if (Bukkit.getWorld(worldName) != null) { sender.sendMessage("§cWelt §f" + worldName + " §cexistiert bereits."); return true; }
+                sender.sendMessage("§7Erstelle Void-Welt §f" + worldName + "§7...");
+                World world = new WorldCreator(worldName)
+                        .generator(new VoidGenerator())
+                        .createWorld();
+                if (world != null) {
+                    world.setSpawnLocation(0, 64, 0);
+                    sender.sendMessage("§aVoid-Welt §f" + worldName + " §aerstellt! Teleportiere mit: §f/bw tpworld " + worldName);
+                } else {
+                    sender.sendMessage("§cFehler beim Erstellen der Welt.");
+                }
+            }
+
+            case "tpworld" -> {
+                if (!sender.hasPermission("minigames.admin")) { sender.sendMessage("§cKeine Berechtigung."); return true; }
+                if (!(sender instanceof Player player)) { sender.sendMessage("§cNur für Spieler."); return true; }
+                if (args.length < 2) { sender.sendMessage("§cNutzung: /bw tpworld <name>"); return true; }
+                World world = Bukkit.getWorld(args[1]);
+                if (world == null) { player.sendMessage("§cWelt §f" + args[1] + " §cnicht gefunden. Erstelle sie mit /bw createworld."); return true; }
+                player.teleport(world.getSpawnLocation());
+                player.sendMessage("§aTeleportiert nach §f" + args[1]);
+            }
+
             case "arenas" -> {
                 sender.sendMessage("§d§lVerfügbare Arenen:");
                 if (plugin.getArenaManager().getArenas().isEmpty()) {
@@ -163,7 +194,7 @@ public class BedWarsCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
-        if (args.length == 1) return filter(List.of("join","leave","shop","stats","create","setspawn","setbed","addspawner","hologram","arenas"), args[0]);
+        if (args.length == 1) return filter(List.of("join","leave","shop","stats","create","setspawn","setbed","addspawner","hologram","arenas","createworld","tpworld"), args[0]);
         if (args.length == 2) {
             return switch (args[0].toLowerCase()) {
                 case "join","setspawn","setbed","addspawner" -> {
