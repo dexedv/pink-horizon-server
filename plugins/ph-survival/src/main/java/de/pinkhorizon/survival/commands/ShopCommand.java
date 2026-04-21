@@ -74,13 +74,13 @@ public class ShopCommand implements CommandExecutor {
 
         addItem(inv, 10, Material.FEATHER,  "§b§lFly §7– 10 Minuten",
                 "§7Fliege frei durch die Welt.", "§8Stapelt sich mit aktiver Zeit.",
-                12_000, FLY_10, flyPermStatus);
+                60_000, FLY_10, flyPermStatus);
         addItem(inv, 11, Material.FEATHER,  "§b§lFly §7– 30 Minuten",
                 "§7Fliege frei durch die Welt.", "§8Stapelt sich mit aktiver Zeit.",
-                27_000, FLY_30, flyPermStatus);
+                135_000, FLY_30, flyPermStatus);
         addItem(inv, 12, Material.FEATHER,  "§b§lFly §7– 1 Stunde",
                 "§7Fliege frei durch die Welt.", "§8Stapelt sich mit aktiver Zeit.",
-                52_500, FLY_60, flyPermStatus);
+                262_500, FLY_60, flyPermStatus);
         addItem(inv, 13, Material.ELYTRA,   "§b§l§nFly §7– Dauerhaft",
                 "§7Fliege §limmer§r§7 – niemals ablaufend.", "§cEinmaliger Kauf.",
                 1_500_000, FLY_PERM, flyPerm ? "§a§lBereits besessen!" : null);
