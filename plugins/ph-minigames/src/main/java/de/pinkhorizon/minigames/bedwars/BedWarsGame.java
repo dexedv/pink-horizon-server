@@ -83,7 +83,13 @@ public class BedWarsGame {
 
         // Spawn-Teleport
         Location spawn = arena.getSpawnLocation(team);
-        if (spawn != null) player.teleport(spawn);
+        if (spawn != null) {
+            player.teleport(spawn);
+        } else {
+            player.sendMessage("§c[Debug] Kein Spawn für Team " + team.name() + " gefunden! Wende dich an einen Admin.");
+            plugin.getLogger().warning("Kein Spawn für Team " + team.name() + " in Arena " + arena.name
+                    + " (world=" + arena.world + ", spawnData=" + arena.teamSpawnData.size() + ")");
+        }
 
         broadcastGame("§7" + team.chatColor + player.getName() + " §7hat das Spiel betreten. §8("
                 + getTotalPlayers() + "/" + getMaxPlayers() + ")");

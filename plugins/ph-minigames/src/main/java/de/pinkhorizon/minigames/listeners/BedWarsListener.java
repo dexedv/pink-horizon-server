@@ -178,12 +178,15 @@ public class BedWarsListener implements Listener {
 
     @EventHandler
     public void onSignClick(PlayerInteractEvent event) {
+        if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
         if (event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
         Block block = event.getClickedBlock();
         if (block == null) return;
         if (!(block.getState() instanceof Sign sign)) return;
 
-        String line1 = org.bukkit.ChatColor.stripColor(sign.getSide(Side.FRONT).getLine(0)).trim();
+        // Legacy getLine(0) ist zuverlässiger als getSide() in Paper 1.21
+        @SuppressWarnings("deprecation")
+        String line1 = org.bukkit.ChatColor.stripColor(sign.getLine(0)).trim();
         if (!line1.equalsIgnoreCase("[BedWars]")) return;
 
         event.setCancelled(true);
@@ -194,7 +197,8 @@ public class BedWarsListener implements Listener {
             return;
         }
 
-        String arenaName = org.bukkit.ChatColor.stripColor(sign.getSide(Side.FRONT).getLine(1)).trim();
+        @SuppressWarnings("deprecation")
+        String arenaName = org.bukkit.ChatColor.stripColor(sign.getLine(1)).trim();
         BedWarsGame game = arenaName.isEmpty()
                 ? plugin.getArenaManager().findOrCreateAnyGame()
                 : plugin.getArenaManager().findOrCreateGame(arenaName);
