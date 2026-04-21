@@ -407,6 +407,7 @@ const NAV_DEF = [
   { id:'commands',     icon:'📋', label:'Befehlsreferenz' },
   { id:'sqlconsole',   icon:'🖥️', label:'SQL-Konsole'    },
   { sec: 'System' },
+  { id:'sysmon',       icon:'📡', label:'System-Monitor'  },
   { id:'backup',       icon:'💾', label:'Backup'          },
   { id:'motd',         icon:'📝', label:'MOTD-Editor'     },
 ];
@@ -433,7 +434,15 @@ function buildNav() {
   }
 }
 
-function nav(p) { PAGE = p; buildNav(); renderPage(); }
+function nav(p) {
+  const wasStats = PAGE === 'sysmon' || PAGE === 'dashboard';
+  const isStats  = p   === 'sysmon' || p   === 'dashboard';
+  if (wasStats && !isStats && ws?.readyState === 1)
+    ws.send(JSON.stringify({ type: 'unsubscribe_stats' }));
+  PAGE = p; buildNav(); renderPage();
+  if (!wasStats && isStats && ws?.readyState === 1)
+    ws.send(JSON.stringify({ type: 'subscribe_stats' }));
+}
 
 function setHdr(title, html) {
   document.getElementById('page-title').textContent = title;
@@ -458,6 +467,7 @@ function renderPage() {
   if (PAGE === 'backup')       return renderBackup();
   if (PAGE === 'motd')         return renderMotd();
   if (PAGE === 'mg_bedwars')   return renderBedWars();
+  if (PAGE === 'sysmon')       return renderSysmon();
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -533,32 +543,37 @@ async function doBroadcast() {
 
 async function loadResStats() {
   const el = document.getElementById('res-section'); if (!el) return;
-  el.innerHTML = `<div class="card"><div class="card-title">⚡ Container-Ressourcen</div><div class="empty" style="padding:12px">Lade…</div></div>`;
+  el.innerHTML = `<div class="g4" id="dash-res-grid">
+    ${['velocity','lobby','survival','minigames'].map(k=>`
+      <div class="card res-card" id="dash-res-${k}">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:4px">${escH(srvData[k]?.label||k)}</div>
+        <div class="empty" style="padding:4px 0;font-size:.8rem">Lade…</div>
+      </div>`).join('')}
+  </div>`;
   const r = await apiFetch('/api/containers/stats');
-  if (!r?.ok) { el.innerHTML=''; return; }
-  const data = await r.json();
+  if (!r?.ok) return;
+  updateDashStats(await r.json());
+  if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'subscribe_stats' }));
+}
+
+function updateDashStats(data) {
   const srvOrder = ['velocity','lobby','survival','minigames'];
-  let cards = srvOrder.map(k => {
+  for (const k of srvOrder) {
+    const el = document.getElementById(`dash-res-${k}`); if (!el) continue;
     const d = data[k]; const s = srvData[k];
-    if (!d || !s) return '';
-    const cpuPct   = d.cpu;
-    const memMb    = (d.memUsed / 1024 / 1024).toFixed(0);
-    const limitMb  = (d.memLimit / 1024 / 1024).toFixed(0);
-    const cpuWarn  = cpuPct > 70;
-    const memWarn  = d.memPct > 75;
-    return `<div class="card res-card">
-      <div style="font-weight:700;font-size:.88rem;margin-bottom:2px">${escH(s.label)}</div>
+    if (!d) { el.innerHTML = `<div style="font-weight:700;font-size:.88rem">${escH(s?.label||k)}</div><span class="badge b-red" style="margin-top:4px">Offline</span>`; continue; }
+    const cpuWarn = d.cpu > 70; const memWarn = d.memPct > 75;
+    el.innerHTML = `
+      <div style="font-weight:700;font-size:.88rem;margin-bottom:4px">${escH(s?.label||k)}</div>
       <div class="res-row">
-        <div class="res-lbl"><span>CPU</span><span>${cpuPct}%</span></div>
-        <div class="res-bar"><div class="res-fill ${cpuWarn?'rf-warn':'rf-cpu'}" style="width:${Math.min(cpuPct,100)}%"></div></div>
+        <div class="res-lbl"><span>CPU</span><span>${d.cpu}%</span></div>
+        <div class="res-bar"><div class="res-fill ${cpuWarn?'rf-warn':'rf-cpu'}" style="width:${Math.min(d.cpu,100)}%"></div></div>
       </div>
       <div class="res-row">
-        <div class="res-lbl"><span>RAM</span><span>${memMb} / ${limitMb} MB</span></div>
+        <div class="res-lbl"><span>RAM</span><span>${(d.memUsed/1024/1024).toFixed(0)} / ${(d.memLimit/1024/1024).toFixed(0)} MB</span></div>
         <div class="res-bar"><div class="res-fill ${memWarn?'rf-warn':'rf-mem'}" style="width:${Math.min(d.memPct,100)}%"></div></div>
-      </div>
-    </div>`;
-  }).join('');
-  el.innerHTML = `<div class="g4">${cards||'<div class="empty">Keine Daten</div>'}</div>`;
+      </div>`;
+  }
 }
 
 async function loadDbStatus() {
@@ -1908,6 +1923,56 @@ function showToast(msg, ok=true) {
   setTimeout(() => t.remove(), 3400);
 }
 
+// ── System-Monitor ────────────────────────────────────────────────────────
+const SYSMON_ORDER = ['velocity','lobby','survival','minigames','mysql','dashboard'];
+const SYSMON_LABELS = { velocity:'Velocity Proxy', lobby:'Lobby', survival:'Survival', minigames:'Minigames', mysql:'MySQL', dashboard:'Dashboard' };
+
+function renderSysmon() {
+  setHdr('📡 System-Monitor', '');
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="g3" id="sm-grid">
+      ${SYSMON_ORDER.map(k=>`
+        <div class="card res-card" id="sm-${k}">
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:6px">${SYSMON_LABELS[k]||k}</div>
+          <div class="empty" style="padding:8px 0;font-size:.8rem">Verbinde…</div>
+        </div>`).join('')}
+    </div>
+    <div style="text-align:right;font-size:.73rem;color:var(--muted);padding:0 2px" id="sm-ts"></div>
+  </div>`;
+  if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'subscribe_stats' }));
+}
+
+function updateSysmonStats(data) {
+  for (const k of SYSMON_ORDER) {
+    const el = document.getElementById(`sm-${k}`); if (!el) return;
+    const d = data[k];
+    if (!d) {
+      el.innerHTML = `<div style="font-weight:700;font-size:.95rem;margin-bottom:6px">${SYSMON_LABELS[k]||k}</div><span class="badge b-red">Offline</span>`;
+      continue;
+    }
+    const cpuWarn = d.cpu > 70; const memWarn = d.memPct > 75;
+    const memMb   = (d.memUsed  / 1024 / 1024).toFixed(0);
+    const limMb   = (d.memLimit / 1024 / 1024).toFixed(0);
+    el.innerHTML = `
+      <div style="font-weight:700;font-size:.95rem;margin-bottom:8px">${SYSMON_LABELS[k]||k}</div>
+      <div class="res-row">
+        <div class="res-lbl"><span>CPU</span><span style="font-size:.82rem;font-weight:700;color:${cpuWarn?'var(--yellow)':'var(--text)'}">${d.cpu}%</span></div>
+        <div class="res-bar" style="height:8px"><div class="res-fill ${cpuWarn?'rf-warn':'rf-cpu'}" style="width:${Math.min(d.cpu,100)}%"></div></div>
+      </div>
+      <div class="res-row" style="margin-top:6px">
+        <div class="res-lbl"><span>RAM</span><span style="font-size:.82rem;font-weight:700;color:${memWarn?'var(--yellow)':'var(--text)'}">${memMb} / ${limMb} MB</span></div>
+        <div class="res-bar" style="height:8px"><div class="res-fill ${memWarn?'rf-warn':'rf-mem'}" style="width:${Math.min(d.memPct,100)}%"></div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:.72rem;color:var(--muted)">
+        <span>${d.memPct}% belegt</span>
+        <span>Limit: ${limMb} MB</span>
+      </div>`;
+  }
+  const ts = document.getElementById('sm-ts');
+  if (ts) ts.textContent = 'Aktualisiert: ' + new Date().toLocaleTimeString('de-DE');
+}
+
 // ── WebSocket ─────────────────────────────────────────────────────────────
 function connectWs() {
   const proto = location.protocol==='https:'?'wss':'ws';
@@ -1915,9 +1980,15 @@ function connectWs() {
   ws.onopen = ()=>{
     ws.send(JSON.stringify({type:'auth',token:TOKEN}));
     if(conSrv) ws.send(JSON.stringify({type:'subscribe',container:conSrv}));
+    if(PAGE==='sysmon'||PAGE==='dashboard') ws.send(JSON.stringify({type:'subscribe_stats'}));
   };
   ws.onmessage = e=>{
     const msg=JSON.parse(e.data);
+    if(msg.type==='stats') {
+      if(PAGE==='dashboard') updateDashStats(msg.data);
+      if(PAGE==='sysmon')   updateSysmonStats(msg.data);
+      return;
+    }
     if(msg.type==='log') {
       const cnt=msg.server;
       const buf=logBuf[cnt]||[];

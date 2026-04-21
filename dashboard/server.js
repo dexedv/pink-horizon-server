@@ -473,25 +473,66 @@ app.post('/api/broadcast', auth, async (req, res) => {
   res.json({ ok: true, results });
 });
 
-// ── REST-API: Container-Ressourcen ────────────────────────────────────────
+// ── Container-Ressourcen ──────────────────────────────────────────────────
 
-app.get('/api/containers/stats', auth, async (req, res) => {
+const STATS_CONTAINERS = {
+  ...Object.fromEntries(Object.entries(SERVERS).map(([k, v]) => [k, v.container])),
+  mysql:     'ph-mysql',
+  dashboard: 'ph-dashboard'
+};
+
+const STATS_LABELS = {
+  velocity: 'Velocity Proxy', lobby: 'Lobby', survival: 'Survival',
+  minigames: 'Minigames', mysql: 'MySQL', dashboard: 'Dashboard'
+};
+
+async function fetchAllStats() {
   const result = {};
-  await Promise.all(Object.entries(SERVERS).map(async ([key, cfg]) => {
+  await Promise.all(Object.entries(STATS_CONTAINERS).map(async ([key, containerName]) => {
     try {
-      const s = await docker.getContainer(cfg.container).stats({ stream: false });
+      const s        = await docker.getContainer(containerName).stats({ stream: false });
       const cpuDelta = s.cpu_stats.cpu_usage.total_usage  - s.precpu_stats.cpu_usage.total_usage;
       const sysDelta = s.cpu_stats.system_cpu_usage       - s.precpu_stats.system_cpu_usage;
       const nCpus    = s.cpu_stats.online_cpus            || s.cpu_stats.cpu_usage.percpu_usage?.length || 1;
+      const memUsed  = Math.max(0, (s.memory_stats.usage || 0) - (s.memory_stats.stats?.cache || 0));
+      const memLimit = s.memory_stats.limit || 1;
       result[key] = {
-        cpu:      sysDelta > 0 ? parseFloat(((cpuDelta / sysDelta) * nCpus * 100).toFixed(1)) : 0,
-        memUsed:  s.memory_stats.usage  || 0,
-        memLimit: s.memory_stats.limit  || 1,
-        memPct:   parseFloat(((s.memory_stats.usage || 0) / (s.memory_stats.limit || 1) * 100).toFixed(1))
+        label:   STATS_LABELS[key] || key,
+        cpu:     sysDelta > 0 ? parseFloat(((cpuDelta / sysDelta) * nCpus * 100).toFixed(1)) : 0,
+        memUsed,
+        memLimit,
+        memPct:  parseFloat((memUsed / memLimit * 100).toFixed(1))
       };
     } catch { result[key] = null; }
   }));
-  res.json(result);
+  return result;
+}
+
+// Stats-WebSocket-Push
+const statsSubscribers = new Set();
+let statsInterval = null;
+
+function startStatsInterval() {
+  if (statsInterval) return;
+  statsInterval = setInterval(async () => {
+    if (statsSubscribers.size === 0) {
+      clearInterval(statsInterval);
+      statsInterval = null;
+      return;
+    }
+    try {
+      const data = await fetchAllStats();
+      const msg  = JSON.stringify({ type: 'stats', data });
+      for (const client of statsSubscribers) {
+        if (client.readyState === 1) client.send(msg);
+        else statsSubscribers.delete(client);
+      }
+    } catch {}
+  }, 2000);
+}
+
+app.get('/api/containers/stats', auth, async (req, res) => {
+  res.json(await fetchAllStats());
 });
 
 // ── REST-API: Backup ──────────────────────────────────────────────────────
@@ -742,11 +783,21 @@ wss.on('connection', (ws) => {
         startLogStream(subscribedContainer);
         return;
       }
+      if (msg.type === 'subscribe_stats') {
+        statsSubscribers.add(ws);
+        startStatsInterval();
+        return;
+      }
+      if (msg.type === 'unsubscribe_stats') {
+        statsSubscribers.delete(ws);
+        return;
+      }
     } catch (e) { console.error('WS Message Fehler:', e.message); }
   });
 
   ws.on('close', () => {
     if (subscribedContainer) logSubscribers[subscribedContainer]?.delete(ws);
+    statsSubscribers.delete(ws);
   });
 });
 
