@@ -9,25 +9,28 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TutorialGui implements Listener {
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
 
-    /** UUID → aktuell geöffnete Seite ("main" | "allgemein" | …) */
-    private final Map<UUID, String> openMenus = new HashMap<>();
+    /** Wird als Holder in jede GUI-Inventory gehängt – enthält die aktuelle Seite. */
+    private record GuiHolder(String page) implements InventoryHolder {
+        @Override public Inventory getInventory() { return null; }
+    }
 
     // ── Öffentliche API ───────────────────────────────────────────────────
 
     public void openMain(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 54,
+        Inventory inv = Bukkit.createInventory(new GuiHolder("main"), 54,
             MM.deserialize("<bold><gradient:#FF69B4:#9B59B6>✦ Pink Horizon – Tutorial ✦</gradient></bold>"));
 
         fill(inv, gl());
@@ -40,13 +43,12 @@ public class TutorialGui implements Listener {
         inv.setItem(33, cat(Material.WRITABLE_BOOK, "<light_purple><bold>💬 Soziales</bold></light_purple>", "/friend, /mail, /trade …"));
 
         player.openInventory(inv);
-        openMenus.put(player.getUniqueId(), "main");
     }
 
     // ── Sub-Menüs ─────────────────────────────────────────────────────────
 
     private void openAllgemein(Player player) {
-        Inventory inv = sub("<gold><bold>⚙ Allgemein</bold></gold>");
+        Inventory inv = sub("allgemein", "<gold><bold>⚙ Allgemein</bold></gold>");
         inv.setItem(10, cmd(Material.COMPASS,        "/spawn",          "Zum Spawn teleportieren."));
         inv.setItem(11, cmd(Material.ENDER_PEARL,    "/rtp",            "Zufällig in der Welt teleportieren."));
         inv.setItem(12, cmd(Material.CHEST,          "/kit starter",    "Starter-Kit erhalten (24h Cooldown)."));
@@ -58,11 +60,10 @@ public class TutorialGui implements Listener {
         inv.setItem(20, cmd(Material.FEATHER,        "/back",           "Zum letzten Sterbeort teleportieren."));
         back(inv);
         player.openInventory(inv);
-        openMenus.put(player.getUniqueId(), "allgemein");
     }
 
     private void openClaims(Player player) {
-        Inventory inv = sub("<green><bold>🏗 Claims</bold></green>");
+        Inventory inv = sub("claims", "<green><bold>🏗 Claims</bold></green>");
         inv.setItem(10, cmd(Material.IRON_SWORD,     "/claim",          "Aktuellen Chunk schützen (kostet Coins)."));
         inv.setItem(11, cmd(Material.SHEARS,         "/unclaim",        "Chunk-Schutz entfernen."));
         inv.setItem(12, cmd(Material.MAP,            "/claimlist",      "Alle deine Claims auflisten."));
@@ -73,22 +74,20 @@ public class TutorialGui implements Listener {
         inv.setItem(20, cmd(Material.GRASS_BLOCK,    "Was ist ein Chunk?","16x16 Blöcke großer Bereich.", "Sichtbar mit F3+G."));
         back(inv);
         player.openInventory(inv);
-        openMenus.put(player.getUniqueId(), "claims");
     }
 
     private void openHomes(Player player) {
-        Inventory inv = sub("<yellow><bold>🏠 Homes</bold></yellow>");
+        Inventory inv = sub("homes", "<yellow><bold>🏠 Homes</bold></yellow>");
         inv.setItem(10, cmd(Material.ORANGE_BED,     "/sethome [Name]", "Home an aktueller Position speichern.", "Max. 3 Homes pro Spieler."));
         inv.setItem(11, cmd(Material.ENDER_PEARL,    "/home [Name]",    "Zu einem deiner Homes teleportieren."));
         inv.setItem(12, cmd(Material.BOOK,           "/homes",          "Alle gesetzten Homes anzeigen."));
         inv.setItem(13, cmd(Material.SHEARS,         "/delhome [Name]", "Einen Home löschen."));
         back(inv);
         player.openInventory(inv);
-        openMenus.put(player.getUniqueId(), "homes");
     }
 
     private void openTeleport(Player player) {
-        Inventory inv = sub("<aqua><bold>🔀 Teleport</bold></aqua>");
+        Inventory inv = sub("teleport", "<aqua><bold>🔀 Teleport</bold></aqua>");
         inv.setItem(10, cmd(Material.ENDER_EYE,      "/tpa <Spieler>",  "Teleportanfrage an einen Spieler senden."));
         inv.setItem(11, cmd(Material.LIME_DYE,       "/tpaccept",       "Eingehende Teleportanfrage annehmen."));
         inv.setItem(12, cmd(Material.RED_DYE,        "/tpdeny",         "Teleportanfrage ablehnen."));
@@ -97,11 +96,10 @@ public class TutorialGui implements Listener {
         inv.setItem(15, cmd(Material.BOOK,           "/warps",          "Alle verfügbaren Warps auflisten."));
         back(inv);
         player.openInventory(inv);
-        openMenus.put(player.getUniqueId(), "teleport");
     }
 
     private void openWirtschaft(Player player) {
-        Inventory inv = sub("<gold><bold>💰 Wirtschaft</bold></gold>");
+        Inventory inv = sub("wirtschaft", "<gold><bold>💰 Wirtschaft</bold></gold>");
         inv.setItem(10, cmd(Material.GOLD_INGOT,     "/balance",        "Deinen Kontostand anzeigen."));
         inv.setItem(11, cmd(Material.EMERALD,        "/pay <Sp.> <Bet.>","Coins an einen Spieler überweisen."));
         inv.setItem(12, cmd(Material.GOLD_BLOCK,     "/baltop",         "Die reichsten Spieler anzeigen."));
@@ -113,11 +111,10 @@ public class TutorialGui implements Listener {
         inv.setItem(21, cmd(Material.PAPER,          "/bank withdraw <B>","Coins abheben."));
         back(inv);
         player.openInventory(inv);
-        openMenus.put(player.getUniqueId(), "wirtschaft");
     }
 
     private void openSoziales(Player player) {
-        Inventory inv = sub("<light_purple><bold>💬 Soziales</bold></light_purple>");
+        Inventory inv = sub("soziales", "<light_purple><bold>💬 Soziales</bold></light_purple>");
         inv.setItem(10, cmd(Material.WRITABLE_BOOK,  "/friend add <Sp.>","Freundschaftsanfrage senden."));
         inv.setItem(11, cmd(Material.BOOK,           "/friend list",    "Deine Freundesliste anzeigen."));
         inv.setItem(12, cmd(Material.FEATHER,        "/mail send <Sp.> <Msg>","Nachricht an Spieler senden (auch offline)."));
@@ -127,34 +124,35 @@ public class TutorialGui implements Listener {
         inv.setItem(19, cmd(Material.IRON_DOOR,      "/hub",            "Zur Lobby zurückkehren."));
         back(inv);
         player.openInventory(inv);
-        openMenus.put(player.getUniqueId(), "soziales");
     }
 
     // ── Events ────────────────────────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onDrag(InventoryDragEvent event) {
-        if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (openMenus.containsKey(player.getUniqueId())) event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player)) return;
+        if (event.getView().getTopInventory().getHolder() instanceof GuiHolder)
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        String page = openMenus.get(player.getUniqueId());
-        if (page == null) return;
+        Inventory top = event.getView().getTopInventory();
+        if (!(top.getHolder() instanceof GuiHolder holder)) return;
 
         // Immer canceln – kein Item darf sich bewegen
         event.setCancelled(true);
 
-        // Nur Klicks im GUI-Bereich (rawSlot < Größe des oberen Inventars) verarbeiten
-        int topSize = event.getView().getTopInventory().getSize();
+        // Nur Klicks im GUI-Bereich verarbeiten
+        int topSize = top.getSize();
         if (event.getRawSlot() < 0 || event.getRawSlot() >= topSize) return;
 
         ItemStack item = event.getCurrentItem();
         if (item == null || item.getType() == Material.AIR || item.getType() == Material.GRAY_STAINED_GLASS_PANE) return;
 
         int slot = event.getRawSlot();
+        String page = holder.page();
         if (page.equals("main")) {
             switch (slot) {
                 case 20 -> openAllgemein(player);
@@ -169,17 +167,10 @@ public class TutorialGui implements Listener {
         }
     }
 
-    @EventHandler
-    public void onClose(InventoryCloseEvent event) {
-        // OPEN_NEW = Spieler öffnet ein anderes Inventar → Tracking NICHT löschen
-        if (event.getReason() == InventoryCloseEvent.Reason.OPEN_NEW) return;
-        openMenus.remove(event.getPlayer().getUniqueId());
-    }
-
     // ── Hilfsmethoden ────────────────────────────────────────────────────
 
-    private Inventory sub(String title) {
-        Inventory inv = Bukkit.createInventory(null, 54, MM.deserialize(title));
+    private Inventory sub(String page, String title) {
+        Inventory inv = Bukkit.createInventory(new GuiHolder(page), 54, MM.deserialize(title));
         fill(inv, gl());
         return inv;
     }
@@ -206,7 +197,6 @@ public class TutorialGui implements Listener {
         List<Component> lore = new ArrayList<>();
         for (String line : descLines)
             lore.add(MM.deserialize("<gray>" + line));
-        item.setItemMeta(meta);
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
@@ -230,7 +220,7 @@ public class TutorialGui implements Listener {
         return item;
     }
 
-    /** Füllt Rand + leere Slots mit dem gegebenen Item */
+    /** Füllt leere Slots mit dem gegebenen Item */
     private void fill(Inventory inv, ItemStack filler) {
         for (int i = 0; i < inv.getSize(); i++) {
             if (inv.getItem(i) == null) inv.setItem(i, filler);
