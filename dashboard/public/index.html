@@ -334,7 +334,7 @@ let ws = null;
 let conSrv = null;
 let cmdHist = [], histIdx = -1;
 let autoScroll = true;
-const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [] };
+const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-minigames': [] };
 
 // ── Rang-Definitionen ─────────────────────────────────────────────────────
 const RANK_DEFS = [
@@ -535,7 +535,7 @@ async function loadResStats() {
   const r = await apiFetch('/api/containers/stats');
   if (!r?.ok) { el.innerHTML=''; return; }
   const data = await r.json();
-  const srvOrder = ['velocity','lobby','survival'];
+  const srvOrder = ['velocity','lobby','survival','minigames'];
   let cards = srvOrder.map(k => {
     const d = data[k]; const s = srvData[k];
     if (!d || !s) return '';
@@ -556,7 +556,7 @@ async function loadResStats() {
       </div>
     </div>`;
   }).join('');
-  el.innerHTML = `<div class="g3">${cards||'<div class="empty">Keine Daten</div>'}</div>`;
+  el.innerHTML = `<div class="g4">${cards||'<div class="empty">Keine Daten</div>'}</div>`;
 }
 
 async function loadDbStatus() {
@@ -568,9 +568,10 @@ async function loadDbStatus() {
 
   const ctrOk = d.container?.running;
   const rows = [
-    { name:'ph-mysql (Container)',  ok: ctrOk,           detail: d.container?.status || '—' },
-    { name:'pinkhorizon (DB)',       ok: d.pinkhorizon,   detail: d.pinkhorizon ? 'Verbunden' : 'Nicht erreichbar' },
-    { name:'ph_survival (DB)',       ok: d.ph_survival,   detail: d.ph_survival  ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph-mysql (Container)',  ok: ctrOk,            detail: d.container?.status || '—' },
+    { name:'pinkhorizon (DB)',       ok: d.pinkhorizon,    detail: d.pinkhorizon    ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph_survival (DB)',       ok: d.ph_survival,    detail: d.ph_survival    ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph_minigames (DB)',      ok: d.ph_minigames,   detail: d.ph_minigames   ? 'Verbunden' : 'Nicht erreichbar' },
   ];
 
   el.innerHTML = `
@@ -1048,8 +1049,9 @@ async function renderRights() {
   c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
   c.innerHTML = `<div class="page" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
     <div class="rtabs">
-      <button class="rtab ${rTab==='lobby'?'active':''}"    onclick="switchR('lobby')">Lobby</button>
-      <button class="rtab ${rTab==='survival'?'active':''}" onclick="switchR('survival')">Survival</button>
+      <button class="rtab ${rTab==='lobby'?'active':''}"     onclick="switchR('lobby')">Lobby</button>
+      <button class="rtab ${rTab==='survival'?'active':''}"  onclick="switchR('survival')">Survival</button>
+      <button class="rtab ${rTab==='minigames'?'active':''}" onclick="switchR('minigames')">Minigames</button>
     </div>
     <div class="rbody" id="rbody"><div class="empty">Lade…</div></div>
   </div>`;
@@ -1058,7 +1060,8 @@ async function renderRights() {
 
 function switchR(t) {
   rTab = t;
-  document.querySelectorAll('.rtab').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase()===t));
+  const labels = { lobby:'Lobby', survival:'Survival', minigames:'Minigames' };
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.toggle('active',b.textContent.trim()===labels[t]));
   const el=document.getElementById('rbody'); if(el) el.innerHTML='<div class="empty">Lade…</div>';
   loadR(t);
 }
@@ -1450,6 +1453,8 @@ const SQL_HINTS = [
   { db:'ph_survival',  q:'SELECT seller_name, COUNT(*) AS listings, SUM(price) AS total FROM sv_auction GROUP BY seller_name ORDER BY listings DESC' },
   { db:'ph_survival',  q:'SELECT quest_id, COUNT(*) AS done FROM sv_quests WHERE completed=TRUE GROUP BY quest_id ORDER BY done DESC' },
   { db:'ph_survival',  q:'SELECT COUNT(*) AS friends FROM sv_friends' },
+  { db:'ph_minigames', q:'SELECT p.name, s.wins, s.kills, s.beds_broken, s.games_played FROM mg_bedwars_stats s LEFT JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.wins DESC LIMIT 20' },
+  { db:'ph_minigames', q:'SELECT name, world, max_teams, team_size FROM mg_bedwars_arenas ORDER BY name' },
 ];
 
 async function renderSqlConsole() {
@@ -1462,6 +1467,7 @@ async function renderSqlConsole() {
         <select class="field fsm" id="sql-db" style="width:160px">
           <option value="pinkhorizon">pinkhorizon</option>
           <option value="ph_survival">ph_survival</option>
+          <option value="ph_minigames">ph_minigames</option>
         </select>
         <span style="color:var(--muted);font-size:.82rem">Nur SELECT erlaubt</span>
       </div>
@@ -1603,9 +1609,9 @@ async function renderBedWars() {
     if (rows.length === 0) {
       document.getElementById('bw-table').innerHTML = '<div class="empty">Noch keine Daten.</div>';
     } else {
-      let html = `<table class="tbl"><thead><tr>
+      let html = `<table class="sql-tbl"><thead><tr>
         <th>#</th><th>Spieler</th><th>Siege</th><th>Niederlagen</th>
-        <th>Kills</th><th>Tode</th><th>Betten</th><th>Runden</th>
+        <th>Kills</th><th>Tode</th><th>K/D</th><th>Betten</th><th>Runden</th>
       </tr></thead><tbody>`;
       rows.forEach((r, i) => {
         const kd = r.deaths > 0 ? (r.kills / r.deaths).toFixed(2) : r.kills;
@@ -1616,6 +1622,7 @@ async function renderBedWars() {
           <td><span class="badge b-green">${r.wins}</span></td>
           <td><span class="badge b-red">${r.losses}</span></td>
           <td>${r.kills}</td><td>${r.deaths}</td>
+          <td style="color:var(--yellow)">${kd}</td>
           <td><span class="badge b-yellow">${r.beds_broken}</span></td>
           <td>${r.games_played}</td>
         </tr>`;

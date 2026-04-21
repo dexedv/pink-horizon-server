@@ -383,15 +383,17 @@ app.post('/api/players/unban', auth, async (req, res) => {
 // ── REST-API: Datenbanken ─────────────────────────────────────────────────
 
 app.get('/api/databases', auth, async (req, res) => {
-  const [ctr, ph, sv] = await Promise.allSettled([
+  const [ctr, ph, sv, mg] = await Promise.allSettled([
     getContainerStatus('ph-mysql'),
     checkDb(poolCore),
-    checkDb(poolSv)
+    checkDb(poolSv),
+    checkDb(poolMg)
   ]);
   res.json({
-    container:   ctr.status === 'fulfilled' ? ctr.value : { running: false, status: 'error' },
-    pinkhorizon: ph.status  === 'fulfilled' ? ph.value  : false,
-    ph_survival: sv.status  === 'fulfilled' ? sv.value  : false
+    container:    ctr.status === 'fulfilled' ? ctr.value : { running: false, status: 'error' },
+    pinkhorizon:  ph.status  === 'fulfilled' ? ph.value  : false,
+    ph_survival:  sv.status  === 'fulfilled' ? sv.value  : false,
+    ph_minigames: mg.status  === 'fulfilled' ? mg.value  : false
   });
 });
 
@@ -553,9 +555,9 @@ app.post('/api/db/query', auth, async (req, res) => {
   const { query, database } = req.body;
   if (!query?.trim()) return res.status(400).json({ error: 'Keine Abfrage' });
   if (!/^\s*SELECT\s/i.test(query)) return res.status(400).json({ error: 'Nur SELECT-Abfragen erlaubt' });
-  if (!/^(pinkhorizon|ph_survival)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
+  if (!/^(pinkhorizon|ph_survival|ph_minigames)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
   try {
-    const pool = database === 'pinkhorizon' ? poolCore : poolSv;
+    const pool = database === 'pinkhorizon' ? poolCore : database === 'ph_minigames' ? poolMg : poolSv;
     const lq = /\blimit\b/i.test(query) ? query.trimEnd().replace(/;$/, '') : `${query.trimEnd().replace(/;$/, '')} LIMIT 200`;
     const [rows, fields] = await pool.execute(lq);
     res.json({ ok: true, columns: fields.map(f => f.name), rows, count: rows.length });
@@ -578,7 +580,7 @@ app.get('/api/permissions/players', auth, async (req, res) => {
 
 // ── REST-API: Rechteverwaltung ────────────────────────────────────────────
 
-const MANAGED_SERVERS = ['lobby', 'survival'];
+const MANAGED_SERVERS = ['lobby', 'survival', 'minigames'];
 
 app.get('/api/servers/:name/ops', auth, async (req, res) => {
   const name = req.params.name;
