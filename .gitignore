@@ -15,7 +15,6 @@ servers/skyblock/world/
 servers/skyblock/world_nether/
 servers/skyblock/world_the_end/
 servers/skyblock/skyblock_world/
-servers/minigames/world/
 servers/minigames/world_nether/
 servers/minigames/world_the_end/
 servers/lobby/world_nether/

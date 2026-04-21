@@ -39,8 +39,8 @@ chunk-loading-advanced:
   player-max-concurrent-chunk-loads: 0
 chunk-loading-basic:
   player-max-chunk-generate-rate: -1.0
-  player-max-chunk-load-rate: 100.0
-  player-max-chunk-send-rate: 75.0
+  player-max-chunk-load-rate: -1.0
+  player-max-chunk-send-rate: -1.0
 chunk-system:
   gen-parallelism: default
   io-threads: -1
