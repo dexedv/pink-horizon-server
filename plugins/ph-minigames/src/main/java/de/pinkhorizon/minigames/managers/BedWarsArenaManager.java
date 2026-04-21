@@ -1,12 +1,14 @@
 package de.pinkhorizon.minigames.managers;
 
 import de.pinkhorizon.minigames.PHMinigames;
+import de.pinkhorizon.minigames.VoidGenerator;
 import de.pinkhorizon.minigames.bedwars.BedWarsArenaConfig;
 import de.pinkhorizon.minigames.bedwars.BedWarsGame;
 import de.pinkhorizon.minigames.bedwars.BedWarsTeamColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -57,6 +59,9 @@ public class BedWarsArenaManager {
                     BedWarsTeamColor color = BedWarsTeamColor.fromString(rs.getString("team"));
                     if (color == null) continue;
                     World world = Bukkit.getWorld(cfg.world);
+                    if (world == null) {
+                        world = new WorldCreator(cfg.world).generator(new VoidGenerator()).createWorld();
+                    }
                     if (world == null) continue;
                     cfg.teamSpawns.put(color, new Location(world,
                             rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z"),
