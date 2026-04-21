@@ -713,6 +713,10 @@ async function loadPl(name) {
   curPlayer = await r.json();
   const br = await apiFetch(`/api/bank/player?name=${encodeURIComponent(name)}`);
   if (br?.ok) { const bd = await br.json(); curPlayer.bankBalance = bd.balance; curPlayer.bankInterest = bd.lastInterest; }
+  const clr = await apiFetch(`/api/survival/claims?player=${encodeURIComponent(name)}`);
+  if (clr?.ok) { const cd = await clr.json(); curPlayer.claims = cd.claims; }
+  const ivr = await apiFetch(`/api/survival/inventory?player=${encodeURIComponent(name)}`);
+  if (ivr?.ok) { const id = await ivr.json(); curPlayer.inventory = id.items; curPlayer.inventoryTime = id.snapshotTime; }
   renderPlCard(curPlayer);
 }
 
@@ -777,7 +781,72 @@ function renderPlCard(p) {
           <div id="bank-msg" style="display:none" class="msg"></div>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${renderClaimsCard(p)}
+    ${renderInventoryCard(p)}`;
+}
+
+function fmtMat(m) {
+  return m.split('_').map(w => w[0] + w.slice(1).toLowerCase()).join(' ');
+}
+
+function slotLabel(s) {
+  if (s < 9)  return `Hotbar ${s+1}`;
+  if (s < 36) return `Inv ${s-8}`;
+  if (s===36) return 'Boots';
+  if (s===37) return 'Leggings';
+  if (s===38) return 'Brustpanzer';
+  if (s===39) return 'Helm';
+  if (s===40) return 'Nebenhand';
+  return `Slot ${s}`;
+}
+
+function renderClaimsCard(p) {
+  const claims = p.claims || [];
+  if (!claims.length) return `<div class="card" style="margin-top:12px"><div class="card-title">📍 Claims (0)</div><div class="empty">Keine Claims vorhanden</div></div>`;
+  const rows = claims.map(c => `
+    <tr>
+      <td style="color:var(--muted);font-size:.8rem">${escH(c.world)}</td>
+      <td style="font-weight:600">${c.block_x}</td>
+      <td style="font-weight:600">${c.block_z}</td>
+      <td style="color:var(--muted);font-size:.78rem">${c.chunk_x} / ${c.chunk_z}</td>
+    </tr>`).join('');
+  return `<div class="card" style="margin-top:12px">
+    <div class="card-title">📍 Claims (${claims.length})</div>
+    <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
+      <table class="sql-tbl" style="width:100%">
+        <thead><tr><th>Welt</th><th>Block X</th><th>Block Z</th><th>Chunk X/Z</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function renderInventoryCard(p) {
+  const items = p.inventory || [];
+  const ts = p.inventoryTime ? new Date(p.inventoryTime).toLocaleString('de-DE') : null;
+  const hint = ts ? `<span style="font-size:.75rem;color:var(--muted)">Stand: ${ts}</span>` : '<span style="font-size:.75rem;color:var(--muted)">Noch kein Snapshot (Spieler muss einmal ausloggen)</span>';
+  if (!items.length) return `<div class="card" style="margin-top:12px"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center"><span>🎒 Inventar</span>${hint}</div><div class="empty">Leer oder kein Snapshot vorhanden</div></div>`;
+  const rows = items.map(it => {
+    const enchStr = it.enchants?.length ? `<span style="font-size:.74rem;color:#a78bfa"> ${it.enchants.join(', ')}</span>` : '';
+    const nameStr = it.name ? `<span style="color:var(--gold)"> "${escH(it.name)}"</span>` : '';
+    return `<tr>
+      <td style="color:var(--muted);font-size:.78rem;white-space:nowrap">${slotLabel(it.slot)}</td>
+      <td>${escH(fmtMat(it.material))}${nameStr}${enchStr}</td>
+      <td style="text-align:right;font-weight:600">×${it.amount}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="card" style="margin-top:12px">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>🎒 Inventar (${items.length} Stacks)</span>${hint}
+    </div>
+    <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+      <table class="sql-tbl" style="width:100%">
+        <thead><tr><th>Slot</th><th>Item</th><th style="text-align:right">Menge</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
 }
 
 async function coinAct(type) {

@@ -239,6 +239,15 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SpawnBorderWandListener(this), this);
         getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.NpcListener(this), this);
 
+        // Inventar-Snapshots für Dashboard
+        de.pinkhorizon.survival.listeners.InventorySnapshotListener invSnap =
+            new de.pinkhorizon.survival.listeners.InventorySnapshotListener(this);
+        getServer().getPluginManager().registerEvents(invSnap, this);
+        // Alle 5 Minuten Snapshots für alle Online-Spieler speichern
+        getServer().getScheduler().runTaskTimer(this, () ->
+            getServer().getOnlinePlayers().forEach(invSnap::saveSnapshot),
+        6000L, 6000L);
+
         // Holograms + NPCs + ChestShops nach Weltlade spawnen
         getServer().getScheduler().runTaskLater(this, () -> {
             hologramManager.spawnAll();

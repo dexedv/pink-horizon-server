@@ -256,6 +256,15 @@ public class SurvivalDatabaseManager {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
                 """);
 
+            // Inventar-Snapshots (für Dashboard)
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS sv_inventory_snapshot (
+                    uuid          VARCHAR(36) PRIMARY KEY,
+                    snapshot_time BIGINT      NOT NULL,
+                    inventory_json TEXT       NOT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """);
+
             // ChestShops
             st.execute("""
                 CREATE TABLE IF NOT EXISTS sv_chestshops (

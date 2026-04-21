@@ -754,6 +754,50 @@ wss.on('connection', (ws) => {
   });
 });
 
+// ── Survival – Claims & Inventar ─────────────────────────────────────────
+
+app.get('/api/survival/claims', auth, async (req, res) => {
+  const { player } = req.query;
+  if (!player) return res.status(400).json({ error: 'Kein Spielername' });
+  try {
+    const [[uuidRow]] = await poolCore.execute(
+      'SELECT uuid FROM players WHERE name = ?', [player]
+    );
+    if (!uuidRow) return res.status(404).json({ error: 'Spieler nicht gefunden' });
+    const [claims] = await poolSv.execute(
+      'SELECT world, chunk_x, chunk_z FROM sv_claims WHERE owner_uuid = ? ORDER BY world, chunk_x, chunk_z',
+      [uuidRow.uuid]
+    );
+    const result = claims.map(c => ({
+      world:   c.world,
+      chunk_x: c.chunk_x,
+      chunk_z: c.chunk_z,
+      block_x: c.chunk_x * 16 + 8,
+      block_z: c.chunk_z * 16 + 8
+    }));
+    res.json({ ok: true, claims: result, total: result.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/survival/inventory', auth, async (req, res) => {
+  const { player } = req.query;
+  if (!player) return res.status(400).json({ error: 'Kein Spielername' });
+  try {
+    const [[uuidRow]] = await poolCore.execute(
+      'SELECT uuid FROM players WHERE name = ?', [player]
+    );
+    if (!uuidRow) return res.status(404).json({ error: 'Spieler nicht gefunden' });
+    const [[snap]] = await poolSv.execute(
+      'SELECT inventory_json, snapshot_time FROM sv_inventory_snapshot WHERE uuid = ?',
+      [uuidRow.uuid]
+    );
+    if (!snap) return res.json({ ok: true, items: [], snapshotTime: null });
+    let items = [];
+    try { items = JSON.parse(snap.inventory_json); } catch {}
+    res.json({ ok: true, items, snapshotTime: snap.snapshot_time });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── Minigames API ─────────────────────────────────────────────────────────
 
 app.get('/api/minigames/overview', auth, async (req, res) => {
