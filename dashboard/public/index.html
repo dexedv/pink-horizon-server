@@ -1156,6 +1156,25 @@ const CMD_DATA = [
       {n:'/hologram',    u:'/hologram <create|delete|list>',                d:'Holograms verwalten',                  admin:true},
     ]},
   ]},
+  { server:'Minigames', sections:[
+    { label:'BedWars – Spieler', cmds:[
+      {n:'/bw join',     u:'/bw join [arena]',                              d:'BedWars-Spiel beitreten',               admin:false},
+      {n:'/bw leave',    u:'/bw leave',                                     d:'Aktuelles Spiel verlassen',             admin:false},
+      {n:'/bw stats',    u:'/bw stats',                                     d:'Eigene BedWars-Stats anzeigen',         admin:false},
+      {n:'/bw shop',     u:'/bw shop',                                      d:'Shop öffnen (auch per Villager)',       admin:false},
+      {n:'/bw arenas',   u:'/bw arenas',                                    d:'Alle konfigurierten Arenen auflisten',  admin:false},
+    ]},
+    { label:'BedWars – Admin', cmds:[
+      {n:'/bw create',      u:'/bw create <name> [maxTeams] [teamSize]',    d:'Neue Arena in der Datenbank anlegen',   admin:true},
+      {n:'/bw setspawn',    u:'/bw setspawn <arena> <RED|BLUE|GREEN|YELLOW>',d:'Team-Spawn auf aktuelle Position setzen',admin:true},
+      {n:'/bw setbed',      u:'/bw setbed <arena> <RED|BLUE|GREEN|YELLOW>', d:'Bett-Block auf anvisierten Block setzen',admin:true},
+      {n:'/bw addspawner',  u:'/bw addspawner <arena> <IRON|GOLD|DIAMOND|EMERALD>',d:'Resource-Spawner an aktueller Position',admin:true},
+      {n:'/bw hologram',    u:'/bw hologram <create|delete> <name>',        d:'Leaderboard-Hologramm erstellen/löschen',admin:true},
+      {n:'/bw sethubspawn', u:'/bw sethubspawn',                            d:'Minigames-Hub-Spawn setzen',            admin:true},
+      {n:'/bw createworld', u:'/bw createworld <name>',                     d:'Void-Welt für Arena erstellen',         admin:true},
+      {n:'/bw tpworld',     u:'/bw tpworld <name>',                         d:'Zu einer Welt teleportieren',           admin:true},
+    ]},
+  ]},
   { server:'Survival', sections:[
     { label:'Teleport', cmds:[
       {n:'/spawn',     u:'/spawn',                                          d:'Zum Spawn teleportieren',              admin:false},
