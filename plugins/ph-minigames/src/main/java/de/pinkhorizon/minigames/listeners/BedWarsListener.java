@@ -19,6 +19,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -176,6 +177,21 @@ public class BedWarsListener implements Listener {
         plugin.getShopGui().open(player);
     }
 
+    /** Wachst BedWars-Schilder automatisch beim Beschriften, damit kein Editor mehr öffnet. */
+    @EventHandler
+    public void onSignWrite(SignChangeEvent event) {
+        @SuppressWarnings("deprecation")
+        String line1 = org.bukkit.ChatColor.stripColor(event.getLine(0) != null ? event.getLine(0) : "").trim();
+        if (!line1.equalsIgnoreCase("[BedWars]")) return;
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (event.getBlock().getState() instanceof Sign s) {
+                s.setWaxed(true);
+                s.update();
+                event.getPlayer().sendMessage("§aBedWars-Schild gespeichert! Spieler können es jetzt anklicken.");
+            }
+        }, 1L);
+    }
+
     @EventHandler
     public void onSignClick(PlayerInteractEvent event) {
         if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
@@ -188,6 +204,12 @@ public class BedWarsListener implements Listener {
         @SuppressWarnings("deprecation")
         String line1 = org.bukkit.ChatColor.stripColor(sign.getLine(0)).trim();
         if (!line1.equalsIgnoreCase("[BedWars]")) return;
+
+        // Schild wachsen falls noch nicht gewachst (z.B. bereits existierende Schilder)
+        if (!sign.isWaxed()) {
+            sign.setWaxed(true);
+            sign.update();
+        }
 
         event.setCancelled(true);
         Player player = event.getPlayer();
