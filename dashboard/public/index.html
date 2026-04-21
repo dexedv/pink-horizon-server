@@ -893,7 +893,11 @@ function doBan(name) {
       <input class="field" id="m-reason" placeholder="Ban-Grund eingeben…">
     </div>`, 'Bannen', async () => {
     const reason = document.getElementById('m-reason')?.value?.trim();
-    if (!reason) { showToast('Bitte einen Grund angeben!', false); return; }
+    if (!reason) {
+      const f = document.getElementById('m-reason');
+      if (f) { f.style.borderColor='var(--red)'; f.placeholder='Grund ist Pflicht!'; f.focus(); }
+      return false;
+    }
     const r = await apiFetch('/api/players/ban',{method:'POST',body:JSON.stringify({name,reason})});
     const d = r ? await r.json() : null;
     showToast(d?.ok ? `✓ ${name} wurde gebannt.` : `✗ ${d?.error||'Fehler'}`, d?.ok);
@@ -1886,7 +1890,7 @@ function showModal(title, bodyHtml, okLabel, onOk) {
       </div>
     </div>`;
   document.body.appendChild(bg);
-  document.getElementById('modal-ok').onclick = () => { closeModal(); if(onOk) onOk(); };
+  document.getElementById('modal-ok').onclick = async () => { const r = onOk ? await onOk() : true; if (r !== false) closeModal(); };
   bg.addEventListener('click', e => { if(e.target===bg) closeModal(); });
   setTimeout(() => bg.querySelector('input,select')?.focus(), 50);
 }
