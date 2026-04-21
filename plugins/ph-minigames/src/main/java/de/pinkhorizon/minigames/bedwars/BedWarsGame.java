@@ -166,6 +166,12 @@ public class BedWarsGame {
 
         World world = Bukkit.getWorld(arena.world);
 
+        // Betten aus Welt cachen (nur beim ersten Mal) und physisch wiederherstellen
+        arena.cacheBedStates();
+        for (BedWarsTeamColor color : getActiveTeamColors()) {
+            arena.restoreBed(color);
+        }
+
         // Spieler teleportieren, Kits geben, Rüstung
         for (UUID uuid : getAllPlayers()) {
             Player p    = Bukkit.getPlayer(uuid);
@@ -325,6 +331,11 @@ public class BedWarsGame {
                 if (!teams.getOrDefault(winnerTeam, Set.of()).contains(uuid))
                     plugin.getStatsManager().incrementStat(uuid, "losses");
             }
+        }
+
+        // Betten für die nächste Runde physisch wiederherstellen
+        for (BedWarsTeamColor color : BedWarsTeamColor.values()) {
+            if (arena.bedBlocks.containsKey(color)) arena.restoreBed(color);
         }
 
         // Alle nach 5s wiederherstellen

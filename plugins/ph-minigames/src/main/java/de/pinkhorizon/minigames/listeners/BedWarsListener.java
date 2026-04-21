@@ -7,6 +7,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.block.data.type.Bed;
 import org.bukkit.block.sign.Side;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -73,6 +74,14 @@ public class BedWarsListener implements Listener {
             BedWarsTeamColor bedTeam = game.getBedTeamAt(
                     block.getX(), block.getY(), block.getZ(),
                     block.getWorld().getName());
+            // Wenn gespeicherte Koordinate die andere Hälfte ist, andere Hälfte prüfen
+            if (bedTeam == null && block.getBlockData() instanceof Bed bedData) {
+                Block other = bedData.getPart() == Bed.Part.FOOT
+                        ? block.getRelative(bedData.getFacing())
+                        : block.getRelative(bedData.getFacing().getOppositeFace());
+                bedTeam = game.getBedTeamAt(other.getX(), other.getY(), other.getZ(),
+                        block.getWorld().getName());
+            }
             if (bedTeam != null) {
                 // Eigenes Bett nicht zerstörbar
                 BedWarsTeamColor playerTeam = game.getTeamOf(player.getUniqueId());

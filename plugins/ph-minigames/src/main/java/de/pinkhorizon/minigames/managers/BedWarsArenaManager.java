@@ -155,6 +155,9 @@ public class BedWarsArenaManager {
             ps.setString(6, cfg.world);
             ps.executeUpdate();
             cfg.bedBlocks.put(team, new int[]{x, y, z});
+            cfg.bedFootBlockData.remove(team);
+            cfg.bedHeadBlockData.remove(team);
+            cfg.bedHeadBlocks.remove(team);
             return true;
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "setBed Fehler", e);
