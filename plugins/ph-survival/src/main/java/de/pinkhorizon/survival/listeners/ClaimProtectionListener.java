@@ -5,6 +5,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -13,7 +14,9 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 
 import java.util.UUID;
 
@@ -55,6 +58,18 @@ public class ClaimProtectionListener implements Listener {
         if (isBlocked(player, event.getClickedBlock().getChunk())) {
             event.setCancelled(true);
             player.sendMessage("\u00a7cDieser Chunk geh\u00f6rt jemand anderem!");
+        }
+    }
+
+    @EventHandler
+    public void onInteractEntity(PlayerInteractEntityEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        if (!(event.getRightClicked() instanceof Villager)) return;
+        Player player = event.getPlayer();
+        Chunk chunk = event.getRightClicked().getLocation().getChunk();
+        if (isBlocked(player, chunk)) {
+            event.setCancelled(true);
+            player.sendMessage("\u00a7cDu kannst diesen Villager nicht nutzen – der Chunk geh\u00f6rt jemand anderem!");
         }
     }
 
