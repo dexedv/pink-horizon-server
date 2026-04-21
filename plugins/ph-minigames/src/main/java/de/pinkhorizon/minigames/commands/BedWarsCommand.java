@@ -175,6 +175,13 @@ public class BedWarsCommand implements CommandExecutor, TabCompleter {
                 player.sendMessage("§aTeleportiert nach §f" + args[1]);
             }
 
+            case "sethubspawn" -> {
+                if (!sender.hasPermission("minigames.admin")) { sender.sendMessage("§cKeine Berechtigung."); return true; }
+                if (!(sender instanceof Player player)) { sender.sendMessage("§cNur für Spieler."); return true; }
+                plugin.getHubManager().saveHubSpawn(player.getLocation());
+                player.sendMessage("§aHub-Spawn auf deine aktuelle Position gesetzt.");
+            }
+
             case "arenas" -> {
                 sender.sendMessage("§d§lVerfügbare Arenen:");
                 if (plugin.getArenaManager().getArenas().isEmpty()) {
@@ -194,7 +201,7 @@ public class BedWarsCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
-        if (args.length == 1) return filter(List.of("join","leave","shop","stats","create","setspawn","setbed","addspawner","hologram","arenas","createworld","tpworld"), args[0]);
+        if (args.length == 1) return filter(List.of("join","leave","shop","stats","create","setspawn","setbed","addspawner","hologram","arenas","createworld","tpworld","sethubspawn"), args[0]);
         if (args.length == 2) {
             return switch (args[0].toLowerCase()) {
                 case "join","setspawn","setbed","addspawner" -> {
@@ -230,6 +237,7 @@ public class BedWarsCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§7/bw setbed <arena> <team>");
             sender.sendMessage("§7/bw addspawner <arena> <typ>");
             sender.sendMessage("§7/bw hologram <create|delete> <name>");
+            sender.sendMessage("§7/bw sethubspawn §8– §fHub-Spawn setzen");
         }
     }
 

@@ -114,13 +114,13 @@ public class BedWarsGame {
         scoreboard.remove(player);
         scoreboard.removeTab(player);
 
+        // Gespeicherte Daten aufräumen
+        savedInventory.remove(uuid);
+        savedGameMode.remove(uuid);
+
         if (restore) {
-            ItemStack[] inv = savedInventory.remove(uuid);
-            if (inv != null) player.getInventory().setContents(inv);
-            else             player.getInventory().clear();
-            GameMode gm = savedGameMode.remove(uuid);
-            if (gm != null) player.setGameMode(gm);
-            else             player.setGameMode(GameMode.SURVIVAL);
+            // Hub-Setup übernimmt Inventar, GameMode und Teleport
+            plugin.getHubManager().setupHubPlayer(player);
         }
 
         if (state == GameState.RUNNING) {
