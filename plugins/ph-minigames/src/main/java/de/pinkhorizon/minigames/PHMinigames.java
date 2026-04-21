@@ -59,8 +59,11 @@ public class PHMinigames extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BedWarsListener(this), this);
         getServer().getPluginManager().registerEvents(new HubListener(this), this);
 
-        // Holograms nach Welt-Load spawnen
-        getServer().getScheduler().runTaskLater(this, () -> hologramManager.spawnAll(), 60L);
+        // Holograms + Hub-Regeln nach Welt-Load anwenden
+        getServer().getScheduler().runTaskLater(this, () -> {
+            hologramManager.spawnAll();
+            hubManager.applyHubWorldRulesFromConfig();
+        }, 60L);
 
         getLogger().info("PH-Minigames gestartet! Arenen: " + arenaManager.getArenas().size() + " | Hub+TabList aktiv");
     }

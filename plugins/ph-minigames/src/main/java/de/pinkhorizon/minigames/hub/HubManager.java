@@ -7,6 +7,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -55,7 +56,7 @@ public class HubManager {
         return new Location(world, x, y, z, yaw, pitch);
     }
 
-    /** Speichert den Hub-Spawn in der config.yml. */
+    /** Speichert den Hub-Spawn in der config.yml und wendet Welt-Regeln an. */
     public void saveHubSpawn(Location loc) {
         FileConfiguration cfg = plugin.getConfig();
         cfg.set("hub.spawn.world", loc.getWorld().getName());
@@ -65,6 +66,25 @@ public class HubManager {
         cfg.set("hub.spawn.yaw",   (double) loc.getYaw());
         cfg.set("hub.spawn.pitch", (double) loc.getPitch());
         plugin.saveConfig();
+        applyHubWorldRules(loc.getWorld());
+    }
+
+    /** Deaktiviert Mobs, Tageszeit und Wetter in der Hub-Welt. */
+    public void applyHubWorldRules(World world) {
+        if (world == null) return;
+        world.setGameRule(GameRule.DO_MOB_SPAWNING,   false);
+        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        world.setGameRule(GameRule.DO_WEATHER_CYCLE,  false);
+        world.setGameRule(GameRule.MOB_GRIEFING,      false);
+        world.setTime(6000); // ewiger Mittag
+        world.setStorm(false);
+        world.setThundering(false);
+    }
+
+    /** Wendet Hub-Welt-Regeln auf die konfigurierte Hub-Welt an (beim Start aufrufbar). */
+    public void applyHubWorldRulesFromConfig() {
+        Location spawn = getHubSpawn();
+        if (spawn != null) applyHubWorldRules(spawn.getWorld());
     }
 
     /** Setzt den Hub-Tab-Header (ohne Inventar anzufassen). */

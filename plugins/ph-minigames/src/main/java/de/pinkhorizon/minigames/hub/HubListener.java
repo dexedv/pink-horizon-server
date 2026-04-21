@@ -2,12 +2,14 @@ package de.pinkhorizon.minigames.hub;
 
 import de.pinkhorizon.minigames.PHMinigames;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -95,6 +97,14 @@ public class HubListener implements Listener {
         if (!plugin.getHubManager().isHubCompass(player.getInventory().getItemInMainHand())) return;
         event.setCancelled(true);
         plugin.getHubGui().open(player);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onCreatureSpawn(CreatureSpawnEvent event) {
+        Location hubSpawn = plugin.getHubManager().getHubSpawn();
+        if (hubSpawn == null) return;
+        if (!event.getLocation().getWorld().equals(hubSpawn.getWorld())) return;
+        event.setCancelled(true);
     }
 
     @EventHandler
