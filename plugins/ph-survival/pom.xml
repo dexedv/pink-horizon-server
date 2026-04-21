@@ -42,6 +42,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
+                <configuration>
+                    <outputFile>${project.basedir}/../../servers/survival/plugins/${project.build.finalName}.jar</outputFile>
+                </configuration>
             </plugin>
         </plugins>
         <finalName>ph-survival-${project.version}</finalName>
