@@ -352,19 +352,15 @@ app.post('/api/players/ban', auth, async (req, res) => {
 });
 
 app.get('/api/players/banlist', auth, async (req, res) => {
-  const cfg = SERVERS.survival;
-  if (!cfg?.rcon) return res.json({ bans: [] });
   try {
-    const raw   = await rconSend(cfg.rcon, 'banlist');
-    const clean = stripColors(raw);
-    const bans  = [];
-    for (const line of clean.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      if (/^there are/i.test(trimmed) || /^banned players:/i.test(trimmed)) continue;
-      const m = /^(.+?):\s*(.*)$/.exec(trimmed);
-      if (m) bans.push({ name: m[1].trim(), reason: m[2].trim() || 'Kein Grund angegeben' });
-    }
+    const data = await fs.readFile('/data/survival/banned-players.json', 'utf8');
+    const raw  = JSON.parse(data);
+    const bans = raw.map(b => ({
+      name:    b.name   || b.uuid,
+      reason:  b.reason || 'Kein Grund angegeben',
+      source:  b.source || 'Unbekannt',
+      expires: b.expires|| 'forever'
+    }));
     res.json({ bans });
   } catch { res.json({ bans: [] }); }
 });

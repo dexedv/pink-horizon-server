@@ -1059,7 +1059,8 @@ async function renderPermBanlist(el) {
     ${bans.map(b=>`
       <div class="ban-row">
         <span class="ban-name">🔨 ${escH(b.name)}</span>
-        <span class="ban-reason">${escH(b.reason)}</span>
+        <span class="ban-reason">${escH(b.reason)}${b.source&&b.source!=='Unknown'?' · von '+escH(b.source):''}</span>
+        <span style="font-size:.75rem;color:var(--muted);white-space:nowrap">${b.expires==='forever'?'Permanent':escH(b.expires)}</span>
         <button class="btn-xs g" onclick="doUnban('${escH(b.name)}')">Entbannen</button>
       </div>`).join('')}
   </div>`;
