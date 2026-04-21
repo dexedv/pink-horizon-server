@@ -129,6 +129,7 @@ public class PHSurvival extends JavaPlugin {
         getCommand("trust").setExecutor(trustCmd);
         getCommand("untrust").setExecutor(trustCmd);
         getCommand("trustlist").setExecutor(trustCmd);
+        getCommand("trustall").setExecutor(trustCmd);
 
         getCommand("jobs").setExecutor(jobsCommand);
 

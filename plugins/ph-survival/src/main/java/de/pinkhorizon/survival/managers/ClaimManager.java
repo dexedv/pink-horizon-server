@@ -158,6 +158,32 @@ public class ClaimManager {
         }
     }
 
+    /** Trusted einen Spieler auf allen Claims des Besitzers. */
+    public int trustAll(UUID owner, UUID trusted) {
+        Set<String> keys = playerClaims.getOrDefault(owner, new HashSet<>());
+        if (keys.isEmpty()) return 0;
+        int count = 0;
+        for (String key : keys) {
+            if (trust.getOrDefault(key, Set.of()).contains(trusted)) continue;
+            String[] parts = splitKey(key);
+            try (Connection c = con();
+                 PreparedStatement st = c.prepareStatement(
+                     "INSERT IGNORE INTO sv_claim_trusts (world, chunk_x, chunk_z, trusted_uuid) VALUES (?,?,?,?)")) {
+                st.setString(1, parts[0]);
+                st.setInt(2, Integer.parseInt(parts[1]));
+                st.setInt(3, Integer.parseInt(parts[2]));
+                st.setString(4, trusted.toString());
+                st.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().warning("ClaimManager.trustAll: " + e.getMessage());
+                continue;
+            }
+            trust.computeIfAbsent(key, k -> new HashSet<>()).add(trusted);
+            count++;
+        }
+        return count;
+    }
+
     /** No-op — writes go directly to DB. Kept for API compatibility. */
     public void save() {}
 }

@@ -90,6 +90,28 @@ public class ClaimTrustCommand implements CommandExecutor {
                 plugin.getClaimManager().untrustPlayer(chunk, targetUuid);
                 player.sendMessage("\u00a7aVertrauen entfernt.");
             }
+            case "trustall" -> {
+                if (args.length < 1) {
+                    player.sendMessage("\u00a7cVerwendung: /trustall <Spieler>");
+                    return true;
+                }
+                Player target = Bukkit.getPlayer(args[0]);
+                if (target == null) {
+                    player.sendMessage("\u00a7cSpieler nicht gefunden oder nicht online!");
+                    return true;
+                }
+                if (target.equals(player)) {
+                    player.sendMessage("\u00a7cDu kannst dir selbst nicht vertrauen.");
+                    return true;
+                }
+                int count = plugin.getClaimManager().trustAll(player.getUniqueId(), target.getUniqueId());
+                if (count == 0) {
+                    player.sendMessage("\u00a7cDu hast keine Claims oder " + target.getName() + " ist bereits überall vertraut.");
+                } else {
+                    player.sendMessage("\u00a7a" + target.getName() + "\u00a7a wurde auf \u00a7f" + count + "\u00a7a Claims vertraut!");
+                    target.sendMessage("\u00a7a" + player.getName() + "\u00a7a vertraut dir jetzt auf all seinen Claims!");
+                }
+            }
             case "trustlist" -> {
                 if (!plugin.getClaimManager().isClaimed(chunk)) {
                     player.sendMessage("\u00a7cDieser Chunk ist nicht geclaimed!");
