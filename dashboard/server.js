@@ -43,6 +43,12 @@ const SERVERS = {
     container: 'ph-survival',
     color:     '#2ECC71',
     rcon:      { host: process.env.SURVIVAL_RCON_HOST || 'survival', port: 25575, password: process.env.RCON_PASSWORD || 'ph-admin-2024' }
+  },
+  minigames: {
+    label:     'Minigames',
+    container: 'ph-minigames',
+    color:     '#E91E63',
+    rcon:      { host: process.env.MINIGAMES_RCON_HOST || 'minigames', port: 25575, password: process.env.RCON_PASSWORD || 'ph-admin-2024' }
   }
 };
 
@@ -82,6 +88,12 @@ const poolCore = mysql.createPool({
 const poolSv = mysql.createPool({
   host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
   database: 'ph_survival', waitForConnections: true,
+  connectionLimit: 5, connectTimeout: 5000
+});
+
+const poolMg = mysql.createPool({
+  host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+  database: 'ph_minigames', waitForConnections: true,
   connectionLimit: 5, connectTimeout: 5000
 });
 
@@ -686,6 +698,43 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     if (subscribedContainer) logSubscribers[subscribedContainer]?.delete(ws);
   });
+});
+
+// ── Minigames API ─────────────────────────────────────────────────────────
+
+app.get('/api/minigames/overview', auth, async (req, res) => {
+  try {
+    const [[{ total }]]  = await poolMg.execute('SELECT COUNT(*) AS total FROM mg_bedwars_stats');
+    const [[{ games }]]  = await poolMg.execute('SELECT COALESCE(SUM(games_played),0) AS games FROM mg_bedwars_stats');
+    const [[{ arenas }]] = await poolMg.execute('SELECT COUNT(*) AS arenas FROM mg_bedwars_arenas');
+    res.json({ ok: true, players: total, totalGames: games, arenas });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/minigames/bedwars/stats', auth, async (req, res) => {
+  try {
+    const [rows] = await poolMg.execute(`
+      SELECT p.name, s.wins, s.losses, s.kills, s.deaths, s.beds_broken, s.games_played
+      FROM mg_bedwars_stats s
+      LEFT JOIN pinkhorizon.players p ON s.uuid = p.uuid
+      ORDER BY s.wins DESC
+      LIMIT 20
+    `);
+    res.json({ ok: true, rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/minigames/bedwars/arenas', auth, async (req, res) => {
+  try {
+    const [arenas] = await poolMg.execute(
+      'SELECT a.id, a.name, a.world, a.max_teams, a.team_size, ' +
+      '(SELECT COUNT(*) FROM mg_bedwars_spawns WHERE arena_id=a.id) AS spawns_set, ' +
+      '(SELECT COUNT(*) FROM mg_bedwars_beds WHERE arena_id=a.id) AS beds_set, ' +
+      '(SELECT COUNT(*) FROM mg_bedwars_spawners WHERE arena_id=a.id) AS spawners ' +
+      'FROM mg_bedwars_arenas a ORDER BY a.name'
+    );
+    res.json({ ok: true, arenas });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────

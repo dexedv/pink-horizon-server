@@ -99,6 +99,36 @@ services:
         condition: service_healthy
 
 
+  # ── Minigames ─────────────────────────────────────────────────────────
+  minigames:
+    image: itzg/minecraft-server:latest
+    container_name: ph-minigames
+    healthcheck:
+      start_period: 3m
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: "1.21.4"
+      INIT_MEMORY: "256m"
+      MEMORY: "1024m"
+      USE_AIKAR_FLAGS: "true"
+      ONLINE_MODE: "false"
+      ENABLE_RCON: "true"
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "ph-admin-2024"
+      SERVER_PORT: "25569"
+    ports:
+      - "25578:25575"             # RCON
+      - "25569:25569"             # Minecraft (intern für Velocity)
+    volumes:
+      - ./servers/minigames:/data
+    networks:
+      - ph-net
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   # ── Dashboard ─────────────────────────────────────────────────────────
   dashboard:
     build: ./dashboard

@@ -391,7 +391,8 @@ const NAV_DEF = [
   { sec: 'Konsolen' },
   { id:'con_velocity', dot:true,  label:'Velocity Proxy', srv:'velocity' },
   { id:'con_lobby',    dot:true,  label:'Lobby',          srv:'lobby'    },
-  { id:'con_survival', dot:true,  label:'Survival',       srv:'survival' },
+  { id:'con_survival',  dot:true,  label:'Survival',       srv:'survival'   },
+  { id:'con_minigames', dot:true,  label:'Minigames',      srv:'minigames'  },
   { sec: 'Verwaltung' },
   { id:'players',      icon:'👥', label:'Spieler'         },
   { id:'permissions',  icon:'🎖️', label:'Permissions'    },
@@ -399,6 +400,8 @@ const NAV_DEF = [
   { id:'stats',        icon:'📈', label:'Statistiken'     },
   { id:'auction',      icon:'🏪', label:'Auktionshaus'    },
   { id:'rights',       icon:'🔑', label:'Rechte'          },
+  { sec: 'Minigames' },
+  { id:'mg_bedwars',   icon:'🛏', label:'BedWars'          },
   { sec: 'Tools' },
   { id:'commands',     icon:'📋', label:'Befehlsreferenz' },
   { id:'sqlconsole',   icon:'🖥️', label:'SQL-Konsole'    },
@@ -452,6 +455,7 @@ function renderPage() {
   if (PAGE === 'sqlconsole')   return renderSqlConsole();
   if (PAGE === 'backup')       return renderBackup();
   if (PAGE === 'motd')         return renderMotd();
+  if (PAGE === 'mg_bedwars')   return renderBedWars();
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -1564,6 +1568,88 @@ async function saveMotd(srv) {
   const d = r ? await r.json() : null;
   showMsg(msg, d?.ok, d?.ok ? `✓ MOTD gespeichert (${srv})` : `✗ ${d?.error||'Fehler'}`);
   if (d?.ok) showToast(`✓ MOTD (${srv}) gespeichert`);
+}
+
+// ── BedWars ───────────────────────────────────────────────────────────────
+async function renderBedWars() {
+  setHdr('🛏 BedWars', `<button class="btn" onclick="renderBedWars()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="g3" id="bw-kpi"><div class="empty">Lade…</div></div>
+    <div class="card">
+      <div class="card-title">🏆 Rangliste (Top 20)</div>
+      <div id="bw-table"><div class="empty">Lade…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🗺️ Arenen</div>
+      <div id="bw-arenas"><div class="empty">Lade…</div></div>
+    </div>
+  </div>`;
+
+  // KPIs
+  const ov = await apiFetch('/api/minigames/overview');
+  if (ov?.ok) {
+    const d = await ov.json();
+    document.getElementById('bw-kpi').innerHTML = `
+      <div class="card"><div class="kpi-val">${d.totalGames}</div><div class="kpi-lbl">Gespielte Runden</div></div>
+      <div class="card"><div class="kpi-val">${d.players}</div><div class="kpi-lbl">Registrierte Spieler</div></div>
+      <div class="card"><div class="kpi-val">${d.arenas}</div><div class="kpi-lbl">Arenen</div></div>`;
+  }
+
+  // Leaderboard
+  const sr = await apiFetch('/api/minigames/bedwars/stats');
+  if (sr?.ok) {
+    const { rows } = await sr.json();
+    if (rows.length === 0) {
+      document.getElementById('bw-table').innerHTML = '<div class="empty">Noch keine Daten.</div>';
+    } else {
+      let html = `<table class="tbl"><thead><tr>
+        <th>#</th><th>Spieler</th><th>Siege</th><th>Niederlagen</th>
+        <th>Kills</th><th>Tode</th><th>Betten</th><th>Runden</th>
+      </tr></thead><tbody>`;
+      rows.forEach((r, i) => {
+        const kd = r.deaths > 0 ? (r.kills / r.deaths).toFixed(2) : r.kills;
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)+'.';
+        html += `<tr>
+          <td>${medal}</td>
+          <td><b>${escH(r.name || '?')}</b></td>
+          <td><span class="badge b-green">${r.wins}</span></td>
+          <td><span class="badge b-red">${r.losses}</span></td>
+          <td>${r.kills}</td><td>${r.deaths}</td>
+          <td><span class="badge b-yellow">${r.beds_broken}</span></td>
+          <td>${r.games_played}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('bw-table').innerHTML = html;
+    }
+  }
+
+  // Arenen
+  const ar = await apiFetch('/api/minigames/bedwars/arenas');
+  if (ar?.ok) {
+    const { arenas } = await ar.json();
+    if (arenas.length === 0) {
+      document.getElementById('bw-arenas').innerHTML = '<div class="empty">Keine Arenen konfiguriert. Nutze <code>/bw create</code> im Minigames-Server.</div>';
+    } else {
+      let html = '<div style="display:flex;flex-direction:column;gap:8px">';
+      for (const a of arenas) {
+        const ok = a.spawns_set >= a.max_teams && a.beds_set >= a.max_teams;
+        const badge = ok ? '<span class="badge b-green">✔ Bereit</span>' : '<span class="badge b-red">✗ Unvollständig</span>';
+        html += `<div style="display:flex;align-items:center;gap:12px;padding:8px;background:var(--surface2);border-radius:6px">
+          ${badge}
+          <b>${escH(a.name)}</b>
+          <span class="badge b-blue">${a.max_teams} Teams × ${a.team_size}</span>
+          <span style="color:var(--muted)">Welt: ${escH(a.world)}</span>
+          <span style="color:var(--muted)">Spawns: ${a.spawns_set}/${a.max_teams}</span>
+          <span style="color:var(--muted)">Betten: ${a.beds_set}/${a.max_teams}</span>
+          <span style="color:var(--muted)">Spawner: ${a.spawners}</span>
+        </div>`;
+      }
+      html += '</div>';
+      document.getElementById('bw-arenas').innerHTML = html;
+    }
+  }
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────
