@@ -97,10 +97,8 @@ public class BedWarsGame {
         scoreboard.give(player);
         scoreboard.giveTab(player, team);
 
-        if (state == GameState.WAITING && getTotalPlayers() >= MIN_PLAYERS) {
+        if (state == GameState.WAITING && isFull()) {
             startCountdown();
-        } else if (state == GameState.STARTING && isFull()) {
-            beginGame();
         }
         return true;
     }
@@ -123,14 +121,12 @@ public class BedWarsGame {
             plugin.getHubManager().setupHubPlayer(player);
         }
 
-        if (state == GameState.RUNNING) {
-            checkWinCondition();
-        } else if (state == GameState.WAITING || state == GameState.STARTING) {
-            if (getTotalPlayers() < MIN_PLAYERS && countdownTask != null) {
+        if (state == GameState.WAITING || state == GameState.STARTING) {
+            if (!isFull() && countdownTask != null) {
                 countdownTask.cancel();
                 countdownTask = null;
                 state = GameState.WAITING;
-                broadcastGame("§cZu wenig Spieler – Countdown abgebrochen.");
+                broadcastGame("§cEin Spieler hat das Spiel verlassen – Countdown abgebrochen.");
             }
         }
     }
@@ -242,11 +238,10 @@ public class BedWarsGame {
             }, RESPAWN_TICKS);
             return false;
         } else {
-            // Eliminiert
+            // Kein Bett mehr – permanent Spectator
             victim.setGameMode(GameMode.SPECTATOR);
             spectators.add(uuid);
             broadcastGame(team.chatColor + victim.getName() + " §cwurde eliminiert!");
-            checkWinCondition();
             return true;
         }
     }
@@ -267,47 +262,32 @@ public class BedWarsGame {
 
     public void destroyBed(BedWarsTeamColor team, Player breaker) {
         bedsAlive.remove(team);
+        aliveTeams.remove(team);
+
         broadcastGame("§c§l" + team.chatColor + team.displayName.replace(team.chatColor, "")
                 + " §c§lBett wurde zerstört"
                 + (breaker != null ? " §7von §f" + breaker.getName() : "") + "§c§l!");
         if (breaker != null)
             plugin.getStatsManager().incrementStat(breaker.getUniqueId(), "beds_broken");
 
-        // Spieler des Teams informieren
+        // Alle noch lebenden Spieler dieses Teams sofort eliminieren
         for (UUID uuid : teams.get(team)) {
             Player p = Bukkit.getPlayer(uuid);
-            if (p != null) p.sendMessage("§c§l✗ Dein Bett wurde zerstört! Du kannst nicht mehr respawnen!");
+            if (p != null && !spectators.contains(uuid)) {
+                spectators.add(uuid);
+                p.setGameMode(GameMode.SPECTATOR);
+                p.sendMessage("§c§l✗ Dein Bett wurde zerstört – du wurdest eliminiert!");
+            }
         }
+        broadcastGame("§7Team " + team.chatColor + team.displayName + " §7wurde eliminiert!");
 
-        // Sofortiger Eliminierungs-Check: Alle dieses Teams tot?
-        boolean anyAlive = teams.get(team).stream()
-                .anyMatch(u -> !spectators.contains(u) && Bukkit.getPlayer(u) != null);
-        if (!anyAlive) {
-            aliveTeams.remove(team);
-            broadcastGame("§7Team " + team.chatColor + team.displayName + " §7wurde eliminiert!");
-            checkWinCondition();
-        }
-        scoreboard.updateAll();
-    }
-
-    // ── Win Condition ──────────────────────────────────────────────────────
-
-    private void checkWinCondition() {
-        // Lebende Teams ermitteln: Teams mit mind. 1 aktiven Spieler (nicht Spectator)
-        Set<BedWarsTeamColor> active = new HashSet<>();
-        for (BedWarsTeamColor color : aliveTeams) {
-            boolean any = teams.get(color).stream()
-                    .anyMatch(u -> !spectators.contains(u) && Bukkit.getPlayer(u) != null);
-            if (any) active.add(color);
-        }
-        aliveTeams.retainAll(active);
-
-        if (aliveTeams.size() == 1) {
-            BedWarsTeamColor winner = aliveTeams.iterator().next();
-            endGame(winner);
-        } else if (aliveTeams.isEmpty()) {
+        // Spielende: letztes Bett übrig → Gewinner
+        if (bedsAlive.size() == 1) {
+            endGame(bedsAlive.iterator().next());
+        } else if (bedsAlive.isEmpty()) {
             endGame(null);
         }
+        scoreboard.updateAll();
     }
 
     private void endGame(BedWarsTeamColor winnerTeam) {
