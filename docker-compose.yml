@@ -4,7 +4,7 @@ services:
   mysql:
     image: mysql:8.0
     container_name: ph-mysql
-    mem_limit: 512m
+    mem_limit: 812m
     environment:
       MYSQL_ROOT_PASSWORD: "ph-root-2024"
       MYSQL_DATABASE:      "pinkhorizon"
@@ -27,10 +27,10 @@ services:
   velocity:
     image: itzg/bungeecord:latest
     container_name: ph-velocity
-    mem_limit: 512m
+    mem_limit: 712m
     environment:
       TYPE: VELOCITY
-      MEMORY: "384m"
+      MEMORY: "550m"
     ports:
       - "25565:25565"      # Spieler connecten hier
     volumes:
@@ -46,7 +46,7 @@ services:
   lobby:
     image: itzg/minecraft-server:latest
     container_name: ph-lobby
-    mem_limit: 768m
+    mem_limit: 1468m
     healthcheck:
       start_period: 2m
     environment:
@@ -54,7 +54,7 @@ services:
       TYPE: PAPER
       VERSION: "1.21.4"
       INIT_MEMORY: "256m"
-      MEMORY: "576m"
+      MEMORY: "1200m"
       USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
@@ -76,7 +76,7 @@ services:
   survival:
     image: itzg/minecraft-server:latest
     container_name: ph-survival
-    mem_limit: 2g
+    mem_limit: 2748m
     healthcheck:
       start_period: 3m
     environment:
@@ -84,7 +84,7 @@ services:
       TYPE: PAPER
       VERSION: "1.21.4"
       INIT_MEMORY: "512m"
-      MEMORY: "1700m"
+      MEMORY: "2300m"
       USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
@@ -107,7 +107,7 @@ services:
   minigames:
     image: itzg/minecraft-server:latest
     container_name: ph-minigames
-    mem_limit: 1g
+    mem_limit: 1724m
     healthcheck:
       start_period: 3m
     environment:
@@ -115,7 +115,7 @@ services:
       TYPE: PAPER
       VERSION: "1.21.4"
       INIT_MEMORY: "256m"
-      MEMORY: "800m"
+      MEMORY: "1450m"
       USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
