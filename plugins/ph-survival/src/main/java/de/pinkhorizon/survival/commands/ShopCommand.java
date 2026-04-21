@@ -74,13 +74,13 @@ public class ShopCommand implements CommandExecutor {
 
         addItem(inv, 10, Material.FEATHER,  "§b§lFly §7– 10 Minuten",
                 "§7Fliege frei durch die Welt.", "§8Stapelt sich mit aktiver Zeit.",
-                2_400, FLY_10, flyPermStatus);
+                12_000, FLY_10, flyPermStatus);
         addItem(inv, 11, Material.FEATHER,  "§b§lFly §7– 30 Minuten",
                 "§7Fliege frei durch die Welt.", "§8Stapelt sich mit aktiver Zeit.",
-                5_400, FLY_30, flyPermStatus);
+                27_000, FLY_30, flyPermStatus);
         addItem(inv, 12, Material.FEATHER,  "§b§lFly §7– 1 Stunde",
                 "§7Fliege frei durch die Welt.", "§8Stapelt sich mit aktiver Zeit.",
-                10_500, FLY_60, flyPermStatus);
+                52_500, FLY_60, flyPermStatus);
         addItem(inv, 13, Material.ELYTRA,   "§b§l§nFly §7– Dauerhaft",
                 "§7Fliege §limmer§r§7 – niemals ablaufend.", "§cEinmaliger Kauf.",
                 1_500_000, FLY_PERM, flyPerm ? "§a§lBereits besessen!" : null);
@@ -116,13 +116,13 @@ public class ShopCommand implements CommandExecutor {
 
         addItem(inv, 19, Material.TOTEM_OF_UNDYING, "§6§lKeepInventory §7– 10 Min.",
                 "§7Inventar bleibt beim Tod erhalten.", "§8Stapelt sich mit aktiver Zeit.",
-                1_500, KI_10, kiStatus);
+                7_500, KI_10, kiStatus);
         addItem(inv, 20, Material.TOTEM_OF_UNDYING, "§6§lKeepInventory §7– 30 Min.",
                 "§7Inventar bleibt beim Tod erhalten.", "§8Stapelt sich mit aktiver Zeit.",
-                3_600, KI_30, kiStatus);
+                18_000, KI_30, kiStatus);
         addItem(inv, 21, Material.TOTEM_OF_UNDYING, "§6§lKeepInventory §7– 1 Std.",
                 "§7Inventar bleibt beim Tod erhalten.", "§8Stapelt sich mit aktiver Zeit.",
-                7_500, KI_60, kiStatus);
+                37_500, KI_60, kiStatus);
         addItem(inv, 22, Material.NETHER_STAR,      "§6§l§nKeepInventory §7– Dauerhaft",
                 "§7Inventar §limmer§r §7beim Tod erhalten.", "§cEinmaliger Kauf – niemals ablaufend.",
                 1_500_000, KI_PERM, hasPerm ? "§a§lBereits besessen!" : null);
