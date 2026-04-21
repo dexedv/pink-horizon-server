@@ -194,6 +194,9 @@ public class BedWarsGame {
         broadcastGame("§a§lSpiel gestartet! §rVerstöre die Betten deiner Gegner!");
         broadcastGame("§7Teams: " + getActiveTeamColors().stream()
                 .map(c -> c.chatColor + c.displayName).reduce((a, b) -> a + "§7, " + b).orElse(""));
+
+        // Nächste Warteschlangen-Instanz vorab anlegen
+        plugin.getArenaManager().findOrCreateGame(arena.name);
     }
 
     // ── Death Handling ──────────────────────────────────────────────────────
