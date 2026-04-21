@@ -116,13 +116,13 @@ public class ShopCommand implements CommandExecutor {
 
         addItem(inv, 19, Material.TOTEM_OF_UNDYING, "§6§lKeepInventory §7– 10 Min.",
                 "§7Inventar bleibt beim Tod erhalten.", "§8Stapelt sich mit aktiver Zeit.",
-                7_500, KI_10, kiStatus);
+                22_500, KI_10, kiStatus);
         addItem(inv, 20, Material.TOTEM_OF_UNDYING, "§6§lKeepInventory §7– 30 Min.",
                 "§7Inventar bleibt beim Tod erhalten.", "§8Stapelt sich mit aktiver Zeit.",
-                18_000, KI_30, kiStatus);
+                54_000, KI_30, kiStatus);
         addItem(inv, 21, Material.TOTEM_OF_UNDYING, "§6§lKeepInventory §7– 1 Std.",
                 "§7Inventar bleibt beim Tod erhalten.", "§8Stapelt sich mit aktiver Zeit.",
-                37_500, KI_60, kiStatus);
+                112_500, KI_60, kiStatus);
         addItem(inv, 22, Material.NETHER_STAR,      "§6§l§nKeepInventory §7– Dauerhaft",
                 "§7Inventar §limmer§r §7beim Tod erhalten.", "§cEinmaliger Kauf – niemals ablaufend.",
                 1_500_000, KI_PERM, hasPerm ? "§a§lBereits besessen!" : null);
