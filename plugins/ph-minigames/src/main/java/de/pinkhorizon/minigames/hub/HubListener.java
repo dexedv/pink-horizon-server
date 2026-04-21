@@ -32,9 +32,13 @@ public class HubListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        plugin.getLogger().info("[Hub] " + player.getName() + " joined – setup in 5 ticks");
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline() && inHub(player)) {
+            boolean hub = inHub(player);
+            plugin.getLogger().info("[Hub] setup task: " + player.getName() + " online=" + player.isOnline() + " inHub=" + hub);
+            if (player.isOnline() && hub) {
                 plugin.getHubManager().setupHubPlayer(player);
+                plugin.getLogger().info("[Hub] setupHubPlayer done for " + player.getName());
             }
         }, 5L);
     }

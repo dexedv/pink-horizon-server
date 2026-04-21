@@ -62,7 +62,7 @@ public class PHMinigames extends JavaPlugin {
         // Holograms nach Welt-Load spawnen
         getServer().getScheduler().runTaskLater(this, () -> hologramManager.spawnAll(), 60L);
 
-        getLogger().info("PH-Minigames gestartet! Arenen: " + arenaManager.getArenas().size());
+        getLogger().info("PH-Minigames gestartet! Arenen: " + arenaManager.getArenas().size() + " | Hub+TabList aktiv");
     }
 
     @Override
