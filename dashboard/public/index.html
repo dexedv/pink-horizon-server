@@ -397,6 +397,7 @@ const NAV_DEF = [
   { id:'players',      icon:'👥', label:'Spieler'         },
   { id:'permissions',  icon:'🎖️', label:'Permissions'    },
   { id:'economy',      icon:'💰', label:'Wirtschaft'      },
+  { id:'bank',         icon:'🏦', label:'Bank'            },
   { id:'stats',        icon:'📈', label:'Statistiken'     },
   { id:'auction',      icon:'🏪', label:'Auktionshaus'    },
   { id:'rights',       icon:'🔑', label:'Rechte'          },
@@ -448,6 +449,7 @@ function renderPage() {
   if (PAGE === 'players')      return renderPlayers();
   if (PAGE === 'permissions')  return renderPermissions();
   if (PAGE === 'economy')      return renderEcon();
+  if (PAGE === 'bank')         return renderBank();
   if (PAGE === 'stats')        return renderStats();
   if (PAGE === 'auction')      return renderAuction();
   if (PAGE === 'rights')       return renderRights();
@@ -709,6 +711,8 @@ async function loadPl(name) {
   if (r.status===404) { el.innerHTML='<div class="empty" style="color:var(--red)">Spieler nicht gefunden</div>'; return; }
   if (!r.ok) { const e=await r.json(); el.innerHTML=`<div class="empty" style="color:var(--red)">${escH(e.error||'Fehler')}</div>`; return; }
   curPlayer = await r.json();
+  const br = await apiFetch(`/api/bank/player?name=${encodeURIComponent(name)}`);
+  if (br?.ok) { const bd = await br.json(); curPlayer.bankBalance = bd.balance; curPlayer.bankInterest = bd.lastInterest; }
   renderPlCard(curPlayer);
 }
 
@@ -762,6 +766,16 @@ function renderPlCard(p) {
       <div class="card">
         <div class="card-title">💼 Job</div>
         <div style="margin-top:4px">${jobH}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏦 Bankkonto</div>
+        <div class="coin-big" id="bank-disp" style="color:var(--blue)">${(p.bankBalance||0).toLocaleString('de-DE')}</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Letzter Zins: ${p.bankInterest||'–'}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input class="field fsm" id="bank-amt" type="number" min="0" placeholder="Neues Guthaben…">
+          <button class="btn" onclick="setBankBal('${escH(p.name)}')">💾 Guthaben setzen</button>
+          <div id="bank-msg" style="display:none" class="msg"></div>
+        </div>
       </div>
     </div>`;
 }
@@ -1040,6 +1054,115 @@ async function ecoQ(type) {
   const r = await apiFetch('/api/players/action',{method:'POST',body:JSON.stringify({name,type:'eco_'+type,value:amt})});
   const d = r?await r.json():null;
   showMsg(msg, d?.ok, d?.output||d?.error||'Fehler');
+}
+
+async function setBankBal(name) {
+  const amt = parseInt(document.getElementById('bank-amt')?.value);
+  const msg = document.getElementById('bank-msg');
+  if (!Number.isInteger(amt) || amt < 0) { showMsg(msg, false, 'Gültigen Betrag eingeben'); return; }
+  const r = await apiFetch('/api/bank/player', { method:'POST', body:JSON.stringify({ name, balance: amt }) });
+  const d = r ? await r.json() : null;
+  showMsg(msg, d?.ok, d?.ok ? `✓ Bankguthaben auf ${amt.toLocaleString('de-DE')} gesetzt` : (d?.error||'Fehler'));
+  if (d?.ok) { const el = document.getElementById('bank-disp'); if (el) el.textContent = amt.toLocaleString('de-DE'); }
+}
+
+// ── Bank ──────────────────────────────────────────────────────────────────
+async function renderBank() {
+  setHdr('🏦 Bank', `<button class="btn" onclick="renderBank()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="g3" id="bank-kpi"><div class="empty">Lade…</div></div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">🏆 Top-Bankkonten</div>
+        <div id="bank-top"><div class="empty">Lade…</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ Konto bearbeiten</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <input class="field fsm" id="bank-pl" placeholder="Spielername…" oninput="loadBankPlayer()" onkeydown="if(event.key==='Enter')loadBankPlayer()">
+          <div id="bank-pl-info" style="display:none;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:.88rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <span style="color:var(--muted)">Bankguthaben</span>
+              <span id="bank-pl-bal" style="color:var(--blue);font-weight:700"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+              <span style="color:var(--muted)">Letzter Zins</span>
+              <span id="bank-pl-int" style="font-family:var(--mono)"></span>
+            </div>
+            <input class="field fsm" id="bank-set-amt" type="number" min="0" placeholder="Neues Guthaben…" style="margin-bottom:6px">
+            <button class="btn btn-p" style="width:100%" onclick="doBankSet()">💾 Setzen</button>
+            <div id="bank-set-msg" style="display:none;margin-top:6px" class="msg"></div>
+          </div>
+          <div id="bank-pl-err" style="display:none" class="msg msg-err"></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  loadBankOverview();
+  loadBankTop();
+}
+
+async function loadBankOverview() {
+  const r = await apiFetch('/api/bank/overview');
+  const el = document.getElementById('bank-kpi'); if (!el) return;
+  if (!r?.ok) { el.innerHTML='<div class="empty" style="grid-column:1/-1">Nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const avg = d.accounts > 0 ? Math.round(d.total / d.accounts) : 0;
+  el.innerHTML = `
+    <div class="card stat-card"><span class="stat-icon">💰</span><div><div class="stat-lbl">Coins in der Bank</div><div class="stat-val" style="color:var(--blue)">${Number(d.total).toLocaleString('de-DE')}</div></div></div>
+    <div class="card stat-card"><span class="stat-icon">👤</span><div><div class="stat-lbl">Aktive Konten</div><div class="stat-val">${Number(d.accounts).toLocaleString('de-DE')}</div></div></div>
+    <div class="card stat-card"><span class="stat-icon">📊</span><div><div class="stat-lbl">Ø Guthaben</div><div class="stat-val" style="color:var(--blue)">${avg.toLocaleString('de-DE')}</div></div></div>`;
+}
+
+async function loadBankTop() {
+  const el = document.getElementById('bank-top'); if (!el) return;
+  const r = await apiFetch('/api/bank/top');
+  if (!r?.ok) { el.innerHTML='<div class="empty">Nicht verfügbar</div>'; return; }
+  const { rows } = await r.json();
+  if (!rows.length) { el.innerHTML='<div class="empty">Keine Einträge</div>'; return; }
+  const rc = ['gold','silver','bronze'];
+  el.innerHTML = '<div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">' +
+    rows.map((e,i)=>`<div class="bt-row">
+      <span class="bt-rank ${rc[i]||''}">#${i+1}</span>
+      <span class="bt-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(e.name)}'),150)">${escH(e.name)}</span>
+      <span style="color:var(--blue);font-weight:700">🏦 ${e.balance.toLocaleString('de-DE')}</span>
+      <span style="font-size:.74rem;color:var(--muted);font-family:var(--mono)">${e.last_interest||''}</span>
+    </div>`).join('') + '</div>';
+}
+
+let bankPlTimer = null;
+async function loadBankPlayer() {
+  clearTimeout(bankPlTimer);
+  bankPlTimer = setTimeout(async () => {
+    const name = document.getElementById('bank-pl')?.value?.trim();
+    const info = document.getElementById('bank-pl-info');
+    const err  = document.getElementById('bank-pl-err');
+    if (!name) { info.style.display='none'; err.style.display='none'; return; }
+    const r = await apiFetch(`/api/bank/player?name=${encodeURIComponent(name)}`);
+    const d = r ? await r.json() : null;
+    if (!d?.ok) { info.style.display='none'; err.style.display='block'; err.textContent='Spieler nicht gefunden'; return; }
+    err.style.display='none';
+    document.getElementById('bank-pl-bal').textContent = d.balance.toLocaleString('de-DE') + ' Coins';
+    document.getElementById('bank-pl-int').textContent = d.lastInterest || '–';
+    info.style.display='block';
+  }, 400);
+}
+
+async function doBankSet() {
+  const name = document.getElementById('bank-pl')?.value?.trim();
+  const amt  = parseInt(document.getElementById('bank-set-amt')?.value);
+  const msg  = document.getElementById('bank-set-msg');
+  if (!name || !Number.isInteger(amt) || amt < 0) { showMsg(msg, false, 'Spieler und Betrag angeben'); return; }
+  const r = await apiFetch('/api/bank/player', { method:'POST', body:JSON.stringify({ name, balance: amt }) });
+  const d = r ? await r.json() : null;
+  showMsg(msg, d?.ok, d?.ok ? `✓ Guthaben auf ${amt.toLocaleString('de-DE')} gesetzt` : (d?.error||'Fehler'));
+  if (d?.ok) {
+    showToast(`✓ Bankkonto von ${name} aktualisiert`);
+    document.getElementById('bank-pl-bal').textContent = amt.toLocaleString('de-DE') + ' Coins';
+    loadBankTop();
+    loadBankOverview();
+  }
 }
 
 // ── Rights ────────────────────────────────────────────────────────────────
@@ -1472,6 +1595,7 @@ const SQL_HINTS = [
   { db:'ph_survival',  q:'SELECT seller_name, COUNT(*) AS listings, SUM(price) AS total FROM sv_auction GROUP BY seller_name ORDER BY listings DESC' },
   { db:'ph_survival',  q:'SELECT quest_id, COUNT(*) AS done FROM sv_quests WHERE completed=TRUE GROUP BY quest_id ORDER BY done DESC' },
   { db:'ph_survival',  q:'SELECT COUNT(*) AS friends FROM sv_friends' },
+  { db:'ph_survival',  q:'SELECT p.name, b.balance, b.last_interest FROM sv_bank b JOIN pinkhorizon.players p ON b.uuid=p.uuid WHERE b.balance > 0 ORDER BY b.balance DESC LIMIT 20' },
   { db:'ph_minigames', q:'SELECT p.name, s.wins, s.kills, s.beds_broken, s.games_played FROM mg_bedwars_stats s LEFT JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.wins DESC LIMIT 20' },
   { db:'ph_minigames', q:'SELECT name, world, max_teams, team_size FROM mg_bedwars_arenas ORDER BY name' },
 ];

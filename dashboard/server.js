@@ -411,6 +411,58 @@ app.get('/api/economy/baltop', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── REST-API: Bank ────────────────────────────────────────────────────────
+
+app.get('/api/bank/overview', auth, async (req, res) => {
+  try {
+    const [[r]] = await poolSv.execute(
+      'SELECT COUNT(*) AS accounts, COALESCE(SUM(balance),0) AS total, COALESCE(MAX(balance),0) AS top FROM sv_bank WHERE balance > 0'
+    );
+    res.json({ ok: true, accounts: Number(r.accounts), total: Number(r.total), top: Number(r.top) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/bank/top', auth, async (req, res) => {
+  try {
+    const [rows] = await poolSv.execute(
+      `SELECT p.name, b.balance, b.last_interest FROM sv_bank b
+       JOIN pinkhorizon.players p ON b.uuid = p.uuid
+       WHERE b.balance > 0 ORDER BY b.balance DESC LIMIT 20`
+    );
+    res.json({ ok: true, rows: rows.map(r => ({ ...r, balance: Number(r.balance) })) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/bank/player', auth, async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: 'Kein Spielername' });
+  try {
+    const [rows] = await poolSv.execute(
+      `SELECT b.balance, b.last_interest FROM sv_bank b
+       JOIN pinkhorizon.players p ON b.uuid = p.uuid WHERE p.name = ?`, [name]
+    );
+    if (!rows.length) return res.json({ ok: true, balance: 0, lastInterest: null });
+    res.json({ ok: true, balance: Number(rows[0].balance), lastInterest: rows[0].last_interest });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/bank/player', auth, async (req, res) => {
+  const { name, balance } = req.body;
+  if (!name) return res.status(400).json({ error: 'Kein Spielername' });
+  const bal = parseInt(balance);
+  if (!Number.isInteger(bal) || bal < 0) return res.status(400).json({ error: 'Ungültiger Betrag' });
+  try {
+    const [players] = await poolCore.execute('SELECT uuid FROM players WHERE name = ?', [name]);
+    if (!players.length) return res.status(404).json({ error: 'Spieler nicht gefunden' });
+    const uuid = players[0].uuid;
+    await poolSv.execute(
+      'INSERT INTO sv_bank (uuid, balance, last_interest) VALUES (?, ?, CURRENT_DATE) ON DUPLICATE KEY UPDATE balance = ?',
+      [uuid, bal, bal]
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── REST-API: Broadcast ───────────────────────────────────────────────────
 
 app.post('/api/broadcast', auth, async (req, res) => {
