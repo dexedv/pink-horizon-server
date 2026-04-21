@@ -7,7 +7,9 @@ import de.pinkhorizon.minigames.listeners.BedWarsListener;
 import de.pinkhorizon.minigames.managers.BedWarsArenaManager;
 import de.pinkhorizon.minigames.managers.BedWarsStatsManager;
 import de.pinkhorizon.minigames.managers.MinigamesHologramManager;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
 
@@ -61,6 +63,11 @@ public class PHMinigames extends JavaPlugin {
         if (hologramManager != null) hologramManager.stopAll();
         if (db              != null) db.close();
         getLogger().info("PH-Minigames gestoppt.");
+    }
+
+    @Override
+    public ChunkGenerator getDefaultWorldGenerator(@NotNull String worldName, String id) {
+        return new VoidGenerator();
     }
 
     public static PHMinigames getInstance()             { return instance; }
