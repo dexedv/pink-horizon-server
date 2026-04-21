@@ -31,6 +31,11 @@ public class HubListener implements Listener {
         return plugin.getArenaManager().getGameOf(player.getUniqueId()) == null;
     }
 
+    /** Nur Adventure-Spieler im Hub einschränken – Creative/OP dürfen alles. */
+    private boolean shouldRestrict(Player player) {
+        return inHub(player) && player.getGameMode() != org.bukkit.GameMode.CREATIVE;
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
@@ -71,19 +76,19 @@ public class HubListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-        if (!inHub(event.getPlayer())) return;
+        if (!shouldRestrict(event.getPlayer())) return;
         event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
-        if (!inHub(event.getPlayer())) return;
+        if (!shouldRestrict(event.getPlayer())) return;
         event.setCancelled(true);
     }
 
     @EventHandler
     public void onDrop(PlayerDropItemEvent event) {
-        if (!inHub(event.getPlayer())) return;
+        if (!shouldRestrict(event.getPlayer())) return;
         event.setCancelled(true);
     }
 
