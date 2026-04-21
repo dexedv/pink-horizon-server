@@ -18,7 +18,9 @@ import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.entity.Villager;
 
 import java.util.Set;
 
@@ -159,6 +161,16 @@ public class BedWarsListener implements Listener {
                     || event.getCurrentItem().getType() == Material.AIR) return;
             plugin.getShopGui().handleClick(player, event.getCurrentItem(), event.getRawSlot());
         }
+    }
+
+    @EventHandler
+    public void onVillagerClick(PlayerInteractEntityEvent event) {
+        if (!(event.getRightClicked() instanceof Villager)) return;
+        Player player = event.getPlayer();
+        BedWarsGame game = plugin.getArenaManager().getGameOf(player.getUniqueId());
+        if (game == null || game.getState() != BedWarsGame.GameState.RUNNING) return;
+        event.setCancelled(true);
+        plugin.getShopGui().open(player);
     }
 
     @EventHandler
