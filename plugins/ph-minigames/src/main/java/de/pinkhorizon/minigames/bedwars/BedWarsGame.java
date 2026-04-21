@@ -26,7 +26,7 @@ public class BedWarsGame {
 
     public enum GameState { WAITING, STARTING, RUNNING, ENDED }
 
-    private static final int MIN_PLAYERS  = 2;
+    private static final int MIN_PLAYERS  = 1;
     private static final int COUNTDOWN_S  = 30;
     private static final int RESPAWN_TICKS = 100; // 5s
 
