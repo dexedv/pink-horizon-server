@@ -42,7 +42,7 @@ public class BedWarsArenaConfig {
     }
 
     public boolean isFullyConfigured() {
-        if (teamSpawns.size() < maxTeams) return false;
+        if (teamSpawnData.size() < maxTeams) return false;
         if (bedBlocks.size() < maxTeams) return false;
         return true;
     }
