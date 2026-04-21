@@ -95,6 +95,7 @@ public class BedWarsGame {
                 + getTotalPlayers() + "/" + getMaxPlayers() + ")");
 
         scoreboard.give(player);
+        scoreboard.giveTab(player, team);
 
         if (state == GameState.WAITING && getTotalPlayers() >= MIN_PLAYERS) {
             startCountdown();
@@ -111,6 +112,7 @@ public class BedWarsGame {
         spectators.remove(uuid);
 
         scoreboard.remove(player);
+        scoreboard.removeTab(player);
 
         if (restore) {
             ItemStack[] inv = savedInventory.remove(uuid);

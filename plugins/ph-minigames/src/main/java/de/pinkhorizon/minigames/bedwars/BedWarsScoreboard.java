@@ -1,5 +1,10 @@
 package de.pinkhorizon.minigames.bedwars;
 
+import de.pinkhorizon.minigames.PHMinigames;
+import de.pinkhorizon.minigames.hub.HubManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Criteria;
@@ -62,7 +67,60 @@ public class BedWarsScoreboard {
             Objective obj = board.getObjective("bw");
             if (obj == null) continue;
             update(p, board, obj);
+            updateTabFooter(p);
         }
+    }
+
+    // ── Tab-Liste ──────────────────────────────────────────────────────────
+
+    public void giveTab(Player player, BedWarsTeamColor team) {
+        String rawName = team.displayName.replace(team.chatColor, "").trim();
+        player.playerListName(
+                Component.text("[" + rawName + "] ", team.textColor)
+                        .append(Component.text(player.getName(), NamedTextColor.WHITE))
+        );
+        updateTabHeader(player);
+        updateTabFooter(player);
+    }
+
+    public void removeTab(Player player) {
+        player.playerListName(Component.text(player.getName(), NamedTextColor.WHITE));
+        HubManager hub = PHMinigames.getInstance().getHubManager();
+        if (hub != null) hub.setHubTabHeader(player);
+    }
+
+    private void updateTabHeader(Player player) {
+        player.sendPlayerListHeaderAndFooter(
+                Component.text("✦ BedWars | " + game.getArena().name + " ✦",
+                        NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD),
+                buildTabFooter(player)
+        );
+    }
+
+    private void updateTabFooter(Player player) {
+        player.sendPlayerListHeaderAndFooter(
+                Component.text("✦ BedWars | " + game.getArena().name + " ✦",
+                        NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD),
+                buildTabFooter(player)
+        );
+    }
+
+    private Component buildTabFooter(Player player) {
+        BedWarsTeamColor team = game.getTeamOf(player.getUniqueId());
+        int total = game.getAllPlayers().size();
+        int max   = game.getArena().maxTeams * game.getArena().teamSize;
+        Component line = Component.text("Spieler: " + total + "/" + max, NamedTextColor.GRAY);
+        if (team != null) {
+            String rawName = team.displayName.replace(team.chatColor, "").trim();
+            line = Component.text("Team: ", NamedTextColor.GRAY)
+                    .append(Component.text(rawName, team.textColor))
+                    .append(Component.text("  |  Spieler: " + total + "/" + max, NamedTextColor.GRAY));
+        }
+        if (game.getState() == BedWarsGame.GameState.STARTING) {
+            line = line.append(Component.newline())
+                    .append(Component.text("Start in " + game.getCountdown() + "s ...", NamedTextColor.YELLOW));
+        }
+        return line;
     }
 
     private void update(Player player, Scoreboard board, Objective obj) {

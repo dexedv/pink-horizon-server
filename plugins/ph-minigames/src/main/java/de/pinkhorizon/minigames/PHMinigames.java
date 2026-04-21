@@ -3,6 +3,9 @@ package de.pinkhorizon.minigames;
 import de.pinkhorizon.minigames.commands.BedWarsCommand;
 import de.pinkhorizon.minigames.database.MinigamesDatabaseManager;
 import de.pinkhorizon.minigames.gui.BedWarsShopGui;
+import de.pinkhorizon.minigames.hub.HubGui;
+import de.pinkhorizon.minigames.hub.HubListener;
+import de.pinkhorizon.minigames.hub.HubManager;
 import de.pinkhorizon.minigames.listeners.BedWarsListener;
 import de.pinkhorizon.minigames.managers.BedWarsArenaManager;
 import de.pinkhorizon.minigames.managers.BedWarsStatsManager;
@@ -22,6 +25,8 @@ public class PHMinigames extends JavaPlugin {
     private BedWarsStatsManager      statsManager;
     private MinigamesHologramManager hologramManager;
     private BedWarsShopGui           shopGui;
+    private HubManager               hubManager;
+    private HubGui                   hubGui;
 
     @Override
     public void onEnable() {
@@ -42,6 +47,8 @@ public class PHMinigames extends JavaPlugin {
         statsManager    = new BedWarsStatsManager(this);
         hologramManager = new MinigamesHologramManager(this);
         shopGui         = new BedWarsShopGui(this);
+        hubManager      = new HubManager(this);
+        hubGui          = new HubGui(this);
 
         // Commands
         BedWarsCommand bwCmd = new BedWarsCommand(this);
@@ -50,6 +57,7 @@ public class PHMinigames extends JavaPlugin {
 
         // Listener
         getServer().getPluginManager().registerEvents(new BedWarsListener(this), this);
+        getServer().getPluginManager().registerEvents(new HubListener(this), this);
 
         // Holograms nach Welt-Load spawnen
         getServer().getScheduler().runTaskLater(this, () -> hologramManager.spawnAll(), 60L);
@@ -76,4 +84,6 @@ public class PHMinigames extends JavaPlugin {
     public BedWarsStatsManager      getStatsManager()   { return statsManager; }
     public MinigamesHologramManager getHologramManager(){ return hologramManager; }
     public BedWarsShopGui           getShopGui()        { return shopGui; }
+    public HubManager               getHubManager()     { return hubManager; }
+    public HubGui                   getHubGui()         { return hubGui; }
 }
