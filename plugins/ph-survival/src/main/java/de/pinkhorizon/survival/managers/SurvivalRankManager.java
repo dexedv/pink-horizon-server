@@ -73,7 +73,7 @@ public class SurvivalRankManager {
     }
 
     public int getMaxHomes(UUID uuid) {
-        return getRank(uuid).maxHomes;
+        return getRank(uuid).maxHomes + plugin.getUpgradeManager().getExtraHomes(uuid);
     }
 
     public void applyTabName(Player player) {

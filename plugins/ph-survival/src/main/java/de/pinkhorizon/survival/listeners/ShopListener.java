@@ -53,6 +53,7 @@ public class ShopListener implements Listener {
             case ShopCommand.CLAIMS_5      -> handleClaims(player, price, 5);
             case ShopCommand.CLAIMS_15     -> handleClaims(player, price, 15);
             case ShopCommand.VILLAGER_EGG  -> handleVillagerEgg(player, price);
+            case ShopCommand.HOME_SLOT     -> handleHomeSlot(player);
         }
 
         plugin.getShopCommand().openShop(player);
@@ -106,6 +107,27 @@ public class ShopListener implements Listener {
         }
         plugin.getUpgradeManager().givePermKI(player.getUniqueId());
         player.sendMessage("§aKeepInventory §ldauerhaft§r§a freigeschaltet!");
+    }
+
+    private void handleHomeSlot(Player player) {
+        UUID uuid = player.getUniqueId();
+        int current = plugin.getUpgradeManager().getExtraHomes(uuid);
+        if (current >= 10) {
+            player.sendMessage("§cDu hast bereits das Maximum an extra Home-Slots (+10)!");
+            return;
+        }
+        long price = plugin.getUpgradeManager().getNextHomePrice(uuid);
+        if (!plugin.getEconomyManager().withdraw(uuid, price)) {
+            player.sendMessage("§cNicht genug Coins! Preis: §f" + price);
+            return;
+        }
+        plugin.getUpgradeManager().addExtraHome(uuid);
+        int newTotal = plugin.getRankManager().getMaxHomes(uuid);
+        player.sendMessage("§a+1 Home-Slot! §7Du kannst jetzt §f" + newTotal + " §7Homes setzen.");
+        if (current + 1 < 10) {
+            long nextPrice = plugin.getUpgradeManager().getNextHomePrice(uuid);
+            player.sendMessage("§7Nächster Slot kostet: §c" + nextPrice + " §7Coins");
+        }
     }
 
     private void handleVillagerEgg(Player player, int price) {

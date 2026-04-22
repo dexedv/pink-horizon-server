@@ -216,9 +216,13 @@ public class SurvivalDatabaseManager {
                     ki_expiry        BIGINT  NOT NULL DEFAULT 0,
                     fly_expiry       BIGINT  NOT NULL DEFAULT 0,
                     extra_claims     INT     NOT NULL DEFAULT 0,
-                    claim_purchases  INT     NOT NULL DEFAULT 0
+                    claim_purchases  INT     NOT NULL DEFAULT 0,
+                    extra_homes      INT     NOT NULL DEFAULT 0
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
                 """);
+            // Migration: Spalte extra_homes für bestehende Installationen
+            try { st.execute("ALTER TABLE sv_upgrades ADD COLUMN extra_homes INT NOT NULL DEFAULT 0"); }
+            catch (SQLException ignored) {} // Spalte existiert bereits
 
             // Holograms
             st.execute("""

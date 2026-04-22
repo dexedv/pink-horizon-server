@@ -19,6 +19,7 @@ public class UpgradeManager {
     private final Map<UUID, Long>    flyExpiry         = new HashMap<>();
     private final Map<UUID, Integer> extraClaims       = new HashMap<>();
     private final Map<UUID, Integer> claimPurchases    = new HashMap<>();
+    private final Map<UUID, Integer> extraHomes        = new HashMap<>();
 
     public UpgradeManager(PHSurvival plugin) {
         this.plugin = plugin;
@@ -164,6 +165,26 @@ public class UpgradeManager {
         return Math.round(basePrice * Math.pow(1.5, purchases) / 100.0) * 100;
     }
 
+    // ── Extra Homes ──────────────────────────────────────────────────────
+
+    /** Bereits gekaufte Extra-Home-Slots (0–10). */
+    public int getExtraHomes(UUID uuid) {
+        ensureLoaded(uuid);
+        return extraHomes.getOrDefault(uuid, 0);
+    }
+
+    /** Preis für den nächsten Home-Slot: (gekaufte + 1) × 100.000 Coins. */
+    public long getNextHomePrice(UUID uuid) {
+        return (long) (getExtraHomes(uuid) + 1) * 100_000L;
+    }
+
+    /** Fügt einen Extra-Home-Slot hinzu. Max 10 Extras. */
+    public void addExtraHome(UUID uuid) {
+        ensureLoaded(uuid);
+        extraHomes.put(uuid, Math.min(extraHomes.getOrDefault(uuid, 0) + 1, 10));
+        persist(uuid);
+    }
+
     // ── Intern ───────────────────────────────────────────────────────────
 
     private boolean isActive(Map<UUID, Long> map, UUID uuid) {
@@ -183,7 +204,7 @@ public class UpgradeManager {
         try (Connection c = con();
              Statement st = c.createStatement();
              ResultSet rs = st.executeQuery(
-                 "SELECT uuid, keep_inventory, fly_perm, ki_expiry, fly_expiry, extra_claims, claim_purchases" +
+                 "SELECT uuid, keep_inventory, fly_perm, ki_expiry, fly_expiry, extra_claims, claim_purchases, extra_homes" +
                  " FROM sv_upgrades")) {
             while (rs.next()) {
                 try {
@@ -192,6 +213,7 @@ public class UpgradeManager {
                     flyPerm.put(uuid,           rs.getBoolean("fly_perm"));
                     extraClaims.put(uuid,       rs.getInt("extra_claims"));
                     claimPurchases.put(uuid,    rs.getInt("claim_purchases"));
+                    extraHomes.put(uuid,        rs.getInt("extra_homes"));
                     long ki  = rs.getLong("ki_expiry");
                     long fly = rs.getLong("fly_expiry");
                     if (ki  > now) kiExpiry.put(uuid, ki);
@@ -218,6 +240,7 @@ public class UpgradeManager {
                     flyPerm.put(uuid,           rs.getBoolean("fly_perm"));
                     extraClaims.put(uuid,       rs.getInt("extra_claims"));
                     claimPurchases.put(uuid,    rs.getInt("claim_purchases"));
+                    extraHomes.put(uuid,        rs.getInt("extra_homes"));
                     long ki  = rs.getLong("ki_expiry");
                     long fly = rs.getLong("fly_expiry");
                     if (ki  > now) kiExpiry.put(uuid, ki);
@@ -228,6 +251,7 @@ public class UpgradeManager {
                     flyPerm.put(uuid, false);
                     extraClaims.put(uuid, 0);
                     claimPurchases.put(uuid, 0);
+                    extraHomes.put(uuid, 0);
                 }
             }
         } catch (SQLException e) {
@@ -238,12 +262,13 @@ public class UpgradeManager {
     private void persist(UUID uuid) {
         try (Connection c = con();
              PreparedStatement st = c.prepareStatement(
-                 "INSERT INTO sv_upgrades (uuid, keep_inventory, fly_perm, ki_expiry, fly_expiry, extra_claims, claim_purchases)" +
-                 " VALUES (?,?,?,?,?,?,?)" +
+                 "INSERT INTO sv_upgrades (uuid, keep_inventory, fly_perm, ki_expiry, fly_expiry, extra_claims, claim_purchases, extra_homes)" +
+                 " VALUES (?,?,?,?,?,?,?,?)" +
                  " ON DUPLICATE KEY UPDATE" +
                  " keep_inventory=VALUES(keep_inventory), fly_perm=VALUES(fly_perm)," +
                  " ki_expiry=VALUES(ki_expiry), fly_expiry=VALUES(fly_expiry)," +
-                 " extra_claims=VALUES(extra_claims), claim_purchases=VALUES(claim_purchases)")) {
+                 " extra_claims=VALUES(extra_claims), claim_purchases=VALUES(claim_purchases)," +
+                 " extra_homes=VALUES(extra_homes)")) {
             st.setString(1, uuid.toString());
             st.setBoolean(2, keepInventoryPerm.getOrDefault(uuid, false));
             st.setBoolean(3, flyPerm.getOrDefault(uuid, false));
@@ -251,6 +276,7 @@ public class UpgradeManager {
             st.setLong(5, flyExpiry.getOrDefault(uuid, 0L));
             st.setInt(6, extraClaims.getOrDefault(uuid, 0));
             st.setInt(7, claimPurchases.getOrDefault(uuid, 0));
+            st.setInt(8, extraHomes.getOrDefault(uuid, 0));
             st.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().warning("UpgradeManager.persist: " + e.getMessage());

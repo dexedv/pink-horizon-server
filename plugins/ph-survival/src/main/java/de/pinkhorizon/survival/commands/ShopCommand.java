@@ -34,6 +34,7 @@ public class ShopCommand implements CommandExecutor {
     public static final String CLAIMS_5      = "CLAIMS_5";
     public static final String CLAIMS_15     = "CLAIMS_15";
     public static final String VILLAGER_EGG  = "VILLAGER_EGG";
+    public static final String HOME_SLOT     = "HOME_SLOT";
 
     private final PHSurvival plugin;
 
@@ -132,6 +133,17 @@ public class ShopCommand implements CommandExecutor {
         addItem(inv, 24, Material.VILLAGER_SPAWN_EGG, "§e§lVillager-Ei",
                 "§7Fange einen Villager ein oder", "§7platziere ihn wo du willst.",
                 350_000, VILLAGER_EGG, null);
+
+        // ── Home-Slot (Slot 25) ───────────────────────────────────────────
+        int extraHomes = um.getExtraHomes(uuid);
+        long homePrice = um.getNextHomePrice(uuid);
+        String homeMax = extraHomes >= 10 ? "§a§lMaximum erreicht (+10)!" : null;
+        addItemDynamic(inv, 25, Material.RED_BED, "§d§lExtra Home-Slot",
+                "§7Erhöht dein Home-Limit dauerhaft.",
+                "§7Extra bisher: §d+" + extraHomes + "§7/§d+10",
+                "§7Nächster nach diesem: §c" + (homePrice + 100_000L) + " §7Coins",
+                "§7Nächster Kauf: §c" + (extraHomes >= 10 ? "MAX" : homePrice + " Coins"),
+                homePrice, HOME_SLOT, homeMax);
 
         // ── Status-Item (Slot 40) ─────────────────────────────────────────
         long coins = plugin.getEconomyManager().getBalance(uuid);
