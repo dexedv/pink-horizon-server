@@ -860,6 +860,23 @@ app.get('/api/survival/inventory', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── REST-API: Jobs ────────────────────────────────────────────────────────
+
+app.get('/api/survival/jobs', auth, async (req, res) => {
+  try {
+    const [dist] = await poolSv.execute(
+      `SELECT job_id, COUNT(*) AS players, MAX(level) AS max_level, ROUND(AVG(level),1) AS avg_level
+       FROM sv_jobs WHERE active = 1 GROUP BY job_id ORDER BY players DESC`
+    );
+    const [top] = await poolSv.execute(
+      `SELECT p.name, j.job_id, j.level, j.xp
+       FROM sv_jobs j JOIN pinkhorizon.players p ON j.uuid = p.uuid
+       WHERE j.active = 1 ORDER BY j.level DESC, j.xp DESC`
+    );
+    res.json({ ok: true, distribution: dist, players: top });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── Minigames API ─────────────────────────────────────────────────────────
 
 app.get('/api/minigames/overview', auth, async (req, res) => {

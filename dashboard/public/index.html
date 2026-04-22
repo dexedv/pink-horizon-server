@@ -398,6 +398,7 @@ const NAV_DEF = [
   { id:'permissions',  icon:'🎖️', label:'Permissions'    },
   { id:'economy',      icon:'💰', label:'Wirtschaft'      },
   { id:'bank',         icon:'🏦', label:'Bank'            },
+  { id:'jobs',         icon:'⛏',  label:'Jobs & Level'   },
   { id:'stats',        icon:'📈', label:'Statistiken'     },
   { id:'auction',      icon:'🏪', label:'Auktionshaus'    },
   { id:'rights',       icon:'🔑', label:'Rechte'          },
@@ -459,6 +460,7 @@ function renderPage() {
   if (PAGE === 'permissions')  return renderPermissions();
   if (PAGE === 'economy')      return renderEcon();
   if (PAGE === 'bank')         return renderBank();
+  if (PAGE === 'jobs')         return renderJobs();
   if (PAGE === 'stats')        return renderStats();
   if (PAGE === 'auction')      return renderAuction();
   if (PAGE === 'rights')       return renderRights();
@@ -1412,6 +1414,19 @@ async function rWlToggle(srv) {
 }
 
 // ── Commands ──────────────────────────────────────────────────────────────
+const JOB_ORDER = ['MINER','LUMBERJACK','FARMER','HUNTER','FISHER','BREWER','BUILDER','ENCHANTER','WEAPONSMITH'];
+const JOB_META = {
+  MINER:       { name:'Bergmann',     icon:'⛏', color:'#5DADEC' },
+  LUMBERJACK:  { name:'Holzfäller',   icon:'🪓', color:'#8B5E3C' },
+  FARMER:      { name:'Bauer',        icon:'🌾', color:'#F5C518' },
+  HUNTER:      { name:'Jäger',        icon:'🏹', color:'#C0392B' },
+  FISHER:      { name:'Fischer',      icon:'🎣', color:'#1ABC9C' },
+  BREWER:      { name:'Brauer',       icon:'🧪', color:'#9B59B6' },
+  BUILDER:     { name:'Baumeister',   icon:'🧱', color:'#E67E22' },
+  ENCHANTER:   { name:'Verzauberer',  icon:'✨', color:'#7D3C98' },
+  WEAPONSMITH: { name:'Waffenschmied',icon:'⚔',  color:'#95A5A6' },
+};
+
 const CMD_DATA = [
   { server:'Lobby', sections:[
     { label:'Allgemein', cmds:[
@@ -1510,6 +1525,8 @@ const CMD_DATA = [
       {n:'/npc',         u:'/npc <create|delete|addcmd|removecmd|info>',    d:'NPCs verwalten',                       admin:true},
       {n:'/helpholo',    u:'/helpholo [place|remove]',                      d:'Hilfe-Hologramm',                      admin:true},
       {n:'/phinfo',      u:'/phinfo <Spieler>',                             d:'Spielerdaten (Dashboard-API)',          admin:true},
+      {n:'/itemclear',   u:'/itemclear',                                    d:'Alle Boden-Items entfernen',            admin:true},
+      {n:'/networkrestart',u:'/networkrestart <Minuten>',                   d:'Netzwerk-Neustart mit Bossbar-Countdown',admin:true},
     ]},
   ]},
 ];
@@ -1613,7 +1630,7 @@ function renderStatsBody() {
       </div>`).join('') + '</div>';
   };
   const jobsHtml = (d.jobs||[]).length
-    ? d.jobs.map(j=>`<div class="job-pill"><span class="job-name">${escH(j.job_id)}</span><span class="job-cnt">${j.players} Spieler</span><span class="job-lvl">Max Lv. ${j.max_level}</span></div>`).join('')
+    ? d.jobs.map(j=>{const m=JOB_META[j.job_id]||{name:j.job_id,icon:'💼',color:'#888'};return`<div class="job-pill"><span class="job-name">${m.icon} ${escH(m.name)}</span><span class="job-cnt" style="color:${m.color}">${j.players} Spieler</span><span class="job-lvl" style="color:var(--muted)">Max Lv. ${j.max_level}</span></div>`;}).join('')
     : '<div class="empty">Keine aktiven Jobs</div>';
   el.innerHTML = `
     <div class="card">
@@ -1624,6 +1641,114 @@ function renderStatsBody() {
       <div class="card-title">💼 Job-Verteilung</div>
       <div style="display:flex;flex-direction:column;gap:5px">${jobsHtml}</div>
     </div>`;
+}
+
+// ── Jobs & Level ──────────────────────────────────────────────────────────
+let jobsData = null;
+let jobsTab  = 'MINER';
+
+async function renderJobs() {
+  setHdr('⛏ Jobs & Level', `<button class="btn" onclick="loadJobsData()">↺ Aktualisieren</button>`);
+  document.getElementById('page-content').innerHTML = `<div class="page" id="jobs-page">
+    <div class="g4" id="jobs-kpi"></div>
+    <div class="card">
+      <div class="card-title">📊 Job-Verteilung</div>
+      <div id="jobs-dist" style="margin-top:8px"><div class="empty">Lade…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 Top-Spieler pro Job</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="jobs-tabs"></div>
+      <div id="jobs-lb"><div class="empty">Lade…</div></div>
+    </div>
+  </div>`;
+  await loadJobsData();
+}
+
+async function loadJobsData() {
+  const r = await apiFetch('/api/survival/jobs');
+  if (!r?.ok) return;
+  jobsData = await r.json();
+  renderJobsPage();
+}
+
+function renderJobsPage() {
+  if (!jobsData) return;
+  const d = jobsData;
+  const total = (d.distribution||[]).reduce((s,j) => s + Number(j.players), 0);
+  const topJob = d.distribution?.[0];
+  const topPl  = d.players?.[0];
+  const maxLvlCount = (d.players||[]).filter(p => p.level >= 100).length;
+
+  const kpi = document.getElementById('jobs-kpi');
+  if (kpi) kpi.innerHTML = `
+    <div class="card stat-card"><span class="stat-icon">💼</span><div><div class="stat-lbl">Spieler mit Job</div><div class="stat-val">${total}</div></div></div>
+    <div class="card stat-card"><span class="stat-icon">${topJob?JOB_META[topJob.job_id]?.icon:'?'}</span><div><div class="stat-lbl">Beliebtester Job</div><div class="stat-val" style="font-size:1rem">${topJob?JOB_META[topJob.job_id]?.name:'—'}</div></div></div>
+    <div class="card stat-card"><span class="stat-icon">⭐</span><div><div class="stat-lbl">Höchstes Level</div><div class="stat-val">${topPl?'Lv. '+topPl.level:'—'}</div></div></div>
+    <div class="card stat-card"><span class="stat-icon">🎯</span><div><div class="stat-lbl">Level 100 erreicht</div><div class="stat-val" style="color:var(--pink)">${maxLvlCount}</div></div></div>`;
+
+  const maxPlayers = Math.max(...(d.distribution||[]).map(j=>Number(j.players)),1);
+  const dist = document.getElementById('jobs-dist');
+  if (dist) dist.innerHTML = JOB_ORDER.map(id => {
+    const jd  = (d.distribution||[]).find(j=>j.job_id===id);
+    const cnt = jd ? Number(jd.players) : 0;
+    const maxLv = jd ? jd.max_level : 0;
+    const avgLv = jd ? Number(jd.avg_level).toFixed(1) : '0.0';
+    const pct   = Math.round((cnt/maxPlayers)*100);
+    const m     = JOB_META[id];
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="width:130px;font-size:.85rem;font-weight:600;flex-shrink:0">${m.icon} ${m.name}</span>
+      <div style="flex:1;background:var(--surface);border-radius:4px;height:20px;overflow:hidden;position:relative">
+        <div style="background:${m.color};opacity:.75;height:100%;width:${pct}%;transition:width .4s"></div>
+        <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--text);font-weight:600">${cnt} Spieler</span>
+      </div>
+      <span style="width:120px;text-align:right;font-size:.78rem;color:var(--muted);flex-shrink:0">Max Lv.${maxLv} · Ø${avgLv}</span>
+    </div>`;
+  }).join('');
+
+  renderJobsTabs();
+  renderJobsLb();
+}
+
+function renderJobsTabs() {
+  const el = document.getElementById('jobs-tabs'); if (!el) return;
+  el.innerHTML = JOB_ORDER.map(id => {
+    const m   = JOB_META[id];
+    const cnt = (jobsData?.distribution||[]).find(j=>j.job_id===id)?.players||0;
+    const act = jobsTab===id;
+    return `<button class="btn${act?' btn-p':''}" onclick="switchJobsTab('${id}')"
+      style="${act?'':'border-left:3px solid '+m.color}">
+      ${m.icon} ${m.name} <span style="color:${act?'rgba(255,255,255,.7)':'var(--muted)'};font-size:.78rem;margin-left:3px">${cnt}</span>
+    </button>`;
+  }).join('');
+}
+
+function switchJobsTab(id) {
+  jobsTab = id;
+  renderJobsTabs();
+  renderJobsLb();
+}
+
+function renderJobsLb() {
+  const el = document.getElementById('jobs-lb'); if (!el) return;
+  if (!jobsData) { el.innerHTML='<div class="empty">Lade…</div>'; return; }
+  const players = (jobsData.players||[]).filter(p=>p.job_id===jobsTab).slice(0,10);
+  if (!players.length) { el.innerHTML='<div class="empty">Keine Spieler mit diesem Job</div>'; return; }
+  const m = JOB_META[jobsTab];
+  el.innerHTML = '<div class="lb-table">' + players.map((p,i) => {
+    const pct = Math.round((p.level/100)*100);
+    const cls = ['g1','g2','g3'][i]||'';
+    return `<div class="lb-row" style="flex-direction:column;gap:5px;padding:8px 0">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="lb-pos ${cls}">#${i+1}</span>
+        <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),150)">${escH(p.name)}</span>
+        <span class="lb-val" style="color:${m.color}">Lv. ${p.level}</span>
+        ${p.level>=100?'<span style="font-size:.75rem;background:linear-gradient(135deg,var(--pink),var(--purple));padding:2px 7px;border-radius:10px;color:#fff;font-weight:700">MAX</span>':''}
+      </div>
+      <div style="margin-left:36px;background:var(--surface);border-radius:3px;height:5px;overflow:hidden">
+        <div style="background:${m.color};height:100%;width:${pct}%;transition:width .3s"></div>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
 }
 
 // ── Auktionshaus ──────────────────────────────────────────────────────────
