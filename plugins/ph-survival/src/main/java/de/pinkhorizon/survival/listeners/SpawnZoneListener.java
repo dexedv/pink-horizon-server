@@ -249,9 +249,9 @@ public class SpawnZoneListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
-        // Alle Mob-Typen blockieren (Monster, Ambient, neutrale Mobs)
-        // Spieler-Spawns (SpawnReason.CUSTOM bei Plugin-Spawns) sind keine Mobs
         if (!(event.getEntity() instanceof Mob)) return;
+        // CUSTOM = von Plugins gespawnt (NPCs, Spawner-Eier via Admin) – nicht blocken
+        if (event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.CUSTOM) return;
         if (inSpawnZone(event.getLocation())) {
             event.setCancelled(true);
         }
