@@ -289,6 +289,47 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   input[type=number]::-webkit-inner-spin-button { opacity: .4; }
   textarea.field { resize: vertical; min-height: 80px; font-family: var(--mono); font-size: .85rem; }
+
+  /* Global Search */
+  .gsearch { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; color: var(--text); font-size: .85rem; outline: none; width: 190px; transition: all .2s; }
+  .gsearch:focus { border-color: var(--pink); width: 240px; }
+  .gsearch::placeholder { color: var(--muted); }
+
+  /* Quick-Actions */
+  .qa-bar { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 14px; background: rgba(52,152,219,.05); border: 1px solid rgba(52,152,219,.18); border-radius: 10px; align-items: center; }
+  .qa-label { font-size: .76rem; color: var(--muted); white-space: nowrap; margin-right: 2px; }
+  .qa-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; font-size: .8rem; transition: all .15s; white-space: nowrap; }
+  .qa-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* Sparkline */
+  .sparkline-wrap { position: relative; height: 56px; }
+  .sparkline-svg { width: 100%; height: 56px; }
+  .sparkline-lbl { position: absolute; top: 0; right: 0; font-size: .72rem; color: var(--muted); }
+
+  /* Online players panel */
+  .online-panel { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px; background: rgba(46,204,113,.04); border: 1px solid rgba(46,204,113,.18); border-radius: 10px; align-items: center; min-height: 42px; }
+  .op-lbl { font-size: .76rem; color: var(--muted); margin-right: 4px; }
+  .op-chip { padding: 3px 10px; background: rgba(46,204,113,.1); border: 1px solid rgba(46,204,113,.3); border-radius: 12px; font-size: .8rem; color: var(--green); cursor: pointer; transition: all .15s; }
+  .op-chip:hover { background: rgba(46,204,113,.2); }
+
+  /* Audit Log */
+  .audit-row { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; font-size: .83rem; }
+  .audit-ts { color: var(--muted); font-family: var(--mono); font-size: .72rem; white-space: nowrap; min-width: 135px; }
+  .audit-action { font-family: var(--mono); min-width: 105px; font-size: .8rem; }
+  .audit-target { font-weight: 600; min-width: 90px; font-family: var(--mono); }
+  .audit-detail { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Claims Map */
+  .claims-canvas { display: block; border-radius: 8px; border: 1px solid var(--border); background: #0a0a12; cursor: crosshair; image-rendering: pixelated; }
+  .claims-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .cl-entry { display: flex; align-items: center; gap: 5px; font-size: .76rem; }
+  .cl-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Economy overview bars */
+  .eco-bar-wrap { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+  .eco-bar-lbl  { display: flex; justify-content: space-between; font-size: .78rem; color: var(--muted); }
+  .eco-bar      { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .eco-bar-fill { height: 100%; border-radius: 4px; transition: width .4s; }
 </style>
 </head>
 <body>
@@ -316,6 +357,7 @@
   <div id="main-area">
     <header id="page-header">
       <span id="page-title"></span>
+      <input class="gsearch" id="global-search" placeholder="🔍 Spieler suchen…" onkeydown="if(event.key==='Enter'&&this.value.trim()){nav('players');setTimeout(()=>loadPl(this.value.trim()),120);this.value=''}">
       <div id="hdr-actions"></div>
     </header>
     <main id="page-content"></main>
@@ -375,6 +417,7 @@ async function init() {
   await loadSrv();
   setInterval(loadSrv, 10000);
   nav('dashboard');
+  if (Notification.permission === 'default') Notification.requestPermission();
 }
 
 async function loadSrv() {
@@ -411,6 +454,7 @@ const NAV_DEF = [
   { id:'sysmon',       icon:'📡', label:'System-Monitor'  },
   { id:'backup',       icon:'💾', label:'Backup'          },
   { id:'motd',         icon:'📝', label:'MOTD-Editor'     },
+  { id:'audit',        icon:'📜', label:'Audit-Log'       },
 ];
 
 function buildNav() {
@@ -470,12 +514,14 @@ function renderPage() {
   if (PAGE === 'motd')         return renderMotd();
   if (PAGE === 'mg_bedwars')   return renderBedWars();
   if (PAGE === 'sysmon')       return renderSysmon();
+  if (PAGE === 'audit')        return renderAudit();
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
 async function renderDash() {
   setHdr('📊 Dashboard', `
     <button class="btn" onclick="renderDash()">↺ Aktualisieren</button>
+    <button class="btn" onclick="openDiscordModal()">💬 Discord</button>
     <button class="btn btn-d" onclick="openRestartModal()">🔄 Netzwerk-Neustart</button>
   `);
   const c = document.getElementById('page-content');
@@ -485,8 +531,19 @@ async function renderDash() {
       <input class="field bcast-input" id="bcast-msg" placeholder="Nachricht an alle Server…" onkeydown="if(event.key==='Enter')doBroadcast()">
       <button class="btn btn-p" onclick="doBroadcast()">Senden</button>
     </div>
+    <div class="qa-bar">
+      <span class="qa-label">⚡ Quick-Actions (Survival):</span>
+      <button class="qa-btn" onclick="doQuickAction('survival','time_day')">☀️ Tag</button>
+      <button class="qa-btn" onclick="doQuickAction('survival','time_night')">🌙 Nacht</button>
+      <button class="qa-btn" onclick="doQuickAction('survival','weather_clear')">🌤 Klar</button>
+      <button class="qa-btn" onclick="doQuickAction('survival','weather_rain')">🌧 Regen</button>
+      <button class="qa-btn" onclick="doQuickAction('survival','itemclear')">🗑 Itemclear</button>
+      <button class="qa-btn" onclick="doQuickAction('survival','save_all')">💾 Save</button>
+    </div>
     <div class="g3" id="srv-cards"><div class="empty">Lade…</div></div>
     <div class="g4" id="stat-row"></div>
+    <div id="online-section"></div>
+    <div id="sparkline-section"></div>
     <div id="res-section"></div>
     <div class="g3" id="db-section"><div class="empty">Lade Datenbankstatus…</div></div>
   </div>`;
@@ -531,10 +588,89 @@ async function renderDash() {
     <div class="card stat-card"><span class="stat-icon">🖥️</span><div><div class="stat-lbl">Server online</div><div class="stat-val">${totalRun}/${Object.keys(srvData).length}</div></div></div>
     <div class="card stat-card"><span class="stat-icon">👥</span><div><div class="stat-lbl">Spieler online</div><div class="stat-val">${totalOn}</div></div></div>
     <div class="card stat-card" style="cursor:pointer" onclick="nav('players')"><span class="stat-icon">👤</span><div><div class="stat-lbl">Spielerverwaltung</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>
-    <div class="card stat-card" style="cursor:pointer" onclick="nav('permissions')"><span class="stat-icon">🎖️</span><div><div class="stat-lbl">Permissions</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>`;
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('audit')"><span class="stat-icon">📜</span><div><div class="stat-lbl">Audit-Log</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>`;
 
+  loadOnlinePanel();
+  loadSparkline();
   loadDbStatus();
   loadResStats();
+}
+
+async function loadOnlinePanel() {
+  const el = document.getElementById('online-section'); if (!el) return;
+  const all = [];
+  for (const [k, srv] of Object.entries(srvData)) {
+    if (!srv.rcon || !srv.running) continue;
+    try {
+      const r = await apiFetch(`/api/players/online?server=${k}`);
+      if (r?.ok) { const d = await r.json(); all.push(...(d.players||[]).map(n=>({name:n,srv:srv.label}))); }
+    } catch {}
+  }
+  if (!all.length) { el.innerHTML=''; return; }
+  el.innerHTML = `<div class="online-panel">
+    <span class="op-lbl">🟢 Online (${all.length}):</span>
+    ${all.map(p=>`<span class="op-chip" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),120)" title="${escH(p.srv)}">${escH(p.name)}</span>`).join('')}
+  </div>`;
+}
+
+async function loadSparkline() {
+  const el = document.getElementById('sparkline-section'); if (!el) return;
+  const r = await apiFetch('/api/metrics/players');
+  if (!r?.ok) return;
+  const { data } = await r.json();
+  if (!data || data.length < 2) { el.innerHTML=''; return; }
+  const counts = data.map(d=>d.count);
+  const max = Math.max(...counts, 1);
+  const W = 600, H = 56, pad = 4;
+  const pts = data.map((d,i) => {
+    const x = pad + (i / (data.length-1)) * (W - pad*2);
+    const y = H - pad - ((d.count / max) * (H - pad*2));
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = data[data.length-1];
+  el.innerHTML = `<div class="card" style="padding:12px 16px 8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span class="card-title" style="margin:0">📈 Spieler-Verlauf (letzte ${data.length * 5} Min)</span>
+      <span style="font-size:.78rem;color:var(--muted)">Jetzt: <b style="color:var(--green)">${last.count}</b> · Max: <b>${max}</b></span>
+    </div>
+    <div class="sparkline-wrap">
+      <svg class="sparkline-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs><linearGradient id="spk-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--green)" stop-opacity=".35"/>
+          <stop offset="100%" stop-color="var(--green)" stop-opacity="0"/>
+        </linearGradient></defs>
+        <polygon points="${pts} ${(W-pad).toFixed(1)},${H} ${pad},${H}" fill="url(#spk-grad)"/>
+        <polyline points="${pts}" fill="none" stroke="var(--green)" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>`;
+}
+
+async function doQuickAction(srv, action) {
+  const labels = { time_day:'☀️ Tag gesetzt', time_night:'🌙 Nacht gesetzt', weather_clear:'🌤 Wetter klar', weather_rain:'🌧 Regen gesetzt', itemclear:'🗑 Items geclearet', save_all:'💾 Gespeichert' };
+  const r = await apiFetch(`/api/servers/${srv}/quickaction`, { method:'POST', body:JSON.stringify({action}) });
+  const d = r ? await r.json() : null;
+  showToast(d?.ok ? `✓ ${labels[action]||action}` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+}
+
+function openDiscordModal() {
+  showModal('💬 Discord-Webhook', `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="font-size:.82rem;color:var(--muted)">Webhook-URL:</label>
+        <input class="field" id="dc-url" placeholder="https://discord.com/api/webhooks/…" style="margin-top:4px">
+      </div>
+      <div>
+        <label style="font-size:.82rem;color:var(--muted)">Nachricht:</label>
+        <textarea class="field" id="dc-msg" placeholder="Nachricht an Discord…" rows="3" style="margin-top:4px"></textarea>
+      </div>
+    </div>`, 'Senden', async () => {
+    const webhookUrl = document.getElementById('dc-url')?.value?.trim();
+    const message    = document.getElementById('dc-msg')?.value?.trim();
+    const r = await apiFetch('/api/network/discord', { method:'POST', body:JSON.stringify({ webhookUrl, message }) });
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? '✓ Discord-Nachricht gesendet!' : `✗ ${d?.error||'Fehler'}`, d?.ok);
+  });
 }
 
 async function doBroadcast() {
@@ -789,12 +925,16 @@ async function loadPl(name) {
   if (r.status===404) { el.innerHTML='<div class="empty" style="color:var(--red)">Spieler nicht gefunden</div>'; return; }
   if (!r.ok) { const e=await r.json(); el.innerHTML=`<div class="empty" style="color:var(--red)">${escH(e.error||'Fehler')}</div>`; return; }
   curPlayer = await r.json();
-  const br = await apiFetch(`/api/bank/player?name=${encodeURIComponent(name)}`);
-  if (br?.ok) { const bd = await br.json(); curPlayer.bankBalance = bd.balance; curPlayer.bankInterest = bd.lastInterest; }
-  const clr = await apiFetch(`/api/survival/claims?player=${encodeURIComponent(name)}`);
+  const [br, clr, ivr, tlr] = await Promise.all([
+    apiFetch(`/api/bank/player?name=${encodeURIComponent(name)}`),
+    apiFetch(`/api/survival/claims?player=${encodeURIComponent(name)}`),
+    apiFetch(`/api/survival/inventory?player=${encodeURIComponent(name)}`),
+    apiFetch(`/api/players/timeline?name=${encodeURIComponent(name)}`)
+  ]);
+  if (br?.ok)  { const bd = await br.json();  curPlayer.bankBalance = bd.balance; curPlayer.bankInterest = bd.lastInterest; }
   if (clr?.ok) { const cd = await clr.json(); curPlayer.claims = cd.claims; }
-  const ivr = await apiFetch(`/api/survival/inventory?player=${encodeURIComponent(name)}`);
   if (ivr?.ok) { const id = await ivr.json(); curPlayer.inventory = id.items; curPlayer.inventoryTime = id.snapshotTime; }
+  if (tlr?.ok) { const td = await tlr.json(); curPlayer.firstJoin = td.first_join; curPlayer.lastSeen = td.last_seen; }
   renderPlCard(curPlayer);
 }
 
@@ -860,8 +1000,22 @@ function renderPlCard(p) {
         </div>
       </div>
     </div>
+    ${renderTimelineCard(p)}
     ${renderClaimsCard(p)}
     ${renderInventoryCard(p)}`;
+}
+
+function renderTimelineCard(p) {
+  if (!p.firstJoin && !p.lastSeen) return '';
+  const fj = p.firstJoin ? new Date(p.firstJoin).toLocaleString('de-DE') : '—';
+  const ls = p.lastSeen  ? new Date(p.lastSeen).toLocaleString('de-DE')  : '—';
+  return `<div class="card" style="margin-top:12px">
+    <div class="card-title">📅 Timeline</div>
+    <div class="stat-tbl">
+      <div class="stat-row"><span class="sl">Erstbeitritt</span><span class="sv" style="color:var(--green)">${fj}</span></div>
+      <div class="stat-row"><span class="sl">Zuletzt online</span><span class="sv">${ls}</span></div>
+    </div>
+  </div>`;
 }
 
 function fmtMat(m) {
@@ -889,15 +1043,73 @@ function renderClaimsCard(p) {
       <td style="font-weight:600">${c.block_z}</td>
       <td style="color:var(--muted);font-size:.78rem">${c.chunk_x} / ${c.chunk_z}</td>
     </tr>`).join('');
+  const canvasId = 'claims-canvas-' + p.name.replace(/[^a-z0-9]/gi,'');
+  setTimeout(() => drawClaimsMap(canvasId, claims, p.name), 50);
   return `<div class="card" style="margin-top:12px">
-    <div class="card-title">📍 Claims (${claims.length})</div>
-    <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
+    <div class="card-title" style="display:flex;align-items:center;gap:10px">
+      <span>📍 Claims (${claims.length})</span>
+      <button class="btn-xs g" onclick="csvExportClaims('${escH(p.name)}')">⬇ CSV</button>
+    </div>
+    <canvas id="${canvasId}" class="claims-canvas" style="width:100%;height:280px"></canvas>
+    <div style="overflow-x:auto;max-height:200px;overflow-y:auto;margin-top:8px">
       <table class="sql-tbl" style="width:100%">
         <thead><tr><th>Welt</th><th>Block X</th><th>Block Z</th><th>Chunk X/Z</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
   </div>`;
+}
+
+function drawClaimsMap(canvasId, claims, ownerName) {
+  const canvas = document.getElementById(canvasId); if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = Math.floor(rect.width  || 600);
+  canvas.height = Math.floor(rect.height || 280);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (!claims.length) return;
+
+  const xs = claims.map(c => c.chunk_x), zs = claims.map(c => c.chunk_z);
+  const minX = Math.min(...xs) - 2, maxX = Math.max(...xs) + 2;
+  const minZ = Math.min(...zs) - 2, maxZ = Math.max(...zs) + 2;
+  const rangeX = maxX - minX || 1, rangeZ = maxZ - minZ || 1;
+  const cellW = canvas.width  / rangeX;
+  const cellH = canvas.height / rangeZ;
+  const cell  = Math.max(2, Math.min(cellW, cellH));
+
+  const offX = (canvas.width  - cell * rangeX) / 2;
+  const offZ = (canvas.height - cell * rangeZ) / 2;
+
+  ctx.fillStyle = 'rgba(46,204,113,0.5)';
+  ctx.strokeStyle = 'rgba(46,204,113,0.9)';
+  ctx.lineWidth = 1;
+  for (const c of claims) {
+    const px = offX + (c.chunk_x - minX) * cell;
+    const pz = offZ + (c.chunk_z - minZ) * cell;
+    ctx.fillRect(px, pz, cell - 1, cell - 1);
+    ctx.strokeRect(px, pz, cell - 1, cell - 1);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,.35)';
+  ctx.font = '10px monospace';
+  ctx.fillText(`${claims.length} Chunks · ${ownerName}`, 6, 14);
+
+  // Tooltip on hover
+  canvas.onmousemove = ev => {
+    const br = canvas.getBoundingClientRect();
+    const mx = (ev.clientX - br.left) * (canvas.width  / br.width);
+    const mz = (ev.clientY - br.top)  * (canvas.height / br.height);
+    const cx = Math.floor((mx - offX) / cell) + minX;
+    const cz = Math.floor((mz - offZ) / cell) + minZ;
+    const hit = claims.find(c => c.chunk_x === cx && c.chunk_z === cz);
+    canvas.title = hit ? `Chunk ${cx}/${cz} · Block ${cx*16+8}/${cz*16+8}` : '';
+  };
+}
+
+function csvExportClaims(playerName) {
+  const p = window.curPlayer; if (!p?.claims?.length) { showToast('Keine Claims', false); return; }
+  const rows = [['Welt','Block X','Block Z','Chunk X','Chunk Z'], ...p.claims.map(c=>[c.world,c.block_x,c.block_z,c.chunk_x,c.chunk_z])];
+  csvDownload(`claims-${playerName}.csv`, rows);
 }
 
 function renderInventoryCard(p) {
@@ -993,6 +1205,7 @@ async function renderPermissions() {
       <button class="rtab ${permTab==='ranks'?'active':''}"    onclick="switchPermTab('ranks')">Rang-Übersicht</button>
       <button class="rtab ${permTab==='players'?'active':''}"  onclick="switchPermTab('players')">Spieler</button>
       <button class="rtab ${permTab==='banlist'?'active':''}"  onclick="switchPermTab('banlist')">Banliste</button>
+      <button class="rtab ${permTab==='ipbanlist'?'active':''}" onclick="switchPermTab('ipbanlist')">IP-Bans</button>
     </div>
     <div id="perm-body" style="flex:1"></div>
   </div>`;
@@ -1002,7 +1215,7 @@ async function renderPermissions() {
 function switchPermTab(t) {
   permTab = t;
   document.querySelectorAll('.rtab').forEach(b => {
-    const labels = { ranks:'Rang-Übersicht', players:'Spieler', banlist:'Banliste' };
+    const labels = { ranks:'Rang-Übersicht', players:'Spieler', banlist:'Banliste', ipbanlist:'IP-Bans' };
     b.classList.toggle('active', b.textContent === labels[t]);
   });
   loadPermTab(t);
@@ -1010,9 +1223,10 @@ function switchPermTab(t) {
 
 async function loadPermTab(t) {
   const el = document.getElementById('perm-body'); if (!el) return;
-  if (t === 'ranks')   return renderPermRanks(el);
-  if (t === 'players') return renderPermPlayers(el);
-  if (t === 'banlist') return renderPermBanlist(el);
+  if (t === 'ranks')     return renderPermRanks(el);
+  if (t === 'players')   return renderPermPlayers(el);
+  if (t === 'banlist')   return renderPermBanlist(el);
+  if (t === 'ipbanlist') return renderPermIpBanlist(el);
 }
 
 function renderPermRanks(el) {
@@ -1157,37 +1371,115 @@ async function doUnban(name) {
 
 function showBanList() { switchPermTab('banlist'); }
 
+async function renderPermIpBanlist(el) {
+  el.innerHTML = `<div style="margin-top:8px"><div class="empty">Lade IP-Banliste…</div></div>`;
+  const r = await apiFetch('/api/players/banlist-ip');
+  if (!r?.ok) { el.innerHTML=`<div class="empty" style="color:var(--red)">IP-Banliste nicht verfügbar</div>`; return; }
+  const { bans } = await r.json();
+  if (!bans.length) { el.innerHTML=`<div style="margin-top:8px"><div class="empty">Keine gebannten IPs</div></div>`; return; }
+  el.innerHTML = `<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:4px">${bans.length} gebannte IP-Adressen</div>
+    ${bans.map(b=>`
+      <div class="ban-row">
+        <span class="ban-name" style="color:var(--purple);min-width:140px">🌐 ${escH(b.ip)}</span>
+        <span class="ban-reason">${escH(b.reason)}${b.source&&b.source!=='Unknown'?' · von '+escH(b.source):''}</span>
+        <span style="font-size:.75rem;color:var(--muted);white-space:nowrap">${b.expires==='forever'?'Permanent':escH(b.expires)}</span>
+        <button class="btn-xs g" onclick="doUnbanIp('${escH(b.ip)}')">Entbannen</button>
+      </div>`).join('')}
+  </div>`;
+}
+
+async function doUnbanIp(ip) {
+  showModal(`🔓 IP entbannen: ${ip}`, `
+    <p style="color:var(--muted);font-size:.9rem">IP-Ban für <strong style="color:var(--text)">${escH(ip)}</strong> aufheben?</p>
+  `, 'Entbannen', async () => {
+    const r = await apiFetch('/api/players/banlist-ip', { method:'DELETE', body:JSON.stringify({ip}) });
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? `✓ ${ip} entbannt.` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+    if (d?.ok) loadPermTab('ipbanlist');
+  });
+}
+
 // ── Economy ───────────────────────────────────────────────────────────────
 async function renderEcon() {
-  setHdr('💰 Wirtschaft', `<button class="btn" onclick="loadBaltop()">↺ Aktualisieren</button>`);
+  setHdr('💰 Wirtschaft', `
+    <button class="btn" onclick="renderEcon()">↺ Aktualisieren</button>
+    <button class="btn" onclick="csvExportBaltop()">⬇ CSV</button>
+  `);
   const c = document.getElementById('page-content');
-  c.innerHTML = `<div class="page"><div class="g2">
-    <div class="card">
-      <div class="card-title">🏆 Top-Spieler nach Coins</div>
-      <div id="bt-list"><div class="empty">Lade…</div></div>
+  c.innerHTML = `<div class="page">
+    <div class="g3" id="eco-overview"><div class="empty" style="grid-column:1/-1">Lade…</div></div>
+    <div class="card" id="eco-dist-card" style="display:none">
+      <div class="card-title">📊 Coins-Verteilung</div>
+      <div id="eco-dist"></div>
     </div>
-    <div class="card">
-      <div class="card-title">⚡ Schnell-Aktion</div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-        <input class="field fsm" id="eco-pl" placeholder="Spielername…">
-        <input class="field fsm" id="eco-amt" type="number" min="0" placeholder="Betrag…">
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-s" style="flex:1" onclick="ecoQ('give')">+ Geben</button>
-          <button class="btn btn-d" style="flex:1" onclick="ecoQ('take')">– Nehmen</button>
-          <button class="btn"       style="flex:1" onclick="ecoQ('set')">=  Setzen</button>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">🏆 Top-Spieler nach Coins</div>
+        <div id="bt-list"><div class="empty">Lade…</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ Schnell-Aktion</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <input class="field fsm" id="eco-pl" placeholder="Spielername…">
+          <input class="field fsm" id="eco-amt" type="number" min="0" placeholder="Betrag…">
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-s" style="flex:1" onclick="ecoQ('give')">+ Geben</button>
+            <button class="btn btn-d" style="flex:1" onclick="ecoQ('take')">– Nehmen</button>
+            <button class="btn"       style="flex:1" onclick="ecoQ('set')">=  Setzen</button>
+          </div>
+          <div id="eco-msg" style="display:none" class="msg"></div>
         </div>
-        <div id="eco-msg" style="display:none" class="msg"></div>
       </div>
     </div>
-  </div></div>`;
+  </div>`;
+  loadEcoOverview();
   loadBaltop();
 }
 
+async function loadEcoOverview() {
+  const el = document.getElementById('eco-overview'); if (!el) return;
+  const r = await apiFetch('/api/economy/overview');
+  if (!r?.ok) { el.innerHTML='<div class="empty" style="grid-column:1/-1">Nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  el.innerHTML = `
+    <div class="card stat-card"><span class="stat-icon">💰</span><div>
+      <div class="stat-lbl">Coins im Umlauf</div>
+      <div class="stat-val" style="color:var(--yellow)">${Number(d.totalCoins).toLocaleString('de-DE')}</div>
+    </div></div>
+    <div class="card stat-card"><span class="stat-icon">👛</span><div>
+      <div class="stat-lbl">In Geldbörsen</div>
+      <div class="stat-val" style="color:var(--green)">${Number(d.walletCoins).toLocaleString('de-DE')}</div>
+    </div></div>
+    <div class="card stat-card"><span class="stat-icon">🏦</span><div>
+      <div class="stat-lbl">In Banken</div>
+      <div class="stat-val" style="color:var(--blue)">${Number(d.bankCoins).toLocaleString('de-DE')}</div>
+    </div></div>`;
+  const distCard = document.getElementById('eco-dist-card');
+  const distEl   = document.getElementById('eco-dist');
+  if (d.totalCoins > 0 && distEl && distCard) {
+    distCard.style.display = '';
+    const walletPct = Math.round(d.walletCoins / d.totalCoins * 100);
+    const bankPct   = Math.round(d.bankCoins   / d.totalCoins * 100);
+    distEl.innerHTML = `
+      <div class="eco-bar-wrap">
+        <div class="eco-bar-lbl"><span>👛 Geldbörsen</span><span style="color:var(--green)">${walletPct}% · ${Number(d.walletCoins).toLocaleString('de-DE')}</span></div>
+        <div class="eco-bar"><div class="eco-bar-fill" style="width:${walletPct}%;background:var(--green)"></div></div>
+      </div>
+      <div class="eco-bar-wrap">
+        <div class="eco-bar-lbl"><span>🏦 Banken</span><span style="color:var(--blue)">${bankPct}% · ${Number(d.bankCoins).toLocaleString('de-DE')}</span></div>
+        <div class="eco-bar"><div class="eco-bar-fill" style="width:${bankPct}%;background:var(--blue)"></div></div>
+      </div>`;
+  }
+}
+
+let _baltopData = [];
 async function loadBaltop() {
   const el = document.getElementById('bt-list'); if (!el) return;
   const r = await apiFetch('/api/economy/baltop');
   if (!r?.ok) { el.innerHTML='<div class="empty">Nicht verfügbar</div>'; return; }
   const { baltop } = await r.json();
+  _baltopData = baltop || [];
   if (!baltop?.length) { el.innerHTML='<div class="empty">Keine Daten</div>'; return; }
   const rc = ['gold','silver','bronze'];
   el.innerHTML = '<div style="display:flex;flex-direction:column;gap:5px;margin-top:8px">' +
@@ -1196,6 +1488,12 @@ async function loadBaltop() {
       <span class="bt-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(e.name)}'),150)">${escH(e.name)}</span>
       <span class="bt-coins">💰 ${e.coins.toLocaleString('de-DE')}</span>
     </div>`).join('') + '</div>';
+}
+
+function csvExportBaltop() {
+  if (!_baltopData.length) { showToast('Keine Daten', false); return; }
+  csvDownload('baltop.csv', [['Rang','Spieler','Coins'], ..._baltopData.map(e=>[e.rank,e.name,e.coins])]);
+  showToast('✓ CSV exportiert');
 }
 
 async function ecoQ(type) {
@@ -1575,8 +1873,36 @@ async function renderStats() {
       <div class="card"><div class="empty">Lade…</div></div>
       <div class="card"><div class="empty">Lade…</div></div>
     </div>
+    <div class="g2" id="stats-friends-section"></div>
   </div>`;
   loadStatsData();
+  loadFriendsStats();
+}
+
+async function loadFriendsStats() {
+  const el = document.getElementById('stats-friends-section'); if (!el) return;
+  const r = await apiFetch('/api/survival/friends');
+  if (!r?.ok) return;
+  const d = await r.json();
+  if (!d.ok) return;
+  const cls = ['g1','g2','g3'];
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-title">🤝 Freunde-Netzwerk</div>
+      <div class="stat-tbl" style="margin-top:6px">
+        <div class="stat-row"><span class="sl">Freundschaften gesamt</span><span class="sv" style="color:var(--green)">${Number(d.totalFriendships).toLocaleString('de-DE')}</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">👥 Top Vernetzte Spieler</div>
+      <div class="lb-table" style="margin-top:6px">
+        ${(d.top||[]).map((p,i)=>`<div class="lb-row">
+          <span class="lb-pos ${cls[i]||''}">#${i+1}</span>
+          <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),120)">${escH(p.name)}</span>
+          <span class="lb-val" style="color:var(--green)">${p.friends} Freunde</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
 }
 
 async function loadStatsData() {
@@ -2077,6 +2403,68 @@ async function renderBedWars() {
   }
 }
 
+// ── Audit-Log ────────────────────────────────────────────────────────────
+const AUDIT_COLORS = {
+  ban:'var(--red)', kick:'var(--yellow)', unban:'var(--green)', 'unban-ip':'var(--green)',
+  rank_set:'var(--purple)', eco_give:'var(--green)', eco_take:'var(--red)', eco_set:'var(--blue)',
+  quickaction:'var(--blue)', 'discord-webhook':'#7289DA'
+};
+
+async function renderAudit() {
+  setHdr('📜 Audit-Log', `
+    <button class="btn" onclick="renderAudit()">↺ Aktualisieren</button>
+    <button class="btn" onclick="csvExportAudit()">⬇ CSV</button>
+  `);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div style="display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap;align-items:center">
+      <input class="field fsm" id="audit-filter" placeholder="Filtern…" oninput="filterAudit()" style="width:180px">
+      <span style="font-size:.82rem;color:var(--muted)" id="audit-count"></span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px" id="audit-list">
+      <div class="empty">Lade…</div>
+    </div>
+  </div>`;
+  const r = await apiFetch('/api/audit');
+  if (!r?.ok) { document.getElementById('audit-list').innerHTML='<div class="empty" style="color:var(--red)">Nicht verfügbar</div>'; return; }
+  const { entries } = await r.json();
+  window._auditEntries = entries || [];
+  renderAuditList(window._auditEntries);
+}
+
+function renderAuditList(entries) {
+  const el = document.getElementById('audit-list'); if (!el) return;
+  const cnt = document.getElementById('audit-count');
+  if (cnt) cnt.textContent = `${entries.length} Einträge`;
+  if (!entries.length) { el.innerHTML='<div class="empty">Keine Einträge</div>'; return; }
+  el.innerHTML = entries.map(e => {
+    const col = AUDIT_COLORS[e.action] || 'var(--muted)';
+    const ts  = new Date(e.ts).toLocaleString('de-DE');
+    return `<div class="audit-row" data-q="${escH((e.action+' '+e.target+' '+e.detail).toLowerCase())}">
+      <span class="audit-ts">${ts}</span>
+      <span class="audit-action" style="color:${col}">${escH(e.action)}</span>
+      <span class="audit-target">${escH(e.target||'—')}</span>
+      <span class="audit-detail">${escH(e.detail||'')}</span>
+    </div>`;
+  }).join('');
+}
+
+function filterAudit() {
+  const q = (document.getElementById('audit-filter')?.value||'').toLowerCase().trim();
+  const rows = document.querySelectorAll('#audit-list .audit-row');
+  let shown = 0;
+  rows.forEach(r => { const v = !q || r.dataset.q.includes(q); r.style.display = v ? '' : 'none'; if (v) shown++; });
+  const cnt = document.getElementById('audit-count');
+  if (cnt) cnt.textContent = q ? `${shown} / ${rows.length} Einträge` : `${rows.length} Einträge`;
+}
+
+function csvExportAudit() {
+  const entries = window._auditEntries || [];
+  if (!entries.length) { showToast('Keine Daten', false); return; }
+  const rows = [['Zeitstempel','Aktion','Ziel','Detail'], ...entries.map(e=>[e.ts, e.action, e.target, e.detail])];
+  csvDownload('audit-log.csv', rows);
+}
+
 // ── Modal ─────────────────────────────────────────────────────────────────
 function showModal(title, bodyHtml, okLabel, onOk) {
   document.getElementById('active-modal')?.remove();
@@ -2129,8 +2517,27 @@ function renderSysmon() {
         </div>`).join('')}
     </div>
     <div style="text-align:right;font-size:.73rem;color:var(--muted);padding:0 2px" id="sm-ts"></div>
+    <div class="card" id="sm-worldsize">
+      <div class="card-title">🌍 Weltgröße</div>
+      <div class="empty" style="font-size:.8rem">Lade…</div>
+    </div>
   </div>`;
   if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'subscribe_stats' }));
+  loadWorldSize();
+}
+
+async function loadWorldSize() {
+  const el = document.getElementById('sm-worldsize'); if (!el) return;
+  const r = await apiFetch('/api/system/worldsize');
+  if (!r?.ok) { el.innerHTML='<div class="card-title">🌍 Weltgröße</div><div class="empty" style="color:var(--red)">Nicht verfügbar</div>'; return; }
+  const { sizes } = await r.json();
+  const rows = Object.entries(sizes).map(([srv, size]) =>
+    `<div class="stat-row">
+      <span class="sl">${srv === 'lobby' ? '🏛️ Lobby' : '⛏️ Survival'} (world + nether + end)</span>
+      <span class="sv" style="color:var(--blue);font-family:var(--mono)">${size || '—'}</span>
+    </div>`
+  ).join('');
+  el.innerHTML = `<div class="card-title">🌍 Weltgröße</div><div class="stat-tbl" style="margin-top:6px">${rows}</div>`;
 }
 
 function updateSysmonStats(data) {
@@ -2199,11 +2606,21 @@ function connectWs() {
   ws = new WebSocket(`${proto}://${location.host}`);
   ws.onopen = ()=>{
     ws.send(JSON.stringify({type:'auth',token:TOKEN}));
+    ws.send(JSON.stringify({type:'subscribe_alerts'}));
     if(conSrv) ws.send(JSON.stringify({type:'subscribe',container:conSrv}));
     if(PAGE==='sysmon'||PAGE==='dashboard') ws.send(JSON.stringify({type:'subscribe_stats'}));
   };
   ws.onmessage = e=>{
     const msg=JSON.parse(e.data);
+    if(msg.type==='server_alert') {
+      const icon = msg.running ? '✅' : '❌';
+      showToast(`${icon} ${msg.label} ist jetzt ${msg.running?'online':'offline'}`, msg.running);
+      if(Notification.permission==='granted') {
+        new Notification(`Pink Horizon – ${msg.label}`, { body: `Server ${msg.running?'gestartet':'gestoppt'}` });
+      }
+      loadSrv();
+      return;
+    }
     if(msg.type==='stats') {
       if(PAGE==='dashboard') updateDashStats(msg.data);
       if(PAGE==='sysmon')   updateSysmonStats(msg.data);
@@ -2239,6 +2656,17 @@ function subscribeLog(cnt) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
+// ── CSV-Export ────────────────────────────────────────────────────────────
+function csvDownload(filename, rows) {
+  const content = rows.map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + content], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function showMsg(el,ok,msg) {
   if(!el) return;
   el.textContent=msg; el.className='msg '+(ok?'msg-ok':'msg-err'); el.style.display='block';

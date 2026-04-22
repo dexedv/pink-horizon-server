@@ -1,6 +1,7 @@
 const express  = require('express');
 const { WebSocketServer } = require('ws');
 const http     = require('http');
+const https    = require('https');
 const Docker   = require('dockerode');
 const net      = require('net');
 const path     = require('path');
@@ -101,6 +102,66 @@ async function checkDb(pool) {
   try { await pool.query('SELECT 1'); return true; }
   catch { return false; }
 }
+
+// ── Audit-Log ─────────────────────────────────────────────────────────────
+const AUDIT_FILE = '/data/audit.json';
+const auditEntries = [];
+const MAX_AUDIT = 500;
+(async () => {
+  try {
+    const raw = await fs.readFile(AUDIT_FILE, 'utf8');
+    const d = JSON.parse(raw);
+    if (Array.isArray(d)) auditEntries.push(...d.slice(-MAX_AUDIT));
+  } catch {}
+})();
+function addAudit(action, target, detail = '') {
+  const e = { ts: new Date().toISOString(), action: String(action), target: String(target || ''), detail: String(detail || '').slice(0, 200) };
+  auditEntries.push(e);
+  while (auditEntries.length > MAX_AUDIT) auditEntries.shift();
+  fs.writeFile(AUDIT_FILE, JSON.stringify(auditEntries), 'utf8').catch(() => {});
+}
+
+// ── Spieler-Metriken (alle 5 min) ─────────────────────────────────────────
+const playerMetrics = []; // { ts, count }
+async function collectMetrics() {
+  let total = 0;
+  for (const [, cfg] of Object.entries(SERVERS)) {
+    if (!cfg.rcon) continue;
+    try {
+      const st = await getContainerStatus(cfg.container);
+      if (!st.running) continue;
+      const raw   = await rconSend(cfg.rcon, 'list');
+      const clean = stripColors(raw);
+      const m = /(\d+)\s+of\s+a\s+max/i.exec(clean) || /There are (\d+)/i.exec(clean);
+      if (m) total += parseInt(m[1]);
+    } catch {}
+  }
+  playerMetrics.push({ ts: Date.now(), count: total });
+  while (playerMetrics.length > 288) playerMetrics.shift(); // 24 h @ 5 min
+}
+setInterval(collectMetrics, 5 * 60 * 1000);
+setTimeout(collectMetrics, 10000);
+
+// ── Server-Alerts ─────────────────────────────────────────────────────────
+const alertSubscribers = new Set();
+const prevSrvStatus = {};
+async function checkAlerts() {
+  for (const [key, cfg] of Object.entries(SERVERS)) {
+    try {
+      const { running } = await getContainerStatus(cfg.container);
+      if (prevSrvStatus[key] !== undefined && prevSrvStatus[key] !== running) {
+        const payload = JSON.stringify({ type: 'server_alert', server: key, label: cfg.label, running, ts: Date.now() });
+        for (const ws of [...alertSubscribers]) {
+          if (ws.readyState === 1) ws.send(payload);
+          else alertSubscribers.delete(ws);
+        }
+      }
+      prevSrvStatus[key] = running;
+    } catch {}
+  }
+}
+setInterval(checkAlerts, 20000);
+setTimeout(checkAlerts, 6000);
 
 // ── RCON-Client ───────────────────────────────────────────────────────────
 
@@ -337,6 +398,7 @@ app.post('/api/players/action', auth, async (req, res) => {
 
   try {
     const out = await rconSend(cfg.rcon, cmd);
+    addAudit(type === 'rank_set' ? 'rank_set' : type, name, type === 'rank_set' ? rank : String(value));
     res.json({ ok: true, output: stripColors(out) });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -350,6 +412,7 @@ app.post('/api/players/kick', auth, async (req, res) => {
   if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
   try {
     const out = await rconSend(cfg.rcon, reason ? `kick ${name} ${reason}` : `kick ${name}`);
+    addAudit('kick', name, reason || '');
     res.json({ ok: true, output: stripColors(out) });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -361,6 +424,7 @@ app.post('/api/players/ban', auth, async (req, res) => {
   if (!cfg.rcon) return res.status(400).json({ error: 'Kein RCON' });
   try {
     const out = await rconSend(cfg.rcon, reason ? `ban ${name} ${reason}` : `ban ${name}`);
+    addAudit('ban', name, reason || '');
     res.json({ ok: true, output: stripColors(out) });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -386,6 +450,7 @@ app.post('/api/players/unban', auth, async (req, res) => {
   if (!cfg?.rcon) return res.status(400).json({ error: 'Kein RCON' });
   try {
     const out = await rconSend(cfg.rcon, `pardon ${name}`);
+    addAudit('unban', name, '');
     res.json({ ok: true, output: stripColors(out) });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -807,12 +872,21 @@ wss.on('connection', (ws) => {
         statsSubscribers.delete(ws);
         return;
       }
+      if (msg.type === 'subscribe_alerts') {
+        alertSubscribers.add(ws);
+        return;
+      }
+      if (msg.type === 'unsubscribe_alerts') {
+        alertSubscribers.delete(ws);
+        return;
+      }
     } catch (e) { console.error('WS Message Fehler:', e.message); }
   });
 
   ws.on('close', () => {
     if (subscribedContainer) logSubscribers[subscribedContainer]?.delete(ws);
     statsSubscribers.delete(ws);
+    alertSubscribers.delete(ws);
   });
 });
 
@@ -911,6 +985,150 @@ app.get('/api/minigames/bedwars/arenas', auth, async (req, res) => {
       'FROM mg_bedwars_arenas a ORDER BY a.name'
     );
     res.json({ ok: true, arenas });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: Audit-Log ───────────────────────────────────────────────────
+
+app.get('/api/audit', auth, (req, res) => {
+  res.json({ ok: true, entries: [...auditEntries].reverse().slice(0, 200) });
+});
+
+// ── REST-API: Economy-Übersicht ───────────────────────────────────────────
+
+app.get('/api/economy/overview', auth, async (req, res) => {
+  try {
+    const [[eco]]  = await poolSv.execute('SELECT COUNT(*) AS players, COALESCE(SUM(coins),0) AS total FROM sv_economy');
+    const [[bank]] = await poolSv.execute('SELECT COALESCE(SUM(balance),0) AS total FROM sv_bank WHERE balance > 0');
+    const [jobs]   = await poolSv.execute('SELECT job_id, COUNT(*) AS players FROM sv_jobs WHERE active=1 GROUP BY job_id ORDER BY players DESC');
+    const wallet   = Math.max(0, Number(eco.total) - Number(bank.total));
+    res.json({ ok: true, totalCoins: Number(eco.total), bankCoins: Number(bank.total), walletCoins: wallet, players: Number(eco.players), jobs });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: Alle Claims (für Karte) ────────────────────────────────────
+
+app.get('/api/survival/allclaims', auth, async (req, res) => {
+  try {
+    const [rows] = await poolSv.execute(
+      'SELECT c.chunk_x, c.chunk_z, c.world, p.name AS owner FROM sv_claims c JOIN pinkhorizon.players p ON c.owner_uuid=p.uuid'
+    );
+    res.json({ ok: true, claims: rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: Freunde-Statistiken ─────────────────────────────────────────
+
+app.get('/api/survival/friends', auth, async (req, res) => {
+  try {
+    const [[{ cnt }]] = await poolSv.execute('SELECT COUNT(*) AS cnt FROM sv_friends');
+    const [top] = await poolSv.execute(
+      'SELECT p.name, COUNT(*) AS friends FROM sv_friends f JOIN pinkhorizon.players p ON f.player_uuid=p.uuid GROUP BY f.player_uuid ORDER BY friends DESC LIMIT 10'
+    );
+    res.json({ ok: true, totalFriendships: Math.floor(Number(cnt) / 2), top });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: Spieler-Metriken ────────────────────────────────────────────
+
+app.get('/api/metrics/players', auth, (req, res) => {
+  res.json({ ok: true, data: playerMetrics });
+});
+
+// ── REST-API: Weltgröße ───────────────────────────────────────────────────
+
+app.get('/api/system/worldsize', auth, async (req, res) => {
+  const result = {};
+  for (const srv of ['lobby', 'survival']) {
+    try {
+      const exec = await docker.getContainer(`ph-${srv}`).exec({
+        Cmd: ['bash', '-c', 'du -shc /data/world /data/world_nether /data/world_the_end 2>/dev/null | tail -1 | cut -f1'],
+        AttachStdout: true, AttachStderr: true
+      });
+      const stream = await exec.start({ hijack: true });
+      let out = '';
+      await new Promise(r => { stream.on('data', c => { out += c.slice(8).toString(); }); stream.on('end', r); });
+      result[srv] = out.trim() || '?';
+    } catch { result[srv] = null; }
+  }
+  res.json({ ok: true, sizes: result });
+});
+
+// ── REST-API: IP-Banliste ─────────────────────────────────────────────────
+
+app.get('/api/players/banlist-ip', auth, async (req, res) => {
+  try {
+    const raw  = await fs.readFile('/data/survival/banned-ips.json', 'utf8');
+    const data = JSON.parse(raw);
+    res.json({ bans: data.map(b => ({ ip: b.ip, reason: b.reason || 'Kein Grund', source: b.source || 'Unbekannt', expires: b.expires || 'forever' })) });
+  } catch { res.json({ bans: [] }); }
+});
+
+app.delete('/api/players/banlist-ip', auth, async (req, res) => {
+  const { ip } = req.body;
+  if (!ip) return res.status(400).json({ error: 'Keine IP' });
+  const cfg = SERVERS.survival;
+  if (!cfg?.rcon) return res.status(400).json({ error: 'Kein RCON' });
+  try {
+    const out = await rconSend(cfg.rcon, `pardon-ip ${ip}`);
+    addAudit('unban-ip', ip, '');
+    res.json({ ok: true, output: stripColors(out) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: Discord-Webhook ─────────────────────────────────────────────
+
+app.post('/api/network/discord', auth, async (req, res) => {
+  const { webhookUrl, message } = req.body;
+  if (!webhookUrl || !message?.trim()) return res.status(400).json({ error: 'Webhook-URL und Nachricht angeben' });
+  if (!/^https:\/\/discord(app)?\.com\/api\/webhooks\//.test(webhookUrl)) return res.status(400).json({ error: 'Ungültige Discord-Webhook-URL' });
+  const body = JSON.stringify({ content: message, username: 'Pink Horizon' });
+  try {
+    const url = new URL(webhookUrl);
+    await new Promise((resolve, reject) => {
+      const req2 = https.request({
+        hostname: url.hostname, path: url.pathname + url.search, method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+      }, resp => { resp.resume(); resp.statusCode < 300 ? resolve() : reject(new Error(`Discord HTTP ${resp.statusCode}`)); });
+      req2.on('error', reject); req2.write(body); req2.end();
+    });
+    addAudit('discord-webhook', 'discord', message.slice(0, 80));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: Quick-Aktionen ──────────────────────────────────────────────
+
+const QUICK_ACTIONS = {
+  time_day:      'time set day',
+  time_night:    'time set night',
+  weather_clear: 'weather clear',
+  weather_rain:  'weather rain',
+  itemclear:     'itemclear',
+  save_all:      'save-all',
+};
+
+app.post('/api/servers/:name/quickaction', auth, async (req, res) => {
+  const cfg = SERVERS[req.params.name];
+  if (!cfg?.rcon) return res.status(400).json({ error: 'Kein RCON' });
+  const cmd = QUICK_ACTIONS[req.body?.action];
+  if (!cmd) return res.status(400).json({ error: 'Unbekannte Aktion' });
+  try {
+    const out = await rconSend(cfg.rcon, cmd);
+    addAudit('quickaction', req.params.name, req.body.action);
+    res.json({ ok: true, output: stripColors(out) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: Spieler-Timeline ────────────────────────────────────────────
+
+app.get('/api/players/timeline', auth, async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: 'Kein Name' });
+  try {
+    const [rows] = await poolCore.execute('SELECT first_join, last_seen FROM players WHERE name=? LIMIT 1', [name]);
+    if (!rows.length) return res.status(404).json({ error: 'Nicht gefunden' });
+    res.json({ ok: true, ...rows[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
