@@ -9,7 +9,8 @@ import java.util.UUID;
 
 public class AfkManager {
 
-    private static final long AFK_TIMEOUT_MS = 5 * 60 * 1000L; // 5 Minuten
+    private static final long AFK_TIMEOUT_MS  =  5 * 60 * 1000L; // 5 Minuten  → AFK-Meldung
+    private static final long KICK_TIMEOUT_MS = 30 * 60 * 1000L; // 30 Minuten → Kick
 
     private final PHSurvival plugin;
     private final Map<UUID, Long> lastActivity = new HashMap<>();
@@ -51,8 +52,18 @@ public class AfkManager {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             UUID uuid = player.getUniqueId();
             long last = lastActivity.getOrDefault(uuid, now);
+            long idle = now - last;
             boolean currentlyAfk = Boolean.TRUE.equals(afkStatus.get(uuid));
-            if (!currentlyAfk && now - last > AFK_TIMEOUT_MS) {
+
+            // Kick nach 30 Minuten AFK (Ops/Admins ausgenommen)
+            if (currentlyAfk && idle > KICK_TIMEOUT_MS && !player.isOp()) {
+                plugin.getServer().getScheduler().runTask(plugin, () ->
+                    player.kick(net.kyori.adventure.text.Component.text(
+                        "§cDu wurdest wegen Inaktivität gekickt.\n§7Bitte melde dich wieder, wenn du aktiv bist!")));
+                continue;
+            }
+
+            if (!currentlyAfk && idle > AFK_TIMEOUT_MS) {
                 afkStatus.put(uuid, true);
                 plugin.getServer().broadcastMessage("§e" + player.getName() + " §7ist jetzt AFK.");
                 plugin.getTabManager().update(player);

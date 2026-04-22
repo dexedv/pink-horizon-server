@@ -5,7 +5,7 @@ config-version = "2.7"
 bind = "0.0.0.0:25565"
 
 # Servername (im Multiplayer-Menue angezeigt)
-motd = "<gradient:light_purple:dark_purple>Pink Horizon</gradient> <gray>» Survival | SkyBlock | Minigames"
+motd = "<gradient:light_purple:dark_purple>Pink Horizon</gradient> <gray>» Survival | Minigames"
 
 # Maximale Spieleranzahl (0 = unbegrenzt)
 show-max-players = 100
@@ -19,7 +19,6 @@ forwarding-secret-file = "forwarding.secret"
 [servers]
   lobby     = "ph-lobby:25566"
   survival  = "ph-survival:25567"
-  skyblock  = "ph-skyblock:25568"
   minigames = "ph-minigames:25569"
 
 # Server, auf den neue Spieler kommen

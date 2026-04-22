@@ -6,10 +6,10 @@ services:
     container_name: ph-mysql
     mem_limit: 2g
     environment:
-      MYSQL_ROOT_PASSWORD: "ph-root-2024"
-      MYSQL_DATABASE:      "pinkhorizon"
-      MYSQL_USER:          "ph_user"
-      MYSQL_PASSWORD:      "ph-db-2024"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE:      "${MYSQL_DATABASE}"
+      MYSQL_USER:          "${MYSQL_USER}"
+      MYSQL_PASSWORD:      "${MYSQL_PASSWORD}"
     volumes:
       - ./data/mysql:/var/lib/mysql
       - ./data/mysql-init:/docker-entrypoint-initdb.d:ro
@@ -17,7 +17,7 @@ services:
       - ph-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uph_user", "-pph-db-2024"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,7 +59,7 @@ services:
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
       RCON_PORT: "25575"
-      RCON_PASSWORD: "ph-admin-2024"
+      RCON_PASSWORD: "${RCON_PASSWORD}"
     ports:
       - "25575:25575"             # RCON
       - "25566:25566"             # Minecraft (intern für Velocity)
@@ -89,7 +89,7 @@ services:
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
       RCON_PORT: "25575"
-      RCON_PASSWORD: "ph-admin-2024"
+      RCON_PASSWORD: "${RCON_PASSWORD}"
     ports:
       - "25576:25575"             # RCON
       - "25567:25567"             # Minecraft (intern für Velocity)
@@ -120,7 +120,7 @@ services:
       ONLINE_MODE: "false"
       ENABLE_RCON: "true"
       RCON_PORT: "25575"
-      RCON_PASSWORD: "ph-admin-2024"
+      RCON_PASSWORD: "${RCON_PASSWORD}"
       SERVER_PORT: "25569"
     ports:
       - "25578:25575"             # RCON
@@ -146,14 +146,14 @@ services:
       - ./servers/lobby:/data/lobby:ro
       - ./servers/survival:/data/survival:ro
     environment:
-      DASHBOARD_PASSWORD: "pinkhorizon2024"
+      DASHBOARD_PASSWORD: "${DASHBOARD_PASSWORD}"
       LOBBY_RCON_HOST:    "lobby"
       SURVIVAL_RCON_HOST: "survival"
-      RCON_PASSWORD:      "ph-admin-2024"
+      RCON_PASSWORD:      "${RCON_PASSWORD}"
       DB_HOST:            "ph-mysql"
       DB_PORT:            "3306"
-      DB_USER:            "ph_user"
-      DB_PASS:            "ph-db-2024"
+      DB_USER:            "${MYSQL_USER}"
+      DB_PASS:            "${MYSQL_PASSWORD}"
     networks:
       - ph-net
     restart: unless-stopped

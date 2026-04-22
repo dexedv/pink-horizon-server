@@ -1,12 +1,13 @@
-const express  = require('express');
+const express    = require('express');
+const rateLimit  = require('express-rate-limit');
 const { WebSocketServer } = require('ws');
-const http     = require('http');
-const https    = require('https');
-const Docker   = require('dockerode');
-const net      = require('net');
-const path     = require('path');
-const fs       = require('fs').promises;
-const mysql    = require('mysql2/promise');
+const http       = require('http');
+const https      = require('https');
+const Docker     = require('dockerode');
+const net        = require('net');
+const path       = require('path');
+const fs         = require('fs').promises;
+const mysql      = require('mysql2/promise');
 
 const app    = express();
 const server = http.createServer(app);
@@ -15,6 +16,24 @@ const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ── Rate-Limiting ──────────────────────────────────────────────────────────
+// Globales Limit: max 120 Anfragen/Min pro IP (Dashboard-Nutzung)
+app.use('/api/', rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' }
+}));
+// Strengeres Limit für sensible Aktionen (Ban, Kick, Passwort-geschützte Aktionen)
+const strictLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests on this endpoint.' }
+});
 
 // ── Konfiguration ─────────────────────────────────────────────────────────
 
@@ -122,7 +141,20 @@ function addAudit(action, target, detail = '') {
 }
 
 // ── Spieler-Metriken (alle 5 min) ─────────────────────────────────────────
-const playerMetrics = []; // { ts, count }
+const playerMetrics = []; // { ts, count } – In-Memory-Ring für 24 h
+
+async function ensureMetricsTable() {
+  try {
+    await poolCore.query(`CREATE TABLE IF NOT EXISTS ph_metrics (
+      id      BIGINT AUTO_INCREMENT PRIMARY KEY,
+      ts      BIGINT NOT NULL,
+      players SMALLINT NOT NULL DEFAULT 0,
+      INDEX idx_ts (ts)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  } catch (e) { console.error('ensureMetricsTable:', e.message); }
+}
+ensureMetricsTable();
+
 async function collectMetrics() {
   let total = 0;
   for (const [, cfg] of Object.entries(SERVERS)) {
@@ -136,8 +168,15 @@ async function collectMetrics() {
       if (m) total += parseInt(m[1]);
     } catch {}
   }
-  playerMetrics.push({ ts: Date.now(), count: total });
+  const now = Date.now();
+  playerMetrics.push({ ts: now, count: total });
   while (playerMetrics.length > 288) playerMetrics.shift(); // 24 h @ 5 min
+  // Persistenz in DB (nur die letzten 7 Tage behalten)
+  try {
+    await poolCore.query('INSERT INTO ph_metrics (ts, players) VALUES (?, ?)', [now, total]);
+    const cutoff = now - 7 * 24 * 60 * 60 * 1000;
+    await poolCore.query('DELETE FROM ph_metrics WHERE ts < ?', [cutoff]);
+  } catch {}
 }
 setInterval(collectMetrics, 5 * 60 * 1000);
 setTimeout(collectMetrics, 10000);
@@ -405,7 +444,7 @@ app.post('/api/players/action', auth, async (req, res) => {
   }
 });
 
-app.post('/api/players/kick', auth, async (req, res) => {
+app.post('/api/players/kick', strictLimit, auth, async (req, res) => {
   const { name, reason } = req.body;
   if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
   const cfg = SERVERS.survival;
@@ -417,7 +456,7 @@ app.post('/api/players/kick', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
-app.post('/api/players/ban', auth, async (req, res) => {
+app.post('/api/players/ban', strictLimit, auth, async (req, res) => {
   const { name, reason } = req.body;
   if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
   const cfg = SERVERS.survival;
@@ -443,7 +482,7 @@ app.get('/api/players/banlist', auth, async (req, res) => {
   } catch { res.json({ bans: [] }); }
 });
 
-app.post('/api/players/unban', auth, async (req, res) => {
+app.post('/api/players/unban', strictLimit, auth, async (req, res) => {
   const { name } = req.body;
   if (!name || !/^[a-zA-Z0-9_]{1,16}$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
   const cfg = SERVERS.survival;
@@ -638,6 +677,16 @@ app.post('/api/backup/:server', auth, async (req, res) => {
       stream.on('end', () => { clearTimeout(t); resolve(); });
       stream.on('error', e => { clearTimeout(t); reject(e); });
     });
+    // Backup-Rotation: maximal 7 Backups behalten, älteste löschen
+    try {
+      const rot = await docker.getContainer(`ph-${serverName}`).exec({
+        Cmd: ['bash', '-c',
+          `cd /data && ls -1t backup-*.tar.gz 2>/dev/null | tail -n +8 | xargs -r rm -f`],
+        AttachStdout: true, AttachStderr: true
+      });
+      const rotStream = await rot.start({ hijack: true });
+      await new Promise(r => { rotStream.on('end', r); rotStream.on('error', r); });
+    } catch {}
     res.json({ ok: true, message: `Backup erstellt: ${arc}` });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -1031,8 +1080,21 @@ app.get('/api/survival/friends', auth, async (req, res) => {
 
 // ── REST-API: Spieler-Metriken ────────────────────────────────────────────
 
-app.get('/api/metrics/players', auth, (req, res) => {
-  res.json({ ok: true, data: playerMetrics });
+app.get('/api/metrics/players', auth, async (req, res) => {
+  const hours = parseInt(req.query.hours || '24');
+  if (hours <= 24) {
+    // Aus In-Memory-Buffer bedienen
+    return res.json({ ok: true, data: playerMetrics });
+  }
+  // Aus DB: bis zu 7 Tage
+  try {
+    const cutoff = Date.now() - Math.min(hours, 168) * 60 * 60 * 1000;
+    const [rows] = await poolCore.query(
+      'SELECT ts, players AS count FROM ph_metrics WHERE ts >= ? ORDER BY ts ASC',
+      [cutoff]
+    );
+    res.json({ ok: true, data: rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── REST-API: Weltgröße ───────────────────────────────────────────────────
@@ -1064,7 +1126,7 @@ app.get('/api/players/banlist-ip', auth, async (req, res) => {
   } catch { res.json({ bans: [] }); }
 });
 
-app.delete('/api/players/banlist-ip', auth, async (req, res) => {
+app.delete('/api/players/banlist-ip', strictLimit, auth, async (req, res) => {
   const { ip } = req.body;
   if (!ip) return res.status(400).json({ error: 'Keine IP' });
   const cfg = SERVERS.survival;
@@ -1126,7 +1188,7 @@ app.get('/api/players/timeline', auth, async (req, res) => {
   const { name } = req.query;
   if (!name) return res.status(400).json({ error: 'Kein Name' });
   try {
-    const [rows] = await poolCore.execute('SELECT first_join, last_seen FROM players WHERE name=? LIMIT 1', [name]);
+    const [rows] = await poolCore.execute('SELECT first_join, last_join AS last_seen FROM players WHERE name=? LIMIT 1', [name]);
     if (!rows.length) return res.status(404).json({ error: 'Nicht gefunden' });
     res.json({ ok: true, ...rows[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
