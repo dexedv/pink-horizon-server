@@ -173,8 +173,8 @@ public class SurvivalScoreboardManager {
         // ── Freunde-Zeile (nur anzeigen wenn Job aktiv) ──────────────────
         String friendLine = job != null
             ? "§7Freunde: §a" + friendsOnline + " §7online"
-            : "§aplay.pinkhorizon.de";
-        String bottomLine = job != null ? "§aplay.pinkhorizon.de" : " ";
+            : "§aplay.pinkhorizon.fun";
+        String bottomLine = job != null ? "§aplay.pinkhorizon.fun" : " ";
 
         setLine(board, 14, " ");
         setLine(board, 13, "§a§l» §fSurvival-Server");

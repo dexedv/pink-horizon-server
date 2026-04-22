@@ -35,7 +35,7 @@ public class SurvivalTabManager {
             Component footer = Component.text(
                 "\n§7Online: §a" + Bukkit.getOnlinePlayers().size()
                 + "  §7§l|§r  §7Zeit: §f" + time
-                + "\n§7play.pinkhorizon.de\n"
+                + "\n§7play.pinkhorizon.fun\n"
             );
 
             for (Player p : Bukkit.getOnlinePlayers()) {
@@ -50,7 +50,7 @@ public class SurvivalTabManager {
             Component.text(HEADER_FRAMES[frame]),
             Component.text("\n§7Online: §a" + Bukkit.getOnlinePlayers().size()
                 + "  §7§l|§r  §7Zeit: §f" + time
-                + "\n§7play.pinkhorizon.de\n")
+                + "\n§7play.pinkhorizon.fun\n")
         );
     }
 
