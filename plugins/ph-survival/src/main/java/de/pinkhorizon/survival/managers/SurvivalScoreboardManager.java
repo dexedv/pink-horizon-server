@@ -17,7 +17,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+// Tab-Sortierung: Scoreboard-Teams "tab_01" … "tab_07" sortieren alphabetisch →
+// höchster Rang (Owner=01) erscheint in der Tabliste ganz oben.
+
 public class SurvivalScoreboardManager {
+
+    // ── Tab-Sort-Teams ────────────────────────────────────────────────────
+    // Team-Namen sortieren alphabetisch → 01 = Owner oben, 07 = Spieler unten
+    private static final String[] TAB_TEAMS =
+        { "tab_01", "tab_02", "tab_03", "tab_04", "tab_05", "tab_06", "tab_07" };
+    private static final Map<String, String> RANK_TO_TEAM = Map.of(
+        "owner",     "tab_01",
+        "admin",     "tab_02",
+        "dev",       "tab_03",
+        "moderator", "tab_04",
+        "supporter", "tab_05",
+        "vip",       "tab_06",
+        "spieler",   "tab_07"
+    );
 
     private final PHSurvival plugin;
     private final Map<UUID, Scoreboard> playerBoards = new HashMap<>();
@@ -51,14 +68,52 @@ public class SurvivalScoreboardManager {
             obj.getScore(ENTRIES[i]).setScore(i);
         }
 
+        // Tab-Sort-Teams registrieren und alle aktuell online Spieler eintragen
+        for (String t : TAB_TEAMS) board.registerNewTeam(t);
+        for (Map.Entry<UUID, Scoreboard> e : playerBoards.entrySet()) {
+            Player online = Bukkit.getPlayer(e.getKey());
+            if (online != null) moveToTeam(board, online.getName(), rankTeamFor(online));
+        }
+        // Neuen Spieler selbst in alle bestehenden Boards eintragen
+        String newTeam = rankTeamFor(player);
+        for (Scoreboard b : playerBoards.values()) moveToTeam(b, player.getName(), newTeam);
+
         playerBoards.put(player.getUniqueId(), board);
         player.setScoreboard(board);
         refreshLines(player, board);
     }
 
     public void removeScoreboard(Player player) {
+        // Spieler aus allen anderen Boards entfernen
+        String name = player.getName();
+        for (Scoreboard b : playerBoards.values()) {
+            for (String t : TAB_TEAMS) {
+                Team team = b.getTeam(t);
+                if (team != null) team.removeEntry(name);
+            }
+        }
         playerBoards.remove(player.getUniqueId());
         player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
+    }
+
+    /** Aktualisiert die Tab-Sort-Position eines Spielers in allen aktiven Boards. */
+    public void updateTabSort(Player player) {
+        String team = rankTeamFor(player);
+        for (Scoreboard b : playerBoards.values()) moveToTeam(b, player.getName(), team);
+    }
+
+    private String rankTeamFor(Player player) {
+        String rankId = plugin.getRankManager().getRank(player.getUniqueId()).id;
+        return RANK_TO_TEAM.getOrDefault(rankId, "tab_07");
+    }
+
+    private void moveToTeam(Scoreboard board, String playerName, String teamName) {
+        for (String t : TAB_TEAMS) {
+            Team team = board.getTeam(t);
+            if (team != null) team.removeEntry(playerName);
+        }
+        Team target = board.getTeam(teamName);
+        if (target != null) target.addEntry(playerName);
     }
 
     private void startUpdateTask() {

@@ -79,5 +79,6 @@ public class SurvivalRankManager {
     public void applyTabName(Player player) {
         Rank rank = getRank(player.getUniqueId());
         player.playerListName(net.kyori.adventure.text.Component.text(rank.chatPrefix + player.getName()));
+        plugin.getScoreboardManager().updateTabSort(player);
     }
 }
