@@ -42,6 +42,7 @@ public class PHSurvival extends JavaPlugin {
     private de.pinkhorizon.survival.managers.NpcManager npcManager;
     private de.pinkhorizon.survival.managers.AuctionManager auctionManager;
     private SurvivalDatabaseManager survivalDb;
+    private ItemClearManager itemClearManager;
 
     @Override
     public void onEnable() {
@@ -77,6 +78,7 @@ public class PHSurvival extends JavaPlugin {
         spawnBorderManager = new SpawnBorderManager(this);
         npcManager         = new de.pinkhorizon.survival.managers.NpcManager(this);
         auctionManager     = new de.pinkhorizon.survival.managers.AuctionManager(this);
+        itemClearManager   = new ItemClearManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -196,6 +198,8 @@ public class PHSurvival extends JavaPlugin {
 
         getCommand("rtp").setExecutor(new RtpCommand(this));
 
+        getCommand("itemclear").setExecutor(new ItemClearCommand(this));
+
         de.pinkhorizon.survival.commands.NpcCommand npcCmd = new de.pinkhorizon.survival.commands.NpcCommand(this);
         getCommand("npc").setExecutor(npcCmd);
         getCommand("npc").setTabCompleter(npcCmd);
@@ -260,6 +264,7 @@ public class PHSurvival extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (itemClearManager != null) itemClearManager.cancel();
         if (survivalDb != null) survivalDb.close();
         if (claimBorderVisualizer != null) claimBorderVisualizer.stop();
         if (scoreboardManager != null) scoreboardManager.stopAll();
@@ -293,4 +298,5 @@ public class PHSurvival extends JavaPlugin {
     public SpawnBorderManager getSpawnBorderManager() { return spawnBorderManager; }
     public de.pinkhorizon.survival.managers.NpcManager getNpcManager() { return npcManager; }
     public de.pinkhorizon.survival.managers.AuctionManager getAuctionManager() { return auctionManager; }
+    public ItemClearManager getItemClearManager() { return itemClearManager; }
 }

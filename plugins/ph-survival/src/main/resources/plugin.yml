@@ -162,6 +162,10 @@ commands:
     description: Strukturierte Spielerdaten (Dashboard-intern)
     usage: /phinfo <Spieler>
     permission: survival.admin
+  itemclear:
+    description: Alle Items auf dem Boden löschen (Admin)
+    usage: /itemclear
+    permission: survival.admin
 
 permissions:
   survival.admin:
