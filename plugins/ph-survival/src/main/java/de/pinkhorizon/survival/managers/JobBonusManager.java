@@ -2,6 +2,7 @@ package de.pinkhorizon.survival.managers;
 
 import de.pinkhorizon.survival.PHSurvival;
 import net.kyori.adventure.text.Component;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -10,6 +11,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -62,9 +64,11 @@ public class JobBonusManager {
     private static final long DISCOUNT_DURATION_MS = 6 * 60 * 1000L;  // 6 Minuten
 
     private final PHSurvival plugin;
-    private final Map<UUID, Long>   cooldowns       = new HashMap<>();
+    private final Map<UUID, Long>     cooldowns        = new HashMap<>();
     /** UUID → [rabattProzent, ablaufZeitstempel] */
-    private final Map<UUID, long[]> enchantDiscounts = new HashMap<>();
+    private final Map<UUID, long[]>   enchantDiscounts = new HashMap<>();
+    /** Laufende Fly-Timer für Baumeister */
+    private final Map<UUID, BukkitTask> flyTasks       = new HashMap<>();
 
     public JobBonusManager(PHSurvival plugin) {
         this.plugin = plugin;
@@ -73,6 +77,8 @@ public class JobBonusManager {
     public void stop() {
         cooldowns.clear();
         enchantDiscounts.clear();
+        flyTasks.values().forEach(BukkitTask::cancel);
+        flyTasks.clear();
     }
 
     /**
@@ -217,9 +223,55 @@ public class JobBonusManager {
             return false;
         }
 
+        // Baumeister: zusätzlich zeitlich begrenzten Flug aktivieren
+        if (job == JobManager.Job.BUILDER) {
+            int flyMins = level >= 100 ? 6 : level >= 75 ? 5 : level >= 50 ? 3 : level >= 25 ? 2 : 1;
+            startBuilderFly(player, flyMins);
+            player.sendActionBar(Component.text(
+                "§a✔ §fBaumeister §aBonus: Effekte + §b" + flyMins + " min §aFliegen! §8(§73h CD§8)"));
+            return true;
+        }
+
         player.sendActionBar(Component.text(
             "§a✔ §f" + job.displayName + " §aBonus aktiviert! §8(§76 min §8| §73h Cooldown§8)"));
         return true;
+    }
+
+    // ── Baumeister: Fly-Timer ─────────────────────────────────────────────
+
+    private void startBuilderFly(Player player, int minutes) {
+        // Evtl. alten Timer abbrechen
+        BukkitTask old = flyTasks.remove(player.getUniqueId());
+        if (old != null) old.cancel();
+
+        player.setAllowFlight(true);
+
+        // 30-Sekunden-Vorwarnung
+        long warnTicks = (long)(minutes * 60 - 30) * 20;
+        if (warnTicks > 0) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline()) {
+                    player.sendActionBar(Component.text(
+                        "§e⚠ §fBaumeister §eFlug endet in §c30 Sekunden§e!"));
+                }
+            }, warnTicks);
+        }
+
+        // Fly deaktivieren nach Ablauf
+        long endTicks = (long) minutes * 60 * 20;
+        BukkitTask task = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            flyTasks.remove(player.getUniqueId());
+            if (!player.isOnline()) return;
+            if (player.getGameMode() == GameMode.CREATIVE
+                    || player.getGameMode() == GameMode.SPECTATOR) return;
+            player.setFlying(false);
+            player.setAllowFlight(false);
+            // UpgradeManager stellt permanenten Fly wieder her (falls vorhanden)
+            plugin.getUpgradeManager().restoreFly(player);
+            player.sendActionBar(Component.text("§c✗ §fBaumeister §cFlug-Bonus abgelaufen!"));
+        }, endTicks);
+
+        flyTasks.put(player.getUniqueId(), task);
     }
 
     // ── Bonus-Definitionen ────────────────────────────────────────────────
