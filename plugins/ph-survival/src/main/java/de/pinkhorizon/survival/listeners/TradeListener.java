@@ -35,9 +35,6 @@ public class TradeListener implements Listener {
                 boolean execute = plugin.getTradeManager().toggleConfirm(player.getUniqueId());
                 if (execute) {
                     plugin.getTradeManager().executeTrade(player.getUniqueId());
-                } else {
-                    // Sync offer to partner
-                    plugin.getTradeManager().syncPartnerOffer(player.getUniqueId());
                 }
             } else if (slot == TradeManager.CANCEL_SLOT) {
                 plugin.getTradeManager().cancelSession(player.getUniqueId());
