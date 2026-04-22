@@ -23,11 +23,6 @@ public class SellCommand implements CommandExecutor {
             return true;
         }
 
-        if (!player.hasPermission("survival.admin")) {
-            player.sendMessage("§cDieser Befehl ist nicht verfügbar!");
-            return true;
-        }
-
         if (args.length < 1) {
             player.sendMessage("\u00a7cVerwendung: /sell <hand|all>");
             return true;
