@@ -1932,7 +1932,7 @@ function renderSysmon() {
   const c = document.getElementById('page-content');
   c.innerHTML = `<div class="page">
     <div class="card" id="sm-total">
-      <div class="card-title">⚡ Gesamtverbrauch aller Container (Server: 8 GB)</div>
+      <div class="card-title">⚡ Gesamtverbrauch aller Container (Server: 32 GB)</div>
       <div class="empty" style="padding:8px 0;font-size:.8rem">Verbinde…</div>
     </div>
     <div class="g3" id="sm-grid">
@@ -1951,7 +1951,7 @@ function updateSysmonStats(data) {
   // Gesamtverbrauch aller Container
   const totalEl = document.getElementById('sm-total');
   if (totalEl) {
-    const HOST_MB = 8192;
+    const HOST_MB = 32768;
     let totalUsed = 0; let totalLimit = 0;
     for (const k of SYSMON_ORDER) {
       const d = data[k]; if (!d) continue;
