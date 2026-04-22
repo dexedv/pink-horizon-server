@@ -140,21 +140,25 @@ public class SpawnZoneListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
-        if (!event.hasChangedBlock()) return;
+        Location from = event.getFrom();
+        Location to   = event.getTo();
+
+        // Nur bei horizontaler Bewegung prüfen (spart Performance)
+        if (from.getX() == to.getX() && from.getZ() == to.getZ()) return;
 
         Player player = event.getPlayer();
         if (isAdmin(player)) return;
-
-        Location from = event.getFrom();
-        Location to   = event.getTo();
 
         boolean fromIn = inSpawnZone(from);
         boolean toIn   = inSpawnZone(to);
 
         if (!fromIn && toIn)  { onEnter(player); return; }
         if (fromIn  && !toIn) {
-            // An die Grenze klemmen statt zurückwerfen
-            event.setTo(clampToBorder(to));
+            // Spieler exakt auf die letzte gültige Position zurücksetzen – 100 % dicht
+            Location back = from.clone();
+            back.setYaw(to.getYaw());
+            back.setPitch(to.getPitch());
+            event.setTo(back);
             long now = System.currentTimeMillis();
             if (now - borderMsgCooldown.getOrDefault(player.getUniqueId(), 0L) > 3000) {
                 player.sendActionBar(MSG_BORDER);
