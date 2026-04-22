@@ -99,6 +99,12 @@ public class JobBonusManager {
         flyTasks.clear();
     }
 
+    /** Verbleibende Cooldown-Zeit in Millisekunden. 0 = Bonus bereit. */
+    public long getCooldownRemainingMs(UUID uuid) {
+        long last = cooldowns.getOrDefault(uuid, 0L);
+        return Math.max(0, COOLDOWN_MS - (System.currentTimeMillis() - last));
+    }
+
     /**
      * Gibt den aktiven Verzauberungs-Rabatt (0–100 %) zurück.
      * 0 = kein aktiver Rabatt.

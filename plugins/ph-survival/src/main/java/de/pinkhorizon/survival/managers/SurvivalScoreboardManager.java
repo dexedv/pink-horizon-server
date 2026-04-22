@@ -137,37 +137,67 @@ public class SurvivalScoreboardManager {
         int maxClaims = plugin.getRankManager().getMaxClaims(uuid);
         String rank   = plugin.getRankManager().getRank(uuid).chatPrefix;
 
-        // Job
+        java.util.Set<UUID> friends = plugin.getFriendManager().getFriends(uuid);
+        long friendsOnline = friends.stream().filter(f -> Bukkit.getPlayer(f) != null).count();
+
+        // ── Job-Bereich ──────────────────────────────────────────────────
         JobManager.Job job = plugin.getJobManager().getJob(uuid);
-        String jobLine;
+        String jobNameLine, xpBarLine, bonusLine;
+
         if (job == null) {
-            jobLine = "§7Job:    §8Kein Job";
+            jobNameLine = "§7Job:    §8Kein Job";
+            xpBarLine   = "§8Wähle einen mit §7/jobs";
+            bonusLine   = "§7Freunde: §a" + friendsOnline + " §7online";
         } else {
             int level  = plugin.getJobManager().getLevel(uuid);
             int xp     = plugin.getJobManager().getXp(uuid);
             int needed = JobManager.xpForNextLevel(level);
-            jobLine = "§7Job: §b" + job.displayName + " §7Lv." + level + " §8(" + xp + "/" + needed + ")";
+
+            jobNameLine = "§7Job: §b" + job.displayName + " §7Lv.§6" + level;
+
+            if (needed <= 0) {
+                xpBarLine = "§6§lMAX LEVEL erreicht!";
+            } else {
+                int pct    = (int)((xp * 100L) / needed);
+                int filled = pct / 10;
+                xpBarLine  = "§8[§a" + "█".repeat(filled) + "§8" + "░".repeat(10 - filled) + "§8] §7" + pct + "%";
+            }
+
+            long cd = plugin.getJobBonusManager().getCooldownRemainingMs(uuid);
+            bonusLine = cd <= 0
+                ? "§7Bonus §8[Shift+F]§7: §a✔ Bereit"
+                : "§7Bonus: §c⏳ §f" + fmtCd(cd);
         }
 
-        // Freunde online
-        java.util.Set<UUID> friends = plugin.getFriendManager().getFriends(uuid);
-        long friendsOnline = friends.stream().filter(f -> Bukkit.getPlayer(f) != null).count();
+        // ── Freunde-Zeile (nur anzeigen wenn Job aktiv) ──────────────────
+        String friendLine = job != null
+            ? "§7Freunde: §a" + friendsOnline + " §7online"
+            : "§aplay.pinkhorizon.de";
+        String bottomLine = job != null ? "§aplay.pinkhorizon.de" : " ";
 
         setLine(board, 14, " ");
         setLine(board, 13, "§a§l» §fSurvival-Server");
         setLine(board, 12, "  ");
-        setLine(board, 11, "§7Online: §a§l" + online);
-        setLine(board, 10, "§7Datum:  §f" + date);
-        setLine(board, 9,  "   ");
-        setLine(board, 8,  "§7Rang:   " + rank.trim());
-        setLine(board, 7,  "§7Coins:  §6§l" + coins);
-        setLine(board, 6,  "§7Bank:   §e" + bank);
-        setLine(board, 5,  "§7Claims: §a" + claims + "§7/§a" + maxClaims);
-        setLine(board, 4,  "    ");
-        setLine(board, 3,  jobLine);
-        setLine(board, 2,  "§7Freunde: §a" + friendsOnline + " §7online");
-        setLine(board, 1,  "§aplay.pinkhorizon.de");
-        setLine(board, 0,  "     ");
+        setLine(board, 11, "§7Online: §a§l" + online + "  §7| §f" + date);
+        setLine(board, 10, "   ");
+        setLine(board, 9,  "§7Rang:   " + rank.trim());
+        setLine(board, 8,  "§7Coins:  §6§l" + coins);
+        setLine(board, 7,  "§7Bank:   §e" + bank);
+        setLine(board, 6,  "§7Claims: §a" + claims + "§7/§a" + maxClaims);
+        setLine(board, 5,  "    ");
+        setLine(board, 4,  jobNameLine);
+        setLine(board, 3,  xpBarLine);
+        setLine(board, 2,  bonusLine);
+        setLine(board, 1,  friendLine);
+        setLine(board, 0,  bottomLine);
+    }
+
+    private static String fmtCd(long ms) {
+        long s = ms / 1000;
+        long h = s / 3600, m = (s % 3600) / 60, sec = s % 60;
+        if (h > 0) return h + "h " + m + "m";
+        if (m > 0) return m + "m " + sec + "s";
+        return sec + "s";
     }
 
     private void setLine(Scoreboard board, int score, String text) {
