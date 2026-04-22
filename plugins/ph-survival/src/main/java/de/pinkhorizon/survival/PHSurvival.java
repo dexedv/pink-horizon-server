@@ -202,6 +202,9 @@ public class PHSurvival extends JavaPlugin {
 
         getCommand("itemclear").setExecutor(new ItemClearCommand(this));
 
+        getCommand("claimmap").setExecutor(new ClaimMapCommand(this));
+        getCommand("chunkborder").setExecutor(new ChunkBorderCommand(this));
+
         de.pinkhorizon.survival.commands.NpcCommand npcCmd = new de.pinkhorizon.survival.commands.NpcCommand(this);
         getCommand("npc").setExecutor(npcCmd);
         getCommand("npc").setTabCompleter(npcCmd);
@@ -245,6 +248,7 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SpawnBorderWandListener(this), this);
         getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.NpcListener(this), this);
         getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.JobBonusListener(this), this);
+        getServer().getPluginManager().registerEvents(new ClaimMapListener(this), this);
 
         // Inventar-Snapshots für Dashboard
         de.pinkhorizon.survival.listeners.InventorySnapshotListener invSnap =
@@ -302,6 +306,7 @@ public class PHSurvival extends JavaPlugin {
     public SpawnBorderManager getSpawnBorderManager() { return spawnBorderManager; }
     public de.pinkhorizon.survival.managers.NpcManager getNpcManager() { return npcManager; }
     public de.pinkhorizon.survival.managers.AuctionManager getAuctionManager() { return auctionManager; }
-    public ItemClearManager getItemClearManager() { return itemClearManager; }
-    public JobBonusManager getJobBonusManager()   { return jobBonusManager; }
+    public ItemClearManager getItemClearManager()          { return itemClearManager; }
+    public JobBonusManager getJobBonusManager()            { return jobBonusManager; }
+    public ClaimBorderVisualizer getClaimBorderVisualizer() { return claimBorderVisualizer; }
 }

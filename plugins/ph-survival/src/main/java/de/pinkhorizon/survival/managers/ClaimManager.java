@@ -91,6 +91,22 @@ public class ClaimManager {
         return true;
     }
 
+    // ---- Key-based helpers (no chunk loading needed) ----
+
+    public boolean isClaimedAt(String world, int cx, int cz) {
+        return claims.containsKey(world + ":" + cx + ":" + cz);
+    }
+
+    public UUID getOwnerAt(String world, int cx, int cz) {
+        return claims.get(world + ":" + cx + ":" + cz);
+    }
+
+    public boolean isTrustedAt(String world, int cx, int cz, UUID uuid) {
+        String key = world + ":" + cx + ":" + cz;
+        Set<UUID> ts = trust.get(key);
+        return ts != null && ts.contains(uuid);
+    }
+
     // ---- Trust ----
 
     public void trustPlayer(Chunk chunk, UUID trusted) {

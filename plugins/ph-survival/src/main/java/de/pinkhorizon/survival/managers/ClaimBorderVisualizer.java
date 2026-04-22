@@ -9,12 +9,15 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class ClaimBorderVisualizer {
 
     private final PHSurvival plugin;
     private BukkitTask task;
+    private final Set<UUID> optedOut = new HashSet<>();
 
     private static final Particle.DustOptions OWN     = new Particle.DustOptions(Color.fromRGB(0, 220, 0),   1.5f);
     private static final Particle.DustOptions TRUSTED = new Particle.DustOptions(Color.fromRGB(0, 150, 255), 1.5f);
@@ -29,8 +32,16 @@ public class ClaimBorderVisualizer {
         }, 40L, 40L);
     }
 
+    /** Toggles the border visibility for a player. Returns true if now visible. */
+    public boolean toggle(UUID uuid) {
+        if (optedOut.remove(uuid)) return true;
+        optedOut.add(uuid);
+        return false;
+    }
+
     private void showNearby(Player player) {
         UUID uuid   = player.getUniqueId();
+        if (optedOut.contains(uuid)) return;
         World world = player.getWorld();
         double y    = player.getLocation().getY() + 1.5;
         int pcx     = player.getLocation().getChunk().getX();

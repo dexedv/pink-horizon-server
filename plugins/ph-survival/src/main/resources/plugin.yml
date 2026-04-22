@@ -166,6 +166,12 @@ commands:
     description: Alle Items auf dem Boden löschen (Admin)
     usage: /itemclear
     permission: survival.admin
+  claimmap:
+    description: Interaktive Claim-Karte öffnen
+    usage: /claimmap
+  chunkborder:
+    description: Chunk-Grenzen ein-/ausblenden
+    usage: /chunkborder
 
 permissions:
   survival.admin:
