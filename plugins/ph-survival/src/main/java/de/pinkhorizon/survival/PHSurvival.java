@@ -244,6 +244,7 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TradeListener(this), this);
         getServer().getPluginManager().registerEvents(new SpawnBorderWandListener(this), this);
         getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.NpcListener(this), this);
+        getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.JobBonusListener(this), this);
 
         // Inventar-Snapshots für Dashboard
         de.pinkhorizon.survival.listeners.InventorySnapshotListener invSnap =

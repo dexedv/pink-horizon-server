@@ -90,9 +90,6 @@ public class SurvivalJoinListener implements Listener {
 
             // Playtime-Achievements prüfen
             plugin.getAchievementManager().checkPlaytime(player);
-
-            // Job-Boni sofort anwenden (kein Warten bis zum nächsten 5-min-Zyklus)
-            plugin.getJobBonusManager().applyToPlayer(player);
         }, 5L);
     }
 
