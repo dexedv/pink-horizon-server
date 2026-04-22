@@ -12,11 +12,14 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.potion.PotionType;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +68,14 @@ public class JobBonusManager {
     );
 
     private static final long DISCOUNT_DURATION_MS = 6 * 60 * 1000L;  // 6 Minuten
+
+    // ── Brauer: zufällige Extra-Tränke ────────────────────────────────────
+    private static final List<PotionType> BREWER_POOL = List.of(
+            PotionType.STRENGTH, PotionType.REGENERATION, PotionType.SWIFTNESS,
+            PotionType.FIRE_RESISTANCE, PotionType.WATER_BREATHING,
+            PotionType.HEALING, PotionType.NIGHT_VISION, PotionType.SLOW_FALLING,
+            PotionType.INVISIBILITY
+    );
 
     private final PHSurvival    plugin;
     private final NamespacedKey tempRodKey;
@@ -263,6 +274,18 @@ public class JobBonusManager {
             return true;
         }
 
+        // Brauer: zusätzlich zufällige Extra-Tränke ins Inventar
+        if (job == JobManager.Job.BREWER) {
+            int potionCount = level >= 100 ? 3 : level >= 65 ? 2 : level >= 25 ? 1 : 0;
+            if (potionCount > 0) giveBrewerPotions(player, potionCount);
+            String extra = potionCount > 0
+                ? " + §d" + potionCount + " §aExtra-Trank" + (potionCount > 1 ? "tränke" : "")
+                : "";
+            player.sendActionBar(Component.text(
+                "§a✔ §fBrauer §aBonus: Effekte" + extra + "! §8(§76 min §8| §73h CD§8)"));
+            return true;
+        }
+
         player.sendActionBar(Component.text(
             "§a✔ §f" + job.displayName + " §aBonus aktiviert! §8(§76 min §8| §73h Cooldown§8)"));
         return true;
@@ -343,6 +366,22 @@ public class JobBonusManager {
         }, endTicks);
 
         flyTasks.put(player.getUniqueId(), task);
+    }
+
+    // ── Brauer: zufällige Extra-Tränke geben ─────────────────────────────
+
+    private void giveBrewerPotions(Player player, int count) {
+        var pool = new ArrayList<>(BREWER_POOL);
+        Collections.shuffle(pool);
+        for (int i = 0; i < Math.min(count, pool.size()); i++) {
+            ItemStack potion = new ItemStack(Material.POTION);
+            PotionMeta meta = (PotionMeta) potion.getItemMeta();
+            meta.setBasePotionType(pool.get(i));
+            potion.setItemMeta(meta);
+            var leftover = player.getInventory().addItem(potion);
+            leftover.values().forEach(item ->
+                player.getWorld().dropItemNaturally(player.getLocation(), item));
+        }
     }
 
     // ── Bonus-Definitionen ────────────────────────────────────────────────
