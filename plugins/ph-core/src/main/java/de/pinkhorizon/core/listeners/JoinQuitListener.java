@@ -23,6 +23,9 @@ public class JoinQuitListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         event.joinMessage(Component.text(event.getPlayer().getName() + " hat den Server betreten.", NamedTextColor.GREEN));
 
+        // Spieler zur aktiven Neustart-Bossbar hinzufügen (falls Countdown läuft)
+        plugin.getNetworkRestartManager().addPlayer(event.getPlayer());
+
         String sql = plugin.getDatabaseManager().getDbType().equals("mysql")
             ? "INSERT INTO players (uuid, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), last_join = CURRENT_TIMESTAMP"
             : "INSERT INTO players (uuid, name) VALUES (?, ?) ON CONFLICT(uuid) DO UPDATE SET name = excluded.name, last_join = CURRENT_TIMESTAMP";

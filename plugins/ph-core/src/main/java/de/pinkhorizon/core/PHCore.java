@@ -8,6 +8,7 @@ import de.pinkhorizon.core.database.RankRepository;
 import de.pinkhorizon.core.integration.LuckPermsHook;
 import de.pinkhorizon.core.listeners.ChatListener;
 import de.pinkhorizon.core.listeners.JoinQuitListener;
+import de.pinkhorizon.core.managers.NetworkRestartManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class PHCore extends JavaPlugin {
@@ -15,6 +16,7 @@ public class PHCore extends JavaPlugin {
     private static PHCore instance;
     private DatabaseManager databaseManager;
     private RankRepository rankRepository;
+    private NetworkRestartManager networkRestartManager;
 
     @Override
     public void onEnable() {
@@ -38,6 +40,9 @@ public class PHCore extends JavaPlugin {
         getCommand("msg").setExecutor(new MsgCommand(this));
         getCommand("report").setExecutor(new ReportCommand(this));
 
+        // Automatischer Netzwerk-Neustart um 00:00 Uhr
+        networkRestartManager = new NetworkRestartManager(this);
+
         // Listener registrieren
         getServer().getPluginManager().registerEvents(new JoinQuitListener(this), this);
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
@@ -47,9 +52,8 @@ public class PHCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (databaseManager != null) {
-            databaseManager.close();
-        }
+        if (networkRestartManager != null) networkRestartManager.stop();
+        if (databaseManager != null) databaseManager.close();
         getLogger().info("PH-Core gestoppt.");
     }
 
@@ -57,6 +61,7 @@ public class PHCore extends JavaPlugin {
         return instance;
     }
 
-    public DatabaseManager getDatabaseManager() { return databaseManager; }
-    public RankRepository getRankRepository()   { return rankRepository; }
+    public DatabaseManager getDatabaseManager()         { return databaseManager; }
+    public RankRepository getRankRepository()           { return rankRepository; }
+    public NetworkRestartManager getNetworkRestartManager() { return networkRestartManager; }
 }
