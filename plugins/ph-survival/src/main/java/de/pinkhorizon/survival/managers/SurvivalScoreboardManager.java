@@ -2,6 +2,7 @@ package de.pinkhorizon.survival.managers;
 
 import de.pinkhorizon.survival.PHSurvival;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -59,7 +60,7 @@ public class SurvivalScoreboardManager {
     public void giveScoreboard(Player player) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective obj = board.registerNewObjective("ph_surv", Criteria.DUMMY,
-            Component.text(TITLE));
+            LEGACY.deserialize(TITLE));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         for (int i = 0; i < 15; i++) {
@@ -200,10 +201,13 @@ public class SurvivalScoreboardManager {
         return sec + "s";
     }
 
+    private static final LegacyComponentSerializer LEGACY =
+        LegacyComponentSerializer.legacySection();
+
     private void setLine(Scoreboard board, int score, String text) {
         Team team = board.getTeam("line" + score);
         if (team == null) return;
-        team.prefix(Component.text(text));
+        team.prefix(LEGACY.deserialize(text));
         team.suffix(Component.empty());
     }
 
