@@ -199,12 +199,16 @@ public class JobBonusManager {
         switch (job) {
 
             case MINER -> {
-                // Haste (Erze schneller abbauen) + Nachtblick (Höhlen sehen)
+                // Haste + Nachtblick + Glück (bessere Erz-Drops) + Tempo
                 if (level >= 75)       add(list, PotionEffectType.HASTE, 2);
                 else if (level >= 25)  add(list, PotionEffectType.HASTE, 1);
                 else if (level >= 10)  add(list, PotionEffectType.HASTE, 0);
                 if (level >= 50)  add(list, PotionEffectType.NIGHT_VISION, 0);
-                if (level >= 100) add(list, PotionEffectType.SPEED, 0);
+                if (level >= 75)  add(list, PotionEffectType.LUCK, 0);
+                if (level >= 100) {
+                    add(list, PotionEffectType.LUCK, 1);
+                    add(list, PotionEffectType.SPEED, 0);
+                }
             }
 
             case LUMBERJACK -> {
