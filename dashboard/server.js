@@ -227,6 +227,20 @@ app.post('/api/servers/:name/start', auth, async (req, res) => {
   catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// ── REST-API: Netzwerk-Neustart ───────────────────────────────────────────
+app.post('/api/network/restart', auth, async (req, res) => {
+  const minutes = parseInt(req.body?.minutes) || 5;
+  if (minutes < 1 || minutes > 60) return res.status(400).json({ error: 'Minuten müssen zwischen 1 und 60 liegen.' });
+  const cmd = `networkrestart ${minutes}`;
+  const results = {};
+  for (const [key, cfg] of Object.entries(SERVERS)) {
+    if (!cfg.rcon) { results[key] = 'kein RCON'; continue; }
+    try { results[key] = await rconSend(cfg.rcon, cmd); }
+    catch (e) { results[key] = `Fehler: ${e.message}`; }
+  }
+  res.json({ ok: true, minutes, results });
+});
+
 // ── REST-API: Spieler ─────────────────────────────────────────────────────
 
 app.get('/api/players/online', auth, async (req, res) => {

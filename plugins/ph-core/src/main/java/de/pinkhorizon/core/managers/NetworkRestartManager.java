@@ -109,6 +109,16 @@ public class NetworkRestartManager {
             "§c§l[!] §7Das Netzwerk wird in §c" + time + " §7neu gestartet!");
     }
 
+    /**
+     * Manuell ausgelöster Neustart (z.B. aus dem Dashboard via RCON-Befehl).
+     * Bricht einen laufenden Countdown ab und startet einen neuen.
+     */
+    public void triggerManual(int seconds) {
+        if (countdownTask != null) { countdownTask.cancel(); countdownTask = null; }
+        if (bossBar != null) { bossBar.removeAll(); bossBar = null; }
+        Bukkit.getScheduler().runTask(plugin, () -> startCountdown(Math.max(10, seconds)));
+    }
+
     /** Joinen während laufendem Countdown → sofort zur Bossbar hinzufügen */
     public void addPlayer(Player player) {
         if (bossBar != null) bossBar.addPlayer(player);

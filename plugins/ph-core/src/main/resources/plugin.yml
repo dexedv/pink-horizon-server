@@ -16,6 +16,10 @@ commands:
   report:
     description: Spieler melden
     usage: /report <Spieler> <Grund>
+  networkrestart:
+    description: Netzwerk-Neustart mit Countdown anstoßen
+    usage: /networkrestart <minuten>
+    permission: pinkhorizon.admin
 
 permissions:
   pinkhorizon.admin:

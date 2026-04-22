@@ -472,7 +472,10 @@ function renderPage() {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
 async function renderDash() {
-  setHdr('📊 Dashboard', `<button class="btn" onclick="renderDash()">↺ Aktualisieren</button>`);
+  setHdr('📊 Dashboard', `
+    <button class="btn" onclick="renderDash()">↺ Aktualisieren</button>
+    <button class="btn btn-d" onclick="openRestartModal()">🔄 Netzwerk-Neustart</button>
+  `);
   const c = document.getElementById('page-content');
   c.innerHTML = `<div class="page">
     <div class="bcast-bar">
@@ -539,6 +542,64 @@ async function doBroadcast() {
   const d = r ? await r.json() : null;
   if (d?.ok) { showToast(`📡 Broadcast gesendet: "${msg}"`); el.value = ''; }
   else        showToast('✗ Broadcast fehlgeschlagen', false);
+}
+
+function openRestartModal() {
+  const existing = document.getElementById('restart-modal');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'restart-modal';
+  el.className = 'modal-bg';
+  el.innerHTML = `
+    <div class="modal-box" style="width:360px">
+      <h3>🔄 Netzwerk-Neustart</h3>
+      <p style="color:var(--muted);font-size:.88rem">Startet auf allen Servern einen Countdown mit Bossbar und Chat-Ankündigungen.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:4px 0">
+        ${[1,2,3,5,10].map(m=>`<button class="btn" onclick="setRestartMin(${m})" id="rmin-${m}">${m} Min</button>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:.88rem;color:var(--muted);white-space:nowrap">Eigene Minuten:</label>
+        <input class="field" id="restart-custom-min" type="number" min="1" max="60" placeholder="z.B. 7" style="width:90px">
+      </div>
+      <div style="font-size:.85rem;color:var(--muted)">Gewählt: <b id="restart-chosen">5 Minuten</b></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="document.getElementById('restart-modal').remove()">Abbrechen</button>
+        <button class="btn btn-d" onclick="doNetworkRestart()">🔄 Jetzt starten</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  setRestartMin(5);
+  document.getElementById('restart-custom-min').addEventListener('input', function() {
+    const v = parseInt(this.value);
+    if (v >= 1 && v <= 60) {
+      document.querySelectorAll('[id^="rmin-"]').forEach(b => b.style.borderColor = '');
+      document.getElementById('restart-chosen').textContent = v + ' Minuten';
+      el._chosen = v;
+    }
+  });
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+}
+
+function setRestartMin(m) {
+  const el = document.getElementById('restart-modal');
+  el._chosen = m;
+  document.querySelectorAll('[id^="rmin-"]').forEach(b => b.style.borderColor = '');
+  const btn = document.getElementById('rmin-' + m);
+  if (btn) btn.style.borderColor = 'var(--pink)';
+  document.getElementById('restart-chosen').textContent = m + ' Minuten';
+  document.getElementById('restart-custom-min').value = '';
+}
+
+async function doNetworkRestart() {
+  const el = document.getElementById('restart-modal');
+  const minutes = el?._chosen || 5;
+  const confirmBtn = el?.querySelector('.btn-d');
+  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = '…'; }
+  const r = await apiFetch('/api/network/restart', { method:'POST', body: JSON.stringify({ minutes }) });
+  const d = r ? await r.json() : null;
+  el?.remove();
+  if (d?.ok) showToast(`🔄 Netzwerk-Neustart in ${minutes} Minute${minutes > 1 ? 'n' : ''} angesetzt!`);
+  else       showToast('✗ Neustart fehlgeschlagen', false);
 }
 
 async function loadResStats() {

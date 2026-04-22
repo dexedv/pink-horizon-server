@@ -2,6 +2,7 @@ package de.pinkhorizon.core;
 
 import de.pinkhorizon.core.commands.HubCommand;
 import de.pinkhorizon.core.commands.MsgCommand;
+import de.pinkhorizon.core.commands.NetworkRestartCommand;
 import de.pinkhorizon.core.commands.ReportCommand;
 import de.pinkhorizon.core.database.DatabaseManager;
 import de.pinkhorizon.core.database.RankRepository;
@@ -39,6 +40,9 @@ public class PHCore extends JavaPlugin {
         getCommand("hub").setExecutor(new HubCommand(this));
         getCommand("msg").setExecutor(new MsgCommand(this));
         getCommand("report").setExecutor(new ReportCommand(this));
+        NetworkRestartCommand nrCmd = new NetworkRestartCommand(this);
+        getCommand("networkrestart").setExecutor(nrCmd);
+        getCommand("networkrestart").setTabCompleter(nrCmd);
 
         // Automatischer Netzwerk-Neustart um 00:00 Uhr
         networkRestartManager = new NetworkRestartManager(this);
