@@ -29,7 +29,7 @@ import java.util.UUID;
  */
 public class JobBonusManager {
 
-    private static final int  DURATION_TICKS = 30 * 60 * 20;           // 30 Minuten
+    private static final int  DURATION_TICKS = 6 * 60 * 20;             // 6 Minuten
     private static final long COOLDOWN_MS    = 3 * 60 * 60 * 1000L;    // 3 Stunden
 
     // ── Waffenschmied: reparierbare Item-Tiers ─────────────────────────────
@@ -59,7 +59,7 @@ public class JobBonusManager {
             Material.NETHERITE_LEGGINGS, Material.NETHERITE_BOOTS
     );
 
-    private static final long DISCOUNT_DURATION_MS = 30 * 60 * 1000L; // 30 Minuten
+    private static final long DISCOUNT_DURATION_MS = 6 * 60 * 1000L;  // 6 Minuten
 
     private final PHSurvival plugin;
     private final Map<UUID, Long>   cooldowns       = new HashMap<>();
@@ -203,10 +203,10 @@ public class JobBonusManager {
                 long expiry = System.currentTimeMillis() + DISCOUNT_DURATION_MS;
                 enchantDiscounts.put(player.getUniqueId(), new long[]{discount, expiry});
                 player.sendActionBar(Component.text(
-                    "§a✔ §fVerzauberer §aBonus: §d" + discount + "% §aVerzauberungs-Rabatt §8(§730 min §8| §73h Cooldown§8)"));
+                    "§a✔ §fVerzauberer §aBonus: §d" + discount + "% §aVerzauberungs-Rabatt §8(§76 min §8| §73h Cooldown§8)"));
             } else {
                 player.sendActionBar(Component.text(
-                    "§a✔ §fVerzauberer §aBonus aktiviert! §8(§730 min §8| §73h Cooldown§8)"));
+                    "§a✔ §fVerzauberer §aBonus aktiviert! §8(§76 min §8| §73h Cooldown§8)"));
             }
             return true;
         }
@@ -218,7 +218,7 @@ public class JobBonusManager {
         }
 
         player.sendActionBar(Component.text(
-            "§a✔ §f" + job.displayName + " §aBonus aktiviert! §8(§730 min §8| §73h Cooldown§8)"));
+            "§a✔ §f" + job.displayName + " §aBonus aktiviert! §8(§76 min §8| §73h Cooldown§8)"));
         return true;
     }
 
