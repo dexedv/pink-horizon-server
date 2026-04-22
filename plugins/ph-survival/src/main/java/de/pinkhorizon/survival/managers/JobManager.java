@@ -21,7 +21,9 @@ public class JobManager {
         LUMBERJACK("Holzfäller",  "§7Fälle Bäume für Coins.",        Material.IRON_AXE,        TextColor.color(0x8B5E3C)),
         FARMER    ("Bauer",       "§7Ernte Feldfrüchte für Coins.",   Material.WHEAT,           TextColor.color(0xF5C518)),
         HUNTER    ("Jäger",       "§7Töte Monster für Coins.",        Material.BOW,             TextColor.color(0xC0392B)),
-        FISHER    ("Fischer",     "§7Angle Fische für Coins.",        Material.FISHING_ROD,     TextColor.color(0x1ABC9C));
+        FISHER    ("Fischer",     "§7Angle Fische für Coins.",        Material.FISHING_ROD,     TextColor.color(0x1ABC9C)),
+        BREWER    ("Brauer",      "§7Braue Tränke für Coins.",        Material.BREWING_STAND,   TextColor.color(0x9B59B6)),
+        BUILDER   ("Baumeister",  "§7Baue Strukturen für Coins.",     Material.BRICKS,          TextColor.color(0xE67E22));
 
         public final String    displayName;
         public final String    description;
@@ -38,10 +40,17 @@ public class JobManager {
 
     // ── Level-System ─────────────────────────────────────────────────────
 
-    private static final int[] XP_THRESHOLDS = { 0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 10000 };
+    // 100 Levels; XP_THRESHOLDS[i] = XP benötigt um von Level i auf i+1 zu kommen
+    // Formel: 400 * i^2  →  Level 10 ≈ 9 h, Level 100 ist Prestige-Ziel
+    private static final int[] XP_THRESHOLDS = new int[100];
+    static {
+        for (int i = 1; i < 100; i++) {
+            XP_THRESHOLDS[i] = 400 * i * i;
+        }
+    }
 
     public static int    getMaxLevel()            { return XP_THRESHOLDS.length; }
-    public static double getMultiplier(int level) { return 1.0 + (level - 1) * 0.15; }
+    public static double getMultiplier(int level) { return 1.0 + (level - 1) * 0.05; }
 
     public static int xpForNextLevel(int currentLevel) {
         if (currentLevel >= getMaxLevel()) return -1;

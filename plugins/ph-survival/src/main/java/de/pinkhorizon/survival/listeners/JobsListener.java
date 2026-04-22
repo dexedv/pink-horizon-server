@@ -12,8 +12,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -26,10 +28,11 @@ public class JobsListener implements Listener {
 
     // ── Auszahlungstabellen: Material/EntityType → {coins, xp} ──────────
 
-    private static final Map<Material, int[]> MINER_BLOCKS = new EnumMap<>(Material.class);
-    private static final Map<Material, int[]> LOGGER_LOGS  = new EnumMap<>(Material.class);
-    private static final Map<Material, int[]> FARMER_CROPS = new EnumMap<>(Material.class);
+    private static final Map<Material, int[]> MINER_BLOCKS  = new EnumMap<>(Material.class);
+    private static final Map<Material, int[]> LOGGER_LOGS   = new EnumMap<>(Material.class);
+    private static final Map<Material, int[]> FARMER_CROPS  = new EnumMap<>(Material.class);
     private static final Map<EntityType, int[]> HUNTER_MOBS = new EnumMap<>(EntityType.class);
+    private static final Map<Material, int[]> BUILDER_BLOCKS = new EnumMap<>(Material.class);
 
     static {
         // Bergmann
@@ -100,6 +103,59 @@ public class JobsListener implements Listener {
         HUNTER_MOBS.put(EntityType.HOGLIN,          new int[]{10, 14});
         HUNTER_MOBS.put(EntityType.ZOGLIN,          new int[]{12, 16});
         HUNTER_MOBS.put(EntityType.WARDEN,          new int[]{150,80});
+
+        // Baumeister – gecraftete/geschmolzene Blöcke
+        for (Material m : new Material[]{
+                Material.BRICKS, Material.BRICK_STAIRS, Material.BRICK_SLAB, Material.BRICK_WALL,
+                Material.STONE_BRICKS, Material.STONE_BRICK_STAIRS, Material.STONE_BRICK_SLAB, Material.STONE_BRICK_WALL,
+                Material.MOSSY_STONE_BRICKS, Material.MOSSY_STONE_BRICK_STAIRS, Material.MOSSY_STONE_BRICK_SLAB, Material.MOSSY_STONE_BRICK_WALL,
+                Material.CRACKED_STONE_BRICKS, Material.CHISELED_STONE_BRICKS,
+                Material.POLISHED_GRANITE, Material.POLISHED_GRANITE_STAIRS, Material.POLISHED_GRANITE_SLAB,
+                Material.POLISHED_DIORITE, Material.POLISHED_DIORITE_STAIRS, Material.POLISHED_DIORITE_SLAB,
+                Material.POLISHED_ANDESITE, Material.POLISHED_ANDESITE_STAIRS, Material.POLISHED_ANDESITE_SLAB,
+                Material.POLISHED_BLACKSTONE, Material.POLISHED_BLACKSTONE_STAIRS, Material.POLISHED_BLACKSTONE_SLAB,
+                Material.POLISHED_BLACKSTONE_BRICKS, Material.POLISHED_BLACKSTONE_BRICK_STAIRS, Material.POLISHED_BLACKSTONE_BRICK_SLAB,
+                Material.NETHER_BRICKS, Material.NETHER_BRICK_STAIRS, Material.NETHER_BRICK_SLAB, Material.NETHER_BRICK_WALL,
+                Material.RED_NETHER_BRICKS, Material.RED_NETHER_BRICK_STAIRS, Material.RED_NETHER_BRICK_SLAB, Material.RED_NETHER_BRICK_WALL,
+                Material.CHISELED_NETHER_BRICKS, Material.CRACKED_NETHER_BRICKS,
+                Material.DEEPSLATE_BRICKS, Material.DEEPSLATE_BRICK_STAIRS, Material.DEEPSLATE_BRICK_SLAB, Material.DEEPSLATE_BRICK_WALL,
+                Material.CRACKED_DEEPSLATE_BRICKS, Material.CHISELED_DEEPSLATE,
+                Material.DEEPSLATE_TILES, Material.DEEPSLATE_TILE_STAIRS, Material.DEEPSLATE_TILE_SLAB, Material.DEEPSLATE_TILE_WALL,
+                Material.CRACKED_DEEPSLATE_TILES,
+                Material.SMOOTH_STONE, Material.SMOOTH_STONE_SLAB,
+                Material.SMOOTH_SANDSTONE, Material.SMOOTH_SANDSTONE_STAIRS, Material.SMOOTH_SANDSTONE_SLAB,
+                Material.SMOOTH_RED_SANDSTONE, Material.SMOOTH_RED_SANDSTONE_STAIRS, Material.SMOOTH_RED_SANDSTONE_SLAB,
+                Material.SMOOTH_QUARTZ, Material.SMOOTH_QUARTZ_STAIRS, Material.SMOOTH_QUARTZ_SLAB,
+                Material.QUARTZ_BLOCK, Material.QUARTZ_STAIRS, Material.QUARTZ_SLAB,
+                Material.CHISELED_QUARTZ_BLOCK, Material.QUARTZ_PILLAR, Material.QUARTZ_BRICKS}) {
+            BUILDER_BLOCKS.put(m, new int[]{1, 3});
+        }
+        // Glas (alle Farben + Scheiben)
+        for (Material m : Material.values()) {
+            String n = m.name();
+            if (m.isBlock() && (n.equals("GLASS") || n.equals("GLASS_PANE") || n.endsWith("_GLASS") || n.endsWith("_GLASS_PANE"))) {
+                BUILDER_BLOCKS.put(m, new int[]{1, 2});
+            }
+        }
+        // Beton (alle 16 Farben)
+        for (Material m : Material.values()) {
+            if (m.isBlock() && m.name().endsWith("_CONCRETE")) {
+                BUILDER_BLOCKS.put(m, new int[]{1, 2});
+            }
+        }
+        // Terrakotta & glasierte Terrakotta (alle Farben)
+        for (Material m : Material.values()) {
+            String n = m.name();
+            if (m.isBlock() && (n.equals("TERRACOTTA") || n.endsWith("_TERRACOTTA") || n.endsWith("_GLAZED_TERRACOTTA"))) {
+                BUILDER_BLOCKS.put(m, new int[]{1, 3});
+            }
+        }
+        // Wolle (alle 16 Farben)
+        for (Material m : Material.values()) {
+            if (m.isBlock() && m.name().endsWith("_WOOL")) {
+                BUILDER_BLOCKS.put(m, new int[]{1, 2});
+            }
+        }
     }
 
     private final PHSurvival plugin;
@@ -177,6 +233,42 @@ public class JobsListener implements Listener {
                 case BOW, FISHING_ROD, ENCHANTED_BOOK, NAME_TAG, SADDLE -> 30;
                 default              -> 8;
             };
+        }
+        plugin.getJobManager().reward(player, coins, xp);
+    }
+
+    // ── Block platzieren (Baumeister) ─────────────────────────────────────
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+        if (plugin.getJobManager().getJob(player.getUniqueId()) != Job.BUILDER) return;
+        int[] pay = BUILDER_BLOCKS.get(event.getBlock().getType());
+        if (pay != null) plugin.getJobManager().reward(player, pay[0], pay[1]);
+    }
+
+    // ── Trank nehmen (Brauer) ─────────────────────────────────────────────
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBrewingTake(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (plugin.getJobManager().getJob(player.getUniqueId()) != Job.BREWER) return;
+        if (event.getClickedInventory() == null) return;
+        if (event.getClickedInventory().getType() != InventoryType.BREWING) return;
+        // Slots 0-2 = Trankflaschen-Ausgabe im Braustand
+        int slot = event.getSlot();
+        if (slot < 0 || slot > 2) return;
+        ItemStack item = event.getCurrentItem();
+        if (item == null || item.getType() == Material.AIR) return;
+        String name = item.getType().name();
+        if (!name.contains("POTION")) return;
+        int coins, xp;
+        if (name.equals("LINGERING_POTION")) {
+            coins = 10; xp = 25;
+        } else if (name.equals("SPLASH_POTION")) {
+            coins = 7;  xp = 20;
+        } else {
+            coins = 5;  xp = 15;
         }
         plugin.getJobManager().reward(player, coins, xp);
     }

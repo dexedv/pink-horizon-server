@@ -47,30 +47,31 @@ public class JobsCommand implements CommandExecutor {
         Inventory inv = plugin.getServer().createInventory(null, 54,
                 Component.text("§6§lJobs §8| §ePink Horizon"));
 
-        // Rahmen
         ItemStack border = makeGlass(Material.GRAY_STAINED_GLASS_PANE, "§8 ");
         ItemStack gold   = makeGlass(Material.GOLD_BLOCK, "§6 ");
+
+        // Gold oben + unten
         for (int i = 0; i < 9; i++)  inv.setItem(i, gold);
         for (int i = 45; i < 54; i++) inv.setItem(i, gold);
+
+        // Seitenrahmen (Zeilen 1–4) und Füller
         for (int row = 1; row <= 4; row++) {
             inv.setItem(row * 9,     border);
             inv.setItem(row * 9 + 8, border);
+            for (int col = 1; col <= 7; col++) inv.setItem(row * 9 + col, border);
         }
 
-        // Job-Items (5 Jobs in Zeile 2 und 3, zentriert)
-        int[] slots = { 11, 13, 15, 20, 24 };
+        // 7 Job-Items:
+        //   Zeile 1: Slots 10, 12, 14, 16  (4 Jobs)
+        //   Zeile 2: Slots 20, 22, 24       (3 Jobs)
+        int[] slots = { 10, 12, 14, 16, 20, 22, 24 };
         JobManager.Job[] jobs = JobManager.Job.values();
-        for (int i = 0; i < jobs.length; i++) {
+        for (int i = 0; i < jobs.length && i < slots.length; i++) {
             inv.setItem(slots[i], makeJobItem(jobs[i], current, uuid, jm));
         }
 
-        // Info-Item (Slot 31)
+        // Info-Item (Slot 31 – Mitte Zeile 3)
         inv.setItem(31, makeInfoItem(current, uuid, jm));
-
-        // Separator
-        for (int s : new int[]{18, 19, 21, 22, 23, 25, 26}) {
-            inv.setItem(s, border);
-        }
 
         player.openInventory(inv);
     }
