@@ -1,4 +1,6 @@
 # PH-Survival Konfiguration
+
+# Survival-eigene Datenbank (nur Survival-Daten, kein Sharing mit anderen Servern)
 database:
   host: ph-mysql
   port: 3306
@@ -8,19 +10,128 @@ database:
 
 economy:
   start-balance: 500
-  max-claims-per-player: 10
 
 shop:
   enabled: true
+  sell-prices:
+    # ── Erze & Metalle ───────────────────────────────────────────────────
+    COAL: 1
+    RAW_IRON: 3
+    IRON_INGOT: 5
+    RAW_COPPER: 1
+    COPPER_INGOT: 2
+    RAW_GOLD: 8
+    GOLD_INGOT: 12
+    REDSTONE: 2
+    LAPIS_LAZULI: 3
+    QUARTZ: 2
+    AMETHYST_SHARD: 4
+    DIAMOND: 50
+    EMERALD: 40
+    NETHERITE_SCRAP: 250
+    NETHERITE_INGOT: 1200
+    ANCIENT_DEBRIS: 500
+    # ── Essen ────────────────────────────────────────────────────────────
+    BREAD: 1
+    BAKED_POTATO: 1
+    COOKED_BEEF: 3
+    COOKED_PORKCHOP: 3
+    COOKED_MUTTON: 2
+    COOKED_CHICKEN: 2
+    COOKED_COD: 1
+    COOKED_SALMON: 2
+    PUMPKIN_PIE: 2
+    GOLDEN_CARROT: 15
+    GOLDEN_APPLE: 50
+    # ── Farming ──────────────────────────────────────────────────────────
+    WHEAT: 1
+    CARROT: 1
+    POTATO: 1
+    BEETROOT: 1
+    SUGAR_CANE: 1
+    MELON_SLICE: 1
+    PUMPKIN: 2
+    CACTUS: 1
+    HONEYCOMB: 3
+    HONEY_BOTTLE: 4
+    NETHER_WART: 2
+    # ── Mob-Drops ────────────────────────────────────────────────────────
+    BONE: 1
+    STRING: 1
+    FEATHER: 1
+    LEATHER: 3
+    RABBIT_HIDE: 2
+    RABBIT_FOOT: 15
+    ROTTEN_FLESH: 0
+    SPIDER_EYE: 2
+    GUNPOWDER: 3
+    SLIME_BALL: 4
+    MAGMA_CREAM: 5
+    BLAZE_ROD: 8
+    ENDER_PEARL: 6
+    GHAST_TEAR: 20
+    PHANTOM_MEMBRANE: 10
+    INK_SAC: 2
+    GLOW_INK_SAC: 5
+    SHULKER_SHELL: 80
+    ELYTRA: 2000
+    # ── Ozean ────────────────────────────────────────────────────────────
+    PRISMARINE_SHARD: 3
+    PRISMARINE_CRYSTALS: 4
+    NAUTILUS_SHELL: 15
+    HEART_OF_THE_SEA: 200
+    COD: 1
+    SALMON: 1
+    TROPICAL_FISH: 2
+    PUFFERFISH: 3
+    # ── Nether ───────────────────────────────────────────────────────────
+    GLOWSTONE_DUST: 2
+    SOUL_SAND: 1
+    MAGMA_BLOCK: 3
+    CRIMSON_FUNGUS: 1
+    WARPED_FUNGUS: 1
+
+  # Batch-Preise: X Stück = 1 Coin (für sehr günstige Items)
+  sell-batch-prices:
+    # ── Erde & Stein ─────────────────────────────────────────────────────
+    DIRT: 16
+    GRASS_BLOCK: 16
+    ROOTED_DIRT: 16
+    COARSE_DIRT: 16
+    STONE: 8
+    COBBLESTONE: 8
+    MOSSY_COBBLESTONE: 8
+    GRAVEL: 16
+    SAND: 16
+    RED_SAND: 16
+    # ── Holz (Logs) ──────────────────────────────────────────────────────
+    OAK_LOG: 4
+    SPRUCE_LOG: 4
+    BIRCH_LOG: 4
+    JUNGLE_LOG: 4
+    ACACIA_LOG: 4
+    DARK_OAK_LOG: 4
+    MANGROVE_LOG: 4
+    CHERRY_LOG: 4
+    # ── Holz (Planks) ────────────────────────────────────────────────────
+    OAK_PLANKS: 16
+    SPRUCE_PLANKS: 16
+    BIRCH_PLANKS: 16
+    JUNGLE_PLANKS: 16
+    ACACIA_PLANKS: 16
+    DARK_OAK_PLANKS: 16
+    MANGROVE_PLANKS: 16
+    CHERRY_PLANKS: 16
 
 claims:
   enabled: true
   # Preis pro Chunk-Claim in Coins
   claim-price: 100
-spawn:
-  world: world
-  x: 163.48527277466803
-  y: 65.0
-  z: 90.27024602270518
-  yaw: -31.350328
-  pitch: 25.80002
+  max-claims-per-player: 10
+
+homes:
+  max-per-player: 3
+
+# Spawn-Schutzzone (Radius in Blöcken um den Spawn-Punkt, kreisförmig)
+spawn-zone:
+  radius: 150
