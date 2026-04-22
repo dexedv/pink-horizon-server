@@ -176,12 +176,15 @@ public class DeathChestListener implements Listener {
     }
 
     private Location findChestLocation(Location death) {
-        int x = death.getBlockX();
-        int z = death.getBlockZ();
+        int x      = death.getBlockX();
+        int z      = death.getBlockZ();
+        int minY   = death.getWorld().getMinHeight();
+        int maxY   = death.getWorld().getMaxHeight() - 1;
         for (int dy = 0; dy <= 3; dy++) {
             for (int dir : new int[]{0, 1, -1, 2, -2}) {
-                Location candidate = new Location(death.getWorld(), x, death.getBlockY() + dy + dir, z);
-                if (candidate.getBlockY() < 1 || candidate.getBlockY() > 255) continue;
+                int y = death.getBlockY() + dy + dir;
+                if (y < minY || y > maxY) continue;
+                Location candidate = new Location(death.getWorld(), x, y, z);
                 Block b = candidate.getBlock();
                 if (!b.getType().isSolid() && b.getType() != Material.LAVA && b.getType() != Material.WATER) {
                     return candidate;
