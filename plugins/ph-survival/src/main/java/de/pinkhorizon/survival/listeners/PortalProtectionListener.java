@@ -13,8 +13,6 @@ import java.util.Set;
 public class PortalProtectionListener implements Listener {
 
     private static final Set<Material> PROTECTED = Set.of(
-        Material.OBSIDIAN,
-        Material.CRYING_OBSIDIAN,
         Material.NETHER_PORTAL,
         Material.END_PORTAL,
         Material.END_PORTAL_FRAME,
