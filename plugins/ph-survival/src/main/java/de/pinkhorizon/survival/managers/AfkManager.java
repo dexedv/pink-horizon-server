@@ -30,8 +30,9 @@ public class AfkManager {
     }
 
     /**
-     * Option 1 + 3: Wird bei Blockwechsel aufgerufen.
-     * Prüft Bewegungswiederholung (AFK-Pool) – setzt AFK NICHT zurück bei erkanntem Pool.
+     * Option 1: Wird bei Blockwechsel aufgerufen.
+     * Akkumuliert Positions-History und erkennt AFK-Pools (Bewegungswiederholung).
+     * Normales Laufen aktualisiert nur den AFK-Timer, löscht aber die History NICHT.
      */
     public void onPlayerMove(Player player, int bx, int bz) {
         UUID uuid = player.getUniqueId();
@@ -57,14 +58,21 @@ public class AfkManager {
             }
         }
 
-        resetAfk(player);
+        // Normale Bewegung: nur Timer aktualisieren, History NICHT löschen
+        lastActivity.put(uuid, System.currentTimeMillis());
+        if (Boolean.TRUE.equals(afkStatus.get(uuid))) {
+            afkStatus.put(uuid, false);
+            plugin.getServer().broadcastMessage("§e" + player.getName() + " §7ist nicht mehr AFK.");
+            plugin.getTabManager().update(player);
+            plugin.getRankManager().applyTabName(player);
+        }
     }
 
-    /** Option 4: Echte Spieleraktionen (Block, Chat, Kampf) – setzt AFK sicher zurück. */
+    /** Option 4: Echte Spieleraktionen (Block abbauen/setzen, Chat, Kampf) – setzt alles zurück. */
     public void resetAfk(Player player) {
         UUID uuid = player.getUniqueId();
         lastActivity.put(uuid, System.currentTimeMillis());
-        posHistory.remove(uuid); // History leeren damit Pool-Erkennung neu startet
+        posHistory.remove(uuid); // History leeren bei echter Aktion
         if (Boolean.TRUE.equals(afkStatus.get(uuid))) {
             afkStatus.put(uuid, false);
             plugin.getServer().broadcastMessage("§e" + player.getName() + " §7ist nicht mehr AFK.");
