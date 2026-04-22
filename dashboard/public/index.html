@@ -1964,11 +1964,11 @@ function updateSysmonStats(data) {
     const pctLim  = Math.min((totalUsed / totalLimit * 100), 100).toFixed(1);
     const warn    = pctHost > 75;
     totalEl.innerHTML = `
-      <div class="card-title">⚡ Gesamtverbrauch aller Container (Server: ${HOST_MB} MB)</div>
+      <div class="card-title">⚡ Gesamtverbrauch aller Container (Server: 32 GB)</div>
       <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap">
         <div>
           <div style="font-size:2rem;font-weight:700;color:${warn?'var(--yellow)':'var(--green)'}">${usedMb} MB</div>
-          <div style="font-size:.8rem;color:var(--muted)">von ${HOST_MB} MB Server-RAM</div>
+          <div style="font-size:.8rem;color:var(--muted)">von 32 GB Server-RAM</div>
         </div>
         <div style="flex:1;min-width:200px">
           <div class="res-lbl" style="margin-bottom:4px"><span>Anteil am Server-RAM</span><span style="font-weight:700">${pctHost}%</span></div>
