@@ -31,16 +31,6 @@ shop:
     NETHERITE_SCRAP: 250
     NETHERITE_INGOT: 1200
     ANCIENT_DEBRIS: 500
-    # ── Holz ────────────────────────────────────────────────────────────
-    OAK_LOG: 1
-    SPRUCE_LOG: 1
-    BIRCH_LOG: 1
-    JUNGLE_LOG: 1
-    ACACIA_LOG: 1
-    DARK_OAK_LOG: 1
-    MANGROVE_LOG: 1
-    CHERRY_LOG: 1
-    BAMBOO: 0
     # ── Essen ────────────────────────────────────────────────────────────
     BREAD: 1
     BAKED_POTATO: 1
@@ -100,6 +90,38 @@ shop:
     MAGMA_BLOCK: 3
     CRIMSON_FUNGUS: 1
     WARPED_FUNGUS: 1
+
+  # Batch-Preise: X Stück = 1 Coin (für sehr günstige Items)
+  sell-batch-prices:
+    # ── Erde & Stein ─────────────────────────────────────────────────────
+    DIRT: 16
+    GRASS_BLOCK: 16
+    ROOTED_DIRT: 16
+    COARSE_DIRT: 16
+    STONE: 8
+    COBBLESTONE: 8
+    MOSSY_COBBLESTONE: 8
+    GRAVEL: 16
+    SAND: 16
+    RED_SAND: 16
+    # ── Holz (Logs) ──────────────────────────────────────────────────────
+    OAK_LOG: 4
+    SPRUCE_LOG: 4
+    BIRCH_LOG: 4
+    JUNGLE_LOG: 4
+    ACACIA_LOG: 4
+    DARK_OAK_LOG: 4
+    MANGROVE_LOG: 4
+    CHERRY_LOG: 4
+    # ── Holz (Planks) ────────────────────────────────────────────────────
+    OAK_PLANKS: 16
+    SPRUCE_PLANKS: 16
+    BIRCH_PLANKS: 16
+    JUNGLE_PLANKS: 16
+    ACACIA_PLANKS: 16
+    DARK_OAK_PLANKS: 16
+    MANGROVE_PLANKS: 16
+    CHERRY_PLANKS: 16
 
 claims:
   enabled: true
