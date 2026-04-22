@@ -7,6 +7,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -21,11 +23,15 @@ public class AfkListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
-        // Nur bei echter Bewegung (nicht nur Kopfdrehen)
+        // Nur bei echtem Blockwechsel (nicht nur Kopfdrehen)
         if (event.getFrom().getBlockX() != event.getTo().getBlockX()
                 || event.getFrom().getBlockY() != event.getTo().getBlockY()
                 || event.getFrom().getBlockZ() != event.getTo().getBlockZ()) {
-            plugin.getAfkManager().resetAfk(event.getPlayer());
+            plugin.getAfkManager().onPlayerMove(
+                event.getPlayer(),
+                event.getTo().getBlockX(),
+                event.getTo().getBlockZ()
+            );
         }
     }
 
@@ -42,6 +48,18 @@ public class AfkListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
         plugin.getAfkManager().resetAfk(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onChat(AsyncPlayerChatEvent event) {
+        plugin.getAfkManager().resetAfk(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDamage(EntityDamageByEntityEvent event) {
+        if (event.getDamager() instanceof Player player) {
+            plugin.getAfkManager().resetAfk(player);
+        }
     }
 
     @EventHandler
