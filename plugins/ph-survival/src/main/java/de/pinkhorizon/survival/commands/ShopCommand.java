@@ -31,8 +31,9 @@ public class ShopCommand implements CommandExecutor {
     public static final String KI_30     = "KI_30";
     public static final String KI_60     = "KI_60";
     public static final String KI_PERM   = "KI_PERM";
-    public static final String CLAIMS_5  = "CLAIMS_5";
-    public static final String CLAIMS_15 = "CLAIMS_15";
+    public static final String CLAIMS_5      = "CLAIMS_5";
+    public static final String CLAIMS_15     = "CLAIMS_15";
+    public static final String VILLAGER_EGG  = "VILLAGER_EGG";
 
     private final PHSurvival plugin;
 
@@ -127,7 +128,12 @@ public class ShopCommand implements CommandExecutor {
                 "§7Inventar §limmer§r §7beim Tod erhalten.", "§cEinmaliger Kauf – niemals ablaufend.",
                 1_500_000, KI_PERM, hasPerm ? "§a§lBereits besessen!" : null);
 
-        // ── Status-Item (Slot 31) ─────────────────────────────────────────
+        // ── Villager-Ei (Slot 24) ────────────────────────────────────────
+        addItem(inv, 24, Material.VILLAGER_SPAWN_EGG, "§e§lVillager-Ei",
+                "§7Fange einen Villager ein oder", "§7platziere ihn wo du willst.",
+                350_000, VILLAGER_EGG, null);
+
+        // ── Status-Item (Slot 40) ─────────────────────────────────────────
         long coins = plugin.getEconomyManager().getBalance(uuid);
         int maxClaims = plugin.getRankManager().getMaxClaims(uuid);
         ItemStack info = new ItemStack(Material.GOLD_NUGGET);

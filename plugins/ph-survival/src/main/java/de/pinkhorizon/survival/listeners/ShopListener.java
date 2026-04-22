@@ -2,6 +2,7 @@ package de.pinkhorizon.survival.listeners;
 
 import de.pinkhorizon.survival.PHSurvival;
 import de.pinkhorizon.survival.commands.ShopCommand;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import java.util.UUID;
 import org.bukkit.entity.Player;
@@ -49,8 +50,9 @@ public class ShopListener implements Listener {
             case ShopCommand.KI_30    -> handleTempKI(player, price, 30 * 60_000L);
             case ShopCommand.KI_60    -> handleTempKI(player, price, 60 * 60_000L);
             case ShopCommand.KI_PERM  -> handlePermKI(player, price);
-            case ShopCommand.CLAIMS_5 -> handleClaims(player, price, 5);
-            case ShopCommand.CLAIMS_15-> handleClaims(player, price, 15);
+            case ShopCommand.CLAIMS_5      -> handleClaims(player, price, 5);
+            case ShopCommand.CLAIMS_15     -> handleClaims(player, price, 15);
+            case ShopCommand.VILLAGER_EGG  -> handleVillagerEgg(player, price);
         }
 
         plugin.getShopCommand().openShop(player);
@@ -104,6 +106,21 @@ public class ShopListener implements Listener {
         }
         plugin.getUpgradeManager().givePermKI(player.getUniqueId());
         player.sendMessage("§aKeepInventory §ldauerhaft§r§a freigeschaltet!");
+    }
+
+    private void handleVillagerEgg(Player player, int price) {
+        if (!plugin.getEconomyManager().withdraw(player.getUniqueId(), price)) {
+            player.sendMessage("§cNicht genug Coins! Preis: §f" + price);
+            return;
+        }
+        ItemStack egg = new ItemStack(Material.VILLAGER_SPAWN_EGG, 1);
+        if (player.getInventory().firstEmpty() == -1) {
+            player.getWorld().dropItemNaturally(player.getLocation(), egg);
+            player.sendMessage("§aVillager-Ei gekauft! §7(Inventar voll – Item auf dem Boden)");
+        } else {
+            player.getInventory().addItem(egg);
+            player.sendMessage("§aVillager-Ei für §f350.000 Coins §agekauft!");
+        }
     }
 
     private void handleClaims(Player player, int ignoredPrice, int amount) {
