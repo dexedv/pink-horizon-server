@@ -4,11 +4,14 @@ import de.pinkhorizon.survival.PHSurvival;
 import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
@@ -63,7 +66,8 @@ public class JobBonusManager {
 
     private static final long DISCOUNT_DURATION_MS = 6 * 60 * 1000L;  // 6 Minuten
 
-    private final PHSurvival plugin;
+    private final PHSurvival    plugin;
+    private final NamespacedKey tempRodKey;
     private final Map<UUID, Long>     cooldowns        = new HashMap<>();
     /** UUID → [rabattProzent, ablaufZeitstempel] */
     private final Map<UUID, long[]>   enchantDiscounts = new HashMap<>();
@@ -71,7 +75,8 @@ public class JobBonusManager {
     private final Map<UUID, BukkitTask> flyTasks       = new HashMap<>();
 
     public JobBonusManager(PHSurvival plugin) {
-        this.plugin = plugin;
+        this.plugin     = plugin;
+        this.tempRodKey = new NamespacedKey(plugin, "temp_fisher_rod");
     }
 
     public void stop() {
@@ -223,6 +228,18 @@ public class JobBonusManager {
             return false;
         }
 
+        // Fischer: temporäre Bonus-Angel mit Köder + Glück des Meeres
+        if (job == JobManager.Job.FISHER) {
+            int lure = level >= 100 ? 3 : level >= 50 ? 2 : 1;
+            int luck = level >= 75  ? 3 : level >= 25 ? 2 : 1;
+            giveTempFishingRod(player, lure, luck);
+            player.sendActionBar(Component.text(
+                "§a✔ §fFischer §aBonus: Effekte + §bKöder " + toRoman(lure)
+                + " §8& §bGlück d. Meeres " + toRoman(luck)
+                + " §8(§76 min §8| §73h CD§8)"));
+            return true;
+        }
+
         // Baumeister: zusätzlich zeitlich begrenzten Flug aktivieren
         if (job == JobManager.Job.BUILDER) {
             int flyMins = level >= 100 ? 6 : level >= 75 ? 5 : level >= 50 ? 3 : level >= 25 ? 2 : 1;
@@ -235,6 +252,43 @@ public class JobBonusManager {
         player.sendActionBar(Component.text(
             "§a✔ §f" + job.displayName + " §aBonus aktiviert! §8(§76 min §8| §73h Cooldown§8)"));
         return true;
+    }
+
+    // ── Fischer: temporäre Bonus-Angel ───────────────────────────────────
+
+    private void giveTempFishingRod(Player player, int lureLevel, int luckLevel) {
+        ItemStack rod = new ItemStack(Material.FISHING_ROD);
+        ItemMeta meta = rod.getItemMeta();
+        meta.displayName(Component.text("§b§lFischer-Bonus-Angel §8[§76 min§8]"));
+        meta.lore(List.of(
+            Component.text("§7Köder " + toRoman(lureLevel)),
+            Component.text("§7Glück des Meeres " + toRoman(luckLevel)),
+            Component.text(""),
+            Component.text("§8Verschwindet nach 6 Minuten automatisch.")
+        ));
+        meta.getPersistentDataContainer()
+            .set(tempRodKey, PersistentDataType.BYTE, (byte) 1);
+        rod.setItemMeta(meta);
+        rod.addEnchantment(Enchantment.LURE, lureLevel);
+        rod.addEnchantment(Enchantment.LUCK_OF_THE_SEA, luckLevel);
+
+        // Ins Inventar legen (bei vollem Inventar: zu Füßen droppen)
+        var leftover = player.getInventory().addItem(rod);
+        leftover.values().forEach(item -> player.getWorld()
+            .dropItemNaturally(player.getLocation(), item));
+
+        // Nach Ablauf aus Inventar entfernen
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline()) return;
+            player.getInventory().all(Material.FISHING_ROD).forEach((slot, item) -> {
+                if (item.getItemMeta().getPersistentDataContainer()
+                        .has(tempRodKey, PersistentDataType.BYTE)) {
+                    player.getInventory().setItem(slot, null);
+                }
+            });
+            player.sendActionBar(Component.text(
+                "§c✗ §fFischer §cBonus-Angel verschwunden!"));
+        }, DURATION_TICKS);
     }
 
     // ── Baumeister: Fly-Timer ─────────────────────────────────────────────
@@ -357,6 +411,10 @@ public class JobBonusManager {
     }
 
     // ── Hilfsmethoden ─────────────────────────────────────────────────────
+
+    private String toRoman(int n) {
+        return switch (n) { case 1 -> "I"; case 2 -> "II"; case 3 -> "III"; default -> String.valueOf(n); };
+    }
 
     /** ambient=true (kaum Partikel), particles=false, icon=true (HUD) */
     private void add(List<PotionEffect> list, PotionEffectType type, int amplifier) {
