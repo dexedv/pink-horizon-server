@@ -22,8 +22,10 @@ public class JobManager {
         FARMER    ("Bauer",       "§7Ernte Feldfrüchte für Coins.",   Material.WHEAT,           TextColor.color(0xF5C518)),
         HUNTER    ("Jäger",       "§7Töte Monster für Coins.",        Material.BOW,             TextColor.color(0xC0392B)),
         FISHER    ("Fischer",     "§7Angle Fische für Coins.",        Material.FISHING_ROD,     TextColor.color(0x1ABC9C)),
-        BREWER    ("Brauer",      "§7Braue Tränke für Coins.",        Material.BREWING_STAND,   TextColor.color(0x9B59B6)),
-        BUILDER   ("Baumeister",  "§7Baue Strukturen für Coins.",     Material.BRICKS,          TextColor.color(0xE67E22));
+        BREWER      ("Brauer",        "§7Braue Tränke für Coins.",          Material.BREWING_STAND,    TextColor.color(0x9B59B6)),
+        BUILDER     ("Baumeister",   "§7Baue Strukturen für Coins.",       Material.BRICKS,           TextColor.color(0xE67E22)),
+        ENCHANTER   ("Verzauberer",  "§7Verzaubere Items für Coins.",       Material.ENCHANTING_TABLE, TextColor.color(0x7D3C98)),
+        WEAPONSMITH ("Waffenschmied","§7Crafte Waffen & Rüstungen.",        Material.IRON_SWORD,       TextColor.color(0x95A5A6));
 
         public final String    displayName;
         public final String    description;

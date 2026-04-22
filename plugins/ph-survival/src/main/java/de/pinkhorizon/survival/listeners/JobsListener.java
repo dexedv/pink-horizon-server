@@ -13,7 +13,9 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerFishEvent;
@@ -28,11 +30,12 @@ public class JobsListener implements Listener {
 
     // ── Auszahlungstabellen: Material/EntityType → {coins, xp} ──────────
 
-    private static final Map<Material, int[]> MINER_BLOCKS  = new EnumMap<>(Material.class);
-    private static final Map<Material, int[]> LOGGER_LOGS   = new EnumMap<>(Material.class);
-    private static final Map<Material, int[]> FARMER_CROPS  = new EnumMap<>(Material.class);
-    private static final Map<EntityType, int[]> HUNTER_MOBS = new EnumMap<>(EntityType.class);
-    private static final Map<Material, int[]> BUILDER_BLOCKS = new EnumMap<>(Material.class);
+    private static final Map<Material, int[]> MINER_BLOCKS    = new EnumMap<>(Material.class);
+    private static final Map<Material, int[]> LOGGER_LOGS     = new EnumMap<>(Material.class);
+    private static final Map<Material, int[]> FARMER_CROPS    = new EnumMap<>(Material.class);
+    private static final Map<EntityType, int[]> HUNTER_MOBS   = new EnumMap<>(EntityType.class);
+    private static final Map<Material, int[]> BUILDER_BLOCKS  = new EnumMap<>(Material.class);
+    private static final Map<Material, int[]> WEAPONSMITH_CRAFTS = new EnumMap<>(Material.class);
 
     static {
         // Bergmann
@@ -156,6 +159,42 @@ public class JobsListener implements Listener {
                 BUILDER_BLOCKS.put(m, new int[]{1, 2});
             }
         }
+
+        // Waffenschmied – craftbare Waffen & Rüstungsteile
+        WEAPONSMITH_CRAFTS.put(Material.WOODEN_SWORD,     new int[]{ 2,  5});
+        WEAPONSMITH_CRAFTS.put(Material.STONE_SWORD,      new int[]{ 3,  7});
+        WEAPONSMITH_CRAFTS.put(Material.IRON_SWORD,       new int[]{ 8, 15});
+        WEAPONSMITH_CRAFTS.put(Material.GOLDEN_SWORD,     new int[]{ 6, 12});
+        WEAPONSMITH_CRAFTS.put(Material.DIAMOND_SWORD,    new int[]{30, 50});
+        WEAPONSMITH_CRAFTS.put(Material.WOODEN_AXE,       new int[]{ 2,  4});
+        WEAPONSMITH_CRAFTS.put(Material.STONE_AXE,        new int[]{ 3,  6});
+        WEAPONSMITH_CRAFTS.put(Material.IRON_AXE,         new int[]{ 7, 12});
+        WEAPONSMITH_CRAFTS.put(Material.GOLDEN_AXE,       new int[]{ 5, 10});
+        WEAPONSMITH_CRAFTS.put(Material.DIAMOND_AXE,      new int[]{25, 40});
+        WEAPONSMITH_CRAFTS.put(Material.BOW,              new int[]{ 8, 15});
+        WEAPONSMITH_CRAFTS.put(Material.CROSSBOW,         new int[]{12, 20});
+        WEAPONSMITH_CRAFTS.put(Material.SHIELD,           new int[]{10, 18});
+        WEAPONSMITH_CRAFTS.put(Material.ARROW,            new int[]{ 1,  2});
+        WEAPONSMITH_CRAFTS.put(Material.IRON_HELMET,      new int[]{ 6, 12});
+        WEAPONSMITH_CRAFTS.put(Material.IRON_CHESTPLATE,  new int[]{10, 18});
+        WEAPONSMITH_CRAFTS.put(Material.IRON_LEGGINGS,    new int[]{ 9, 16});
+        WEAPONSMITH_CRAFTS.put(Material.IRON_BOOTS,       new int[]{ 5, 10});
+        WEAPONSMITH_CRAFTS.put(Material.GOLDEN_HELMET,    new int[]{ 5, 10});
+        WEAPONSMITH_CRAFTS.put(Material.GOLDEN_CHESTPLATE,new int[]{ 8, 14});
+        WEAPONSMITH_CRAFTS.put(Material.GOLDEN_LEGGINGS,  new int[]{ 7, 12});
+        WEAPONSMITH_CRAFTS.put(Material.GOLDEN_BOOTS,     new int[]{ 4,  8});
+        WEAPONSMITH_CRAFTS.put(Material.DIAMOND_HELMET,   new int[]{20, 35});
+        WEAPONSMITH_CRAFTS.put(Material.DIAMOND_CHESTPLATE,new int[]{30, 55});
+        WEAPONSMITH_CRAFTS.put(Material.DIAMOND_LEGGINGS, new int[]{28, 50});
+        WEAPONSMITH_CRAFTS.put(Material.DIAMOND_BOOTS,    new int[]{18, 32});
+        WEAPONSMITH_CRAFTS.put(Material.LEATHER_HELMET,   new int[]{ 2,  4});
+        WEAPONSMITH_CRAFTS.put(Material.LEATHER_CHESTPLATE,new int[]{ 3,  6});
+        WEAPONSMITH_CRAFTS.put(Material.LEATHER_LEGGINGS, new int[]{ 3,  5});
+        WEAPONSMITH_CRAFTS.put(Material.LEATHER_BOOTS,    new int[]{ 2,  3});
+        WEAPONSMITH_CRAFTS.put(Material.CHAINMAIL_HELMET,     new int[]{ 5,  9});
+        WEAPONSMITH_CRAFTS.put(Material.CHAINMAIL_CHESTPLATE, new int[]{ 8, 14});
+        WEAPONSMITH_CRAFTS.put(Material.CHAINMAIL_LEGGINGS,   new int[]{ 7, 12});
+        WEAPONSMITH_CRAFTS.put(Material.CHAINMAIL_BOOTS,      new int[]{ 4,  7});
     }
 
     private final PHSurvival plugin;
@@ -271,6 +310,34 @@ public class JobsListener implements Listener {
             coins = 5;  xp = 15;
         }
         plugin.getJobManager().reward(player, coins, xp);
+    }
+
+    // ── Verzaubern (Verzauberer) ──────────────────────────────────────────
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEnchant(EnchantItemEvent event) {
+        Player player = event.getEnchanter();
+        if (plugin.getJobManager().getJob(player.getUniqueId()) != Job.ENCHANTER) return;
+        int cost = event.getExpLevelCost();
+        int coins, xp;
+        if (cost >= 21) {
+            coins = 30; xp = 60;
+        } else if (cost >= 11) {
+            coins = 15; xp = 30;
+        } else {
+            coins = 5;  xp = 15;
+        }
+        plugin.getJobManager().reward(player, coins, xp);
+    }
+
+    // ── Waffe/Rüstung craften (Waffenschmied) ────────────────────────────
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCraft(CraftItemEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (plugin.getJobManager().getJob(player.getUniqueId()) != Job.WEAPONSMITH) return;
+        int[] pay = WEAPONSMITH_CRAFTS.get(event.getRecipe().getResult().getType());
+        if (pay != null) plugin.getJobManager().reward(player, pay[0], pay[1]);
     }
 
     // ── GUI-Klick ────────────────────────────────────────────────────────

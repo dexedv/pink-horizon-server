@@ -61,17 +61,18 @@ public class JobsCommand implements CommandExecutor {
             for (int col = 1; col <= 7; col++) inv.setItem(row * 9 + col, border);
         }
 
-        // 7 Job-Items:
-        //   Zeile 1: Slots 10, 12, 14, 16  (4 Jobs)
-        //   Zeile 2: Slots 20, 22, 24       (3 Jobs)
-        int[] slots = { 10, 12, 14, 16, 20, 22, 24 };
+        // 9 Job-Items im 3×3-Layout (je 3 Jobs pro Zeile, zentriert):
+        //   Zeile 1: Slots 11, 13, 15
+        //   Zeile 2: Slots 20, 22, 24
+        //   Zeile 3: Slots 29, 31, 33
+        int[] slots = { 11, 13, 15, 20, 22, 24, 29, 31, 33 };
         JobManager.Job[] jobs = JobManager.Job.values();
         for (int i = 0; i < jobs.length && i < slots.length; i++) {
             inv.setItem(slots[i], makeJobItem(jobs[i], current, uuid, jm));
         }
 
-        // Info-Item (Slot 31 – Mitte Zeile 3)
-        inv.setItem(31, makeInfoItem(current, uuid, jm));
+        // Info-Item (Slot 40 – Mitte Zeile 4)
+        inv.setItem(40, makeInfoItem(current, uuid, jm));
 
         player.openInventory(inv);
     }
