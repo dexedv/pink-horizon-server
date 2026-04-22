@@ -25,6 +25,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.weather.WeatherChangeEvent;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -248,18 +249,28 @@ public class SpawnZoneListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
-        Entity entity = event.getEntity();
-        // Nur feindliche/neutrale Mobs und Umgebungs-Mobs blockieren, keine Tiere
-        if (!(entity instanceof Monster) && !(entity instanceof Ambient)) return;
-        // Nur natürliche Spawns (kein Spawner, kein Ei etc.)
-        CreatureSpawnEvent.SpawnReason reason = event.getSpawnReason();
-        if (reason == CreatureSpawnEvent.SpawnReason.NATURAL
-                || reason == CreatureSpawnEvent.SpawnReason.CHUNK_GEN
-                || reason == CreatureSpawnEvent.SpawnReason.DEFAULT) {
-            if (inSpawnZone(event.getLocation())) {
-                event.setCancelled(true);
-            }
+        // Alle Mob-Typen blockieren (Monster, Ambient, neutrale Mobs)
+        // Spieler-Spawns (SpawnReason.CUSTOM bei Plugin-Spawns) sind keine Mobs
+        if (!(event.getEntity() instanceof Mob)) return;
+        if (inSpawnZone(event.getLocation())) {
+            event.setCancelled(true);
         }
+    }
+
+    // ── Wetter-Wechsel sofort für Zone-Spieler überschreiben ─────────────
+
+    @EventHandler
+    public void onWeatherChange(WeatherChangeEvent event) {
+        if (!event.toWeatherState()) return; // nur wenn Regen beginnt
+        String spawnWorld = plugin.getConfig().getString("spawn.world", "world");
+        if (!event.getWorld().getName().equals(spawnWorld)) return;
+        // 1 Tick warten damit der Wechsel abgeschlossen ist, dann für alle Zone-Spieler überschreiben
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            for (UUID uuid : Set.copyOf(inZone)) {
+                Player p = plugin.getServer().getPlayer(uuid);
+                if (p != null) p.setPlayerWeather(WeatherType.CLEAR);
+            }
+        }, 1L);
     }
 
     // ── Block-Schutz ──────────────────────────────────────────────────────
