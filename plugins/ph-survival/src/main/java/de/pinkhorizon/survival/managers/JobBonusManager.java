@@ -59,8 +59,12 @@ public class JobBonusManager {
             Material.NETHERITE_LEGGINGS, Material.NETHERITE_BOOTS
     );
 
+    private static final long DISCOUNT_DURATION_MS = 30 * 60 * 1000L; // 30 Minuten
+
     private final PHSurvival plugin;
-    private final Map<UUID, Long> cooldowns = new HashMap<>();
+    private final Map<UUID, Long>   cooldowns       = new HashMap<>();
+    /** UUID → [rabattProzent, ablaufZeitstempel] */
+    private final Map<UUID, long[]> enchantDiscounts = new HashMap<>();
 
     public JobBonusManager(PHSurvival plugin) {
         this.plugin = plugin;
@@ -68,6 +72,21 @@ public class JobBonusManager {
 
     public void stop() {
         cooldowns.clear();
+        enchantDiscounts.clear();
+    }
+
+    /**
+     * Gibt den aktiven Verzauberungs-Rabatt (0–100 %) zurück.
+     * 0 = kein aktiver Rabatt.
+     */
+    public int getEnchantDiscount(UUID uuid) {
+        long[] data = enchantDiscounts.get(uuid);
+        if (data == null) return 0;
+        if (System.currentTimeMillis() > data[1]) {
+            enchantDiscounts.remove(uuid);
+            return 0;
+        }
+        return (int) data[0];
     }
 
     // ── Öffentliche API ───────────────────────────────────────────────────
@@ -172,12 +191,23 @@ public class JobBonusManager {
 
         for (PotionEffect e : effects) player.addPotionEffect(e);
 
-        // Verzauberer: zusätzlich XP-Level verschenken
-        if (job == JobManager.Job.ENCHANTER && level >= 50) {
-            int xpLevels = level >= 100 ? 8 : level >= 75 ? 5 : 3;
-            player.giveExpLevels(xpLevels);
-            player.sendActionBar(Component.text(
-                "§a✔ §fVerzauberer §aBonus: Effekte + §d+" + xpLevels + " XP-Level §8(§730 min §8| §73h Cooldown§8)"));
+        // Verzauberer: Rabatt auf Verzauberungskosten setzen
+        if (job == JobManager.Job.ENCHANTER) {
+            int discount = level >= 100 ? 75 : level >= 75 ? 55 : level >= 50 ? 40 : level >= 25 ? 25 : 0;
+            if (effects.isEmpty() && discount == 0) {
+                player.sendActionBar(Component.text(
+                    "§eKein Bonus verfügbar – erreiche §fLevel 10 §eum Boni freizuschalten."));
+                return false;
+            }
+            if (discount > 0) {
+                long expiry = System.currentTimeMillis() + DISCOUNT_DURATION_MS;
+                enchantDiscounts.put(player.getUniqueId(), new long[]{discount, expiry});
+                player.sendActionBar(Component.text(
+                    "§a✔ §fVerzauberer §aBonus: §d" + discount + "% §aVerzauberungs-Rabatt §8(§730 min §8| §73h Cooldown§8)"));
+            } else {
+                player.sendActionBar(Component.text(
+                    "§a✔ §fVerzauberer §aBonus aktiviert! §8(§730 min §8| §73h Cooldown§8)"));
+            }
             return true;
         }
 

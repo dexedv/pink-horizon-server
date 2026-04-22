@@ -319,6 +319,8 @@ public class JobsListener implements Listener {
         Player player = event.getEnchanter();
         if (plugin.getJobManager().getJob(player.getUniqueId()) != Job.ENCHANTER) return;
         int cost = event.getExpLevelCost();
+
+        // Job-XP + Coins
         int coins, xp;
         if (cost >= 21) {
             coins = 30; xp = 60;
@@ -328,6 +330,15 @@ public class JobsListener implements Listener {
             coins = 5;  xp = 15;
         }
         plugin.getJobManager().reward(player, coins, xp);
+
+        // Aktiver Verzauberungs-Rabatt: XP-Level zurückerstatten
+        int discount = plugin.getJobBonusManager().getEnchantDiscount(player.getUniqueId());
+        if (discount > 0) {
+            int refund = Math.max(1, (int) Math.round(cost * discount / 100.0));
+            // 1 Tick verzögert – Minecraft zieht die Kosten erst nach dem Event ab
+            plugin.getServer().getScheduler().runTaskLater(plugin,
+                () -> player.giveExpLevels(refund), 1L);
+        }
     }
 
     // ── Waffe/Rüstung craften (Waffenschmied) ────────────────────────────
