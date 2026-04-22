@@ -2,8 +2,11 @@ package de.pinkhorizon.survival.listeners;
 
 import de.pinkhorizon.survival.PHSurvival;
 import de.pinkhorizon.survival.gui.ClaimMapGui;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -72,12 +75,35 @@ public class ClaimMapListener implements Listener {
             plugin.getClaimManager().unclaim(chunk, player.getUniqueId());
             player.sendMessage("§7Claim §c" + cx + "§7, §c" + cz + " §7entfernt.");
         } else {
+            // Spawn-Schutzzone prüfen (identisch mit ClaimCommand)
+            if (!player.isOp()) {
+                Location spawnLoc = getSpawnLocation();
+                if (spawnLoc != null && spawnLoc.getWorld() != null
+                        && spawnLoc.getWorld().getName().equals(worldName)) {
+                    double ccx = cx * 16 + 8;
+                    double ccz = cz * 16 + 8;
+                    double dist = Math.sqrt(Math.pow(ccx - spawnLoc.getX(), 2)
+                            + Math.pow(ccz - spawnLoc.getZ(), 2));
+                    if (dist <= 200) {
+                        player.sendMessage("§cIm Spawn-Bereich (200 Blöcke) darf nicht geclaimed werden!");
+                        return;
+                    }
+                }
+            }
+
+            long price = plugin.getConfig().getLong("claims.claim-price", 100);
+            if (!plugin.getEconomyManager().withdraw(player.getUniqueId(), price)) {
+                player.sendMessage("§cNicht genug Coins! Preis: §f" + price);
+                return;
+            }
+
             int maxClaims = plugin.getRankManager().getMaxClaims(player.getUniqueId());
             Chunk chunk = player.getWorld().getChunkAt(cx, cz);
             boolean ok = plugin.getClaimManager().claim(chunk, player.getUniqueId(), maxClaims);
             if (ok) {
-                player.sendMessage("§aChunk §f" + cx + "§7, §f" + cz + " §ageclaimt!");
+                player.sendMessage("§aChunk §f" + cx + "§7, §f" + cz + " §ageclaimt! §7(-" + price + " Coins)");
             } else {
+                plugin.getEconomyManager().deposit(player.getUniqueId(), price); // Rückerstattung
                 int count = plugin.getClaimManager().getClaimCount(player.getUniqueId());
                 player.sendMessage("§cClaim nicht möglich! (" + count + "/" + maxClaims + ")");
             }
@@ -86,5 +112,16 @@ public class ClaimMapListener implements Listener {
         // Refresh the map
         plugin.getServer().getScheduler().runTask(plugin, () ->
             ClaimMapGui.open(player, plugin, gui.offX, gui.offZ));
+    }
+
+    private Location getSpawnLocation() {
+        String worldName = plugin.getConfig().getString("spawn.world");
+        if (worldName == null) return null;
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) return null;
+        return new Location(world,
+            plugin.getConfig().getDouble("spawn.x"),
+            plugin.getConfig().getDouble("spawn.y"),
+            plugin.getConfig().getDouble("spawn.z"));
     }
 }
