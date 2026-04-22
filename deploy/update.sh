@@ -1,19 +1,39 @@
 #!/bin/bash
-# update.sh – Zieht nur Plugin-Updates vom Repo, Welten/Daten bleiben sicher
+# update.sh – Git pull + alle Container neu starten
+# Auf dem Server ausführen: bash deploy/update.sh
 
 set -e
 cd "$(dirname "$0")/.."
 
-echo "=== Pink Horizon Update ==="
+echo ""
+echo "╔══════════════════════════════════════╗"
+echo "║   Pink Horizon – Deploy & Restart    ║"
+echo "╚══════════════════════════════════════╝"
+echo ""
 
-# Aktuelle Änderungen holen
+# ── 1. Git Pull ───────────────────────────────────────────────────────────
+echo "▶ [1/4] Git Pull..."
 git pull
+echo ""
 
-# Berechtigungen fixieren (Docker läuft als uid=1000)
-chown -R 1000:1000 servers/lobby/ servers/survival/
+# ── 2. Berechtigungen fixieren (Docker uid=1000) ─────────────────────────
+echo "▶ [2/4] Berechtigungen setzen..."
+chown -R 1000:1000 servers/lobby/ servers/survival/ servers/skyblock/ servers/minigames/ 2>/dev/null || true
+echo ""
 
-# Container mit neuen JARs neustarten
-# Welten, ranks.yml, claims.yml etc. sind in .gitignore → werden NIE berührt
-docker compose restart lobby survival
+# ── 3. Spielserver + Proxy neu starten (neue JARs aus Volume) ────────────
+echo "▶ [3/4] Server-Container neu starten..."
+docker compose restart lobby survival skyblock minigames velocity
+echo ""
 
-echo "=== Update abgeschlossen ==="
+# ── 4. Dashboard neu bauen (damit server.js-Änderungen aktiv werden) ─────
+echo "▶ [4/4] Dashboard neu bauen..."
+docker compose up -d --build dashboard
+echo ""
+
+echo "╔══════════════════════════════════════╗"
+echo "║   ✔  Deploy abgeschlossen!           ║"
+echo "╚══════════════════════════════════════╝"
+echo ""
+docker compose ps --format "table {{.Name}}\t{{.Status}}"
+echo ""
