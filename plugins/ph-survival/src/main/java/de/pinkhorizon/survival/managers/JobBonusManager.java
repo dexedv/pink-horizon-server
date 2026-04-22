@@ -68,6 +68,7 @@ public class JobBonusManager {
 
     private final PHSurvival    plugin;
     private final NamespacedKey tempRodKey;
+    private final NamespacedKey tempRodExpiryKey;
     private final Map<UUID, Long>     cooldowns        = new HashMap<>();
     /** UUID → [rabattProzent, ablaufZeitstempel] */
     private final Map<UUID, long[]>   enchantDiscounts = new HashMap<>();
@@ -76,7 +77,8 @@ public class JobBonusManager {
 
     public JobBonusManager(PHSurvival plugin) {
         this.plugin     = plugin;
-        this.tempRodKey = new NamespacedKey(plugin, "temp_fisher_rod");
+        this.tempRodKey       = new NamespacedKey(plugin, "temp_fisher_rod");
+        this.tempRodExpiryKey = new NamespacedKey(plugin, "temp_fisher_rod_expiry");
     }
 
     public void stop() {
@@ -98,6 +100,18 @@ public class JobBonusManager {
             return 0;
         }
         return (int) data[0];
+    }
+
+    /**
+     * Gibt true zurück wenn das Item eine abgelaufene Bonus-Angel ist.
+     * Wird von JobBonusListener für Kisten, Aufheben und Klick-Events genutzt.
+     */
+    public boolean isExpiredTempRod(ItemStack item) {
+        if (item == null || item.getType() != Material.FISHING_ROD || !item.hasItemMeta()) return false;
+        var pdc = item.getItemMeta().getPersistentDataContainer();
+        if (!pdc.has(tempRodKey, PersistentDataType.BYTE)) return false;
+        Long expiry = pdc.get(tempRodExpiryKey, PersistentDataType.LONG);
+        return expiry == null || System.currentTimeMillis() > expiry;
     }
 
     // ── Öffentliche API ───────────────────────────────────────────────────
@@ -266,8 +280,11 @@ public class JobBonusManager {
             Component.text(""),
             Component.text("§8Verschwindet nach 6 Minuten automatisch.")
         ));
+        long expiry = System.currentTimeMillis() + (long) DURATION_TICKS / 20 * 1000;
         meta.getPersistentDataContainer()
-            .set(tempRodKey, PersistentDataType.BYTE, (byte) 1);
+            .set(tempRodKey,       PersistentDataType.BYTE, (byte) 1);
+        meta.getPersistentDataContainer()
+            .set(tempRodExpiryKey, PersistentDataType.LONG, expiry);
         rod.setItemMeta(meta);
         rod.addEnchantment(Enchantment.LURE, lureLevel);
         rod.addEnchantment(Enchantment.LUCK_OF_THE_SEA, luckLevel);
