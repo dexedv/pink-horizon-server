@@ -87,27 +87,17 @@ public class ShopCommand implements CommandExecutor {
                 "§7Fliege §limmer§r§7 – niemals ablaufend.", "§cEinmaliger Kauf.",
                 1_500_000, FLY_PERM, flyPerm ? "§a§lBereits besessen!" : null);
 
-        // ── Claim-Sektion (rechts, Slots 14–15) ──────────────────────────
+        // ── Claim-Sektion (rechts, Slot 14) ──────────────────────────────
         int extra = um.getExtraClaims(uuid);
-        String claimMax = extra >= 50 ? "§cMaximum erreicht (+50)!" : null;
-        long price5  = um.getClaimPrice(uuid, 4_500);
-        long price15 = um.getClaimPrice(uuid, 12_000);
-        long nextPrice5  = um.getClaimPrice(uuid, 4_500) * 3 / 2; // nach diesem Kauf
-        long nextPrice15 = um.getClaimPrice(uuid, 12_000) * 3 / 2;
-        int purchases = um.getClaimPurchases(uuid);
+        long claimPrice = um.getNextClaimPrice(uuid);
+        String claimMax = extra >= 50 ? "§a§lMaximum erreicht (+50)!" : null;
 
-        addItemDynamic(inv, 14, Material.GRASS_BLOCK, "§a§l+5 Claim-Slots",
+        addItemDynamic(inv, 14, Material.GRASS_BLOCK, "§a§lExtra Claim-Slot",
                 "§7Erhöht dein Claim-Limit dauerhaft.",
                 "§7Extra bisher: §a+" + extra + "§7/§a+50",
-                "§8Kauf #" + (purchases + 1) + (purchases > 0 ? " §8(war §7" + um.getClaimPrice(uuid, 4_500) * 2 / 3 + "§8)" : ""),
-                "§7Nächster Kauf: §c" + nextPrice5 + " §7Coins",
-                price5, CLAIMS_5, claimMax);
-        addItemDynamic(inv, 15, Material.PODZOL,      "§a§l+15 Claim-Slots",
-                "§7Erhöht dein Claim-Limit dauerhaft.",
-                "§7Extra bisher: §a+" + extra + "§7/§a+50",
-                "§8Kauf #" + (purchases + 1) + (purchases > 0 ? " §8(war §7" + um.getClaimPrice(uuid, 12_000) * 2 / 3 + "§8)" : ""),
-                "§7Nächster Kauf: §c" + nextPrice15 + " §7Coins",
-                price15, CLAIMS_15, claimMax);
+                "§7Nächster nach diesem: §c" + (claimPrice + 10_000L) + " §7Coins",
+                "§7Preis jetzt: §c" + (extra >= 50 ? "MAX" : claimPrice + " Coins"),
+                claimPrice, CLAIMS_5, claimMax);
 
         // ── KeepInventory-Sektion (unten links, Slots 19–22) ─────────────
         long kiMins = um.getKiRemainingMs(uuid) / 60_000;

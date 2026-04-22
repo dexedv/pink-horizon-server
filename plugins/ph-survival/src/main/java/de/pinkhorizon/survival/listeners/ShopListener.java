@@ -50,10 +50,10 @@ public class ShopListener implements Listener {
             case ShopCommand.KI_30    -> handleTempKI(player, price, 30 * 60_000L);
             case ShopCommand.KI_60    -> handleTempKI(player, price, 60 * 60_000L);
             case ShopCommand.KI_PERM  -> handlePermKI(player, price);
-            case ShopCommand.CLAIMS_5      -> handleClaims(player, price, 5);
-            case ShopCommand.CLAIMS_15     -> handleClaims(player, price, 15);
+            case ShopCommand.CLAIMS_5      -> handleClaimSlot(player);
             case ShopCommand.VILLAGER_EGG  -> handleVillagerEgg(player, price);
             case ShopCommand.HOME_SLOT     -> handleHomeSlot(player);
+            case ShopCommand.CLAIMS_15     -> {} // veraltet, kein Slot mehr
         }
 
         plugin.getShopCommand().openShop(player);
@@ -145,27 +145,24 @@ public class ShopListener implements Listener {
         }
     }
 
-    private void handleClaims(Player player, int ignoredPrice, int amount) {
+    private void handleClaimSlot(Player player) {
         UUID uuid = player.getUniqueId();
         int current = plugin.getUpgradeManager().getExtraClaims(uuid);
         if (current >= 50) {
-            player.sendMessage("§cMaximum an extra Claim-Slots erreicht (+50)!");
+            player.sendMessage("§cDu hast bereits das Maximum an extra Claim-Slots (+50)!");
             return;
         }
-        // Preis dynamisch berechnen (ignoriert PDC-Preis)
-        long basePrice = amount == 5 ? 1_500L : 4_000L;
-        long price = plugin.getUpgradeManager().getClaimPrice(uuid, basePrice);
-
-        int actual = Math.min(amount, 50 - current);
+        long price = plugin.getUpgradeManager().getNextClaimPrice(uuid);
         if (!plugin.getEconomyManager().withdraw(uuid, price)) {
             player.sendMessage("§cNicht genug Coins! Preis: §f" + price);
             return;
         }
-        plugin.getUpgradeManager().addExtraClaims(uuid, actual);
-        plugin.getUpgradeManager().incrementClaimPurchases(uuid);
-
-        long nextPrice = plugin.getUpgradeManager().getClaimPrice(uuid, basePrice);
-        player.sendMessage("§a+" + actual + " Claim-Slots! §7(Gesamt extra: §a+" + (current + actual) + "§7)");
-        player.sendMessage("§7Nächster Kauf dieser Größe kostet: §c" + nextPrice + " §7Coins");
+        plugin.getUpgradeManager().addOneExtraClaim(uuid);
+        int newTotal = plugin.getRankManager().getMaxClaims(uuid);
+        player.sendMessage("§a+1 Claim-Slot! §7Du kannst jetzt §f" + newTotal + " §7Chunks claimen.");
+        if (current + 1 < 50) {
+            long nextPrice = plugin.getUpgradeManager().getNextClaimPrice(uuid);
+            player.sendMessage("§7Nächster Slot kostet: §c" + nextPrice + " §7Coins");
+        }
     }
 }

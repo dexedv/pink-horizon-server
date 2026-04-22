@@ -160,9 +160,17 @@ public class UpgradeManager {
         persist(uuid);
     }
 
-    public long getClaimPrice(UUID uuid, long basePrice) {
-        int purchases = claimPurchases.getOrDefault(uuid, 0);
-        return Math.round(basePrice * Math.pow(1.5, purchases) / 100.0) * 100;
+    /** Preis für den nächsten Claim-Slot: (bereits gekaufte + 1) × 10.000 Coins. */
+    public long getNextClaimPrice(UUID uuid) {
+        return (long) (getExtraClaims(uuid) + 1) * 10_000L;
+    }
+
+    /** Fügt einen einzelnen Extra-Claim-Slot hinzu. Max 50 Extras. */
+    public void addOneExtraClaim(UUID uuid) {
+        ensureLoaded(uuid);
+        extraClaims.put(uuid, Math.min(extraClaims.getOrDefault(uuid, 0) + 1, 50));
+        claimPurchases.put(uuid, claimPurchases.getOrDefault(uuid, 0) + 1);
+        persist(uuid);
     }
 
     // ── Extra Homes ──────────────────────────────────────────────────────
