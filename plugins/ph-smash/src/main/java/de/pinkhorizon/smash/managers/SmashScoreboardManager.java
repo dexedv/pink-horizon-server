@@ -95,11 +95,15 @@ public class SmashScoreboardManager {
             bossHpRaw  = "";
         }
 
-        long totalDmg = plugin.getPlayerDataManager().getTotalDamage(uuid);
-        int  kills    = plugin.getPlayerDataManager().getKills(uuid);
-        int  atkLevel = plugin.getUpgradeManager().getLevel(uuid, UpgradeManager.UpgradeType.ATTACK);
-        int  hpLevel  = plugin.getUpgradeManager().getLevel(uuid, UpgradeManager.UpgradeType.HEALTH);
-        long coins    = plugin.getCoinManager().getCoins(uuid);
+        long totalDmg  = plugin.getPlayerDataManager().getTotalDamage(uuid);
+        int  kills     = plugin.getPlayerDataManager().getKills(uuid);
+        long coins     = plugin.getCoinManager().getCoins(uuid);
+
+        // Materialien-Vorrat
+        int ironQty    = plugin.getLootManager().getQuantity(uuid, LootManager.LootItem.IRON_FRAGMENT);
+        int goldQty    = plugin.getLootManager().getQuantity(uuid, LootManager.LootItem.GOLD_FRAGMENT);
+        int crystalQty = plugin.getLootManager().getQuantity(uuid, LootManager.LootItem.DIAMOND_SHARD);
+        int coreQty    = plugin.getLootManager().getQuantity(uuid, LootManager.LootItem.BOSS_CORE);
 
         int    prestige = plugin.getPrestigeManager().getPrestige(uuid);
         String streak   = plugin.getStreakManager().getStreakDisplay(uuid);
@@ -114,6 +118,11 @@ public class SmashScoreboardManager {
             midLine = combo.isEmpty() ? "   " : combo;
         }
 
+        // Prestige + Streak kombiniert
+        String streakLine = prestige > 0
+            ? "§d✦ §f" + prestige + " Prestige  " + streak
+            : "§7Streak: " + streak;
+
         setLine(board, 14, " ");
         setLine(board, 13, "§7Dein Boss:  §c§l" + bossLevel);
         setLine(board, 12, "§7Boss-HP:");
@@ -123,11 +132,11 @@ public class SmashScoreboardManager {
         setLine(board, 8,  "§7Schaden: §e" + formatDmg(totalDmg));
         setLine(board, 7,  "§7Kills:   §a" + kills);
         setLine(board, 6,  "§7Münzen:  §6" + coins);
-        setLine(board, 5,  prestige > 0 ? "§d✦ Prestige: §f§l" + prestige : "§7Streak: " + streak);
-        setLine(board, 4,  prestige > 0 ? "§7Streak: " + streak : "§7⚔ Angriff: §6+" + (atkLevel * 8) + "%");
-        setLine(board, 3,  prestige > 0 ? "§7⚔ Angriff: §6+" + (atkLevel * 8) + "%" : "§7❤ HP-Bonus: §a+" + (hpLevel * 6));
-        setLine(board, 2,  prestige > 0 ? "§7❤ HP-Bonus: §a+" + (hpLevel * 6) : rank);
-        setLine(board, 1,  prestige > 0 ? rank : "  ");
+        setLine(board, 5,  "§7◆ §f" + ironQty + "  §6◆ §f" + goldQty + "  §b◆ §f" + crystalQty + "  §5◆ §f" + coreQty);
+        setLine(board, 4,  "§8Eisen  Gold  Kristall  Kern");
+        setLine(board, 3,  streakLine);
+        setLine(board, 2,  rank);
+        setLine(board, 1,  "  ");
         setLine(board, 0,  "§aplay.pinkhorizon.fun");
     }
 

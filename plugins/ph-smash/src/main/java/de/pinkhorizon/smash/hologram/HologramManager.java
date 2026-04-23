@@ -276,8 +276,9 @@ public class HologramManager {
             " §f/stb coins    §8» §7Münzstand anzeigen" + nl +
             div +
             "§6§l⬆ Upgrades & Fähigkeiten" + nl +
-            " §f/stb upgrades  §8» §7Item-Upgrades kaufen" + nl +
-            " §f/stb abilities §8» §7Fähigkeiten freischalten" + nl +
+            " §f/stb upgrades  §8» §7Angriff, Verteidigung, HP, Tempo, Lebensraub" + nl +
+            " §f/stb abilities §8» §7Fähigkeiten (Berserker, Dodge, Heilung, Münz-" + nl +
+            "                   §7Boost, Regen, Explosiv, §dIMMUN§7 – Effekt-Resist)" + nl +
             div +
             "§6§l⚒ Schmiede & Bestiarium" + nl +
             " §f/stb forge     §8» §7Waffen-Verzauberungen schmieden" + nl +

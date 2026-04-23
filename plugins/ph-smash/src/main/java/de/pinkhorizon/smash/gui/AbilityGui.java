@@ -2,6 +2,7 @@ package de.pinkhorizon.smash.gui;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.managers.AbilityManager.AbilityType;
+import de.pinkhorizon.smash.managers.LootManager.LootItem;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -64,17 +65,37 @@ public class AbilityGui implements Listener {
         ItemStack darkPane = makePane(Material.BLACK_STAINED_GLASS_PANE);
         for (int s = 0; s < 9; s++) inv.setItem(s, darkPane);
 
-        long coins = plugin.getCoinManager().getCoins(player.getUniqueId());
+        UUID uid   = player.getUniqueId();
+        long coins = plugin.getCoinManager().getCoins(uid);
+        int ironQty    = plugin.getLootManager().getQuantity(uid, LootItem.IRON_FRAGMENT);
+        int goldQty    = plugin.getLootManager().getQuantity(uid, LootItem.GOLD_FRAGMENT);
+        int crystalQty = plugin.getLootManager().getQuantity(uid, LootItem.DIAMOND_SHARD);
+        int coreQty    = plugin.getLootManager().getQuantity(uid, LootItem.BOSS_CORE);
 
-        // Slot 4: coin display
+        // Slot 4: coin + item summary
         inv.setItem(4, makeItem(Material.GOLD_NUGGET,
             "§e§lMünzen: §f" + coins,
-            List.of("§7Verdiene Münzen durch Boss-Kills")));
+            List.of(
+                "§8─────────────────────",
+                "§7Verdiene Münzen durch Boss-Kills",
+                "§8─────────────────────",
+                "§7Materialien:",
+                "§7  §fEisen-Splitter: §7" + ironQty,
+                "§7  §6Gold-Splitter:  §7" + goldQty,
+                "§7  §bBoss-Kristall:  §7" + crystalQty,
+                "§7  §5Boss-Kern:      §7" + coreQty
+            )));
+
+        // Resource info items (right column)
+        inv.setItem(15, buildItemInfo(uid, LootItem.IRON_FRAGMENT,  Material.IRON_INGOT,   ironQty));
+        inv.setItem(24, buildItemInfo(uid, LootItem.GOLD_FRAGMENT,  Material.GOLD_INGOT,   goldQty));
+        inv.setItem(33, buildItemInfo(uid, LootItem.DIAMOND_SHARD,  Material.DIAMOND,      crystalQty));
+        inv.setItem(42, buildItemInfo(uid, LootItem.BOSS_CORE,      Material.NETHER_STAR,  coreQty));
 
         // Ability items
         for (int i = 0; i < ORDER.length; i++) {
             AbilityType type  = ORDER[i];
-            int         level = plugin.getAbilityManager().getLevel(player.getUniqueId(), type);
+            int         level = plugin.getAbilityManager().getLevel(uid, type);
             long        cost  = type.nextCost(level);
             boolean     maxed = level >= type.maxLevel;
             boolean  canAfford = !maxed && coins >= cost;
@@ -159,6 +180,19 @@ public class AbilityGui implements Listener {
     }
 
     // ── Hilfsmethoden ─────────────────────────────────────────────────────
+
+    private ItemStack buildItemInfo(UUID uid, LootItem lootItem, Material mat, int qty) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(LEGACY.deserialize(lootItem.color + lootItem.displayName));
+        meta.lore(List.of(
+            LEGACY.deserialize("§8─────────────────────"),
+            LEGACY.deserialize("§7Vorrat: §f" + qty),
+            LEGACY.deserialize("§8─────────────────────")
+        ));
+        item.setItemMeta(meta);
+        return item;
+    }
 
     private ItemStack makePane(Material mat) {
         ItemStack pane = new ItemStack(mat);

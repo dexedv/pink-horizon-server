@@ -19,7 +19,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class ForgeGui implements Listener {
@@ -31,7 +33,8 @@ public class ForgeGui implements Listener {
     // Status pane slots (right next to each enchant item)
     private static final int[] STATUS_SLOTS  = {11, 20, 29, 38, 47};
 
-    private final PHSmash plugin;
+    private final PHSmash   plugin;
+    private final Set<UUID> forging = new HashSet<>();
 
     public ForgeGui(PHSmash plugin) {
         this.plugin = plugin;
@@ -227,12 +230,21 @@ public class ForgeGui implements Listener {
 
         if (slot == 49) { player.closeInventory(); return; }
 
+        UUID uid = player.getUniqueId();
+        if (forging.contains(uid)) return;
+
         ForgeEnchant[] enchants = ForgeEnchant.values();
         for (int i = 0; i < ENCHANT_SLOTS.length; i++) {
             if (slot == ENCHANT_SLOTS[i]) {
-                ForgeEnchant enchant = enchants[i];
-                plugin.getForgeManager().craft(player, enchant);
-                Bukkit.getScheduler().runTaskLater(plugin, () -> open(player), 1L);
+                final ForgeEnchant enchant = enchants[i];
+                forging.add(uid);
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    plugin.getForgeManager().craft(player, enchant);
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        forging.remove(uid);
+                        if (player.isOnline()) open(player);
+                    });
+                });
                 return;
             }
         }

@@ -19,8 +19,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public class UpgradeGui implements Listener, InventoryHolder {
 
@@ -31,7 +34,8 @@ public class UpgradeGui implements Listener, InventoryHolder {
     // Status pane slots (right next to each upgrade item)
     private static final int[] STATUS_SLOTS  = {11, 20, 29, 38, 47};
 
-    private final PHSmash plugin;
+    private final PHSmash   plugin;
+    private final Set<UUID> upgrading = new HashSet<>();
 
     public UpgradeGui(PHSmash plugin) {
         this.plugin = plugin;
@@ -231,11 +235,21 @@ public class UpgradeGui implements Listener, InventoryHolder {
 
         if (slot == 49) { player.closeInventory(); return; }
 
+        UUID uid = player.getUniqueId();
+        if (upgrading.contains(uid)) return;
+
         UpgradeType[] types = UpgradeType.values();
         for (int i = 0; i < UPGRADE_SLOTS.length; i++) {
             if (slot == UPGRADE_SLOTS[i]) {
-                plugin.getUpgradeManager().tryUpgrade(player, types[i]);
-                Bukkit.getScheduler().runTaskLater(plugin, () -> open(player), 1L);
+                final UpgradeType type = types[i];
+                upgrading.add(uid);
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    plugin.getUpgradeManager().tryUpgrade(player, type);
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        upgrading.remove(uid);
+                        if (player.isOnline()) open(player);
+                    });
+                });
                 return;
             }
         }
