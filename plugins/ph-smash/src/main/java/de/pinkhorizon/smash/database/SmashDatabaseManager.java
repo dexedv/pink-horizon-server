@@ -84,6 +84,20 @@ public class SmashDatabaseManager {
                   level      INT         NOT NULL DEFAULT 0,
                   PRIMARY KEY (uuid, upgrade_id)
                 )""");
+
+            st.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS smash_coins (
+                  uuid  CHAR(36) PRIMARY KEY,
+                  coins BIGINT   NOT NULL DEFAULT 0
+                )""");
+
+            st.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS smash_abilities (
+                  uuid       CHAR(36)    NOT NULL,
+                  ability_id VARCHAR(32) NOT NULL,
+                  level      INT         NOT NULL DEFAULT 0,
+                  PRIMARY KEY (uuid, ability_id)
+                )""");
         }
     }
 }

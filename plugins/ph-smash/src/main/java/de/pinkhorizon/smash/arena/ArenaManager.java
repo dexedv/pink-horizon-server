@@ -15,11 +15,14 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import de.pinkhorizon.smash.listeners.SmashNavigatorListener;
 
 import java.io.*;
 import java.nio.file.*;
@@ -89,6 +92,16 @@ public class ArenaManager {
                 world.setGameRule(GameRule.DO_WEATHER_CYCLE,  false);
                 world.setGameRule(GameRule.DO_FIRE_TICK,      false);
                 world.setTime(6000);
+
+                // WorldBorder – 35 Blöcke Radius, zentriert auf Boss-Spawn
+                Location bossLoc = getBossSpawn(world);
+                var border = world.getWorldBorder();
+                border.setCenter(bossLoc.getX(), bossLoc.getZ());
+                border.setSize(70);          // Radius 35 = Durchmesser 70
+                border.setDamageBuffer(0);   // sofort Schaden außerhalb der Linie
+                border.setDamageAmount(2.0); // 2 HP/s außerhalb
+                border.setWarningDistance(5);
+                border.setWarningTime(0);
 
                 arena.setWorld(world);
                 spawnBossInArena(arena);
@@ -167,6 +180,7 @@ public class ArenaManager {
     /** Beim Plugin-Disable: alle Arenen synchron aufräumen */
     public void destroyAll() {
         for (ArenaInstance arena : new ArrayList<>(arenas.values())) {
+            if (arena.getTargetTask() != null) arena.getTargetTask().cancel();
             if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
             if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
             World world = arena.getWorld();
@@ -187,8 +201,7 @@ public class ArenaManager {
         World      world  = arena.getWorld();
         Location   loc    = getBossSpawn(world);
 
-        EntityType type = cfg.level() >= 100 ? EntityType.WARDEN : EntityType.IRON_GOLEM;
-        LivingEntity entity = (LivingEntity) world.spawnEntity(loc, type);
+        LivingEntity entity = (LivingEntity) world.spawnEntity(loc, getBossEntityType(cfg.level()));
 
         entity.setCustomName(cfg.displayName());
         entity.setCustomNameVisible(true);
@@ -206,10 +219,38 @@ public class ArenaManager {
         bar.setProgress(1.0);
 
         Player owner = Bukkit.getPlayer(arena.getPlayerUuid());
-        if (owner != null) bar.addPlayer(owner);
+        if (owner != null) {
+            bar.addPlayer(owner);
+            if (entity instanceof Mob mob) mob.setTarget(owner);
+        }
 
         arena.setBossEntity(entity);
         arena.setBossBar(bar);
+
+        // Periodisch Re-Target (alle 3 s), da EntityDamageEvent gecancelt wird
+        if (arena.getTargetTask() != null) arena.getTargetTask().cancel();
+        var task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            Player p = Bukkit.getPlayer(arena.getPlayerUuid());
+            if (p == null || !p.isOnline() || !entity.isValid()) return;
+            if (entity instanceof Mob mob) {
+                if (mob.getTarget() == null || !mob.getTarget().equals(p)) mob.setTarget(p);
+            }
+        }, 20L, 60L);
+        arena.setTargetTask(task);
+    }
+
+    private EntityType getBossEntityType(int level) {
+        if (level <  10) return EntityType.ZOMBIE;
+        if (level <  25) return EntityType.SKELETON;
+        if (level <  50) return EntityType.CAVE_SPIDER;
+        if (level <  75) return EntityType.RAVAGER;
+        if (level < 100) return EntityType.VINDICATOR;
+        if (level < 150) return EntityType.PILLAGER;
+        if (level < 200) return EntityType.RAVAGER;
+        if (level < 300) return EntityType.VINDICATOR;
+        if (level < 500) return EntityType.EVOKER;
+        if (level < 750) return EntityType.IRON_GOLEM;
+        return EntityType.WARDEN;
     }
 
     private void onBossDefeated(Player player, ArenaInstance arena) {
@@ -224,6 +265,22 @@ public class ArenaManager {
         plugin.getPlayerDataManager().addKillAndDamage(player.getUniqueId(),
             (long) arena.getSessionDamage(), defeatedLevel);
         plugin.getPlayerDataManager().setPersonalBossLevel(player.getUniqueId(), nextLevel);
+
+        // Coins
+        long baseCoins = defeatedLevel * 5L + 10L;
+        long coins     = Math.round(baseCoins * plugin.getAbilityManager().getCoinMultiplier(player.getUniqueId()));
+        plugin.getCoinManager().addCoins(player.getUniqueId(), coins);
+        player.sendMessage("§e✦ §6+" + coins + " §eMünzen");
+
+        // Heal on Kill
+        double healPct = plugin.getAbilityManager().getHealOnKillPercent(player.getUniqueId());
+        if (healPct > 0) {
+            var hpAttr = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            if (hpAttr != null) {
+                double healed = Math.min(player.getHealth() + hpAttr.getValue() * healPct, hpAttr.getValue());
+                player.setHealth(healed);
+            }
+        }
 
         // Titel
         player.showTitle(Title.title(
@@ -330,6 +387,7 @@ public class ArenaManager {
     }
 
     private void cleanupArenaResources(ArenaInstance arena) {
+        if (arena.getTargetTask() != null) arena.getTargetTask().cancel();
         if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
         if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
         World world = arena.getWorld();
@@ -373,28 +431,48 @@ public class ArenaManager {
 
     private void giveArenaItems(Player player) {
         player.getInventory().clear();
+        LegacyComponentSerializer leg = LegacyComponentSerializer.legacySection();
 
-        // Schwert – Schaden kommt vom Upgrade-Multiplikator, nicht von Verzauberungen
+        // Slot 0 – Schwert
         ItemStack sword = new ItemStack(Material.DIAMOND_SWORD);
         ItemMeta  sm    = sword.getItemMeta();
-        sm.displayName(LegacyComponentSerializer.legacySection().deserialize("§c§lBoss-Schwert"));
-        sm.lore(java.util.List.of(LegacyComponentSerializer.legacySection().deserialize(
-            "§7Schaden wird durch Upgrades erhöht")));
+        sm.displayName(leg.deserialize("§c§lBoss-Schwert"));
+        sm.lore(java.util.List.of(leg.deserialize("§7Schaden durch Upgrades & Fähigkeiten")));
         sm.setUnbreakable(true);
-        sm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
+        sm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
         sword.setItemMeta(sm);
         player.getInventory().setItem(0, sword);
 
+        // Slot 1 – Bogen (Infinity + Power V)
+        ItemStack bow = new ItemStack(Material.BOW);
+        ItemMeta  bm  = bow.getItemMeta();
+        bm.displayName(leg.deserialize("§a§lBoss-Bogen"));
+        bm.lore(java.util.List.of(
+            leg.deserialize("§7Alternativwaffe – auch durch"),
+            leg.deserialize("§7Upgrades & Fähigkeiten verstärkt")));
+        bm.setUnbreakable(true);
+        bm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
+        bow.setItemMeta(bm);
+        bow.addUnsafeEnchantment(Enchantment.INFINITY, 1);
+        bow.addUnsafeEnchantment(Enchantment.POWER, 5);
+        player.getInventory().setItem(1, bow);
+
+        // Slot 2 – 1 Pfeil (für Infinity benötigt)
+        player.getInventory().setItem(2, new ItemStack(Material.ARROW, 1));
+
+        // Slot 8 – Navigator-Kompass (ganz rechts)
+        player.getInventory().setItem(8, SmashNavigatorListener.buildCompass());
+
         // Rüstung
-        player.getInventory().setItem(36, makeArmor(Material.DIAMOND_BOOTS,     "§7Boots"));
-        player.getInventory().setItem(37, makeArmor(Material.DIAMOND_LEGGINGS,  "§7Leggings"));
-        player.getInventory().setItem(38, makeArmor(Material.DIAMOND_CHESTPLATE,"§7Chestplate"));
-        player.getInventory().setItem(39, makeArmor(Material.DIAMOND_HELMET,    "§7Helm"));
+        player.getInventory().setItem(36, makeArmor(Material.DIAMOND_BOOTS,      "§7Boots"));
+        player.getInventory().setItem(37, makeArmor(Material.DIAMOND_LEGGINGS,   "§7Leggings"));
+        player.getInventory().setItem(38, makeArmor(Material.DIAMOND_CHESTPLATE, "§7Chestplate"));
+        player.getInventory().setItem(39, makeArmor(Material.DIAMOND_HELMET,     "§7Helm"));
 
         // Schild (Offhand)
         ItemStack shield = new ItemStack(Material.SHIELD);
         ItemMeta  shm    = shield.getItemMeta();
-        shm.displayName(LegacyComponentSerializer.legacySection().deserialize("§7§lSchild"));
+        shm.displayName(leg.deserialize("§7§lSchild"));
         shm.setUnbreakable(true);
         shm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
         shield.setItemMeta(shm);

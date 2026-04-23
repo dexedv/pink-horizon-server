@@ -1,6 +1,7 @@
 package de.pinkhorizon.smash.commands;
 
 import de.pinkhorizon.smash.PHSmash;
+import de.pinkhorizon.smash.hologram.HologramManager.HologramType;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -49,6 +50,17 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
                 plugin.getUpgradeGui().open(p);
             }
 
+            case "abilities", "ability" -> {
+                if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
+                plugin.getAbilityGui().open(p);
+            }
+
+            case "coins" -> {
+                if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
+                long coins = plugin.getCoinManager().getCoins(p.getUniqueId());
+                p.sendMessage("§e✦ §7Deine Münzen: §6§l" + coins);
+            }
+
             case "stats" -> {
                 if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
                 int  kills        = plugin.getPlayerDataManager().getKills(p.getUniqueId());
@@ -90,7 +102,25 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
                 plugin.getArenaManager().forceBoss(p, level);
             }
 
-            default -> sender.sendMessage("§c§lSmash the Boss §8– §7/stb <join|leave|upgrades|stats|setarena|forceboss>");
+            case "setnpc" -> {
+                if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
+                if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
+                if (args.length < 2 || (!args[1].equalsIgnoreCase("leveldown") && !args[1].equalsIgnoreCase("upgrade"))) {
+                    p.sendMessage("§c/stb setnpc <leveldown|upgrade>"); return true;
+                }
+                plugin.getNpcManager().setNpc(p, args[1].toLowerCase());
+            }
+
+            case "sethologram", "setholo" -> {
+                if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
+                if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
+                if (args.length < 2) { p.sendMessage("§c/stb sethologram <kills|level|damage>"); return true; }
+                HologramType type = HologramType.fromKey(args[1]);
+                if (type == null) { p.sendMessage("§cUnbekannter Typ. Wähle: kills, level, damage"); return true; }
+                plugin.getHologramManager().setHologram(p, type);
+            }
+
+            default -> sender.sendMessage("§c§lSmash the Boss §8– §7/stb <join|leave|upgrades|stats|setarena|setnpc|sethologram|forceboss>");
         }
         return true;
     }
@@ -98,12 +128,16 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "stats"));
-            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("forceboss"); }
+            List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "abilities", "coins", "stats"));
+            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("setnpc"); base.add("sethologram"); base.add("forceboss"); }
             return base.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("setarena"))
             return List.of("spawn", "boss").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
+        if (args.length == 2 && args[0].equalsIgnoreCase("setnpc"))
+            return List.of("leveldown", "upgrade").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
+        if (args.length == 2 && (args[0].equalsIgnoreCase("sethologram") || args[0].equalsIgnoreCase("setholo")))
+            return List.of("kills", "level", "damage").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
         return List.of();
     }
 }

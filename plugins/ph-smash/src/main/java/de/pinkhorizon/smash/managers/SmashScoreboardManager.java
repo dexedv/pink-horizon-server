@@ -99,6 +99,7 @@ public class SmashScoreboardManager {
         int  kills    = plugin.getPlayerDataManager().getKills(uuid);
         int  atkLevel = plugin.getUpgradeManager().getLevel(uuid, UpgradeManager.UpgradeType.ATTACK);
         int  hpLevel  = plugin.getUpgradeManager().getLevel(uuid, UpgradeManager.UpgradeType.HEALTH);
+        long coins    = plugin.getCoinManager().getCoins(uuid);
 
         setLine(board, 13, " ");
         setLine(board, 12, "§7Dein Boss:  §c§l" + bossLevel);
@@ -108,10 +109,10 @@ public class SmashScoreboardManager {
         setLine(board, 8,  "   ");
         setLine(board, 7,  "§7Schaden: §e" + formatDmg(totalDmg));
         setLine(board, 6,  "§7Kills:   §a" + kills);
-        setLine(board, 5,  "    ");
-        setLine(board, 4,  "§7⚔ Angriff: §6+" + (atkLevel * 10) + "%");
-        setLine(board, 3,  "§7❤ HP-Bonus: §a+" + (hpLevel * 4));
-        setLine(board, 2,  "     ");
+        setLine(board, 5,  "§7Münzen:  §6" + coins);
+        setLine(board, 4,  "    ");
+        setLine(board, 3,  "§7⚔ Angriff: §6+" + (atkLevel * 10) + "%");
+        setLine(board, 2,  "§7❤ HP-Bonus: §a+" + (hpLevel * 4));
         setLine(board, 1,  "§aplay.pinkhorizon.fun");
         setLine(board, 0,  "  ");
     }

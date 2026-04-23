@@ -2,8 +2,11 @@ package de.pinkhorizon.smash.listeners;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.arena.ArenaInstance;
+import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -18,10 +21,26 @@ public class SmashCombatListener implements Listener {
         this.plugin = plugin;
     }
 
-    /** Spieler trifft Boss → echten Schaden abfangen, virtuellen HP abziehen */
+    /**
+     * Spieler trifft Boss (Schwert oder Bogen).
+     * Echter Schaden wird abgefangen; virtuelles HP-System übernimmt.
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerHitBoss(EntityDamageByEntityEvent event) {
-        if (!(event.getDamager() instanceof Player player)) return;
+        // Spieler ermitteln – direkt (Schwert) oder über Projektil (Bogen)
+        Player  player;
+        boolean isBow;
+
+        if (event.getDamager() instanceof Player p) {
+            player = p;
+            isBow  = false;
+        } else if (event.getDamager() instanceof Projectile proj
+                   && proj.getShooter() instanceof Player p) {
+            player = p;
+            isBow  = true;
+        } else {
+            return;
+        }
 
         ArenaInstance arena = plugin.getArenaManager().getArena(player.getUniqueId());
         if (arena == null || arena.getBossEntity() == null) return;
@@ -29,24 +48,64 @@ public class SmashCombatListener implements Listener {
 
         double raw = event.getDamage();
         event.setCancelled(true);
+
+        // ── Explosivpfeil (nur Bogen) ──
+        if (isBow) {
+            double expChance = plugin.getAbilityManager().getExplosiveChance(player.getUniqueId());
+            if (expChance > 0 && Math.random() < expChance) {
+                raw *= 2.0;
+                player.sendMessage("§6✦ §eExplosivpfeil!");
+                player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.5f);
+            }
+        }
+
+        // ── Berserker-Bonus (Schwert + Bogen) ──
+        double berserker = plugin.getAbilityManager().getBerserkerBonus(player.getUniqueId());
+        if (berserker > 0) {
+            var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
+            if (hpAttr != null && player.getHealth() < hpAttr.getValue() * 0.30) {
+                raw *= (1.0 + berserker);
+            }
+        }
+
         plugin.getArenaManager().applyDamage(player, raw);
     }
 
-    /** Boss trifft Spieler → Defense-Multiplikator anwenden */
+    /**
+     * Boss trifft Spieler – Dodge + Defense-Multiplikator.
+     * Funktioniert auch für Boss-Projektile (z.B. Skeleton-Pfeile).
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBossHitPlayer(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
-        Entity damager = event.getDamager();
 
         ArenaInstance arena = plugin.getArenaManager().getArena(player.getUniqueId());
         if (arena == null || arena.getBossEntity() == null) return;
-        if (!damager.getUniqueId().equals(arena.getBossEntity().getUniqueId())) return;
 
+        // Direkt oder als Projektil vom Boss?
+        Entity damager = event.getDamager();
+        Entity boss    = arena.getBossEntity();
+        boolean fromBoss = damager.getUniqueId().equals(boss.getUniqueId())
+            || (damager instanceof Projectile proj
+                && proj.getShooter() instanceof Entity shooter
+                && shooter.getUniqueId().equals(boss.getUniqueId()));
+        if (!fromBoss) return;
+
+        // Dodge-Check
+        double dodge = plugin.getAbilityManager().getDodgeChance(player.getUniqueId());
+        if (dodge > 0 && Math.random() < dodge) {
+            event.setCancelled(true);
+            player.sendMessage("§b⚡ §7Ausgewichen!");
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.5f);
+            return;
+        }
+
+        // Defense-Multiplikator
         double defMulti = plugin.getUpgradeManager().getDefenseMultiplier(player.getUniqueId());
         event.setDamage(event.getDamage() * defMulti);
     }
 
-    /** Verhindert, dass Bosse durch Umweltschäden sterben */
+    /** Verhindert, dass der Boss durch Umweltschäden stirbt */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBossDamage(EntityDamageEvent event) {
         if (event instanceof EntityDamageByEntityEvent) return;
