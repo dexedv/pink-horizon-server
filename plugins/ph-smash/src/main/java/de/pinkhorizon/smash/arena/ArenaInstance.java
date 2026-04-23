@@ -1,11 +1,13 @@
 package de.pinkhorizon.smash.arena;
 
 import de.pinkhorizon.smash.boss.BossConfig;
+import de.pinkhorizon.smash.managers.BossModifierManager;
 import org.bukkit.World;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Entity;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -25,6 +27,9 @@ public class ArenaInstance {
     private final Set<Double>  triggeredPhases = new HashSet<>();
     private boolean            rageActive      = false;
     private long               rageEndTime     = 0;
+    // Boss modifiers (v3)
+    private Set<BossModifierManager.BossModifier> modifiers = EnumSet.noneOf(BossModifierManager.BossModifier.class);
+    private BukkitTask         regenTask       = null;
 
     public ArenaInstance(UUID playerUuid, String worldName, int bossLevel) {
         this.playerUuid    = playerUuid;
@@ -54,6 +59,7 @@ public class ArenaInstance {
     /** Welt bleibt, nur Boss und Zustand werden für nächstes Level resettet */
     public void resetForNextBoss(int newLevel) {
         if (targetTask != null) { targetTask.cancel(); targetTask = null; }
+        if (regenTask  != null) { regenTask.cancel();  regenTask  = null; }
         config           = BossConfig.forLevel(newLevel);
         currentHp        = config.maxHp();
         sessionDamage    = 0;
@@ -61,6 +67,7 @@ public class ArenaInstance {
         triggeredPhases.clear();
         rageActive       = false;
         rageEndTime      = 0;
+        modifiers        = EnumSet.noneOf(BossModifierManager.BossModifier.class);
     }
 
     // ── Getter / Setter ────────────────────────────────────────────────────
@@ -84,4 +91,9 @@ public class ArenaInstance {
     public void       triggerPhase(double t)       { triggeredPhases.add(t); }
     public boolean    isRageActive()               { return rageActive && System.currentTimeMillis() < rageEndTime; }
     public void       activateRage(long durationMs){ rageActive = true; rageEndTime = System.currentTimeMillis() + durationMs; }
+    // Boss modifiers (v3)
+    public Set<BossModifierManager.BossModifier> getModifiers()                                   { return modifiers; }
+    public void setModifiers(Set<BossModifierManager.BossModifier> m)                             { modifiers = m; }
+    public BukkitTask getRegenTask()                                                               { return regenTask; }
+    public void       setRegenTask(BukkitTask t)                                                   { this.regenTask = t; }
 }

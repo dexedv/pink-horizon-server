@@ -15,6 +15,10 @@ import de.pinkhorizon.smash.listeners.SmashCombatListener;
 import de.pinkhorizon.smash.listeners.SmashJoinListener;
 import de.pinkhorizon.smash.listeners.SmashNavigatorListener;
 import de.pinkhorizon.smash.managers.*;
+import de.pinkhorizon.smash.managers.BestiaryManager;
+import de.pinkhorizon.smash.managers.ForgeManager;
+import de.pinkhorizon.smash.gui.BestiaryGui;
+import de.pinkhorizon.smash.gui.ForgeGui;
 import de.pinkhorizon.smash.npc.NpcManager;
 import org.bukkit.Difficulty;
 import org.bukkit.GameRule;
@@ -50,6 +54,15 @@ public class PHSmash extends JavaPlugin {
     private TalentGui              talentGui;
     private RuneGui                runeGui;
     private DailyChallengeGui      dailyChallengeGui;
+    // New managers & GUIs (v3)
+    private ComboManager           comboManager;
+    private BossModifierManager    bossModifierManager;
+    private BountyManager          bountyManager;
+    private WeeklyManager          weeklyManager;
+    private ForgeManager           forgeManager;
+    private BestiaryManager        bestiaryManager;
+    private ForgeGui               forgeGui;
+    private BestiaryGui            bestiaryGui;
 
     @Override
     public void onEnable() {
@@ -98,6 +111,16 @@ public class PHSmash extends JavaPlugin {
         runeGui            = new RuneGui(this);
         dailyChallengeGui  = new DailyChallengeGui(this);
 
+        // New managers & GUIs (v3)
+        comboManager        = new ComboManager();
+        bossModifierManager = new BossModifierManager();
+        bountyManager       = new BountyManager(this);
+        weeklyManager       = new WeeklyManager(this);
+        forgeManager        = new ForgeManager(this);
+        bestiaryManager     = new BestiaryManager(this);
+        forgeGui            = new ForgeGui(this);
+        bestiaryGui         = new BestiaryGui(this);
+
         // NPC-Manager + Holograms
         npcManager      = new NpcManager(this);
         hologramManager = new HologramManager(this);
@@ -113,6 +136,8 @@ public class PHSmash extends JavaPlugin {
         getServer().getPluginManager().registerEvents(talentGui, this);
         getServer().getPluginManager().registerEvents(runeGui, this);
         getServer().getPluginManager().registerEvents(dailyChallengeGui, this);
+        getServer().getPluginManager().registerEvents(forgeGui, this);
+        getServer().getPluginManager().registerEvents(bestiaryGui, this);
         getServer().getPluginManager().registerEvents(npcManager, this);
 
         // Template-Welt (Lobby) konfigurieren: kein Mob-Spawn, kein Tageszyklus
@@ -167,4 +192,13 @@ public class PHSmash extends JavaPlugin {
     public TalentGui              getTalentGui()            { return talentGui; }
     public RuneGui                getRuneGui()              { return runeGui; }
     public DailyChallengeGui      getDailyChallengeGui()    { return dailyChallengeGui; }
+    // New managers & GUIs (v3)
+    public ComboManager           getComboManager()         { return comboManager; }
+    public BossModifierManager    getBossModifierManager()  { return bossModifierManager; }
+    public BountyManager          getBountyManager()        { return bountyManager; }
+    public WeeklyManager          getWeeklyManager()        { return weeklyManager; }
+    public ForgeManager           getForgeManager()         { return forgeManager; }
+    public BestiaryManager        getBestiaryManager()      { return bestiaryManager; }
+    public ForgeGui               getForgeGui()             { return forgeGui; }
+    public BestiaryGui            getBestiaryGui()          { return bestiaryGui; }
 }

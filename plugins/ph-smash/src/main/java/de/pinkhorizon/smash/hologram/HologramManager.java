@@ -21,6 +21,8 @@ public class HologramManager {
         KILLS    ("kills",    "§c§l⚔ Top Kills"),
         LEVEL    ("level",    "§a§l★ Top Boss-Level"),
         DAMAGE   ("damage",   "§e§l✦ Top Schaden"),
+        COINS    ("coins",    "§6§l✦ Top Münzen"),
+        PRESTIGE ("prestige", "§d§l★ Top Prestige"),
         COMMANDS ("commands", "§b§l✦ Befehle");
 
         public final String key;
@@ -135,13 +137,50 @@ public class HologramManager {
 
     private List<LeaderEntry> fetchData(HologramType type) {
         if (type == HologramType.COMMANDS) return List.of();
+
+        List<LeaderEntry> result = new ArrayList<>();
+
+        // COINS and PRESTIGE use their own tables
+        if (type == HologramType.COINS) {
+            String sql = "SELECT uuid, coins FROM smash_coins WHERE coins > 0 ORDER BY coins DESC LIMIT 10";
+            try (Connection c = plugin.getDb().getConnection();
+                 PreparedStatement st = c.prepareStatement(sql);
+                 ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    UUID   uuid  = UUID.fromString(rs.getString("uuid"));
+                    long   value = rs.getLong("coins");
+                    String name  = Bukkit.getOfflinePlayer(uuid).getName();
+                    result.add(new LeaderEntry(name != null ? name : "???", value));
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().warning("HologramManager.fetchData(COINS): " + e.getMessage());
+            }
+            return result;
+        }
+
+        if (type == HologramType.PRESTIGE) {
+            String sql = "SELECT uuid, prestige FROM smash_prestige WHERE prestige > 0 ORDER BY prestige DESC LIMIT 10";
+            try (Connection c = plugin.getDb().getConnection();
+                 PreparedStatement st = c.prepareStatement(sql);
+                 ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    UUID   uuid  = UUID.fromString(rs.getString("uuid"));
+                    long   value = rs.getLong("prestige");
+                    String name  = Bukkit.getOfflinePlayer(uuid).getName();
+                    result.add(new LeaderEntry(name != null ? name : "???", value));
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().warning("HologramManager.fetchData(PRESTIGE): " + e.getMessage());
+            }
+            return result;
+        }
+
         String col = switch (type) {
             case KILLS  -> "kills";
             case LEVEL  -> "personal_level";
             case DAMAGE -> "total_damage";
             default     -> "kills";
         };
-        List<LeaderEntry> result = new ArrayList<>();
         String sql = "SELECT uuid, " + col + " FROM smash_players"
                    + " WHERE " + col + " > 0 ORDER BY " + col + " DESC LIMIT 10";
         try (Connection c = plugin.getDb().getConnection();
@@ -177,6 +216,8 @@ public class HologramManager {
                 case KILLS    -> "§c" + e.value + " §7Kills";
                 case LEVEL    -> "§aLv. §2" + e.value;
                 case DAMAGE   -> "§e" + formatDmg(e.value) + " §7Dmg";
+                case COINS    -> "§6" + e.value + " §7Münzen";
+                case PRESTIGE -> "§d✦ §f" + e.value + " §7Prestige";
                 case COMMANDS -> "";
             };
             sb.append(medal).append(rankColor).append("#").append(i + 1)

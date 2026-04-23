@@ -2,6 +2,8 @@ package de.pinkhorizon.smash.arena;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.boss.BossConfig;
+import de.pinkhorizon.smash.managers.BossModifierManager;
+import de.pinkhorizon.smash.managers.BossModifierManager.BossModifier;
 import de.pinkhorizon.smash.managers.DailyChallengeManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -18,6 +20,8 @@ import org.bukkit.entity.Firework;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -134,15 +138,30 @@ public class ArenaManager {
         if (arena == null) return;
 
         UUID uuid = player.getUniqueId();
+
+        // GEPANZERT modifier: -30% damage to boss
+        if (arena.getModifiers().contains(BossModifier.GEPANZERT)) {
+            rawDamage *= 0.70;
+        }
+
         double multiplier = plugin.getUpgradeManager().getAttackMultiplier(uuid)
             * plugin.getPrestigeManager().getPrestigeMultiplier(uuid)
             * plugin.getStreakManager().getStreakMultiplier(uuid)
-            * plugin.getRuneManager().getWarRuneMultiplier(uuid);
+            * plugin.getRuneManager().getWarRuneMultiplier(uuid)
+            * plugin.getComboManager().getMultiplier(uuid);
         double real = rawDamage * multiplier;
         arena.applyDamage(real);
 
-        // Lifesteal
-        double lifesteal = plugin.getUpgradeManager().getLifestealPercent(uuid);
+        // GESPIEGELT modifier: 10% damage reflected to player
+        if (arena.getModifiers().contains(BossModifier.GESPIEGELT)) {
+            double reflected = real * 0.10;
+            double newHp = Math.max(0.5, player.getHealth() - reflected);
+            player.setHealth(newHp);
+        }
+
+        // Lifesteal (base + forge lifedrain bonus)
+        double lifesteal = plugin.getUpgradeManager().getLifestealPercent(uuid)
+            + plugin.getForgeManager().getLifedrainBonus(uuid);
         if (lifesteal > 0) {
             var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
             if (hpAttr != null) {
@@ -153,6 +172,11 @@ public class ArenaManager {
 
         updateBossBar(arena);
         checkBossPhases(player, arena);
+
+        // XP bar = boss HP (level = boss level, exp = HP %)
+        player.setLevel(arena.getBossLevel());
+        player.setExp((float) Math.max(0f, Math.min(1f, arena.getHpPercent())));
+
         plugin.getScoreboardManager().update(player);
 
         if (arena.isDead()) {
@@ -229,6 +253,20 @@ public class ArenaManager {
         World      world  = arena.getWorld();
         Location   loc    = getBossSpawn(world);
 
+        // Roll boss modifiers
+        var modifiers = plugin.getBossModifierManager().rollModifiers(cfg.level());
+        arena.setModifiers(modifiers);
+
+        // Preview title before spawn
+        Player previewPlayer = Bukkit.getPlayer(arena.getPlayerUuid());
+        if (previewPlayer != null) {
+            String modBar = plugin.getBossModifierManager().buildModifierBar(modifiers);
+            previewPlayer.showTitle(Title.title(
+                Component.text(cfg.displayName().replaceAll("§.", ""), TextColor.color(0xFF5555), TextDecoration.BOLD),
+                Component.text("Level " + cfg.level() + (modBar.isEmpty() ? "" : "  " + modBar), NamedTextColor.GRAY),
+                Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(3), Duration.ofMillis(500))));
+        }
+
         LivingEntity entity = (LivingEntity) world.spawnEntity(loc, getBossEntityType(cfg.level()));
 
         entity.setCustomName(cfg.displayName());
@@ -242,8 +280,16 @@ public class ArenaManager {
             entity.setHealth(1024);
         }
 
+        // RASEND modifier: +50% movement speed
+        if (modifiers.contains(BossModifier.RASEND) && entity instanceof Mob) {
+            var speedAttr = entity.getAttribute(Attribute.MOVEMENT_SPEED);
+            if (speedAttr != null) speedAttr.setBaseValue(speedAttr.getBaseValue() * 1.5);
+        }
+
+        String modBar = plugin.getBossModifierManager().buildModifierBar(modifiers);
         BossBar bar = Bukkit.createBossBar(
-            buildBarTitle(cfg, cfg.maxHp()), BarColor.GREEN, BarStyle.SEGMENTED_10);
+            buildBarTitle(cfg, cfg.maxHp()) + (modBar.isEmpty() ? "" : " " + modBar),
+            BarColor.GREEN, BarStyle.SEGMENTED_10);
         bar.setProgress(1.0);
 
         Player owner = Bukkit.getPlayer(arena.getPlayerUuid());
@@ -254,6 +300,24 @@ public class ArenaManager {
 
         arena.setBossEntity(entity);
         arena.setBossBar(bar);
+
+        // REGENERIEREND modifier: heal 0.5% max HP per second
+        if (modifiers.contains(BossModifier.REGENERIEREND)) {
+            if (arena.getRegenTask() != null) arena.getRegenTask().cancel();
+            double healPerTick = cfg.maxHp() * 0.005;
+            var regenTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                if (arena.getBossEntity() == null || !arena.getBossEntity().isValid()) return;
+                if (!arena.isDead()) {
+                    arena.heal(healPerTick);
+                    updateBossBar(arena);
+                    Player p = Bukkit.getPlayer(arena.getPlayerUuid());
+                    if (p != null) {
+                        p.setExp((float) Math.max(0f, Math.min(1f, arena.getHpPercent())));
+                    }
+                }
+            }, 20L, 20L);
+            arena.setRegenTask(regenTask);
+        }
 
         // Periodisch Re-Target (alle 3 s), da EntityDamageEvent gecancelt wird
         if (arena.getTargetTask() != null) arena.getTargetTask().cancel();
@@ -284,6 +348,7 @@ public class ArenaManager {
     private void onBossDefeated(Player player, ArenaInstance arena) {
         if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
         if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
+        if (arena.getRegenTask() != null) { arena.getRegenTask().cancel(); arena.setRegenTask(null); }
 
         UUID uuid         = player.getUniqueId();
         int defeatedLevel = arena.getBossLevel();
@@ -324,6 +389,32 @@ public class ArenaManager {
 
         // Rune charges decrement
         plugin.getRuneManager().onBossDefeated(uuid);
+
+        // Forge charges decrement
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> plugin.getForgeManager().onBossDefeated(uuid));
+
+        // Bestiary tracking (entity type name)
+        String mobType = getBossEntityType(defeatedLevel).name();
+        plugin.getBestiaryManager().trackKillAndCheckFirst(uuid, mobType);
+
+        // Weekly tournament
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> plugin.getWeeklyManager().addKill(uuid, defeatedLevel));
+
+        // Bounty check
+        if (plugin.getBountyManager().tryClaimBounty(uuid, defeatedLevel)) {
+            player.sendMessage("§6✦ §eTages-Kopfgeld eingelöst! §a+1000 Münzen §7& §d+3 Boss-Kerne§7!");
+        }
+
+        // 10-level milestone reward
+        if (nextLevel % 10 == 0 && nextLevel > defeatedLevel) {
+            long bonus = nextLevel * 10L;
+            plugin.getCoinManager().addCoins(uuid, bonus);
+            player.sendMessage("§d§l✦ §7Level-Meilenstein §d" + nextLevel + "§7! §6+" + bonus + " §eMünzen");
+            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+        }
+
+        // Combo increment
+        plugin.getComboManager().increment(uuid);
 
         // Daily challenge tracking
         plugin.getDailyChallengeManager().addProgress(uuid, DailyChallengeManager.ChallengeType.BOSS_KILLS, 1);

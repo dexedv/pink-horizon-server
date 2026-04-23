@@ -14,11 +14,15 @@ public class NpcManager implements Listener {
 
     private static final String KEY_DOWN    = "leveldown";
     private static final String KEY_UPGRADE = "upgrade";
-    private static final double LOOK_RANGE  = 8.0; // Blöcke Reichweite
+    private static final String KEY_JOIN    = "join";
+    private static final String KEY_LEAVE   = "leave";
+    private static final double LOOK_RANGE  = 8.0;
 
     private final PHSmash   plugin;
     private UUID            levelDownUuid;
     private UUID            upgradeUuid;
+    private UUID            joinUuid;
+    private UUID            leaveUuid;
     private BukkitTask      lookTask;
 
     public NpcManager(PHSmash plugin) {
@@ -34,9 +38,10 @@ public class NpcManager implements Listener {
     private void restoreNpcs() {
         levelDownUuid = findOrRespawn(KEY_DOWN);
         upgradeUuid   = findOrRespawn(KEY_UPGRADE);
+        joinUuid      = findOrRespawn(KEY_JOIN);
+        leaveUuid     = findOrRespawn(KEY_LEAVE);
     }
 
-    /** Sucht bestehende Entität per UUID; fehlt sie, wird sie neu gespawnt. */
     private UUID findOrRespawn(String key) {
         String saved = plugin.getConfig().getString("npcs." + key + ".uuid");
         if (saved != null) {
@@ -48,8 +53,6 @@ public class NpcManager implements Listener {
                 }
             } catch (IllegalArgumentException ignored) {}
         }
-
-        // Nicht gefunden → neu spawnen falls Location konfiguriert
         Location loc = loadLocation(key);
         if (loc == null) return null;
         return doSpawn(key, loc);
@@ -57,14 +60,9 @@ public class NpcManager implements Listener {
 
     // ── Öffentliche API ────────────────────────────────────────────────────
 
-    /**
-     * NPC an aktueller Admin-Position setzen (Admin-Befehl).
-     * @param key "leveldown" oder "upgrade"
-     */
     public void setNpc(Player admin, String key) {
         Location loc = admin.getLocation();
 
-        // Alte Entität entfernen
         String oldStr = plugin.getConfig().getString("npcs." + key + ".uuid");
         if (oldStr != null) {
             try {
@@ -76,7 +74,6 @@ public class NpcManager implements Listener {
             } catch (IllegalArgumentException ignored) {}
         }
 
-        // Location in Config speichern
         String path = "npcs." + key;
         plugin.getConfig().set(path + ".world", loc.getWorld().getName());
         plugin.getConfig().set(path + ".x",     loc.getX());
@@ -86,10 +83,20 @@ public class NpcManager implements Listener {
         plugin.saveConfig();
 
         UUID uuid = doSpawn(key, loc);
-        if (KEY_DOWN.equals(key))    levelDownUuid = uuid;
-        else                          upgradeUuid   = uuid;
+        switch (key) {
+            case KEY_DOWN    -> levelDownUuid = uuid;
+            case KEY_UPGRADE -> upgradeUuid   = uuid;
+            case KEY_JOIN    -> joinUuid       = uuid;
+            case KEY_LEAVE   -> leaveUuid      = uuid;
+        }
 
-        String label = KEY_DOWN.equals(key) ? "Level senken" : "Upgrade";
+        String label = switch (key) {
+            case KEY_DOWN    -> "Level senken";
+            case KEY_UPGRADE -> "Upgrade";
+            case KEY_JOIN    -> "Arena betreten";
+            case KEY_LEAVE   -> "Arena verlassen";
+            default          -> key;
+        };
         admin.sendMessage("§a✔ §7NPC §e" + label + " §7gesetzt.");
     }
 
@@ -106,6 +113,12 @@ public class NpcManager implements Listener {
         } else if (clicked.equals(upgradeUuid)) {
             event.setCancelled(true);
             plugin.getUpgradeGui().open(player);
+        } else if (clicked.equals(joinUuid)) {
+            event.setCancelled(true);
+            handleJoin(player);
+        } else if (clicked.equals(leaveUuid)) {
+            event.setCancelled(true);
+            handleLeave(player);
         }
     }
 
@@ -122,16 +135,37 @@ public class NpcManager implements Listener {
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 0.7f);
     }
 
+    private void handleJoin(Player player) {
+        if (plugin.getArenaManager().hasArena(player.getUniqueId())) {
+            player.sendMessage("§eDu bist bereits in einer Arena! §7(/stb leave)");
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            return;
+        }
+        plugin.getArenaManager().createArena(player);
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.2f);
+    }
+
+    private void handleLeave(Player player) {
+        if (!plugin.getArenaManager().hasArena(player.getUniqueId())) {
+            player.sendMessage("§eDu bist in keiner Arena!");
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            return;
+        }
+        plugin.getArenaManager().destroyArena(player.getUniqueId());
+        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+    }
+
     // ── Look-Task ──────────────────────────────────────────────────────────
 
     private void startLookTask() {
         lookTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             rotateNpc(levelDownUuid);
             rotateNpc(upgradeUuid);
-        }, 5L, 10L); // alle 0.5 Sekunden
+            rotateNpc(joinUuid);
+            rotateNpc(leaveUuid);
+        }, 5L, 10L);
     }
 
-    /** Dreht den NPC zum nächsten Spieler innerhalb LOOK_RANGE Blöcke. */
     private void rotateNpc(UUID uuid) {
         if (uuid == null) return;
         Entity npc = null;
@@ -149,7 +183,6 @@ public class NpcManager implements Listener {
         }
         if (nearest == null) return;
 
-        // Richtungsvektor NPC-Augen → Spieler-Augen
         Location from = npc.getLocation().add(0, npc.getHeight() * 0.85, 0);
         Location to   = nearest.getEyeLocation();
         double dx = to.getX() - from.getX();
@@ -162,7 +195,7 @@ public class NpcManager implements Listener {
 
         Location npcLoc = npc.getLocation();
         npcLoc.setYaw(yaw);
-        npcLoc.setPitch(Math.max(-30f, Math.min(30f, pitch))); // Pitch begrenzen
+        npcLoc.setPitch(Math.max(-30f, Math.min(30f, pitch)));
         npc.teleport(npcLoc);
     }
 
@@ -173,8 +206,6 @@ public class NpcManager implements Listener {
     // ── Intern ─────────────────────────────────────────────────────────────
 
     private UUID doSpawn(String key, Location loc) {
-        boolean isDown = KEY_DOWN.equals(key);
-
         Villager npc = (Villager) loc.getWorld().spawnEntity(loc, EntityType.VILLAGER);
         npc.setAI(false);
         npc.setInvulnerable(true);
@@ -183,9 +214,26 @@ public class NpcManager implements Listener {
         npc.setRemoveWhenFarAway(false);
         npc.setGlowing(true);
         npc.setCustomNameVisible(true);
-        npc.setCustomName(isDown ? "§c§l▼ Level senken" : "§6§l⬆ Upgrades");
-        npc.setProfession(isDown ? Villager.Profession.CLERIC : Villager.Profession.TOOLSMITH);
         npc.setVillagerLevel(5);
+
+        switch (key) {
+            case KEY_DOWN -> {
+                npc.setCustomName("§c§l▼ Level senken");
+                npc.setProfession(Villager.Profession.CLERIC);
+            }
+            case KEY_UPGRADE -> {
+                npc.setCustomName("§6§l⬆ Upgrades");
+                npc.setProfession(Villager.Profession.TOOLSMITH);
+            }
+            case KEY_JOIN -> {
+                npc.setCustomName("§a§l▶ Arena betreten");
+                npc.setProfession(Villager.Profession.FARMER);
+            }
+            case KEY_LEAVE -> {
+                npc.setCustomName("§c§l◀ Arena verlassen");
+                npc.setProfession(Villager.Profession.BUTCHER);
+            }
+        }
 
         plugin.getConfig().set("npcs." + key + ".uuid", npc.getUniqueId().toString());
         plugin.saveConfig();

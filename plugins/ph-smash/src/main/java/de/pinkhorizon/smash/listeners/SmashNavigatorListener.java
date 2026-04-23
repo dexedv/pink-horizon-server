@@ -128,6 +128,17 @@ public class SmashNavigatorListener implements Listener {
             "§e§l⏳ Tägliche Quests",
             List.of("§73 neue Herausforderungen täglich", "§a▶ Klicken")));
 
+        // ── Reihe 5: Schmiede & Bestiarium ───────────────────────────────
+        // Slot 37 – Schmiede
+        inv.setItem(37, nav(Material.ANVIL,
+            "§6§l⚒ Schmiede",
+            List.of("§7Verzauberungen schmieden", "§7& Ladungen kaufen", "§a▶ Klicken")));
+
+        // Slot 41 – Bestiarium
+        inv.setItem(41, nav(Material.BOOK,
+            "§2§l☠ Bestiarium",
+            List.of("§7Deine Boss-Kills nach Typ", "§a▶ Klicken")));
+
         // ── Reihe 6: Statistiken ──────────────────────────────────────────
         // Slot 49 – Statistiken (Mitte unten)
         inv.setItem(49, nav(Material.PAPER,
@@ -177,6 +188,14 @@ public class SmashNavigatorListener implements Listener {
             case 34 -> {
                 player.closeInventory();
                 Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getDailyChallengeGui().open(player), 1L);
+            }
+            case 37 -> {
+                player.closeInventory();
+                Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getForgeGui().open(player), 1L);
+            }
+            case 41 -> {
+                player.closeInventory();
+                Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getBestiaryGui().open(player), 1L);
             }
             case 49 -> {
                 player.closeInventory();

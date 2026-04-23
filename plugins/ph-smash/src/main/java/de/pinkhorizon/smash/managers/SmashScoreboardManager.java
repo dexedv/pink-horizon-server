@@ -106,7 +106,8 @@ public class SmashScoreboardManager {
         setLine(board, 11, "§7Boss-HP:");
         setLine(board, 10, bossHpLine);
         setLine(board, 9,  arena != null ? "§8" + bossHpRaw : "  ");
-        setLine(board, 8,  "   ");
+        String combo = arena != null ? plugin.getComboManager().getComboDisplay(uuid) : "";
+        setLine(board, 8,  combo.isEmpty() ? "   " : combo);
         setLine(board, 7,  "§7Schaden: §e" + formatDmg(totalDmg));
         setLine(board, 6,  "§7Kills:   §a" + kills);
         setLine(board, 5,  "§7Münzen:  §6" + coins);

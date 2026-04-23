@@ -2,7 +2,11 @@ package de.pinkhorizon.smash.listeners;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.arena.ArenaInstance;
+import de.pinkhorizon.smash.managers.BossModifierManager.BossModifier;
 import de.pinkhorizon.smash.managers.DailyChallengeManager;
+import de.pinkhorizon.smash.managers.ForgeManager.ForgeEnchant;
+
+import java.util.UUID;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
@@ -13,6 +17,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 public class SmashCombatListener implements Listener {
 
@@ -50,18 +56,25 @@ public class SmashCombatListener implements Listener {
         double raw = event.getDamage();
         event.setCancelled(true);
 
+        UUID uuid = player.getUniqueId();
+
         // ── Explosivpfeil (nur Bogen) ──
         if (isBow) {
-            double expChance = plugin.getAbilityManager().getExplosiveChance(player.getUniqueId());
+            double expChance = plugin.getAbilityManager().getExplosiveChance(uuid);
             if (expChance > 0 && Math.random() < expChance) {
                 raw *= 2.0;
                 player.sendMessage("§6✦ §eExplosivpfeil!");
                 player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.5f);
             }
+            // Forge: POWER (+50% bow damage)
+            raw *= plugin.getForgeManager().getPowerMultiplier(uuid);
+        } else {
+            // Forge: SHARPNESS (+50% sword damage)
+            raw *= plugin.getForgeManager().getSharpnessMultiplier(uuid);
         }
 
         // ── Berserker-Bonus (Schwert + Bogen) ──
-        double berserker = plugin.getAbilityManager().getBerserkerBonus(player.getUniqueId());
+        double berserker = plugin.getAbilityManager().getBerserkerBonus(uuid);
         if (berserker > 0) {
             var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
             if (hpAttr != null && player.getHealth() < hpAttr.getValue() * 0.35) {
@@ -70,6 +83,17 @@ public class SmashCombatListener implements Listener {
         }
 
         plugin.getArenaManager().applyDamage(player, raw);
+
+        // ── Forge: FIRE_ASPECT – set boss on fire ──
+        if (plugin.getForgeManager().hasFireAspect(uuid) && arena.getBossEntity() != null) {
+            arena.getBossEntity().setFireTicks(60);
+        }
+
+        // ── Forge: KNOCKBACK – small velocity push ──
+        if (plugin.getForgeManager().hasKnockback(uuid) && arena.getBossEntity() != null) {
+            var dir = arena.getBossEntity().getLocation().subtract(player.getLocation()).toVector().normalize();
+            arena.getBossEntity().setVelocity(dir.multiply(0.4).setY(0.2));
+        }
     }
 
     /**
@@ -109,6 +133,11 @@ public class SmashCombatListener implements Listener {
         double defMulti = plugin.getUpgradeManager().getDefenseMultiplier(player.getUniqueId())
             * plugin.getRuneManager().getShieldRuneMultiplier(player.getUniqueId());
         event.setDamage(baseDamage * defMulti);
+
+        // VERGIFTET modifier: apply Poison II for 3 seconds on boss hit
+        if (arena.getModifiers().contains(BossModifier.VERGIFTET)) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 1, false, true));
+        }
     }
 
     /** Verhindert, dass der Boss durch Umweltschäden stirbt */
