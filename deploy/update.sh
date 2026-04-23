@@ -18,7 +18,7 @@ echo ""
 
 # ── 2. Berechtigungen fixieren (Docker uid=1000) ─────────────────────────
 echo "▶ [2/4] Berechtigungen setzen..."
-chown -R 1000:1000 servers/lobby/ servers/survival/ servers/minigames/ 2>/dev/null || true
+chown -R 1000:1000 servers/lobby/ servers/survival/ servers/minigames/ servers/smash/ 2>/dev/null || true
 echo ""
 
 # ── 3. Spielserver + Proxy neu starten (neue JARs aus Volume) ────────────
