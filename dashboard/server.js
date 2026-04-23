@@ -509,17 +509,19 @@ app.post('/api/players/unban', strictLimit, auth, async (req, res) => {
 // ── REST-API: Datenbanken ─────────────────────────────────────────────────
 
 app.get('/api/databases', auth, async (req, res) => {
-  const [ctr, ph, sv, mg] = await Promise.allSettled([
+  const [ctr, ph, sv, mg, sm] = await Promise.allSettled([
     getContainerStatus('ph-mysql'),
     checkDb(poolCore),
     checkDb(poolSv),
-    checkDb(poolMg)
+    checkDb(poolMg),
+    checkDb(poolSmash)
   ]);
   res.json({
     container:    ctr.status === 'fulfilled' ? ctr.value : { running: false, status: 'error' },
     pinkhorizon:  ph.status  === 'fulfilled' ? ph.value  : false,
     ph_survival:  sv.status  === 'fulfilled' ? sv.value  : false,
-    ph_minigames: mg.status  === 'fulfilled' ? mg.value  : false
+    ph_minigames: mg.status  === 'fulfilled' ? mg.value  : false,
+    ph_smash:     sm.status  === 'fulfilled' ? sm.value  : false
   });
 });
 
@@ -785,9 +787,9 @@ app.post('/api/db/query', auth, async (req, res) => {
   const { query, database } = req.body;
   if (!query?.trim()) return res.status(400).json({ error: 'Keine Abfrage' });
   if (!/^\s*SELECT\s/i.test(query)) return res.status(400).json({ error: 'Nur SELECT-Abfragen erlaubt' });
-  if (!/^(pinkhorizon|ph_survival|ph_minigames)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
+  if (!/^(pinkhorizon|ph_survival|ph_minigames|ph_smash)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
   try {
-    const pool = database === 'pinkhorizon' ? poolCore : database === 'ph_minigames' ? poolMg : poolSv;
+    const pool = database === 'pinkhorizon' ? poolCore : database === 'ph_minigames' ? poolMg : database === 'ph_smash' ? poolSmash : poolSv;
     const lq = /\blimit\b/i.test(query) ? query.trimEnd().replace(/;$/, '') : `${query.trimEnd().replace(/;$/, '')} LIMIT 200`;
     const [rows, fields] = await pool.execute(lq);
     res.json({ ok: true, columns: fields.map(f => f.name), rows, count: rows.length });

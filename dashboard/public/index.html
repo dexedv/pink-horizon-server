@@ -376,7 +376,7 @@ let ws = null;
 let conSrv = null;
 let cmdHist = [], histIdx = -1;
 let autoScroll = true;
-const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-minigames': [] };
+const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-minigames': [], 'ph-smash': [] };
 
 // ── Rang-Definitionen ─────────────────────────────────────────────────────
 const RANK_DEFS = [
@@ -436,6 +436,7 @@ const NAV_DEF = [
   { id:'con_lobby',    dot:true,  label:'Lobby',          srv:'lobby'     },
   { id:'con_survival', dot:true,  label:'Survival',       srv:'survival'  },
   { id:'con_minigames',dot:true,  label:'Minigames',      srv:'minigames' },
+  { id:'con_smash',    dot:true,  label:'Smash the Boss', srv:'smash' },
   { sec: 'Survival' },
   { id:'players',      icon:'👥', label:'Spieler'         },
   { id:'permissions',  icon:'🎖️', label:'Permissions'    },
@@ -746,7 +747,7 @@ async function doNetworkRestart() {
 async function loadResStats() {
   const el = document.getElementById('res-section'); if (!el) return;
   el.innerHTML = `<div class="g4" id="dash-res-grid">
-    ${['velocity','lobby','survival','minigames'].map(k=>`
+    ${['velocity','lobby','survival','minigames','smash'].map(k=>`
       <div class="card res-card" id="dash-res-${k}">
         <div style="font-weight:700;font-size:.88rem;margin-bottom:4px">${escH(srvData[k]?.label||k)}</div>
         <div class="empty" style="padding:4px 0;font-size:.8rem">Lade…</div>
@@ -759,7 +760,7 @@ async function loadResStats() {
 }
 
 function updateDashStats(data) {
-  const srvOrder = ['velocity','lobby','survival','minigames'];
+  const srvOrder = ['velocity','lobby','survival','minigames','smash'];
   for (const k of srvOrder) {
     const el = document.getElementById(`dash-res-${k}`); if (!el) continue;
     const d = data[k]; const s = srvData[k];
@@ -791,6 +792,7 @@ async function loadDbStatus() {
     { name:'pinkhorizon (DB)',       ok: d.pinkhorizon,    detail: d.pinkhorizon    ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_survival (DB)',       ok: d.ph_survival,    detail: d.ph_survival    ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_minigames (DB)',      ok: d.ph_minigames,   detail: d.ph_minigames   ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph_smash (DB)',         ok: d.ph_smash,       detail: d.ph_smash       ? 'Verbunden' : 'Nicht erreichbar' },
   ];
 
   el.innerHTML = `
@@ -1628,6 +1630,7 @@ async function renderRights() {
       <button class="rtab ${rTab==='lobby'?'active':''}"     onclick="switchR('lobby')">Lobby</button>
       <button class="rtab ${rTab==='survival'?'active':''}"  onclick="switchR('survival')">Survival</button>
       <button class="rtab ${rTab==='minigames'?'active':''}" onclick="switchR('minigames')">Minigames</button>
+      <button class="rtab ${rTab==='smash'?'active':''}"     onclick="switchR('smash')">Smash</button>
     </div>
     <div class="rbody" id="rbody"><div class="empty">Lade…</div></div>
   </div>`;
@@ -1636,7 +1639,7 @@ async function renderRights() {
 
 function switchR(t) {
   rTab = t;
-  const labels = { lobby:'Lobby', survival:'Survival', minigames:'Minigames' };
+  const labels = { lobby:'Lobby', survival:'Survival', minigames:'Minigames', smash:'Smash' };
   document.querySelectorAll('.rtab').forEach(b=>b.classList.toggle('active',b.textContent.trim()===labels[t]));
   const el=document.getElementById('rbody'); if(el) el.innerHTML='<div class="empty">Lade…</div>';
   loadR(t);
@@ -1743,6 +1746,19 @@ const CMD_DATA = [
       {n:'/build',       u:'/build',                                        d:'Build-Modus umschalten',               admin:true},
       {n:'/rank',        u:'/rank <set|info|list>',                         d:'Rang verwalten',                       admin:true},
       {n:'/hologram',    u:'/hologram <create|delete|list>',                d:'Holograms verwalten',                  admin:true},
+    ]},
+  ]},
+  { server:'Smash the Boss', sections:[
+    { label:'Spieler', cmds:[
+      {n:'/stb join',     u:'/stb join',                    d:'Arena betreten',                        admin:false},
+      {n:'/stb leave',    u:'/stb leave',                   d:'Arena verlassen',                       admin:false},
+      {n:'/stb upgrades', u:'/stb upgrades',                d:'Upgrade-GUI öffnen',                    admin:false},
+      {n:'/stb stats',    u:'/stb stats',                   d:'Eigene Stats anzeigen',                 admin:false},
+    ]},
+    { label:'Admin', cmds:[
+      {n:'/stb setarena spawn', u:'/stb setarena spawn',    d:'Spieler-Spawn auf aktuelle Position',   admin:true},
+      {n:'/stb setarena boss',  u:'/stb setarena boss',     d:'Boss-Spawn auf aktuelle Position',      admin:true},
+      {n:'/stb forceboss',      u:'/stb forceboss <level>', d:'Boss auf Level X erzwingen',            admin:true},
     ]},
   ]},
   { server:'Minigames', sections:[
@@ -2215,6 +2231,7 @@ async function renderSqlConsole() {
           <option value="pinkhorizon">pinkhorizon</option>
           <option value="ph_survival">ph_survival</option>
           <option value="ph_minigames">ph_minigames</option>
+          <option value="ph_smash">ph_smash</option>
         </select>
         <span style="color:var(--muted);font-size:.82rem">Nur SELECT erlaubt</span>
       </div>
