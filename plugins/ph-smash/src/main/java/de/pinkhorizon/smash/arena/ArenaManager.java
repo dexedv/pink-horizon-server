@@ -448,6 +448,9 @@ public class ArenaManager {
             player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
         }
 
+        // 10% Chance auf zufällige Verzauberung
+        tryEnchantReward(player);
+
         // Combo increment
         plugin.getComboManager().increment(uuid);
 
@@ -787,6 +790,76 @@ public class ArenaManager {
         spawnBossInArena(arena);
         plugin.getScoreboardManager().update(player);
         player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 1.5f);
+    }
+
+    private void tryEnchantReward(Player player) {
+        if (Math.random() > 0.10) return;
+
+        // Slot → mögliche Verzauberungen (Level-Range: min, max)
+        record EnchOption(Enchantment ench, int minLvl, int maxLvl) {}
+        Map<Integer, List<EnchOption>> slotEnchants = new HashMap<>();
+        slotEnchants.put(0,  List.of(                                          // Schwert
+            new EnchOption(Enchantment.KNOCKBACK,   1, 2),
+            new EnchOption(Enchantment.FIRE_ASPECT, 1, 2),
+            new EnchOption(Enchantment.SHARPNESS,   1, 5)
+        ));
+        slotEnchants.put(1,  List.of(                                          // Bogen
+            new EnchOption(Enchantment.FLAME, 1, 1),
+            new EnchOption(Enchantment.PUNCH, 1, 2),
+            new EnchOption(Enchantment.POWER, 1, 5)
+        ));
+        slotEnchants.put(39, List.of(                                          // Helm
+            new EnchOption(Enchantment.PROTECTION,   1, 4),
+            new EnchOption(Enchantment.THORNS,       1, 3),
+            new EnchOption(Enchantment.RESPIRATION,  1, 3)
+        ));
+        slotEnchants.put(38, List.of(                                          // Chestplate
+            new EnchOption(Enchantment.PROTECTION, 1, 4),
+            new EnchOption(Enchantment.THORNS,     1, 3)
+        ));
+        slotEnchants.put(37, List.of(                                          // Leggings
+            new EnchOption(Enchantment.PROTECTION, 1, 4),
+            new EnchOption(Enchantment.THORNS,     1, 3)
+        ));
+        slotEnchants.put(36, List.of(                                          // Boots
+            new EnchOption(Enchantment.PROTECTION,    1, 4),
+            new EnchOption(Enchantment.FEATHER_FALLING, 1, 4),
+            new EnchOption(Enchantment.THORNS,        1, 3)
+        ));
+
+        List<Integer> slots = new ArrayList<>(slotEnchants.keySet());
+        Collections.shuffle(slots);
+        int count = 1 + (int) (Math.random() * 3); // 1–3 Items
+
+        List<String> enchantedNames = new ArrayList<>();
+        for (int slot : slots) {
+            if (enchantedNames.size() >= count) break;
+            ItemStack item = player.getInventory().getItem(slot);
+            if (item == null || item.getType().isAir()) continue;
+
+            List<EnchOption> options = slotEnchants.get(slot);
+            EnchOption chosen = options.get((int) (Math.random() * options.size()));
+            int level = chosen.minLvl() + (int) (Math.random() * (chosen.maxLvl() - chosen.minLvl() + 1));
+
+            item.addUnsafeEnchantment(chosen.ench(), level);
+            player.getInventory().setItem(slot, item);
+
+            String slotName = switch (slot) {
+                case 0  -> "Schwert";
+                case 1  -> "Bogen";
+                case 39 -> "Helm";
+                case 38 -> "Chestplate";
+                case 37 -> "Leggings";
+                case 36 -> "Boots";
+                default -> "Item";
+            };
+            enchantedNames.add("§f" + slotName + " §8(§d" + chosen.ench().getKey().getKey() + " " + level + "§8)");
+        }
+
+        if (!enchantedNames.isEmpty()) {
+            player.sendMessage("§d✦ §7Verzauberungsbonus! " + String.join("§7, ", enchantedNames));
+            player.playSound(player.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.2f);
+        }
     }
 
     private void spawnFireworks(Location loc) {
