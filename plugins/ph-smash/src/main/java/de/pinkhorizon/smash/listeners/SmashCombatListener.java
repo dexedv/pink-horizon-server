@@ -43,17 +43,20 @@ public class SmashCombatListener implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerHitBoss(EntityDamageByEntityEvent event) {
-        // Spieler ermitteln – direkt (Schwert) oder über Projektil (Bogen)
+        // Spieler ermitteln – direkt (Schwert/Axt) oder über Projektil (Bogen)
         Player  player;
         boolean isBow;
+        boolean isAxe;
 
         if (event.getDamager() instanceof Player p) {
             player = p;
             isBow  = false;
+            isAxe  = p.getInventory().getItemInMainHand().getType() == Material.DIAMOND_AXE;
         } else if (event.getDamager() instanceof Projectile proj
                    && proj.getShooter() instanceof Player p) {
             player = p;
             isBow  = true;
+            isAxe  = false;
         } else {
             return;
         }
@@ -80,20 +83,22 @@ public class SmashCombatListener implements Listener {
             // ── Bogenstärke ──
             raw *= plugin.getAbilityManager().getBowPowerMultiplier(uuid);
         } else {
-            // Forge: SHARPNESS
+            // Forge: SHARPNESS (gilt für Schwert + Axt)
             raw *= plugin.getForgeManager().getSharpnessMultiplier(uuid);
-            // ── Kritischer Treffer ──
-            double critChance = plugin.getAbilityManager().getCritChance(uuid);
-            if (critChance > 0 && Math.random() < critChance) {
-                raw *= 2.5;
-                player.sendMessage("§c✦ §fKritischer Treffer!");
-                player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1.2f);
-            }
-            // ── Hinrichtung (Boss < 25% HP) ──
-            double exeBonus = plugin.getAbilityManager().getExecuteBonus(uuid);
-            if (exeBonus > 0 && arena.getHpPercent() < 0.25) {
-                raw *= (1.0 + exeBonus);
-                player.sendMessage("§4⚔ §fHinrichtung!");
+            if (!isAxe) {
+                // ── Kritischer Treffer (Schwert) ──
+                double critChance = plugin.getAbilityManager().getCritChance(uuid);
+                if (critChance > 0 && Math.random() < critChance) {
+                    raw *= 2.5;
+                    player.sendMessage("§c✦ §fKritischer Treffer!");
+                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1.2f);
+                }
+                // ── Hinrichtung (Boss < 25% HP, Schwert) ──
+                double exeBonus = plugin.getAbilityManager().getExecuteBonus(uuid);
+                if (exeBonus > 0 && arena.getHpPercent() < 0.25) {
+                    raw *= (1.0 + exeBonus);
+                    player.sendMessage("§4⚔ §fHinrichtung!");
+                }
             }
         }
 
@@ -108,8 +113,8 @@ public class SmashCombatListener implements Listener {
 
         plugin.getArenaManager().applyDamage(player, raw);
 
-        // ── Wirbelwind: Doppel-Treffer (Schwert) ──
-        if (!isBow) {
+        // ── Wirbelwind: Doppel-Treffer (nur Schwert) ──
+        if (!isBow && !isAxe) {
             double wwChance = plugin.getAbilityManager().getWhirlwindChance(uuid);
             if (wwChance > 0 && Math.random() < wwChance) {
                 plugin.getArenaManager().applyDamage(player, raw * 0.5);
@@ -140,6 +145,27 @@ public class SmashCombatListener implements Listener {
                 }
                 player.sendMessage("§2☠ §aGiftpfeil!");
                 player.playSound(player.getLocation(), Sound.ENTITY_CREEPER_HURT, 0.5f, 1.5f);
+            }
+        }
+
+        // ── Blutungs-DOT (Axt) ──
+        if (isAxe) {
+            double blutungChance = plugin.getAbilityManager().getBlutungChance(uuid);
+            if (blutungChance > 0 && Math.random() < blutungChance) {
+                int    ticks     = plugin.getAbilityManager().getBlutungTicks(uuid);
+                double klafFact  = plugin.getAbilityManager().getKlaffendeWundeFactor(uuid);
+                final double    tickDmg = raw * 0.06 * klafFact;
+                final ArenaInstance pArena  = arena;
+                final Player        pPlayer = player;
+                for (int tick = 1; tick <= ticks; tick++) {
+                    final long delay = tick * 20L;
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (pArena.getBossEntity() != null && pArena.getBossEntity().isValid())
+                            plugin.getArenaManager().applyDamage(pPlayer, tickDmg);
+                    }, delay);
+                }
+                player.sendMessage("§c🩸 §fBlutung! §8(" + ticks + " Ticks)");
+                player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, 0.6f, 0.4f);
             }
         }
 

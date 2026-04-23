@@ -277,8 +277,8 @@ public class HologramManager {
             div +
             "§6§l⬆ Upgrades & Fähigkeiten" + nl +
             " §f/stb upgrades  §8» §7Angriff, Verteidigung, HP, Tempo, Lebensraub" + nl +
-            " §f/stb abilities §8» §7Fähigkeiten (Berserker, Dodge, Heilung, Münz-" + nl +
-            "                   §7Boost, Regen, Explosiv, §dIMMUN§7 – Effekt-Resist)" + nl +
+            " §f/stb abilities §8» §7Fähigkeiten: Allgemein, §c⚔ Schwert§7, §e🏹 Bogen§7," + nl +
+            "                   §b🪓 Axt §8(Blutung/Klaf. Wunde/Tiefe Hiebe)§7, §dIMMUN" + nl +
             div +
             "§6§l⚒ Schmiede & Bestiarium" + nl +
             " §f/stb forge     §8» §7Waffen-Verzauberungen schmieden" + nl +

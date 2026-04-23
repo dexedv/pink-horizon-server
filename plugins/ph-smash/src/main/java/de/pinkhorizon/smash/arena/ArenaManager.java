@@ -724,6 +724,18 @@ public class ArenaManager {
         // Slot 2 – 1 Pfeil (für Infinity benötigt)
         player.getInventory().setItem(2, new ItemStack(Material.ARROW, 1));
 
+        // Slot 3 – Axt
+        ItemStack axe = new ItemStack(Material.DIAMOND_AXE);
+        ItemMeta  am  = axe.getItemMeta();
+        am.displayName(leg.deserialize("§4§lBoss-Axt"));
+        am.lore(java.util.List.of(
+            leg.deserialize("§7Schlägt langsamer, aber schwerer"),
+            leg.deserialize("§7Verursacht §cBlutungs-DOT §7durch Fähigkeiten")));
+        am.setUnbreakable(true);
+        am.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
+        axe.setItemMeta(am);
+        player.getInventory().setItem(3, axe);
+
         // Slot 8 – Navigator-Kompass (ganz rechts)
         player.getInventory().setItem(8, SmashNavigatorListener.buildCompass());
 
@@ -769,7 +781,7 @@ public class ArenaManager {
             leg.deserialize("§8─────────────────────"),
             leg.deserialize("§7Rechtsklick §8» §aNeuen Boss starten")));
         item.setItemMeta(meta);
-        player.getInventory().setItem(3, item);
+        player.getInventory().setItem(7, item);
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 0.8f);
     }
 

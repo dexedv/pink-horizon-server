@@ -48,7 +48,15 @@ public class AbilityManager {
         MEHRFACHSCHUSS("§e🏹 Mehrfachschuss",      "4% Chance/Lv: 2. Pfeil (80% Schaden)",           10,
             new long[]{350, 800, 1600, 2800, 4600, 7500, 12000, 19000, 30000, 46000}),
         GIFTPFEIL     ("§2🏹 Giftpfeil",           "5% Chance/Lv: Gift-DOT (3× 5% des Treffers)",    10,
-            new long[]{250, 600, 1200, 2200, 3700, 6000, 9700, 15500, 24500, 38500});
+            new long[]{250, 600, 1200, 2200, 3700, 6000, 9700, 15500, 24500, 38500}),
+
+        // ── Axt-Fähigkeiten ───────────────────────────────────────────────
+        BLUTUNG        ("§c🩸 Blutung",         "5% Chance/Lv: Blutungs-DOT (N Ticks × 6% Schaden)", 15,
+            new long[]{300, 450, 650, 950, 1400, 2000, 2900, 4200, 6100, 8800, 12700, 18400, 26600, 38500, 55700}),
+        KLAFFENDE_WUNDE("§4🗡 Klaffende Wunde", "+10% Blut-DOT-Schaden/Lv (Multiplikator)",           10,
+            new long[]{400, 900, 1700, 3000, 5000, 8200, 13000, 20000, 31000, 47000}),
+        TIEFE_HIEBE    ("§8⏱ Tiefe Hiebe",      "+1 Tick/Lv Blutungsdauer (Base 3 Ticks)",             10,
+            new long[]{300, 700, 1400, 2500, 4200, 6800, 11000, 17500, 27500, 43000});
 
         public final String displayName;
         public final String effectDesc;
@@ -198,6 +206,23 @@ public class AbilityManager {
     /** Chance auf Gift-DOT (3 Ticks à 5% des Treffers, max 50% bei Lv 10). */
     public double getPoisonChance(UUID uuid) {
         return Math.min(getLevel(uuid, AbilityType.GIFTPFEIL) * 0.05, 0.50);
+    }
+
+    // ── Axt-Fähigkeiten ────────────────────────────────────────────────────
+
+    /** Blutungs-Chance (max 75% bei Lv 15). */
+    public double getBlutungChance(UUID uuid) {
+        return Math.min(getLevel(uuid, AbilityType.BLUTUNG) * 0.05, 0.75);
+    }
+
+    /** Blut-DOT-Schaden-Multiplikator (1.0 = kein Bonus). Lv10 = 2.0× */
+    public double getKlaffendeWundeFactor(UUID uuid) {
+        return 1.0 + getLevel(uuid, AbilityType.KLAFFENDE_WUNDE) * 0.10;
+    }
+
+    /** Anzahl Blutungs-Ticks (Base 3 + Level, max 13 bei Lv 10). */
+    public int getBlutungTicks(UUID uuid) {
+        return 3 + getLevel(uuid, AbilityType.TIEFE_HIEBE);
     }
 
     // ── Regen-Task ─────────────────────────────────────────────────────────

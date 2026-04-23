@@ -30,12 +30,14 @@ public class AbilityGui implements Listener {
     //  Row 1 (10-14): Allgemein
     //  Row 2 (19-21): Schwert
     //  Row 3 (28-31): Bogen
-    //  Row 4 (37)   : IMMUN
+    //  Row 4 (37-39): Axt
+    //  Row 5 (46)   : Passiv (IMMUN)
     private static final int[] SLOTS = {
         10, 11, 12, 13, 14,   // Allgemein
         19, 20, 21,            // Schwert
         28, 29, 30, 31,        // Bogen
-        37                     // Immunität
+        37, 38, 39,            // Axt
+        46                     // Passiv
     };
     private static final AbilityType[] ORDER = {
         AbilityType.BERSERKER, AbilityType.DODGE, AbilityType.HEAL_ON_KILL,
@@ -43,6 +45,7 @@ public class AbilityGui implements Listener {
         AbilityType.KRITISCH, AbilityType.HINRICHTUNG, AbilityType.WIRBELWIND,
         AbilityType.EXPLOSIVE, AbilityType.BOGENSTAERKE,
         AbilityType.MEHRFACHSCHUSS, AbilityType.GIFTPFEIL,
+        AbilityType.BLUTUNG, AbilityType.KLAFFENDE_WUNDE, AbilityType.TIEFE_HIEBE,
         AbilityType.IMMUN
     };
     private static final Material[] ICONS = {
@@ -58,6 +61,9 @@ public class AbilityGui implements Listener {
         Material.BOW,                     // BOGENSTAERKE
         Material.SPECTRAL_ARROW,          // MEHRFACHSCHUSS
         Material.SLIME_BALL,              // GIFTPFEIL
+        Material.IRON_AXE,                // BLUTUNG
+        Material.NETHERITE_AXE,           // KLAFFENDE_WUNDE
+        Material.DIAMOND_AXE,             // TIEFE_HIEBE
         Material.SHIELD                   // IMMUN
     };
 
@@ -111,7 +117,8 @@ public class AbilityGui implements Listener {
         inv.setItem(9,  makeLabelPane(Material.LIME_STAINED_GLASS_PANE,   "§a§l✦ Allgemein"));
         inv.setItem(18, makeLabelPane(Material.RED_STAINED_GLASS_PANE,    "§c§l⚔ Schwert"));
         inv.setItem(27, makeLabelPane(Material.YELLOW_STAINED_GLASS_PANE, "§e§l🏹 Bogen"));
-        inv.setItem(36, makeLabelPane(Material.PURPLE_STAINED_GLASS_PANE, "§d§l🛡 Passiv"));
+        inv.setItem(36, makeLabelPane(Material.CYAN_STAINED_GLASS_PANE,   "§b§l🪓 Axt"));
+        inv.setItem(45, makeLabelPane(Material.PURPLE_STAINED_GLASS_PANE, "§d§l🛡 Passiv"));
 
         // Resource info items (rechte Spalte)
         inv.setItem(15, buildItemInfo(uid, LootItem.IRON_FRAGMENT,  Material.IRON_INGOT,  ironQty));
@@ -173,6 +180,9 @@ public class AbilityGui implements Listener {
             case BOGENSTAERKE   -> "§a+" + (level * 5) + "% §7Bogen-Schaden";
             case MEHRFACHSCHUSS -> "§e" + (level * 4) + "% §7Chance: 2. Pfeil §8(80% Schaden)";
             case GIFTPFEIL      -> "§2" + (level * 5) + "% §7Chance: Gift-DOT §8(3× 5% des Treffers)";
+            case BLUTUNG         -> "§c" + (level * 5) + "% §7Blutungs-Chance §8(" + (3 + AbilityType.TIEFE_HIEBE.maxLevel) + " Ticks max × 6%)";
+            case KLAFFENDE_WUNDE -> "§4+" + (level * 10) + "% §7Blut-DOT-Schaden §8(Multiplikator)";
+            case TIEFE_HIEBE     -> "§7+" + level + " §7Tick(s) §8(Gesamt: " + (3 + level) + " Ticks)";
         };
     }
 
