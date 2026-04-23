@@ -106,6 +106,11 @@ public class SmashNavigatorListener implements Listener {
             "§6§l★ Fähigkeiten",
             List.of("§7Kaufe Fähigkeiten mit Münzen", "§a▶ Klicken")));
 
+        // Slot 20 – Shop
+        inv.setItem(20, nav(Material.EMERALD,
+            "§a§l☆ Shop",
+            List.of("§7Kaufe Tränke & Items mit Münzen", "§a▶ Klicken")));
+
         // Slot 22 – Statistiken
         inv.setItem(22, nav(Material.PAPER,
             "§e§l✦ Statistiken",
@@ -138,6 +143,10 @@ public class SmashNavigatorListener implements Listener {
             case 16 -> {
                 player.closeInventory();
                 Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getAbilityGui().open(player), 1L);
+            }
+            case 20 -> {
+                player.closeInventory();
+                Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getShopGui().open(player), 1L);
             }
             case 22 -> {
                 player.closeInventory();

@@ -4,6 +4,7 @@ import de.pinkhorizon.smash.arena.ArenaManager;
 import de.pinkhorizon.smash.commands.SmashCommand;
 import de.pinkhorizon.smash.database.SmashDatabaseManager;
 import de.pinkhorizon.smash.gui.AbilityGui;
+import de.pinkhorizon.smash.gui.ShopGui;
 import de.pinkhorizon.smash.gui.UpgradeGui;
 import de.pinkhorizon.smash.hologram.HologramManager;
 import de.pinkhorizon.smash.listeners.SmashCombatListener;
@@ -31,6 +32,7 @@ public class PHSmash extends JavaPlugin {
     private SmashTabManager        tabManager;
     private UpgradeGui             upgradeGui;
     private AbilityGui             abilityGui;
+    private ShopGui                shopGui;
     private NpcManager             npcManager;
     private HologramManager        hologramManager;
 
@@ -61,6 +63,7 @@ public class PHSmash extends JavaPlugin {
         tabManager         = new SmashTabManager(this);
         upgradeGui         = new UpgradeGui(this);
         abilityGui         = new AbilityGui(this);
+        shopGui            = new ShopGui(this);
 
         // Commands
         SmashCommand smashCmd = new SmashCommand(this);
@@ -77,6 +80,7 @@ public class PHSmash extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SmashNavigatorListener(this), this);
         getServer().getPluginManager().registerEvents(upgradeGui, this);
         getServer().getPluginManager().registerEvents(abilityGui, this);
+        getServer().getPluginManager().registerEvents(shopGui, this);
         getServer().getPluginManager().registerEvents(npcManager, this);
 
         // Template-Welt (Lobby) konfigurieren: kein Mob-Spawn, kein Tageszyklus
@@ -116,6 +120,7 @@ public class PHSmash extends JavaPlugin {
     public SmashTabManager        getTabManager()       { return tabManager; }
     public UpgradeGui             getUpgradeGui()       { return upgradeGui; }
     public AbilityGui             getAbilityGui()       { return abilityGui; }
+    public ShopGui                getShopGui()          { return shopGui; }
     public NpcManager             getNpcManager()       { return npcManager; }
     public HologramManager        getHologramManager()  { return hologramManager; }
 }

@@ -1061,17 +1061,50 @@ app.get('/api/audit', auth, (req, res) => {
 
 app.get('/api/smash/overview', auth, async (req, res) => {
   try {
-    const [[state]]   = await poolSmash.query('SELECT boss_level FROM smash_state WHERE id = 1');
-    const [[players]] = await poolSmash.query('SELECT COUNT(*) AS cnt FROM smash_players');
-    const [[kills]]   = await poolSmash.query('SELECT SUM(kills) AS total FROM smash_players');
-    res.json({ ok: true, bossLevel: state?.boss_level ?? 1, totalPlayers: players?.cnt ?? 0, totalKills: kills?.total ?? 0 });
+    const [[players]]   = await poolSmash.query('SELECT COUNT(*) AS cnt FROM smash_players');
+    const [[kills]]     = await poolSmash.query('SELECT SUM(kills) AS total FROM smash_players');
+    const [[topLevel]]  = await poolSmash.query('SELECT MAX(personal_level) AS max_lvl FROM smash_players');
+    const [[coinSum]]   = await poolSmash.query('SELECT COALESCE(SUM(coins),0) AS total FROM smash_coins');
+    res.json({
+      ok: true,
+      totalPlayers: players?.cnt      ?? 0,
+      totalKills:   kills?.total      ?? 0,
+      topBossLevel: topLevel?.max_lvl ?? 0,
+      totalCoins:   Number(coinSum?.total ?? 0),
+    });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 app.get('/api/smash/leaderboard', auth, async (req, res) => {
   try {
-    const [rows] = await poolSmash.query(
-      'SELECT uuid, kills, total_damage, best_level FROM smash_players ORDER BY kills DESC LIMIT 10');
+    const [rows] = await poolSmash.query(`
+      SELECT p.uuid, p.kills, p.total_damage, p.personal_level, p.best_level,
+             COALESCE(c.coins, 0) AS coins
+      FROM smash_players p
+      LEFT JOIN smash_coins c ON p.uuid = c.uuid
+      ORDER BY p.kills DESC LIMIT 10`);
+    res.json({ ok: true, rows });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/smash/level-lb', auth, async (req, res) => {
+  try {
+    const [rows] = await poolSmash.query(`
+      SELECT p.uuid, p.personal_level, p.kills, COALESCE(c.coins, 0) AS coins
+      FROM smash_players p
+      LEFT JOIN smash_coins c ON p.uuid = c.uuid
+      ORDER BY p.personal_level DESC LIMIT 10`);
+    res.json({ ok: true, rows });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/smash/coins-lb', auth, async (req, res) => {
+  try {
+    const [rows] = await poolSmash.query(`
+      SELECT c.uuid, c.coins, p.kills, p.personal_level
+      FROM smash_coins c
+      LEFT JOIN smash_players p ON c.uuid = p.uuid
+      ORDER BY c.coins DESC LIMIT 10`);
     res.json({ ok: true, rows });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });

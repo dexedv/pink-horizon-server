@@ -2341,49 +2341,91 @@ async function saveMotd(srv) {
 }
 
 // ── Smash the Boss ────────────────────────────────────────────────────────
+let smashLbTab = 'kills';
+
 async function renderSmash() {
   setHdr('⚔ Smash the Boss', `<button class="btn" onclick="renderSmash()">↺ Aktualisieren</button>`);
   const c = document.getElementById('page-content');
   c.innerHTML = `<div class="page">
-    <div class="g3" id="smash-kpi"><div class="empty">Lade…</div></div>
+    <div class="g4" id="smash-kpi">
+      <div class="card stat-card"><span class="stat-icon">⚡</span><div><div class="stat-lbl">Aktueller Boss-Level</div><div class="stat-val" id="sk-level" style="color:#F44336">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">👤</span><div><div class="stat-lbl">Registrierte Spieler</div><div class="stat-val" id="sk-players">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">💀</span><div><div class="stat-lbl">Gesamt-Kills</div><div class="stat-val" id="sk-kills" style="color:#9C27B0">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🪙</span><div><div class="stat-lbl">Coins im Umlauf</div><div class="stat-val" id="sk-coins" style="color:var(--yellow)">—</div></div></div>
+    </div>
     <div class="card">
-      <div class="card-hdr">🏆 Leaderboard – Top 10 Kills</div>
+      <div class="rtabs" style="margin-bottom:10px">
+        <button class="rtab ${smashLbTab==='kills'?'active':''}"  onclick="smashTab('kills')">💀 Kills</button>
+        <button class="rtab ${smashLbTab==='level'?'active':''}"  onclick="smashTab('level')">⚡ Boss-Level</button>
+        <button class="rtab ${smashLbTab==='coins'?'active':''}"  onclick="smashTab('coins')">🪙 Münzen</button>
+      </div>
       <div id="smash-lb"><div class="empty">Lade…</div></div>
     </div>
   </div>`;
 
-  const [ov, lb] = await Promise.all([
-    apiFetch('/api/smash/overview'),
-    apiFetch('/api/smash/leaderboard')
-  ]);
-
+  const ov = await apiFetch('/api/smash/overview');
   if (ov?.ok) {
-    document.getElementById('smash-kpi').innerHTML = [
-      { label: '⚡ Globaler Boss-Level', val: ov.bossLevel,    color: '#F44336' },
-      { label: '👤 Registrierte Spieler', val: ov.totalPlayers, color: '#FF9800' },
-      { label: '💀 Gesamt-Kills',         val: ov.totalKills,   color: '#9C27B0' },
-    ].map(k => `<div class="kpi-card" style="border-color:${k.color}">
-      <div class="kpi-val" style="color:${k.color}">${k.val ?? 0}</div>
-      <div class="kpi-lbl">${k.label}</div>
-    </div>`).join('');
+    document.getElementById('sk-level').textContent   = Number(ov.topBossLevel   ?? 0).toLocaleString('de-DE');
+    document.getElementById('sk-players').textContent = Number(ov.totalPlayers   ?? 0).toLocaleString('de-DE');
+    document.getElementById('sk-kills').textContent   = Number(ov.totalKills     ?? 0).toLocaleString('de-DE');
+    document.getElementById('sk-coins').textContent   = Number(ov.totalCoins     ?? 0).toLocaleString('de-DE');
   }
 
-  if (lb?.ok && lb.rows?.length) {
-    document.getElementById('smash-lb').innerHTML = `
-      <table class="data-table">
-        <thead><tr><th>#</th><th>UUID</th><th>Kills</th><th>Gesamt-Schaden</th><th>Bestes Level</th></tr></thead>
-        <tbody>${lb.rows.map((r,i) => `
-          <tr>
-            <td>${i+1}</td>
-            <td style="font-family:monospace;font-size:0.8em">${r.uuid}</td>
-            <td style="color:#F44336;font-weight:bold">${r.kills}</td>
-            <td>${Number(r.total_damage).toLocaleString()}</td>
-            <td style="color:#FF9800">${r.best_level}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
+  await smashLoadLb();
+}
+
+async function smashTab(tab) {
+  smashLbTab = tab;
+  document.querySelectorAll('#page-content .rtab').forEach(b => {
+    b.classList.toggle('active', b.textContent.toLowerCase().includes(
+      tab === 'kills' ? 'kill' : tab === 'level' ? 'boss' : 'münz'));
+  });
+  await smashLoadLb();
+}
+
+async function smashLoadLb() {
+  const el = document.getElementById('smash-lb');
+  if (!el) return;
+  el.innerHTML = '<div class="empty">Lade…</div>';
+
+  const endpoints = { kills: '/api/smash/leaderboard', level: '/api/smash/level-lb', coins: '/api/smash/coins-lb' };
+  const data = await apiFetch(endpoints[smashLbTab]);
+
+  if (!data?.ok || !data.rows?.length) {
+    el.innerHTML = '<div class="empty">Noch keine Daten vorhanden.</div>';
+    return;
+  }
+
+  const rankColor = i => i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'var(--muted)';
+
+  if (smashLbTab === 'kills') {
+    el.innerHTML = `<div class="lb-table">${data.rows.map((r,i) => `
+      <div class="lb-row">
+        <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+        <span style="flex:2;font-family:var(--mono);font-size:.82em;color:var(--muted)">${r.uuid}</span>
+        <span style="color:#e74c3c;font-weight:700;min-width:60px">💀 ${Number(r.kills).toLocaleString('de-DE')}</span>
+        <span style="color:var(--muted);font-size:.82em;min-width:120px">Schaden: ${Number(r.total_damage).toLocaleString('de-DE')}</span>
+        <span style="color:#FF9800;min-width:80px">Lv. ${r.personal_level ?? r.best_level ?? 0}</span>
+        <span style="color:var(--yellow);min-width:80px">🪙 ${Number(r.coins ?? 0).toLocaleString('de-DE')}</span>
+      </div>`).join('')}</div>`;
+  } else if (smashLbTab === 'level') {
+    el.innerHTML = `<div class="lb-table">${data.rows.map((r,i) => `
+      <div class="lb-row">
+        <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+        <span style="flex:2;font-family:var(--mono);font-size:.82em;color:var(--muted)">${r.uuid}</span>
+        <span style="color:#F44336;font-weight:700;min-width:100px">⚡ Level ${Number(r.personal_level).toLocaleString('de-DE')}</span>
+        <span style="color:#e74c3c;min-width:80px">💀 ${Number(r.kills ?? 0).toLocaleString('de-DE')} Kills</span>
+        <span style="color:var(--yellow);min-width:80px">🪙 ${Number(r.coins ?? 0).toLocaleString('de-DE')}</span>
+      </div>`).join('')}</div>`;
   } else {
-    document.getElementById('smash-lb').innerHTML = '<div class="empty">Noch keine Daten vorhanden.</div>';
+    el.innerHTML = `<div class="lb-table">${data.rows.map((r,i) => `
+      <div class="lb-row">
+        <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+        <span style="flex:2;font-family:var(--mono);font-size:.82em;color:var(--muted)">${r.uuid}</span>
+        <span style="color:var(--yellow);font-weight:700;min-width:120px">🪙 ${Number(r.coins).toLocaleString('de-DE')} Münzen</span>
+        <span style="color:#e74c3c;min-width:80px">💀 ${Number(r.kills ?? 0).toLocaleString('de-DE')} Kills</span>
+        <span style="color:#FF9800;min-width:80px">Lv. ${r.personal_level ?? 0}</span>
+      </div>`).join('')}</div>`;
   }
 }
 
