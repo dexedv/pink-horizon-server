@@ -29,7 +29,10 @@ public class ArenaInstance {
     private long               rageEndTime     = 0;
     // Boss modifiers (v3)
     private Set<BossModifierManager.BossModifier> modifiers = EnumSet.noneOf(BossModifierManager.BossModifier.class);
-    private BukkitTask         regenTask       = null;
+    private BukkitTask         regenTask         = null;
+    // Warte-Spawn (Spieler muss manuell starten)
+    private boolean            bossReadyToSpawn  = false;
+    private int                nextBossLevel     = 1;
 
     public ArenaInstance(UUID playerUuid, String worldName, int bossLevel) {
         this.playerUuid    = playerUuid;
@@ -96,4 +99,9 @@ public class ArenaInstance {
     public void setModifiers(Set<BossModifierManager.BossModifier> m)                             { modifiers = m; }
     public BukkitTask getRegenTask()                                                               { return regenTask; }
     public void       setRegenTask(BukkitTask t)                                                   { this.regenTask = t; }
+    // Warte-Spawn
+    public boolean    isBossReadyToSpawn()                                                         { return bossReadyToSpawn; }
+    public void       setBossReadyToSpawn(boolean b)                                               { this.bossReadyToSpawn = b; }
+    public int        getNextBossLevel()                                                            { return nextBossLevel; }
+    public void       setNextBossLevel(int l)                                                       { this.nextBossLevel = l; }
 }

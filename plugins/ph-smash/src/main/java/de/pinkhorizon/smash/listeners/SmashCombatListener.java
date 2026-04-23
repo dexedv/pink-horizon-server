@@ -12,11 +12,19 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import de.pinkhorizon.smash.arena.ArenaManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -152,5 +160,24 @@ public class SmashCombatListener implements Listener {
                 return;
             }
         }
+    }
+
+    /** Rechtsklick auf den Boss-Ruf-Kristall → Boss starten */
+    @EventHandler
+    public void onSummonItemClick(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        Action a = event.getAction();
+        if (a != Action.RIGHT_CLICK_AIR && a != Action.RIGHT_CLICK_BLOCK) return;
+
+        Player    player = event.getPlayer();
+        ItemStack item   = player.getInventory().getItemInMainHand();
+        if (item.getType() != Material.NETHER_STAR || !item.hasItemMeta()) return;
+
+        Component name = item.getItemMeta().displayName();
+        if (name == null) return;
+        if (!LegacyComponentSerializer.legacySection().serialize(name).contains(ArenaManager.SUMMON_ITEM_NAME)) return;
+
+        event.setCancelled(true);
+        plugin.getArenaManager().triggerBossSpawn(player);
     }
 }

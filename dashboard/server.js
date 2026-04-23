@@ -1111,6 +1111,39 @@ app.get('/api/smash/coins-lb', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+app.get('/api/smash/prestige-lb', auth, async (req, res) => {
+  try {
+    const [rows] = await poolSmash.query(`
+      SELECT pr.uuid, COALESCE(p.name, pr.uuid) AS name, pr.prestige,
+             p.kills, COALESCE(c.coins, 0) AS coins
+      FROM smash_prestige pr
+      LEFT JOIN smash_players p  ON p.uuid  = pr.uuid
+      LEFT JOIN smash_coins   c  ON c.uuid  = pr.uuid
+      WHERE pr.prestige > 0
+      ORDER BY pr.prestige DESC LIMIT 10`);
+    res.json({ ok: true, rows });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/smash/weekly-lb', auth, async (req, res) => {
+  try {
+    // Monday of current week (ISO)
+    const now  = new Date();
+    const day  = now.getDay(); // 0=Sun
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const mon  = new Date(now.setDate(diff));
+    const weekStart = mon.toISOString().slice(0, 10);
+
+    const [rows] = await poolSmash.query(`
+      SELECT w.uuid, COALESCE(p.name, w.uuid) AS name, w.kills, w.best_level
+      FROM smash_weekly w
+      LEFT JOIN smash_players p ON p.uuid = w.uuid
+      WHERE w.week_start = ?
+      ORDER BY w.kills DESC LIMIT 10`, [weekStart]);
+    res.json({ ok: true, rows, weekStart });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── REST-API: Economy-Übersicht ───────────────────────────────────────────
 
 app.get('/api/economy/overview', auth, async (req, res) => {

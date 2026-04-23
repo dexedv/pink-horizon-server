@@ -432,14 +432,17 @@ public class ArenaManager {
             Component.text("Level " + defeatedLevel + " → " + nextLevel, NamedTextColor.GRAY),
             Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(3), Duration.ofMillis(500))));
         player.sendMessage("§c§l⚡ §7Boss Level §c" + defeatedLevel + " §7besiegt! Nächster: §cLevel " + nextLevel);
+        player.sendMessage("§a▶ §7Rechtsklick §8» §7Boss-Ruf-Kristall §7um den nächsten Boss zu starten!");
 
         spawnFireworks(player.getLocation());
 
-        // Nächsten Boss nach 3 Sekunden spawnen
+        // Warten bis Spieler bereit: Summon-Item geben statt Auto-Spawn
         arena.resetForNextBoss(nextLevel);
+        arena.setNextBossLevel(nextLevel);
+        arena.setBossReadyToSpawn(true);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (arenas.containsKey(uuid) && player.isOnline()) {
-                spawnBossInArena(arena);
+                giveSummonItem(player, nextLevel);
                 plugin.getScoreboardManager().update(player);
             }
         }, 60L);
@@ -686,6 +689,47 @@ public class ArenaManager {
         meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);
         return item;
+    }
+
+    // ── Summon-Item ────────────────────────────────────────────────────────
+
+    public static final String SUMMON_ITEM_NAME = "Boss-Ruf-Kristall";
+
+    private void giveSummonItem(Player player, int nextLevel) {
+        LegacyComponentSerializer leg = LegacyComponentSerializer.legacySection();
+        ItemStack item = new ItemStack(Material.NETHER_STAR);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(leg.deserialize("§a§l▶ " + SUMMON_ITEM_NAME));
+        meta.lore(java.util.List.of(
+            leg.deserialize("§7Nächster Boss: §cLevel " + nextLevel),
+            leg.deserialize("§8─────────────────────"),
+            leg.deserialize("§7Rechtsklick §8» §aNeuen Boss starten")));
+        item.setItemMeta(meta);
+        player.getInventory().setItem(3, item);
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 0.8f);
+    }
+
+    /** Wird aufgerufen wenn Spieler den Boss-Ruf-Kristall rechtsklickt */
+    public void triggerBossSpawn(Player player) {
+        ArenaInstance arena = arenas.get(player.getUniqueId());
+        if (arena == null || !arena.isBossReadyToSpawn()) return;
+        arena.setBossReadyToSpawn(false);
+
+        // Summon-Item entfernen
+        for (int i = 0; i < player.getInventory().getSize(); i++) {
+            ItemStack it = player.getInventory().getItem(i);
+            if (it != null && it.getType() == Material.NETHER_STAR && it.hasItemMeta()) {
+                Component name = it.getItemMeta().displayName();
+                if (name != null && LegacyComponentSerializer.legacySection().serialize(name).contains(SUMMON_ITEM_NAME)) {
+                    player.getInventory().setItem(i, null);
+                    break;
+                }
+            }
+        }
+
+        spawnBossInArena(arena);
+        plugin.getScoreboardManager().update(player);
+        player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 1.5f);
     }
 
     private void spawnFireworks(Location loc) {

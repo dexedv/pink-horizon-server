@@ -2355,9 +2355,11 @@ async function renderSmash() {
     </div>
     <div class="card">
       <div class="rtabs" style="margin-bottom:10px">
-        <button class="rtab ${smashLbTab==='kills'?'active':''}"  onclick="smashTab('kills')">💀 Kills</button>
-        <button class="rtab ${smashLbTab==='level'?'active':''}"  onclick="smashTab('level')">⚡ Boss-Level</button>
-        <button class="rtab ${smashLbTab==='coins'?'active':''}"  onclick="smashTab('coins')">🪙 Münzen</button>
+        <button class="rtab ${smashLbTab==='kills'?'active':''}"   onclick="smashTab('kills')">💀 Kills</button>
+        <button class="rtab ${smashLbTab==='level'?'active':''}"   onclick="smashTab('level')">⚡ Boss-Level</button>
+        <button class="rtab ${smashLbTab==='coins'?'active':''}"   onclick="smashTab('coins')">🪙 Münzen</button>
+        <button class="rtab ${smashLbTab==='prestige'?'active':''}" onclick="smashTab('prestige')">✦ Prestige</button>
+        <button class="rtab ${smashLbTab==='weekly'?'active':''}"  onclick="smashTab('weekly')">🏆 Woche</button>
       </div>
       <div id="smash-lb"><div class="empty">Lade…</div></div>
     </div>
@@ -2378,8 +2380,13 @@ async function renderSmash() {
 async function smashTab(tab) {
   smashLbTab = tab;
   document.querySelectorAll('#page-content .rtab').forEach(b => {
-    b.classList.toggle('active', b.textContent.toLowerCase().includes(
-      tab === 'kills' ? 'kill' : tab === 'level' ? 'boss' : 'münz'));
+    const t = b.textContent.toLowerCase();
+    b.classList.toggle('active',
+      tab === 'kills'    ? t.includes('kill')    :
+      tab === 'level'    ? t.includes('boss')    :
+      tab === 'coins'    ? t.includes('münz')    :
+      tab === 'prestige' ? t.includes('prestige') :
+      tab === 'weekly'   ? t.includes('woche')   : false);
   });
   await smashLoadLb();
 }
@@ -2389,7 +2396,13 @@ async function smashLoadLb() {
   if (!el) return;
   el.innerHTML = '<div class="empty">Lade…</div>';
 
-  const endpoints = { kills: '/api/smash/leaderboard', level: '/api/smash/level-lb', coins: '/api/smash/coins-lb' };
+  const endpoints = {
+    kills:    '/api/smash/leaderboard',
+    level:    '/api/smash/level-lb',
+    coins:    '/api/smash/coins-lb',
+    prestige: '/api/smash/prestige-lb',
+    weekly:   '/api/smash/weekly-lb'
+  };
   const r = await apiFetch(endpoints[smashLbTab]);
   if (!r?.ok) { el.innerHTML = '<div class="empty">Fehler beim Laden.</div>'; return; }
   const data = await r.json();
@@ -2419,6 +2432,25 @@ async function smashLoadLb() {
         <span style="color:#F44336;font-weight:700;min-width:110px">⚡ Level ${Number(r.personal_level).toLocaleString('de-DE')}</span>
         <span style="color:#e74c3c;min-width:90px">💀 ${Number(r.kills ?? 0).toLocaleString('de-DE')} Kills</span>
         <span style="color:var(--yellow);min-width:90px">🪙 ${Number(r.coins ?? 0).toLocaleString('de-DE')}</span>
+      </div>`).join('')}</div>`;
+  } else if (smashLbTab === 'prestige') {
+    el.innerHTML = `<div class="lb-table">${data.rows.map((r,i) => `
+      <div class="lb-row">
+        <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+        <span style="flex:2;font-weight:600">${escH(r.name)}</span>
+        <span style="color:#d966ff;font-weight:700;min-width:130px">✦ ${Number(r.prestige).toLocaleString('de-DE')} Prestige</span>
+        <span style="color:#e74c3c;min-width:90px">💀 ${Number(r.kills ?? 0).toLocaleString('de-DE')} Kills</span>
+        <span style="color:var(--yellow);min-width:90px">🪙 ${Number(r.coins ?? 0).toLocaleString('de-DE')}</span>
+      </div>`).join('')}</div>`;
+  } else if (smashLbTab === 'weekly') {
+    const weekLabel = data.weekStart ? `KW ab ${data.weekStart}` : 'Aktuelle Woche';
+    el.innerHTML = `<div style="color:var(--muted);font-size:0.82em;margin-bottom:6px">🏆 Wöchentliches Turnier – ${weekLabel}</div>
+      <div class="lb-table">${data.rows.map((r,i) => `
+      <div class="lb-row">
+        <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+        <span style="flex:2;font-weight:600">${escH(r.name ?? r.uuid)}</span>
+        <span style="color:#FFD700;font-weight:700;min-width:130px">🏅 ${Number(r.kills).toLocaleString('de-DE')} Boss-Kills</span>
+        <span style="color:#FF9800;min-width:110px">⚡ Best Lv. ${Number(r.best_level ?? 0).toLocaleString('de-DE')}</span>
       </div>`).join('')}</div>`;
   } else {
     el.innerHTML = `<div class="lb-table">${data.rows.map((r,i) => `

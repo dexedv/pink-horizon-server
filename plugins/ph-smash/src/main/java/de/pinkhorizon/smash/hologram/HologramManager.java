@@ -268,37 +268,40 @@ public class HologramManager {
             "§b§l≡ §r§c§lSmash the Boss §b§l≡" + nl +
             div +
             "§e§l✦ Allgemein" + nl +
-            " §7Rechtsklick Kompas §8» §aNavigator öffnen" + nl +
-            " §f/stb join      §8» §7Arena betreten" + nl +
-            " §f/stb leave     §8» §7Arena verlassen" + nl +
-            " §f/stb stats     §8» §7Deine Statistiken" + nl +
-            " §f/stb coins     §8» §7Münzstand anzeigen" + nl +
+            " §7NPC §8»  §aArena betreten §8oder §cArena verlassen" + nl +
+            " §7Kompass §8» §7Navigator öffnen" + nl +
+            " §f/stb join     §8» §7Arena betreten" + nl +
+            " §f/stb leave    §8» §7Arena verlassen" + nl +
+            " §f/stb stats    §8» §7Deine Statistiken" + nl +
+            " §f/stb coins    §8» §7Münzstand anzeigen" + nl +
             div +
             "§6§l⬆ Upgrades & Fähigkeiten" + nl +
             " §f/stb upgrades  §8» §7Item-Upgrades kaufen" + nl +
             " §f/stb abilities §8» §7Fähigkeiten freischalten" + nl +
             div +
-            "§5§l✦ Talente, Runen & Tägliche Quests" + nl +
-            " §7Im Navigator §8(Kompas) §8» §5Talente" + nl +
-            " §7  Passive Boni – kosten Boss-Kerne" + nl +
-            " §7Im Navigator §8(Kompas) §8» §cRunen" + nl +
-            " §7  Temporäre Boni für 3 Bosse" + nl +
-            " §7Im Navigator §8(Kompas) §8» §eTägliche Quests" + nl +
-            " §7  3 neue Aufgaben täglich für Münzen" + nl +
+            "§6§l⚒ Schmiede & Bestiarium" + nl +
+            " §f/stb forge     §8» §7Waffen-Verzauberungen schmieden" + nl +
+            " §f/stb bestiary  §8» §7Boss-Kills nach Typ ansehen" + nl +
+            " §7Im Navigator §8» §6Schmiede §8/ §2Bestiarium" + nl +
             div +
-            "§d§l✦ Prestige" + nl +
+            "§5§l✦ Talente, Runen & Tägliche Quests" + nl +
             " §f/stb prestige  §8» §7Prestige (ab Boss-Level §c999§7)" + nl +
-            " §7Setzt Upgrades zurück, §d+5% §7perm. Schaden" + nl +
+            " §7Im Navigator §8» §5Talente §8/ §cRunen §8/ §eTägl. Quests" + nl +
+            div +
+            "§e§l⏳ Turnier & Kopfgeld" + nl +
+            " §f/stb weekly   §8» §7Wöchentl. Turnier-Rangliste" + nl +
+            " §f/stb bounty   §8» §7Tages-Kopfgeld ansehen" + nl +
+            " §7Tages-Kopfgeld: §6+1000 Coins §8+ §d3x Boss-Kern" + nl +
             div +
             "§a§l☆ Shop" + nl +
-            " §7Im Navigator §8(Kompas) §8» §aShop" + nl +
-            " §7Kaufe Tränke & Äpfel mit Münzen" + nl +
+            " §7Im Navigator §8» §aShop §8– Tränke & Items" + nl +
             div +
             "§c§l⚔ Kampf-Tipps" + nl +
-            " §7Links §8» §fSchwert §7| §7Rechts §8» §fBogen" + nl +
+            " §7Schwert §8& §7Bogen schaden skalieren mit Upgrades" + nl +
             " §7Boss-Phasen: §e75% §8/ §c50% Rage §8/ §425% Heilung" + nl +
-            " §7Stirbst du? §7Streak geht verloren!" + nl +
-            " §7Boss stirbt? §aNeuer Boss spawnt!" + nl +
+            " §7Combo-System: §e+2% §7Schaden pro Treffer §8(max §e+50%§8)" + nl +
+            " §7Stirbst du? §cStreak verloren!" + nl +
+            " §aNach Boss-Sieg: §fKristall Rechtsklick §8» §anächsten Boss!" + nl +
             div +
             "§8play.pinkhorizon.fun"
         );
