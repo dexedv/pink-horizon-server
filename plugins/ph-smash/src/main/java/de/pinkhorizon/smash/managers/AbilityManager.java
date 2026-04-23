@@ -147,7 +147,7 @@ public class AbilityManager {
 
     /** Chance (0.0–0.50) negative Boss-Effekte zu blocken. */
     public double getEffectResistChance(UUID uuid) {
-        return getLevel(uuid, AbilityType.IMMUN) * 0.01;
+        return Math.min(getLevel(uuid, AbilityType.IMMUN), AbilityType.IMMUN.maxLevel) * 0.01;
     }
 
     // ── Regen-Task ─────────────────────────────────────────────────────────

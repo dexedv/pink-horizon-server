@@ -16,7 +16,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class AbilityGui implements Listener {
 
@@ -36,7 +39,8 @@ public class AbilityGui implements Listener {
         Material.SHIELD                 // IMMUN
     };
 
-    private final PHSmash plugin;
+    private final PHSmash   plugin;
+    private final Set<UUID> upgrading = new HashSet<>();
 
     public AbilityGui(PHSmash plugin) {
         this.plugin = plugin;
@@ -132,13 +136,18 @@ public class AbilityGui implements Listener {
         // Close button
         if (slot == 49) { player.closeInventory(); return; }
 
+        UUID uid = player.getUniqueId();
+        if (upgrading.contains(uid)) return;
+
         for (int i = 0; i < SLOTS.length; i++) {
             if (slot != SLOTS[i]) continue;
             AbilityType type = ORDER[i];
             Inventory inv = event.getInventory();
+            upgrading.add(uid);
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                 boolean ok = plugin.getAbilityManager().tryUpgrade(player, type);
                 Bukkit.getScheduler().runTask(plugin, () -> {
+                    upgrading.remove(uid);
                     if (ok && player.isOnline()) {
                         fillGui(inv, player);
                         plugin.getScoreboardManager().update(player);
