@@ -93,7 +93,9 @@ public class SmashCombatListener implements Listener {
 
         // ── Feuerball-Handler ──────────────────────────────────────────────
         if (isFireball) {
-            raw = FIREBALL_BASE_DMG * plugin.getAbilityManager().getFireballPowerMultiplier(uuid);
+            raw = FIREBALL_BASE_DMG
+                * plugin.getAbilityManager().getFireballPowerMultiplier(uuid)
+                * plugin.getForgeManager().getPowerMultiplier(uuid);
             plugin.getArenaManager().applyDamage(player, raw);
 
             // Doppelfeuer: zweiter Feuerball (80% Schaden)
