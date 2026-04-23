@@ -7,6 +7,9 @@ import de.pinkhorizon.smash.gui.UpgradeGui;
 import de.pinkhorizon.smash.listeners.SmashCombatListener;
 import de.pinkhorizon.smash.listeners.SmashJoinListener;
 import de.pinkhorizon.smash.managers.*;
+import org.bukkit.Difficulty;
+import org.bukkit.GameRule;
+import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.sql.SQLException;
@@ -56,6 +59,18 @@ public class PHSmash extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SmashCombatListener(this), this);
         getServer().getPluginManager().registerEvents(new SmashJoinListener(this), this);
         getServer().getPluginManager().registerEvents(upgradeGui, this);
+
+        // Template-Welt (Lobby) konfigurieren: kein Mob-Spawn, kein Tageszyklus
+        getServer().getScheduler().runTask(this, () -> {
+            for (World w : getServer().getWorlds()) {
+                w.setGameRule(GameRule.DO_MOB_SPAWNING,   false);
+                w.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+                w.setGameRule(GameRule.DO_WEATHER_CYCLE,  false);
+                w.setGameRule(GameRule.DO_FIRE_TICK,      false);
+                w.setDifficulty(Difficulty.PEACEFUL);
+                w.setTime(6000);
+            }
+        });
 
         getLogger().info("PH-Smash gestartet! Jeder Spieler bekommt seine eigene Arena.");
     }

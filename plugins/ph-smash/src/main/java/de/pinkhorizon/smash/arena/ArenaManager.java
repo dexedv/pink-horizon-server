@@ -16,6 +16,10 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import java.io.*;
 import java.nio.file.*;
@@ -89,6 +93,7 @@ public class ArenaManager {
                 arena.setWorld(world);
                 spawnBossInArena(arena);
                 player.teleport(getPlayerSpawn(world));
+                giveArenaItems(player);
                 player.sendMessage("§a✔ §7Arena bereit! Besieg Boss Level §c" + arena.getBossLevel() + "§7!");
                 plugin.getScoreboardManager().update(player);
             });
@@ -364,6 +369,48 @@ public class ArenaManager {
             World main = Bukkit.getWorlds().get(0);
             player.teleport(main.getSpawnLocation());
         }
+    }
+
+    private void giveArenaItems(Player player) {
+        player.getInventory().clear();
+
+        // Schwert – Schaden kommt vom Upgrade-Multiplikator, nicht von Verzauberungen
+        ItemStack sword = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta  sm    = sword.getItemMeta();
+        sm.displayName(LegacyComponentSerializer.legacySection().deserialize("§c§lBoss-Schwert"));
+        sm.lore(java.util.List.of(LegacyComponentSerializer.legacySection().deserialize(
+            "§7Schaden wird durch Upgrades erhöht")));
+        sm.setUnbreakable(true);
+        sm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
+        sword.setItemMeta(sm);
+        player.getInventory().setItem(0, sword);
+
+        // Rüstung
+        player.getInventory().setItem(36, makeArmor(Material.DIAMOND_BOOTS,     "§7Boots"));
+        player.getInventory().setItem(37, makeArmor(Material.DIAMOND_LEGGINGS,  "§7Leggings"));
+        player.getInventory().setItem(38, makeArmor(Material.DIAMOND_CHESTPLATE,"§7Chestplate"));
+        player.getInventory().setItem(39, makeArmor(Material.DIAMOND_HELMET,    "§7Helm"));
+
+        // Schild (Offhand)
+        ItemStack shield = new ItemStack(Material.SHIELD);
+        ItemMeta  shm    = shield.getItemMeta();
+        shm.displayName(LegacyComponentSerializer.legacySection().deserialize("§7§lSchild"));
+        shm.setUnbreakable(true);
+        shm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
+        shield.setItemMeta(shm);
+        player.getInventory().setItem(40, shield);
+
+        plugin.getUpgradeManager().applyStats(player);
+    }
+
+    private ItemStack makeArmor(Material mat, String name) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(LegacyComponentSerializer.legacySection().deserialize(name));
+        meta.setUnbreakable(true);
+        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
+        item.setItemMeta(meta);
+        return item;
     }
 
     private void spawnFireworks(Location loc) {
