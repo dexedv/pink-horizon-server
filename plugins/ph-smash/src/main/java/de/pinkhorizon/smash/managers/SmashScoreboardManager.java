@@ -1,7 +1,7 @@
 package de.pinkhorizon.smash.managers;
 
 import de.pinkhorizon.smash.PHSmash;
-import de.pinkhorizon.smash.boss.ActiveBoss;
+import de.pinkhorizon.smash.arena.ArenaInstance;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -26,9 +26,9 @@ public class SmashScoreboardManager {
             ENTRIES[i] = "\u00a7" + hex.charAt(i) + "\u00a7r";
     }
 
-    private final PHSmash             plugin;
+    private final PHSmash              plugin;
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
-    private BukkitTask                task;
+    private BukkitTask                 task;
 
     public SmashScoreboardManager(PHSmash plugin) {
         this.plugin = plugin;
@@ -56,6 +56,12 @@ public class SmashScoreboardManager {
         player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
     }
 
+    /** Einzelnen Spieler aktualisieren (nach Schaden, Boss-Tod, etc.) */
+    public void update(Player player) {
+        Scoreboard b = boards.get(player.getUniqueId());
+        if (b != null) refresh(player, b);
+    }
+
     public void updateAll() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             Scoreboard b = boards.get(p.getUniqueId());
@@ -69,38 +75,44 @@ public class SmashScoreboardManager {
 
     private void refresh(Player player, Scoreboard board) {
         UUID uuid = player.getUniqueId();
-        ActiveBoss boss = plugin.getBossManager().getActiveBoss();
+        ArenaInstance arena = plugin.getArenaManager().getArena(uuid);
 
-        int    bossLevel  = boss != null ? boss.getConfig().level() : plugin.getPlayerDataManager().getGlobalBossLevel();
+        int    bossLevel;
         String bossHpLine;
-        if (boss != null) {
-            double pct    = boss.getHpPercent() * 100;
+        String bossHpRaw;
+
+        if (arena != null) {
+            bossLevel = arena.getBossLevel();
+            double pct    = arena.getHpPercent() * 100;
             int    filled = (int) (pct / 10);
             String bar    = "§c" + "█".repeat(filled) + "§8" + "░".repeat(10 - filled);
             bossHpLine = "§8[" + bar + "§8] §f" + String.format("%.1f%%", pct);
+            bossHpRaw  = arena.getConfig().formatHp(arena.getCurrentHp())
+                       + " §8/ " + arena.getConfig().formatHp(arena.getConfig().maxHp());
         } else {
-            bossHpLine = "§8Kein Boss aktiv";
+            bossLevel  = plugin.getPlayerDataManager().getPersonalBossLevel(uuid);
+            bossHpLine = "§7/stb join §8→ §7Beitreten";
+            bossHpRaw  = "";
         }
 
         long totalDmg = plugin.getPlayerDataManager().getTotalDamage(uuid);
         int  kills    = plugin.getPlayerDataManager().getKills(uuid);
-
-        int atkLevel  = plugin.getUpgradeManager().getLevel(uuid, UpgradeManager.UpgradeType.ATTACK);
-        int hpLevel   = plugin.getUpgradeManager().getLevel(uuid, UpgradeManager.UpgradeType.HEALTH);
+        int  atkLevel = plugin.getUpgradeManager().getLevel(uuid, UpgradeManager.UpgradeType.ATTACK);
+        int  hpLevel  = plugin.getUpgradeManager().getLevel(uuid, UpgradeManager.UpgradeType.HEALTH);
 
         setLine(board, 13, " ");
-        setLine(board, 12, "§7Boss-Level:  §c§l" + bossLevel);
+        setLine(board, 12, "§7Dein Boss:  §c§l" + bossLevel);
         setLine(board, 11, "§7Boss-HP:");
         setLine(board, 10, bossHpLine);
-        setLine(board, 9,  "  ");
-        setLine(board, 8,  "§7Schaden: §e" + formatDmg(totalDmg));
-        setLine(board, 7,  "§7Kills:   §a" + kills);
-        setLine(board, 6,  "   ");
-        setLine(board, 5,  "§7⚔ Angriff: §6+" + (atkLevel * 10) + "%");
-        setLine(board, 4,  "§7❤ HP-Bonus: §a+" + (hpLevel * 4));
-        setLine(board, 3,  "    ");
-        setLine(board, 2,  "§aplay.pinkhorizon.fun");
-        setLine(board, 1,  " ");
+        setLine(board, 9,  arena != null ? "§8" + bossHpRaw : "  ");
+        setLine(board, 8,  "   ");
+        setLine(board, 7,  "§7Schaden: §e" + formatDmg(totalDmg));
+        setLine(board, 6,  "§7Kills:   §a" + kills);
+        setLine(board, 5,  "    ");
+        setLine(board, 4,  "§7⚔ Angriff: §6+" + (atkLevel * 10) + "%");
+        setLine(board, 3,  "§7❤ HP-Bonus: §a+" + (hpLevel * 4));
+        setLine(board, 2,  "     ");
+        setLine(board, 1,  "§aplay.pinkhorizon.fun");
         setLine(board, 0,  "  ");
     }
 

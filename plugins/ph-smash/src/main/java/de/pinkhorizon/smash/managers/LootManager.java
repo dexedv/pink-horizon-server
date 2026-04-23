@@ -36,12 +36,19 @@ public class LootManager {
         this.plugin = plugin;
     }
 
+    /** Pro-Spieler-Loot-Verteilung (eine Arena, ein Spieler) */
+    public void distributeSinglePlayer(Player player, int bossLevel) {
+        Map<LootItem, Integer> drops = rollLoot(bossLevel, 1.0);
+        addToInventory(player.getUniqueId(), drops);
+        sendLootMessage(player, drops);
+    }
+
+    /** Altes Multi-Spieler-System (für Kompatibilität behalten) */
     public void distributeLoot(ActiveBoss boss) {
         int level = boss.getConfig().level();
         Map<UUID, Double> contrib = boss.getDamageContrib();
         if (contrib.isEmpty()) return;
 
-        // Top-Schaden-Spieler bekommt +50% Bonus
         UUID topPlayer = contrib.entrySet().stream()
             .max(Map.Entry.comparingByValue())
             .map(Map.Entry::getKey).orElse(null);
@@ -113,7 +120,6 @@ public class LootManager {
         player.sendMessage(sb.toString());
     }
 
-    /** Gibt den aktuellen Item-Vorrat eines Spielers zurück */
     public int getQuantity(UUID uuid, LootItem item) {
         try (Connection c = plugin.getDb().getConnection();
              PreparedStatement st = c.prepareStatement(
@@ -129,7 +135,6 @@ public class LootManager {
         return 0;
     }
 
-    /** Zieht Items ab – gibt false zurück wenn nicht genug vorhanden */
     public boolean consume(UUID uuid, LootItem item, int amount) {
         int have = getQuantity(uuid, item);
         if (have < amount) return false;

@@ -19,7 +19,6 @@ public class SmashDatabaseManager {
         String user = plugin.getConfig().getString("database.user", "ph_user");
         String pass = plugin.getConfig().getString("database.password", "");
 
-        // Aus Umgebungsvariable überschreiben (Docker)
         String envPass = System.getenv("MYSQL_PASSWORD");
         if (envPass != null && !envPass.isBlank()) pass = envPass;
 
@@ -54,12 +53,21 @@ public class SmashDatabaseManager {
 
             st.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS smash_players (
-                  uuid         CHAR(36)  PRIMARY KEY,
-                  kills        INT       NOT NULL DEFAULT 0,
-                  total_damage BIGINT    NOT NULL DEFAULT 0,
-                  best_level   INT       NOT NULL DEFAULT 0,
-                  last_seen    DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP
+                  uuid           CHAR(36)  PRIMARY KEY,
+                  kills          INT       NOT NULL DEFAULT 0,
+                  total_damage   BIGINT    NOT NULL DEFAULT 0,
+                  best_level     INT       NOT NULL DEFAULT 0,
+                  personal_level INT       NOT NULL DEFAULT 1,
+                  last_seen      DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )""");
+
+            // Migration: personal_level Spalte zu bestehenden Tabellen hinzufügen
+            try {
+                st.executeUpdate(
+                    "ALTER TABLE smash_players ADD COLUMN personal_level INT NOT NULL DEFAULT 1");
+            } catch (SQLException e) {
+                if (e.getErrorCode() != 1060) throw e; // 1060 = Duplicate column name
+            }
 
             st.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS smash_inventory (

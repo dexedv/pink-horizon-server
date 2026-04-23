@@ -62,6 +62,38 @@ public class PlayerDataManager {
         return 0;
     }
 
+    /** Persönliches Boss-Level des Spielers (wo er beim nächsten Join weitermacht) */
+    public int getPersonalBossLevel(UUID uuid) {
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "SELECT personal_level FROM smash_players WHERE uuid = ?")) {
+            st.setString(1, uuid.toString());
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) return Math.max(1, rs.getInt("personal_level"));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("PlayerDataManager.getPersonalBossLevel: " + e.getMessage());
+        }
+        return 1;
+    }
+
+    public void setPersonalBossLevel(UUID uuid, int level) {
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement("""
+                 INSERT INTO smash_players (uuid, personal_level, last_seen)
+                 VALUES (?, ?, NOW())
+                 ON DUPLICATE KEY UPDATE
+                   personal_level = VALUES(personal_level),
+                   last_seen      = NOW()
+                 """)) {
+            st.setString(1, uuid.toString());
+            st.setInt(2, Math.min(999, Math.max(1, level)));
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("PlayerDataManager.setPersonalBossLevel: " + e.getMessage());
+        }
+    }
+
     public void addKillAndDamage(UUID uuid, long damage, int bossLevel) {
         try (Connection c = con();
              PreparedStatement st = c.prepareStatement("""
@@ -100,6 +132,7 @@ public class PlayerDataManager {
         return result;
     }
 
+    // Behalten für Dashboard-Kompatibilität
     public int getGlobalBossLevel() {
         try (Connection c = con();
              PreparedStatement st = c.prepareStatement(

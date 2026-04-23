@@ -1,5 +1,6 @@
 package de.pinkhorizon.smash;
 
+import de.pinkhorizon.smash.arena.ArenaManager;
 import de.pinkhorizon.smash.commands.SmashCommand;
 import de.pinkhorizon.smash.database.SmashDatabaseManager;
 import de.pinkhorizon.smash.gui.UpgradeGui;
@@ -12,14 +13,14 @@ import java.sql.SQLException;
 
 public class PHSmash extends JavaPlugin {
 
-    private SmashDatabaseManager  db;
-    private PlayerDataManager     playerDataManager;
-    private LootManager           lootManager;
-    private UpgradeManager        upgradeManager;
-    private BossManager           bossManager;
+    private SmashDatabaseManager   db;
+    private PlayerDataManager      playerDataManager;
+    private LootManager            lootManager;
+    private UpgradeManager         upgradeManager;
+    private ArenaManager           arenaManager;
     private SmashScoreboardManager scoreboardManager;
-    private SmashTabManager       tabManager;
-    private UpgradeGui            upgradeGui;
+    private SmashTabManager        tabManager;
+    private UpgradeGui             upgradeGui;
 
     @Override
     public void onEnable() {
@@ -34,11 +35,14 @@ public class PHSmash extends JavaPlugin {
             return;
         }
 
-        // Manager (Reihenfolge wichtig wegen Abhängigkeiten)
+        // Plugin-Messaging-Kanal für Velocity/BungeeCord (sendToLobby)
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+
+        // Manager (Reihenfolge wichtig)
         playerDataManager  = new PlayerDataManager(this);
         lootManager        = new LootManager(this);
         upgradeManager     = new UpgradeManager(this);
-        bossManager        = new BossManager(this);
+        arenaManager       = new ArenaManager(this);   // löscht verwaiste Arena-Welten
         scoreboardManager  = new SmashScoreboardManager(this);
         tabManager         = new SmashTabManager(this);
         upgradeGui         = new UpgradeGui(this);
@@ -53,22 +57,16 @@ public class PHSmash extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SmashJoinListener(this), this);
         getServer().getPluginManager().registerEvents(upgradeGui, this);
 
-        // Ersten Boss nach Welt-Load spawnen (5s Verzögerung)
-        getServer().getScheduler().runTaskLater(this, () -> {
-            int level = playerDataManager.getGlobalBossLevel();
-            bossManager.spawnBoss(level);
-            getLogger().info("Boss Level " + level + " gespawnt.");
-        }, 100L);
-
-        getLogger().info("PH-Smash gestartet! Smash the Boss ist bereit.");
+        getLogger().info("PH-Smash gestartet! Jeder Spieler bekommt seine eigene Arena.");
     }
 
     @Override
     public void onDisable() {
-        if (bossManager      != null) bossManager.removeBoss();
+        if (arenaManager      != null) arenaManager.destroyAll();
         if (scoreboardManager != null) scoreboardManager.stopAll();
-        if (tabManager       != null) tabManager.stop();
-        if (db               != null) db.close();
+        if (tabManager        != null) tabManager.stop();
+        if (db                != null) db.close();
+        getServer().getMessenger().unregisterOutgoingPluginChannel(this);
         getLogger().info("PH-Smash gestoppt.");
     }
 
@@ -76,7 +74,7 @@ public class PHSmash extends JavaPlugin {
     public PlayerDataManager      getPlayerDataManager(){ return playerDataManager; }
     public LootManager            getLootManager()      { return lootManager; }
     public UpgradeManager         getUpgradeManager()   { return upgradeManager; }
-    public BossManager            getBossManager()      { return bossManager; }
+    public ArenaManager           getArenaManager()     { return arenaManager; }
     public SmashScoreboardManager getScoreboardManager(){ return scoreboardManager; }
     public SmashTabManager        getTabManager()       { return tabManager; }
     public UpgradeGui             getUpgradeGui()       { return upgradeGui; }
