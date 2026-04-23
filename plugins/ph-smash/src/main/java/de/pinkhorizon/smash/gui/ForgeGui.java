@@ -98,11 +98,16 @@ public class ForgeGui implements Listener {
         meta.lore(List.of(
             LEGACY.deserialize("§8─────────────────────"),
             LEGACY.deserialize("§7Schmiede mächtige Verzauberungen"),
-            LEGACY.deserialize("§7für deine Waffe. Jede Verzauberung"),
-            LEGACY.deserialize("§7verbraucht §fLadungen §7beim Kämpfen."),
+            LEGACY.deserialize("§7für alle Waffen. Ladungen werden"),
+            LEGACY.deserialize("§7pro besiegtem Boss verbraucht."),
             LEGACY.deserialize("§8─────────────────────"),
-            LEGACY.deserialize("§7Materialien durch Bosse verdienen."),
-            LEGACY.deserialize("§7Schmieden fügt §f+Ladungen §7hinzu.")
+            LEGACY.deserialize("§c⚔ Schärfe §8» §7Schwert & Axt"),
+            LEGACY.deserialize("§a⚡ Kraft   §8» §7Bogen & Feuerball"),
+            LEGACY.deserialize("§6🔥 Feuer   §8» §7Alle Waffen"),
+            LEGACY.deserialize("§b↩ Stoß    §8» §7Alle Waffen"),
+            LEGACY.deserialize("§d♥ Raub    §8» §7Alle Waffen"),
+            LEGACY.deserialize("§8─────────────────────"),
+            LEGACY.deserialize("§7Materialien durch Bosse verdienen.")
         ));
         item.setItemMeta(meta);
         return item;
@@ -118,8 +123,8 @@ public class ForgeGui implements Listener {
         boolean canAfford = have >= enchant.costAmount;
 
         Material icon = switch (enchant) {
-            case SHARPNESS   -> Material.IRON_SWORD;
-            case POWER       -> Material.BOW;
+            case SHARPNESS   -> Material.DIAMOND_SWORD;
+            case POWER       -> Material.FIRE_CHARGE;
             case FIRE_ASPECT -> Material.BLAZE_POWDER;
             case KNOCKBACK   -> Material.PISTON;
             case LIFEDRAIN   -> Material.GHAST_TEAR;

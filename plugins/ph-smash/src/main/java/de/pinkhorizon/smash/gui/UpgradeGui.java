@@ -85,7 +85,7 @@ public class UpgradeGui implements Listener, InventoryHolder {
     private ItemStack buildTitleItem(Player player) {
         ItemStack item = new ItemStack(Material.NETHER_STAR);
         ItemMeta  meta = item.getItemMeta();
-        meta.displayName(LEGACY.deserialize("§c§l⚔ Upgrade-System"));
+        meta.displayName(LEGACY.deserialize("§c§l⚔ Upgrade-System §8– §7Materialien ausgeben"));
 
         UpgradeType[] types = UpgradeType.values();
         List<Component> lore = new ArrayList<>();
@@ -268,7 +268,7 @@ public class UpgradeGui implements Listener, InventoryHolder {
     private static String currentEffectText(UpgradeType type, int level) {
         return switch (type) {
             case ATTACK    -> "§c+" + Math.round((1.0 + 0.08 * level - 1.0) * 100)
-                              + "% §7Schaden total";
+                              + "% §7Schaden §8(Schwert, Bogen, Axt & Feuerball)";
             case DEFENSE   -> "§a-" + Math.round((1.0 - Math.max(0.25, 1.0 - 0.015 * level)) * 100)
                               + "% §7eingehender Schaden";
             case HEALTH    -> "§e+" + (level * 6) + " §7Max-HP total";

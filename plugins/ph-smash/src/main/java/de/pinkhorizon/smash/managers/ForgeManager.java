@@ -28,8 +28,8 @@ public class ForgeManager {
 
     public enum ForgeEnchant {
 
-        SHARPNESS  ("schärfe",     "§c⚔ Schärfe V",        "§7+50% Schaden (Schwert)",           Material.DIAMOND_SWORD,  10, LootItem.IRON_FRAGMENT,  20),
-        POWER      ("kraft",       "§a⚡ Kraft V",           "§7+50% Schaden (Bogen)",             Material.BOW,            10, LootItem.IRON_FRAGMENT,  20),
+        SHARPNESS  ("schärfe",     "§c⚔ Schärfe V",        "§7+50% Schaden §8(Schwert & Axt)",        Material.DIAMOND_SWORD,  10, LootItem.IRON_FRAGMENT,  20),
+        POWER      ("kraft",       "§a⚡ Kraft V",           "§7+50% Schaden §8(Bogen & Feuerball)",    Material.BOW,            10, LootItem.IRON_FRAGMENT,  20),
         FIRE_ASPECT("feuer",       "§6🔥 Feuer II",          "§7Setzt Boss in Brand bei Treffer",  Material.BLAZE_ROD,      10, LootItem.GOLD_FRAGMENT,  15),
         KNOCKBACK  ("stoss",       "§b↩ Stoß II",           "§7Schlägt Boss zurück",              Material.STICK,          10, LootItem.GOLD_FRAGMENT,  10),
         LIFEDRAIN  ("lebensraub",  "§5♥ Lebensraub III",    "§7+15% extra Heilung bei Treffer",   Material.GHAST_TEAR,     10, LootItem.DIAMOND_SHARD,   5);
