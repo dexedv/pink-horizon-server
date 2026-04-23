@@ -1,18 +1,47 @@
 package de.pinkhorizon.smash.boss;
 
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+
 public record BossConfig(int level, double maxHp, double damage, String displayName) {
+
+    private static final List<String> MYTH_NAMES = List.of(
+        // Olympische Götter
+        "Zeus", "Hera", "Poseidon", "Demeter", "Athena", "Apollo", "Artemis",
+        "Ares", "Aphrodite", "Hephaistos", "Hermes", "Dionysos", "Hades",
+        "Persephone", "Hestia",
+        // Titanen
+        "Kronos", "Rhea", "Okeanos", "Hyperion", "Prometheus", "Epimetheus",
+        "Atlas", "Iapetos", "Koios", "Phoibe", "Mnemosyne", "Themis",
+        // Helden
+        "Herakles", "Perseus", "Theseus", "Achilleus", "Odysseus", "Jason",
+        "Orpheus", "Bellerophon", "Meleager", "Atalante", "Peleus", "Kadmos",
+        "Aineias", "Orion", "Bellerophontes",
+        // Monster & Dämonen
+        "Medusa", "Typhon", "Echidna", "Sphinx", "Chimaira", "Skylla",
+        "Charybdis", "Minotauros", "Kerberos", "Hydra",
+        // Weitere Gottheiten
+        "Hekate", "Morpheus", "Thanatos", "Hypnos", "Nemesis", "Nike",
+        "Eros", "Helios", "Selene", "Eos", "Kratos", "Bia", "Iris",
+        "Nyx", "Erebos", "Phobos", "Deimos", "Eris", "Alekto", "Megaira",
+        // Sterbliche & Halbgötter
+        "Ikaros", "Daidalos", "Midas", "Sisyphos", "Tantalos", "Kirke",
+        "Medeia", "Narziß", "Minos", "Teiresias", "Kalypso", "Narkissos"
+    );
 
     public static BossConfig forLevel(int level) {
         double hp     = Math.max(10, Math.round(100 * Math.pow(1.15, level - 1)));
         double damage = 4.0 + level * 0.8;
 
         String tier;
-        if      (level >= 500) tier = "§4§lLEGENDÄR";
-        else if (level >= 100) tier = "§5§lEPIC";
-        else if (level >= 50)  tier = "§6§lSELTEN";
-        else                   tier = "§c§lBoss";
+        String nameColor;
+        if      (level >= 500) { tier = "§4§lLEGENDÄR"; nameColor = "§4"; }
+        else if (level >= 100) { tier = "§5§lEPIC";      nameColor = "§5"; }
+        else if (level >= 50)  { tier = "§6§lSELTEN";    nameColor = "§6"; }
+        else                   { tier = "§c§lBoss";       nameColor = "§c"; }
 
-        String name = tier + " §8[Lv. §c" + level + "§8]";
+        String mythName = MYTH_NAMES.get(ThreadLocalRandom.current().nextInt(MYTH_NAMES.size()));
+        String name = tier + " " + nameColor + mythName + " §8[Lv. §c" + level + "§8]";
         return new BossConfig(level, hp, damage, name);
     }
 
