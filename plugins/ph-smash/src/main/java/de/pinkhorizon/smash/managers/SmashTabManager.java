@@ -2,12 +2,16 @@ package de.pinkhorizon.smash.managers;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.arena.ArenaInstance;
+import de.pinkhorizon.smash.listeners.SmashChatListener;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 public class SmashTabManager {
+
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private static final String[] HEADER_FRAMES = {
         "\n§c§l⚔ Pink Horizon §7| §4Smash the Boss §c§l⚔\n",
@@ -36,9 +40,15 @@ public class SmashTabManager {
                     ? arena.getBossLevel()
                     : plugin.getPlayerDataManager().getPersonalBossLevel(p.getUniqueId());
 
-                String rank   = RankManager.getRankPrefix(bossLevel);
-                String streak = plugin.getStreakManager().getStreakDisplay(p.getUniqueId());
-                String status = arena != null ? "§aIn Arena" : "§7Lobby";
+                String lpPrefix = SmashChatListener.getLpPrefix(p);
+                String prestige = plugin.getPrestigeManager().getPrestigeDisplay(p.getUniqueId());
+                String rank     = RankManager.getRankPrefix(bossLevel);
+                String streak   = plugin.getStreakManager().getStreakDisplay(p.getUniqueId());
+                String status   = arena != null ? "§aIn Arena" : "§7Lobby";
+
+                // Tab-Spielername: [LP-Rang] [Prestige] Name
+                p.playerListName(buildTabName(lpPrefix, prestige, p.getName()));
+
                 Component footer = Component.text(
                     "\n" + rank + " §7Rang  §8|  §7Level: §c" + bossLevel
                     + "  §8|  " + streak
@@ -56,9 +66,14 @@ public class SmashTabManager {
         int bossLevel = arena != null
             ? arena.getBossLevel()
             : plugin.getPlayerDataManager().getPersonalBossLevel(player.getUniqueId());
-        String rank   = RankManager.getRankPrefix(bossLevel);
-        String streak = plugin.getStreakManager().getStreakDisplay(player.getUniqueId());
-        String status = arena != null ? "§aIn Arena" : "§7Lobby";
+
+        String lpPrefix = SmashChatListener.getLpPrefix(player);
+        String prestige = plugin.getPrestigeManager().getPrestigeDisplay(player.getUniqueId());
+        String rank     = RankManager.getRankPrefix(bossLevel);
+        String streak   = plugin.getStreakManager().getStreakDisplay(player.getUniqueId());
+        String status   = arena != null ? "§aIn Arena" : "§7Lobby";
+
+        player.playerListName(buildTabName(lpPrefix, prestige, player.getName()));
 
         player.sendPlayerListHeaderAndFooter(
             Component.text(HEADER_FRAMES[frame]),
@@ -67,6 +82,14 @@ public class SmashTabManager {
                 + "  §8|  §7Online: §a" + Bukkit.getOnlinePlayers().size()
                 + "  §8|  " + status
                 + "\n§aplay.pinkhorizon.fun\n"));
+    }
+
+    private Component buildTabName(String lpPrefix, String prestige, String name) {
+        StringBuilder sb = new StringBuilder();
+        if (!lpPrefix.isEmpty()) sb.append(lpPrefix).append(" ");
+        if (!prestige.isEmpty()) sb.append(prestige).append(" ");
+        sb.append("§f").append(name);
+        return LEGACY.deserialize(sb.toString());
     }
 
     public void stop() {

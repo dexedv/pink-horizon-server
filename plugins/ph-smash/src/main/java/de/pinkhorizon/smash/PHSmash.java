@@ -10,6 +10,7 @@ import de.pinkhorizon.smash.gui.ShopGui;
 import de.pinkhorizon.smash.gui.TalentGui;
 import de.pinkhorizon.smash.gui.UpgradeGui;
 import de.pinkhorizon.smash.hologram.HologramManager;
+import de.pinkhorizon.smash.listeners.SmashChatListener;
 import de.pinkhorizon.smash.listeners.SmashCombatListener;
 import de.pinkhorizon.smash.listeners.SmashJoinListener;
 import de.pinkhorizon.smash.listeners.SmashNavigatorListener;
@@ -105,6 +106,7 @@ public class PHSmash extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SmashCombatListener(this), this);
         getServer().getPluginManager().registerEvents(new SmashJoinListener(this), this);
         getServer().getPluginManager().registerEvents(new SmashNavigatorListener(this), this);
+        getServer().getPluginManager().registerEvents(new SmashChatListener(this), this);
         getServer().getPluginManager().registerEvents(upgradeGui, this);
         getServer().getPluginManager().registerEvents(abilityGui, this);
         getServer().getPluginManager().registerEvents(shopGui, this);

@@ -4,6 +4,7 @@ main: de.pinkhorizon.smash.PHSmash
 api-version: '1.21'
 description: Smash the Boss – Endloser PvE-Gamemode
 authors: [ PinkHorizon ]
+soft-depend: [ LuckPerms ]
 
 commands:
   stb:
