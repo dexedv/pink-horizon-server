@@ -197,8 +197,8 @@ public class ArenaManager {
 
         var hpAttr = entity.getAttribute(Attribute.MAX_HEALTH);
         if (hpAttr != null) {
-            hpAttr.setBaseValue(99999);
-            entity.setHealth(99999);
+            hpAttr.setBaseValue(1024);
+            entity.setHealth(1024);
         }
 
         BossBar bar = Bukkit.createBossBar(
