@@ -50,26 +50,29 @@ public class NpcManager implements Listener {
             loc.getWorld().getChunkAt(loc).load(true);
         }
 
+        // Zuerst echten NPC per UUID suchen
+        UUID existingUuid = null;
         String saved = plugin.getConfig().getString("npcs." + key + ".uuid");
         if (saved != null) {
             try {
                 UUID uuid = UUID.fromString(saved);
                 for (World w : Bukkit.getWorlds()) {
                     Entity e = w.getEntity(uuid);
-                    if (e instanceof Villager) return uuid;
+                    if (e instanceof Villager) { existingUuid = uuid; break; }
                 }
             } catch (IllegalArgumentException ignored) {}
         }
 
-        if (loc == null) return null;
+        // Duplikate immer entfernen (außer dem echten NPC)
+        if (loc != null) removeDuplicatesAt(loc, key, existingUuid);
 
-        // Duplikate (von vorherigen Restarts) an dieser Position entfernen
-        removeDuplicatesAt(loc, key);
+        if (existingUuid != null) return existingUuid;
+        if (loc == null) return null;
 
         return doSpawn(key, loc);
     }
 
-    private void removeDuplicatesAt(Location loc, String key) {
+    private void removeDuplicatesAt(Location loc, String key, UUID keepUuid) {
         String expectedName = switch (key) {
             case KEY_DOWN    -> "§c§l▼ Level senken";
             case KEY_UPGRADE -> "§6§l⬆ Upgrades";
@@ -79,10 +82,11 @@ public class NpcManager implements Listener {
         };
         if (expectedName == null) return;
         for (Entity e : loc.getWorld().getNearbyEntities(loc, 2, 2, 2)) {
-            if (e instanceof Villager && expectedName.equals(e.getCustomName())) {
-                e.remove();
-                plugin.getLogger().info("Duplikat-NPC entfernt: " + key);
-            }
+            if (!(e instanceof Villager)) continue;
+            if (!expectedName.equals(e.getCustomName())) continue;
+            if (keepUuid != null && e.getUniqueId().equals(keepUuid)) continue;
+            e.remove();
+            plugin.getLogger().info("Duplikat-NPC entfernt: " + key);
         }
     }
 
