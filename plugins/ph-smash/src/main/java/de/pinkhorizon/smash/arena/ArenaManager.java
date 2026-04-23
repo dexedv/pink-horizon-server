@@ -289,6 +289,9 @@ public class ArenaManager {
             if (speedAttr != null) speedAttr.setBaseValue(speedAttr.getBaseValue() * 1.5);
         }
 
+        // Alte Bar entfernen bevor neue erstellt wird (verhindert Bar-Leak)
+        if (arena.getBossBar() != null) arena.getBossBar().removeAll();
+
         BossBar bar = Bukkit.createBossBar(
             buildBarTitle(cfg, cfg.maxHp(), modifiers),
             BarColor.GREEN, BarStyle.SEGMENTED_10);
@@ -313,7 +316,7 @@ public class ArenaManager {
                     arena.heal(healPerTick);
                     updateBossBar(arena);
                     Player p = Bukkit.getPlayer(arena.getPlayerUuid());
-                    if (p != null) {
+                    if (p != null && !p.isDead()) {
                         p.setExp((float) Math.max(0f, Math.min(1f, arena.getHpPercent())));
                     }
                 }
@@ -329,7 +332,7 @@ public class ArenaManager {
                 if (arena.getBossEntity() == null || !arena.getBossEntity().isValid()) return;
                 if (arena.isDead()) return;
                 Player p = Bukkit.getPlayer(arena.getPlayerUuid());
-                if (p == null || !p.isOnline()) return;
+                if (p == null || !p.isOnline() || p.isDead()) return;
                 p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 1.1f);
                 p.getWorld().strikeLightningEffect(p.getLocation());
                 double newHp = Math.max(0.5, p.getHealth() - explosionDmg);
