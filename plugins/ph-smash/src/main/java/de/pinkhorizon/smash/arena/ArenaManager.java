@@ -91,6 +91,8 @@ public class ArenaManager {
                 world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
                 world.setGameRule(GameRule.DO_WEATHER_CYCLE,  false);
                 world.setGameRule(GameRule.DO_FIRE_TICK,      false);
+                world.setGameRule(GameRule.KEEP_INVENTORY,    true);
+                world.setGameRule(GameRule.SHOW_DEATH_MESSAGES, false);
                 world.setTime(6000);
 
                 // WorldBorder – 35 Blöcke Radius, zentriert auf Boss-Spawn
@@ -176,6 +178,26 @@ public class ArenaManager {
     public boolean       hasArena(UUID uuid)   { return arenas.containsKey(uuid); }
     public ArenaInstance getArena(UUID uuid)   { return arenas.get(uuid); }
     public Collection<ArenaInstance> getAll()  { return Collections.unmodifiableCollection(arenas.values()); }
+
+    /** Nach Spieler-Tod: gleichen Boss-Level neu spawnen, Session-Schaden reset */
+    public void respawnBossAfterDeath(UUID playerUuid) {
+        ArenaInstance arena = arenas.get(playerUuid);
+        if (arena == null) return;
+        if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
+        if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
+        arena.resetForNextBoss(arena.getBossLevel());
+        spawnBossInArena(arena);
+    }
+
+    /** Gibt dem Spieler alle Arena-Items erneut (nach Tod / Reset) */
+    public void restoreArenaItems(Player player) {
+        giveArenaItems(player);
+    }
+
+    /** Spieler-Spawn-Position für eine Arena-Welt (für Respawn-Event) */
+    public Location getPlayerSpawnLocation(World world) {
+        return getPlayerSpawn(world);
+    }
 
     /** Beim Plugin-Disable: alle Arenen synchron aufräumen */
     public void destroyAll() {

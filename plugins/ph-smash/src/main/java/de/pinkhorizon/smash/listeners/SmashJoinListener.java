@@ -6,11 +6,14 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
+import de.pinkhorizon.smash.arena.ArenaInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
 import java.time.Duration;
 
@@ -50,6 +53,45 @@ public class SmashJoinListener implements Listener {
                     Duration.ofMillis(1000))));
             player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDER_DRAGON_GROWL, 0.4f, 1.2f);
         }, 5L);
+    }
+
+    @EventHandler
+    public void onDeath(PlayerDeathEvent event) {
+        Player        player = event.getEntity();
+        ArenaInstance arena  = plugin.getArenaManager().getArena(player.getUniqueId());
+        if (arena == null) return;
+
+        // Items + XP behalten
+        event.setKeepInventory(true);
+        event.setKeepLevel(true);
+        event.setDroppedExp(0);
+        event.getDrops().clear();
+
+        // Eigene Tod-Nachricht statt Standard
+        event.deathMessage(Component.text(
+            "§c✗ §f" + player.getName() + " §7wurde vom Boss auf Level §c"
+            + arena.getBossLevel() + " §7besiegt!"));
+    }
+
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        Player        player = event.getPlayer();
+        ArenaInstance arena  = plugin.getArenaManager().getArena(player.getUniqueId());
+        if (arena == null || arena.getWorld() == null) return;
+
+        // Respawn direkt in der Arena (nicht Welt-Spawn)
+        event.setRespawnLocation(
+            plugin.getArenaManager().getPlayerSpawnLocation(arena.getWorld()));
+
+        // Nach 1 Tick: Boss neu spawnen + Items wiederherstellen
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline() || !plugin.getArenaManager().hasArena(player.getUniqueId())) return;
+            plugin.getArenaManager().respawnBossAfterDeath(player.getUniqueId());
+            plugin.getArenaManager().restoreArenaItems(player);
+            plugin.getScoreboardManager().update(player);
+            player.sendMessage("§c✗ §7Besiegt! Boss Level §c" + arena.getBossLevel() + " §7wurde zurückgesetzt.");
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_WITHER_SPAWN, 0.4f, 1.5f);
+        }, 1L);
     }
 
     @EventHandler
