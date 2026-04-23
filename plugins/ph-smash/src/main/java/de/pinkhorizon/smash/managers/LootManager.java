@@ -152,18 +152,19 @@ public class LootManager {
     }
 
     public boolean consume(UUID uuid, LootItem item, int amount) {
-        int have = getQuantity(uuid, item);
-        if (have < amount) return false;
+        // Atomic: UPDATE nur wenn quantity >= amount (verhindert Race Condition)
         try (Connection c = plugin.getDb().getConnection();
              PreparedStatement st = c.prepareStatement(
-                 "UPDATE smash_inventory SET quantity = quantity - ? WHERE uuid = ? AND item_type = ?")) {
+                 "UPDATE smash_inventory SET quantity = quantity - ? " +
+                 "WHERE uuid = ? AND item_type = ? AND quantity >= ?")) {
             st.setInt(1, amount);
             st.setString(2, uuid.toString());
             st.setString(3, item.name());
-            st.executeUpdate();
+            st.setInt(4, amount);
+            return st.executeUpdate() > 0;
         } catch (SQLException e) {
             plugin.getLogger().warning("LootManager.consume: " + e.getMessage());
+            return false;
         }
-        return true;
     }
 }

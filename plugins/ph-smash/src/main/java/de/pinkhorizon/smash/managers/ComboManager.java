@@ -1,8 +1,8 @@
 package de.pinkhorizon.smash.managers;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Tracks per-player kill combos entirely in memory (no DB persistence).
@@ -10,7 +10,7 @@ import java.util.UUID;
  */
 public class ComboManager {
 
-    private final Map<UUID, Integer> combos = new HashMap<>();
+    private final Map<UUID, Integer> combos = new ConcurrentHashMap<>();
 
     /**
      * Increments the combo counter for the given player by 1.

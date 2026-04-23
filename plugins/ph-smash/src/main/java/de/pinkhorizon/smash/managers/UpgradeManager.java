@@ -88,15 +88,17 @@ public class UpgradeManager {
         }
         int nextLevel = curLevel + 1;
 
-        // Kosten berechnen
+        // Kosten berechnen – erst alle prüfen, dann erst konsumieren (kein Partial-Consume)
         Map<LootItem, Integer> cost = getCost(type, nextLevel);
         for (Map.Entry<LootItem, Integer> e : cost.entrySet()) {
-            if (!plugin.getLootManager().consume(uuid, e.getKey(), e.getValue())) {
+            if (plugin.getLootManager().getQuantity(uuid, e.getKey()) < e.getValue()) {
                 player.sendMessage("§cNicht genug §f" + e.getKey().displayName
                     + "§c! Benötigt: §f" + e.getValue());
-                // Rückbuchung bereits verbrauchter Items
                 return false;
             }
+        }
+        for (Map.Entry<LootItem, Integer> e : cost.entrySet()) {
+            plugin.getLootManager().consume(uuid, e.getKey(), e.getValue());
         }
 
         // Level erhöhen

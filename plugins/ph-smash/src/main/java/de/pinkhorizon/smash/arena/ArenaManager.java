@@ -34,11 +34,12 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ArenaManager {
 
     private final PHSmash                    plugin;
-    private final Map<UUID, ArenaInstance>   arenas = new HashMap<>();
+    private final Map<UUID, ArenaInstance>   arenas = new ConcurrentHashMap<>();
 
     public ArenaManager(PHSmash plugin) {
         this.plugin = plugin;

@@ -7,6 +7,7 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import de.pinkhorizon.smash.arena.ArenaInstance;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -33,26 +34,33 @@ public class SmashJoinListener implements Listener {
             Component.text("§8[§c+§8] ")
                 .append(Component.text(player.getName(), TextColor.color(0xFF5555))));
 
-        // In DB registrieren + Stats anwenden
-        plugin.getPlayerDataManager().ensurePlayer(player.getUniqueId(), player.getName());
-        plugin.getUpgradeManager().applyStats(player);
-
-        // Scoreboard + Tab
+        // Scoreboard + Tab sofort (kein DB-Zugriff nötig)
         plugin.getScoreboardManager().giveScoreboard(player);
         plugin.getTabManager().update(player);
 
-        // Begrüßungs-Title mit Boss-Level + Join-Anleitung (1 Tick verzögert)
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+        // DB-Zugriffe async – blockieren nicht den Main-Thread
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            plugin.getPlayerDataManager().ensurePlayer(player.getUniqueId(), player.getName());
             int personalLevel = plugin.getPlayerDataManager().getPersonalBossLevel(player.getUniqueId());
-            player.showTitle(Title.title(
-                Component.text("Smash the Boss", TextColor.color(0xFF5555), TextDecoration.BOLD),
-                Component.text("Dein Boss: Level " + personalLevel + "  |  /stb join", NamedTextColor.GRAY),
-                Title.Times.times(
-                    Duration.ofMillis(500),
-                    Duration.ofSeconds(4),
-                    Duration.ofMillis(1000))));
-            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDER_DRAGON_GROWL, 0.4f, 1.2f);
-        }, 5L);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline()) return;
+                plugin.getUpgradeManager().applyStats(player);
+                plugin.getScoreboardManager().update(player);
+
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (!player.isOnline()) return;
+                    player.showTitle(Title.title(
+                        Component.text("Smash the Boss", TextColor.color(0xFF5555), TextDecoration.BOLD),
+                        Component.text("Dein Boss: Level " + personalLevel + "  |  /stb join", NamedTextColor.GRAY),
+                        Title.Times.times(
+                            Duration.ofMillis(500),
+                            Duration.ofSeconds(4),
+                            Duration.ofMillis(1000))));
+                    player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDER_DRAGON_GROWL, 0.4f, 1.2f);
+                }, 5L);
+            });
+        });
     }
 
     @EventHandler
