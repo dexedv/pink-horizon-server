@@ -53,13 +53,23 @@ public class SmashCombatListener implements Listener {
     public void onPlayerHitBoss(EntityDamageByEntityEvent event) {
         // Spieler ermitteln – direkt (Schwert/Axt), Feuerball oder Projektil (Bogen)
         Player  player;
-        boolean isBow      = false;
-        boolean isAxe      = false;
-        boolean isFireball = false;
+        boolean isBow           = false;
+        boolean isAxe           = false;
+        boolean isFireball      = false;
+        boolean isFireballStick = false;
 
         if (event.getDamager() instanceof Player p) {
             player = p;
-            isAxe  = p.getInventory().getItemInMainHand().getType() == Material.DIAMOND_AXE;
+            org.bukkit.inventory.ItemStack held = p.getInventory().getItemInMainHand();
+            if (held.getType() == Material.STICK && held.hasItemMeta()) {
+                net.kyori.adventure.text.Component nm = held.getItemMeta().displayName();
+                if (nm != null && LEGACY.serialize(nm).contains(ArenaManager.FIREBALL_STICK_NAME)) {
+                    isFireballStick = true;
+                }
+            }
+            if (!isFireballStick) {
+                isAxe = held.getType() == Material.DIAMOND_AXE;
+            }
         } else if (event.getDamager() instanceof SmallFireball fb
                    && fb.getShooter() instanceof Player p) {
             player = p;
@@ -110,6 +120,28 @@ public class SmashCombatListener implements Listener {
                 player.sendMessage("§c🔥 §fVerbrennung!");
                 player.playSound(player.getLocation(), Sound.ENTITY_BLAZE_HURT, 0.5f, 1.5f);
             }
+            return;
+        }
+
+        // ── Feuerball-Stab (Linksklick direkt auf Boss) ───────────────────
+        if (isFireballStick) {
+            long now  = System.currentTimeMillis();
+            Long last = fireballCooldowns.get(uuid);
+            if (last != null && now - last < FIREBALL_CD_MS) {
+                long remMs = FIREBALL_CD_MS - (now - last);
+                player.sendActionBar(LEGACY.deserialize("§c⏳ §7Feuerball in §c" + String.format("%.1f", remMs / 1000.0) + "s"));
+                return;
+            }
+            fireballCooldowns.put(uuid, now);
+            org.bukkit.Location from = player.getEyeLocation();
+            org.bukkit.util.Vector dir = arena.getBossEntity().getLocation().add(0, 1, 0)
+                .toVector().subtract(from.toVector()).normalize();
+            SmallFireball fb = player.getWorld().spawn(from, SmallFireball.class);
+            fb.setShooter(player);
+            fb.setDirection(dir);
+            fb.setYield(0f);
+            fb.setIsIncendiary(false);
+            player.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
             return;
         }
 
@@ -301,12 +333,12 @@ public class SmashCombatListener implements Listener {
         }
     }
 
-    /** Rechtsklick auf den Feuerball-Stab → SmallFireball in Richtung Boss schießen */
+    /** Linksklick in die Luft mit Feuerball-Stab → SmallFireball in Richtung Boss schießen */
     @EventHandler
     public void onFireballStickClick(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         Action a = event.getAction();
-        if (a != Action.RIGHT_CLICK_AIR && a != Action.RIGHT_CLICK_BLOCK) return;
+        if (a != Action.LEFT_CLICK_AIR && a != Action.LEFT_CLICK_BLOCK) return;
 
         Player    player = event.getPlayer();
         ItemStack item   = player.getInventory().getItemInMainHand();
