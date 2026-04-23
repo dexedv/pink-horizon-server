@@ -2363,8 +2363,9 @@ async function renderSmash() {
     </div>
   </div>`;
 
-  const ov = await apiFetch('/api/smash/overview');
-  if (ov?.ok) {
+  const ovRes = await apiFetch('/api/smash/overview');
+  if (ovRes?.ok) {
+    const ov = await ovRes.json();
     document.getElementById('sk-level').textContent   = Number(ov.topBossLevel   ?? 0).toLocaleString('de-DE');
     document.getElementById('sk-players').textContent = Number(ov.totalPlayers   ?? 0).toLocaleString('de-DE');
     document.getElementById('sk-kills').textContent   = Number(ov.totalKills     ?? 0).toLocaleString('de-DE');
@@ -2389,9 +2390,11 @@ async function smashLoadLb() {
   el.innerHTML = '<div class="empty">Lade…</div>';
 
   const endpoints = { kills: '/api/smash/leaderboard', level: '/api/smash/level-lb', coins: '/api/smash/coins-lb' };
-  const data = await apiFetch(endpoints[smashLbTab]);
+  const r = await apiFetch(endpoints[smashLbTab]);
+  if (!r?.ok) { el.innerHTML = '<div class="empty">Fehler beim Laden.</div>'; return; }
+  const data = await r.json();
 
-  if (!data?.ok || !data.rows?.length) {
+  if (!data?.rows?.length) {
     el.innerHTML = '<div class="empty">Noch keine Daten vorhanden.</div>';
     return;
   }
