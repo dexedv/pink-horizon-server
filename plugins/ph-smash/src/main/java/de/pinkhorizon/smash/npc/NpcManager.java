@@ -6,6 +6,7 @@ import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.UUID;
 
@@ -13,15 +14,19 @@ public class NpcManager implements Listener {
 
     private static final String KEY_DOWN    = "leveldown";
     private static final String KEY_UPGRADE = "upgrade";
+    private static final double LOOK_RANGE  = 8.0; // Blöcke Reichweite
 
-    private final PHSmash plugin;
-    private UUID levelDownUuid;
-    private UUID upgradeUuid;
+    private final PHSmash   plugin;
+    private UUID            levelDownUuid;
+    private UUID            upgradeUuid;
+    private BukkitTask      lookTask;
 
     public NpcManager(PHSmash plugin) {
         this.plugin = plugin;
-        // Auf Haupt-Thread laden (Welt muss schon geladen sein)
-        Bukkit.getScheduler().runTask(plugin, this::restoreNpcs);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            restoreNpcs();
+            startLookTask();
+        });
     }
 
     // ── Startup ────────────────────────────────────────────────────────────
@@ -115,6 +120,54 @@ public class NpcManager implements Listener {
         plugin.getPlayerDataManager().setPersonalBossLevel(player.getUniqueId(), next);
         player.sendMessage("§a✔ §7Boss Level auf §c" + next + " §7gesenkt. Tritt mit §e/stb join §7an!");
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 0.7f);
+    }
+
+    // ── Look-Task ──────────────────────────────────────────────────────────
+
+    private void startLookTask() {
+        lookTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            rotateNpc(levelDownUuid);
+            rotateNpc(upgradeUuid);
+        }, 5L, 10L); // alle 0.5 Sekunden
+    }
+
+    /** Dreht den NPC zum nächsten Spieler innerhalb LOOK_RANGE Blöcke. */
+    private void rotateNpc(UUID uuid) {
+        if (uuid == null) return;
+        Entity npc = null;
+        for (World w : Bukkit.getWorlds()) {
+            Entity e = w.getEntity(uuid);
+            if (e != null) { npc = e; break; }
+        }
+        if (npc == null || !npc.isValid()) return;
+
+        Player nearest = null;
+        double minDist = LOOK_RANGE * LOOK_RANGE;
+        for (Player p : npc.getWorld().getPlayers()) {
+            double d = p.getLocation().distanceSquared(npc.getLocation());
+            if (d < minDist) { minDist = d; nearest = p; }
+        }
+        if (nearest == null) return;
+
+        // Richtungsvektor NPC-Augen → Spieler-Augen
+        Location from = npc.getLocation().add(0, npc.getHeight() * 0.85, 0);
+        Location to   = nearest.getEyeLocation();
+        double dx = to.getX() - from.getX();
+        double dy = to.getY() - from.getY();
+        double dz = to.getZ() - from.getZ();
+        double distXZ = Math.sqrt(dx * dx + dz * dz);
+
+        float yaw   = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        float pitch = (float) -Math.toDegrees(Math.atan2(dy, distXZ));
+
+        Location npcLoc = npc.getLocation();
+        npcLoc.setYaw(yaw);
+        npcLoc.setPitch(Math.max(-30f, Math.min(30f, pitch))); // Pitch begrenzen
+        npc.teleport(npcLoc);
+    }
+
+    public void stop() {
+        if (lookTask != null) lookTask.cancel();
     }
 
     // ── Intern ─────────────────────────────────────────────────────────────

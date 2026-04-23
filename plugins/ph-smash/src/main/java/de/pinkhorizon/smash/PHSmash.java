@@ -133,6 +133,7 @@ public class PHSmash extends JavaPlugin {
     @Override
     public void onDisable() {
         if (hologramManager   != null) hologramManager.removeAll();
+        if (npcManager        != null) npcManager.stop();
         if (arenaManager      != null) arenaManager.destroyAll();
         if (scoreboardManager != null) scoreboardManager.stopAll();
         if (tabManager        != null) tabManager.stop();
