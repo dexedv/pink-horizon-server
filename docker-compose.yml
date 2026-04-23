@@ -156,6 +156,7 @@ services:
       ENABLE_RCON: "true"
       RCON_PORT: "25575"
       RCON_PASSWORD: "${RCON_PASSWORD}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
       SERVER_PORT: "25570"
       TZ: Europe/Berlin
     ports:
