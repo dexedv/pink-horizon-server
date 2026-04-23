@@ -24,7 +24,15 @@ public class AbilityManager {
         COIN_BOOST   ("§e★ Münz-Boost",     "+20% Coins pro Boss-Kill/Lv",          10,
             new long[]{100, 250, 500, 950, 1600, 2600, 4200, 6800, 11000, 17000}),
         REGEN        ("§a◆ Regeneration",   "+1.5 HP alle 5 Sek/Lv",               10,
-            new long[]{120, 300, 600, 1100, 1900, 3100, 5000, 8000, 12500, 19000});
+            new long[]{120, 300, 600, 1100, 1900, 3100, 5000, 8000, 12500, 19000}),
+        IMMUN        ("§d🛡 Immunität",     "1% Effekt-Resist/Lv (max 50%)",       50,
+            new long[]{
+                100, 115, 135, 155, 180, 205, 240, 275, 315, 360,
+                415, 480, 550, 635, 730, 840, 965, 1110, 1280, 1470,
+                1690, 1940, 2230, 2565, 2950, 3390, 3900, 4485, 5160, 5935,
+                6825, 7850, 9030, 10385, 11940, 13730, 15790, 18160, 20885, 24015,
+                27620, 31760, 36525, 42005, 48305, 55550, 63880, 73465, 84485, 97160
+            });
 
         public final String displayName;
         public final String effectDesc;
@@ -135,6 +143,11 @@ public class AbilityManager {
     /** HP-Regeneration pro 5 Sekunden. */
     public double getRegenAmount(UUID uuid) {
         return getLevel(uuid, AbilityType.REGEN) * 1.5;
+    }
+
+    /** Chance (0.0–0.50) negative Boss-Effekte zu blocken. */
+    public double getEffectResistChance(UUID uuid) {
+        return getLevel(uuid, AbilityType.IMMUN) * 0.01;
     }
 
     // ── Regen-Task ─────────────────────────────────────────────────────────

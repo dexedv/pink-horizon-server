@@ -142,21 +142,28 @@ public class SmashCombatListener implements Listener {
             * plugin.getRuneManager().getShieldRuneMultiplier(player.getUniqueId());
         event.setDamage(baseDamage * defMulti);
 
-        // VERGIFTET modifier: Poison II für 3s
-        if (arena.getModifiers().contains(BossModifier.VERGIFTET)) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 1, false, true));
-        }
-        // BRENNEND modifier: Spieler brennt 4s
-        if (arena.getModifiers().contains(BossModifier.BRENNEND)) {
-            player.setFireTicks(80);
-        }
-        // VERDORREND modifier: Wither I für 4s
-        if (arena.getModifiers().contains(BossModifier.VERDORREND)) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 0, false, true));
-        }
-        // VERLANGSAMEND modifier: Slowness III für 2s
-        if (arena.getModifiers().contains(BossModifier.VERLANGSAMEND)) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2, false, true));
+        // Immunität-Fähigkeit: einmaliger Check pro Treffer für alle Effekte
+        double resistChance = plugin.getAbilityManager().getEffectResistChance(player.getUniqueId());
+        boolean resisted = resistChance > 0 && Math.random() < resistChance;
+        if (resisted) {
+            player.sendMessage("§d🛡 §7Effekt resistiert!");
+        } else {
+            // VERGIFTET modifier: Poison II für 3s
+            if (arena.getModifiers().contains(BossModifier.VERGIFTET)) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 1, false, true));
+            }
+            // BRENNEND modifier: Spieler brennt 4s
+            if (arena.getModifiers().contains(BossModifier.BRENNEND)) {
+                player.setFireTicks(80);
+            }
+            // VERDORREND modifier: Wither I für 4s
+            if (arena.getModifiers().contains(BossModifier.VERDORREND)) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 0, false, true));
+            }
+            // VERLANGSAMEND modifier: Slowness III für 2s
+            if (arena.getModifiers().contains(BossModifier.VERLANGSAMEND)) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2, false, true));
+            }
         }
     }
 

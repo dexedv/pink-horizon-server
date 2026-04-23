@@ -23,7 +23,7 @@ public class AbilityGui implements Listener {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     // 54-slot layout: abilities at these slots
-    private static final int[]         SLOTS = {10, 12, 14, 28, 30, 32};
+    private static final int[]         SLOTS = {10, 12, 14, 28, 30, 32, 46};
     private static final AbilityType[] ORDER = AbilityType.values();
 
     private static final Material[] ICONS = {
@@ -32,7 +32,8 @@ public class AbilityGui implements Listener {
         Material.GOLDEN_APPLE,          // HEAL_ON_KILL
         Material.TNT,                   // EXPLOSIVE
         Material.GOLD_INGOT,            // COIN_BOOST
-        Material.GLISTERING_MELON_SLICE // REGEN
+        Material.GLISTERING_MELON_SLICE,// REGEN
+        Material.SHIELD                 // IMMUN
     };
 
     private final PHSmash plugin;
@@ -114,6 +115,7 @@ public class AbilityGui implements Listener {
             case EXPLOSIVE    -> "§6" + (level * 7) + "% §7Chance 2× Pfeil";
             case COIN_BOOST   -> "§e+" + (level * 20) + "% §7Münzen";
             case REGEN        -> "§a+" + String.format("%.1f", level * 1.5) + " §7HP/5s";
+            case IMMUN        -> "§d" + level + "% §7Effekt-Resist";
         };
     }
 
