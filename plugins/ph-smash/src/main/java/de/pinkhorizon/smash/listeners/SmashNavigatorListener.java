@@ -67,7 +67,7 @@ public class SmashNavigatorListener implements Listener {
     // ── Navigator-GUI ──────────────────────────────────────────────────────
 
     private void openNavGui(Player player) {
-        Inventory inv = Bukkit.createInventory(new NavHolder(), 27,
+        Inventory inv = Bukkit.createInventory(new NavHolder(), 54,
             LEGACY.deserialize("§8§l≡ §r§c§lSmash §8– §7Menü"));
         fillNav(inv, player);
         player.openInventory(inv);
@@ -78,10 +78,11 @@ public class SmashNavigatorListener implements Listener {
         ItemMeta  pm   = pane.getItemMeta();
         pm.displayName(Component.empty());
         pane.setItemMeta(pm);
-        for (int i = 0; i < 27; i++) inv.setItem(i, pane);
+        for (int i = 0; i < 54; i++) inv.setItem(i, pane);
 
         boolean inArena = plugin.getArenaManager().hasArena(player.getUniqueId());
 
+        // ── Reihe 2: Kern-Aktionen ─────────────────────────────────────────
         // Slot 10 – Arena betreten
         inv.setItem(10, nav(
             inArena ? Material.RED_CONCRETE : Material.LIME_CONCRETE,
@@ -99,22 +100,39 @@ public class SmashNavigatorListener implements Listener {
         // Slot 14 – Item-Upgrades
         inv.setItem(14, nav(Material.DIAMOND,
             "§b§l⬆ Item-Upgrades",
-            List.of("§7Kaufe Upgrades mit Loot-Items", "§a▶ Klicken")));
+            List.of("§7Verbessere Angriff, Verteidigung,", "§7Gesundheit & mehr", "§a▶ Klicken")));
 
         // Slot 16 – Fähigkeiten
         inv.setItem(16, nav(Material.NETHER_STAR,
             "§6§l★ Fähigkeiten",
-            List.of("§7Kaufe Fähigkeiten mit Münzen", "§a▶ Klicken")));
+            List.of("§7Freischalten mit Münzen", "§a▶ Klicken")));
 
-        // Slot 20 – Shop
-        inv.setItem(20, nav(Material.EMERALD,
+        // ── Reihe 4: Erweiterte Systeme ───────────────────────────────────
+        // Slot 28 – Shop
+        inv.setItem(28, nav(Material.EMERALD,
             "§a§l☆ Shop",
-            List.of("§7Kaufe Tränke & Items mit Münzen", "§a▶ Klicken")));
+            List.of("§7Kaufe Tränke & Items", "§a▶ Klicken")));
 
-        // Slot 22 – Statistiken
-        inv.setItem(22, nav(Material.PAPER,
+        // Slot 30 – Talente
+        inv.setItem(30, nav(Material.ENCHANTED_BOOK,
+            "§5§l✦ Talente",
+            List.of("§7Passive Boss-Kern-Upgrades", "§a▶ Klicken")));
+
+        // Slot 32 – Runen
+        inv.setItem(32, nav(Material.BLAZE_POWDER,
+            "§c§l⚡ Runen",
+            List.of("§7Zeitlich begrenzte Boni", "§7(Krieg / Schutz / Glück)", "§a▶ Klicken")));
+
+        // Slot 34 – Tägliche Herausforderungen
+        inv.setItem(34, nav(Material.CLOCK,
+            "§e§l⏳ Tägliche Quests",
+            List.of("§73 neue Herausforderungen täglich", "§a▶ Klicken")));
+
+        // ── Reihe 6: Statistiken ──────────────────────────────────────────
+        // Slot 49 – Statistiken (Mitte unten)
+        inv.setItem(49, nav(Material.PAPER,
             "§e§l✦ Statistiken",
-            List.of("§7Zeigt deine persönlichen Stats", "§a▶ Klicken")));
+            List.of("§7Deine persönlichen Stats", "§a▶ Klicken")));
     }
 
     @EventHandler
@@ -144,11 +162,23 @@ public class SmashNavigatorListener implements Listener {
                 player.closeInventory();
                 Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getAbilityGui().open(player), 1L);
             }
-            case 20 -> {
+            case 28 -> {
                 player.closeInventory();
                 Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getShopGui().open(player), 1L);
             }
-            case 22 -> {
+            case 30 -> {
+                player.closeInventory();
+                Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getTalentGui().open(player), 1L);
+            }
+            case 32 -> {
+                player.closeInventory();
+                Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getRuneGui().open(player), 1L);
+            }
+            case 34 -> {
+                player.closeInventory();
+                Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.getDailyChallengeGui().open(player), 1L);
+            }
+            case 49 -> {
                 player.closeInventory();
                 showStats(player);
             }

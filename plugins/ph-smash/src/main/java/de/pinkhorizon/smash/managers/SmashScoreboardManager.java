@@ -110,11 +110,13 @@ public class SmashScoreboardManager {
         setLine(board, 7,  "§7Schaden: §e" + formatDmg(totalDmg));
         setLine(board, 6,  "§7Kills:   §a" + kills);
         setLine(board, 5,  "§7Münzen:  §6" + coins);
-        setLine(board, 4,  "    ");
+        String streak = plugin.getStreakManager().getStreakDisplay(uuid);
+        String rank   = RankManager.getRankDisplay(bossLevel);
+        setLine(board, 4,  "§7Streak: " + streak);
         setLine(board, 3,  "§7⚔ Angriff: §6+" + (atkLevel * 8) + "%");
         setLine(board, 2,  "§7❤ HP-Bonus: §a+" + (hpLevel * 6));
         setLine(board, 1,  "§aplay.pinkhorizon.fun");
-        setLine(board, 0,  "  ");
+        setLine(board, 0,  rank);
     }
 
     private void setLine(Scoreboard board, int score, String text) {

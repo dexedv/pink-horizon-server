@@ -36,11 +36,14 @@ public class SmashTabManager {
                     ? arena.getBossLevel()
                     : plugin.getPlayerDataManager().getPersonalBossLevel(p.getUniqueId());
 
+                String rank   = RankManager.getRankPrefix(bossLevel);
+                String streak = plugin.getStreakManager().getStreakDisplay(p.getUniqueId());
                 String status = arena != null ? "§aIn Arena" : "§7Lobby";
                 Component footer = Component.text(
-                    "\n§7Dein Boss-Level: §c" + bossLevel
-                    + "  §7§l|§r  " + status
-                    + "  §7§l|§r  §7Online: §a" + online
+                    "\n" + rank + " §7Rang  §8|  §7Level: §c" + bossLevel
+                    + "  §8|  " + streak
+                    + "  §8|  §7Online: §a" + online
+                    + "  §8|  " + status
                     + "\n§aplay.pinkhorizon.fun\n");
 
                 p.sendPlayerListHeaderAndFooter(header, footer);
@@ -53,13 +56,16 @@ public class SmashTabManager {
         int bossLevel = arena != null
             ? arena.getBossLevel()
             : plugin.getPlayerDataManager().getPersonalBossLevel(player.getUniqueId());
+        String rank   = RankManager.getRankPrefix(bossLevel);
+        String streak = plugin.getStreakManager().getStreakDisplay(player.getUniqueId());
         String status = arena != null ? "§aIn Arena" : "§7Lobby";
 
         player.sendPlayerListHeaderAndFooter(
             Component.text(HEADER_FRAMES[frame]),
-            Component.text("\n§7Dein Boss-Level: §c" + bossLevel
-                + "  §7§l|§r  " + status
-                + "  §7§l|§r  §7Online: §a" + Bukkit.getOnlinePlayers().size()
+            Component.text("\n" + rank + " §7Rang  §8|  §7Level: §c" + bossLevel
+                + "  §8|  " + streak
+                + "  §8|  §7Online: §a" + Bukkit.getOnlinePlayers().size()
+                + "  §8|  " + status
                 + "\n§aplay.pinkhorizon.fun\n"));
     }
 

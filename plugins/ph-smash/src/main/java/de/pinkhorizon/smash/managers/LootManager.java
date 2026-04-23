@@ -120,6 +120,22 @@ public class LootManager {
         player.sendMessage(sb.toString());
     }
 
+    /** Public convenience method to add a fixed amount of a single loot item. */
+    public void addLoot(UUID uuid, LootItem item, int amount) {
+        try (Connection c = plugin.getDb().getConnection();
+             PreparedStatement st = c.prepareStatement("""
+                 INSERT INTO smash_inventory (uuid, item_type, quantity) VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
+                 """)) {
+            st.setString(1, uuid.toString());
+            st.setString(2, item.name());
+            st.setInt(3, amount);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("LootManager.addLoot: " + e.getMessage());
+        }
+    }
+
     public int getQuantity(UUID uuid, LootItem item) {
         try (Connection c = plugin.getDb().getConnection();
              PreparedStatement st = c.prepareStatement(

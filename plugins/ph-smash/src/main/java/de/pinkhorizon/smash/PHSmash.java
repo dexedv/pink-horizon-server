@@ -4,7 +4,10 @@ import de.pinkhorizon.smash.arena.ArenaManager;
 import de.pinkhorizon.smash.commands.SmashCommand;
 import de.pinkhorizon.smash.database.SmashDatabaseManager;
 import de.pinkhorizon.smash.gui.AbilityGui;
+import de.pinkhorizon.smash.gui.DailyChallengeGui;
+import de.pinkhorizon.smash.gui.RuneGui;
 import de.pinkhorizon.smash.gui.ShopGui;
+import de.pinkhorizon.smash.gui.TalentGui;
 import de.pinkhorizon.smash.gui.UpgradeGui;
 import de.pinkhorizon.smash.hologram.HologramManager;
 import de.pinkhorizon.smash.listeners.SmashCombatListener;
@@ -35,6 +38,17 @@ public class PHSmash extends JavaPlugin {
     private ShopGui                shopGui;
     private NpcManager             npcManager;
     private HologramManager        hologramManager;
+    // New managers (v2)
+    private PrestigeManager        prestigeManager;
+    private StreakManager          streakManager;
+    private MilestoneManager       milestoneManager;
+    private TalentManager          talentManager;
+    private DailyChallengeManager  dailyChallengeManager;
+    private RuneManager            runeManager;
+    // New GUIs (v2)
+    private TalentGui              talentGui;
+    private RuneGui                runeGui;
+    private DailyChallengeGui      dailyChallengeGui;
 
     @Override
     public void onEnable() {
@@ -70,6 +84,19 @@ public class PHSmash extends JavaPlugin {
         getCommand("stb").setExecutor(smashCmd);
         getCommand("stb").setTabCompleter(smashCmd);
 
+        // New managers (v2)
+        prestigeManager       = new PrestigeManager(this);
+        streakManager         = new StreakManager(this);
+        milestoneManager      = new MilestoneManager(this);
+        talentManager         = new TalentManager(this);
+        dailyChallengeManager = new DailyChallengeManager(this);
+        runeManager           = new RuneManager(this);
+
+        // New GUIs (v2)
+        talentGui          = new TalentGui(this);
+        runeGui            = new RuneGui(this);
+        dailyChallengeGui  = new DailyChallengeGui(this);
+
         // NPC-Manager + Holograms
         npcManager      = new NpcManager(this);
         hologramManager = new HologramManager(this);
@@ -81,6 +108,9 @@ public class PHSmash extends JavaPlugin {
         getServer().getPluginManager().registerEvents(upgradeGui, this);
         getServer().getPluginManager().registerEvents(abilityGui, this);
         getServer().getPluginManager().registerEvents(shopGui, this);
+        getServer().getPluginManager().registerEvents(talentGui, this);
+        getServer().getPluginManager().registerEvents(runeGui, this);
+        getServer().getPluginManager().registerEvents(dailyChallengeGui, this);
         getServer().getPluginManager().registerEvents(npcManager, this);
 
         // Template-Welt (Lobby) konfigurieren: kein Mob-Spawn, kein Tageszyklus
@@ -121,6 +151,17 @@ public class PHSmash extends JavaPlugin {
     public UpgradeGui             getUpgradeGui()       { return upgradeGui; }
     public AbilityGui             getAbilityGui()       { return abilityGui; }
     public ShopGui                getShopGui()          { return shopGui; }
-    public NpcManager             getNpcManager()       { return npcManager; }
-    public HologramManager        getHologramManager()  { return hologramManager; }
+    public NpcManager             getNpcManager()           { return npcManager; }
+    public HologramManager        getHologramManager()      { return hologramManager; }
+    // New managers (v2)
+    public PrestigeManager        getPrestigeManager()      { return prestigeManager; }
+    public StreakManager          getStreakManager()         { return streakManager; }
+    public MilestoneManager       getMilestoneManager()     { return milestoneManager; }
+    public TalentManager          getTalentManager()        { return talentManager; }
+    public DailyChallengeManager  getDailyChallengeManager(){ return dailyChallengeManager; }
+    public RuneManager            getRuneManager()          { return runeManager; }
+    // New GUIs (v2)
+    public TalentGui              getTalentGui()            { return talentGui; }
+    public RuneGui                getRuneGui()              { return runeGui; }
+    public DailyChallengeGui      getDailyChallengeGui()    { return dailyChallengeGui; }
 }

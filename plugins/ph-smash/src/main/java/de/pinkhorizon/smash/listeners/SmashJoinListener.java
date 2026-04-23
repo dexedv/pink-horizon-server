@@ -67,6 +67,9 @@ public class SmashJoinListener implements Listener {
         event.setDroppedExp(0);
         event.getDrops().clear();
 
+        // Streak zurücksetzen
+        plugin.getStreakManager().resetStreak(player.getUniqueId());
+
         // Eigene Tod-Nachricht statt Standard
         event.deathMessage(Component.text(
             "§c✗ §f" + player.getName() + " §7wurde vom Boss auf Level §c"

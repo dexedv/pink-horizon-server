@@ -2,6 +2,7 @@ package de.pinkhorizon.smash.arena;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.boss.BossConfig;
+import de.pinkhorizon.smash.managers.DailyChallengeManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -132,12 +133,16 @@ public class ArenaManager {
         ArenaInstance arena = arenas.get(player.getUniqueId());
         if (arena == null) return;
 
-        double multiplier = plugin.getUpgradeManager().getAttackMultiplier(player.getUniqueId());
-        double real       = rawDamage * multiplier;
+        UUID uuid = player.getUniqueId();
+        double multiplier = plugin.getUpgradeManager().getAttackMultiplier(uuid)
+            * plugin.getPrestigeManager().getPrestigeMultiplier(uuid)
+            * plugin.getStreakManager().getStreakMultiplier(uuid)
+            * plugin.getRuneManager().getWarRuneMultiplier(uuid);
+        double real = rawDamage * multiplier;
         arena.applyDamage(real);
 
         // Lifesteal
-        double lifesteal = plugin.getUpgradeManager().getLifestealPercent(player.getUniqueId());
+        double lifesteal = plugin.getUpgradeManager().getLifestealPercent(uuid);
         if (lifesteal > 0) {
             var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
             if (hpAttr != null) {
@@ -147,6 +152,7 @@ public class ArenaManager {
         }
 
         updateBossBar(arena);
+        checkBossPhases(player, arena);
         plugin.getScoreboardManager().update(player);
 
         if (arena.isDead()) {
@@ -279,29 +285,54 @@ public class ArenaManager {
         if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
         if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
 
+        UUID uuid         = player.getUniqueId();
         int defeatedLevel = arena.getBossLevel();
         int nextLevel     = Math.min(defeatedLevel + 1, 999);
 
         // Loot + Stats
         plugin.getLootManager().distributeSinglePlayer(player, defeatedLevel);
-        plugin.getPlayerDataManager().addKillAndDamage(player.getUniqueId(),
-            (long) arena.getSessionDamage(), defeatedLevel);
-        plugin.getPlayerDataManager().setPersonalBossLevel(player.getUniqueId(), nextLevel);
+        plugin.getPlayerDataManager().addKillAndDamage(uuid, (long) arena.getSessionDamage(), defeatedLevel);
+        plugin.getPlayerDataManager().setPersonalBossLevel(uuid, nextLevel);
 
-        // Coins
+        // Coins (+ luck rune multiplier)
         long baseCoins = defeatedLevel * 5L + 10L;
-        long coins     = Math.round(baseCoins * plugin.getAbilityManager().getCoinMultiplier(player.getUniqueId()));
-        plugin.getCoinManager().addCoins(player.getUniqueId(), coins);
+        long coins     = Math.round(baseCoins
+            * plugin.getAbilityManager().getCoinMultiplier(uuid)
+            * plugin.getRuneManager().getLuckRuneMultiplier(uuid));
+        plugin.getCoinManager().addCoins(uuid, coins);
         player.sendMessage("§e✦ §6+" + coins + " §eMünzen");
 
         // Heal on Kill
-        double healPct = plugin.getAbilityManager().getHealOnKillPercent(player.getUniqueId());
+        double healPct = plugin.getAbilityManager().getHealOnKillPercent(uuid);
         if (healPct > 0) {
-            var hpAttr = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
             if (hpAttr != null) {
                 double healed = Math.min(player.getHealth() + hpAttr.getValue() * healPct, hpAttr.getValue());
                 player.setHealth(healed);
             }
+        }
+
+        // Streak
+        int newStreak = plugin.getStreakManager().incrementStreak(uuid);
+        if (newStreak >= 2) {
+            int bonusPct = (int) ((plugin.getStreakManager().getStreakMultiplier(uuid) - 1.0) * 100);
+            player.sendMessage("§6🔥 Streak: §e" + newStreak + "x §8(+" + bonusPct + "% Schaden)");
+        }
+
+        // Milestone check
+        plugin.getMilestoneManager().checkAndReward(player, nextLevel, plugin);
+
+        // Rune charges decrement
+        plugin.getRuneManager().onBossDefeated(uuid);
+
+        // Daily challenge tracking
+        plugin.getDailyChallengeManager().addProgress(uuid, DailyChallengeManager.ChallengeType.BOSS_KILLS, 1);
+        plugin.getDailyChallengeManager().addProgress(uuid, DailyChallengeManager.ChallengeType.TOTAL_DAMAGE,
+            (int) Math.min(arena.getSessionDamage(), Integer.MAX_VALUE));
+        plugin.getDailyChallengeManager().addProgress(uuid, DailyChallengeManager.ChallengeType.COINS_EARNED,
+            (int) Math.min(coins, Integer.MAX_VALUE));
+        if (newStreak >= 3) {
+            plugin.getDailyChallengeManager().addProgress(uuid, DailyChallengeManager.ChallengeType.STREAK_REACH, newStreak);
         }
 
         // Titel
@@ -316,11 +347,61 @@ public class ArenaManager {
         // Nächsten Boss nach 3 Sekunden spawnen
         arena.resetForNextBoss(nextLevel);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (arenas.containsKey(player.getUniqueId()) && player.isOnline()) {
+            if (arenas.containsKey(uuid) && player.isOnline()) {
                 spawnBossInArena(arena);
                 plugin.getScoreboardManager().update(player);
             }
         }, 60L);
+    }
+
+    /** Prüft Boss-Phasen (75% / 50% / 25%) und löst Spezial-Angriffe aus */
+    private void checkBossPhases(Player player, ArenaInstance arena) {
+        double pct = arena.getHpPercent();
+
+        // Phase 1: 75% – Warnung + Sound
+        if (pct <= 0.75 && !arena.isPhaseTriggered(0.75)) {
+            arena.triggerPhase(0.75);
+            player.sendMessage("§e⚡ §7Der Boss wird wütend! §e75% HP");
+            player.playSound(player.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.8f, 0.7f);
+        }
+
+        // Phase 2: 50% – Rage-Modus (30 Sek) + Blitz am Boss
+        if (pct <= 0.50 && !arena.isPhaseTriggered(0.50)) {
+            arena.triggerPhase(0.50);
+            arena.activateRage(30_000L);
+            player.sendMessage("§c§l☠ RAGE! §7Der Boss rast! §c+50% Schaden §7für 30s!");
+            player.playSound(player.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 1f, 0.5f);
+            if (arena.getBossEntity() != null && arena.getWorld() != null)
+                arena.getWorld().strikeLightningEffect(arena.getBossEntity().getLocation());
+        }
+
+        // Phase 3: 25% – Boss heilt 10% + Meteorregen
+        if (pct <= 0.25 && !arena.isPhaseTriggered(0.25)) {
+            arena.triggerPhase(0.25);
+            double healAmt = arena.getConfig().maxHp() * 0.10;
+            arena.heal(healAmt);
+            updateBossBar(arena);
+            player.sendMessage("§c☠ §7Der Boss heilt sich! §c+10% HP §7– Meteorregen!");
+            player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1f, 1.2f);
+            spawnMeteorShower(arena);
+        }
+    }
+
+    private void spawnMeteorShower(ArenaInstance arena) {
+        if (arena.getBossEntity() == null || arena.getWorld() == null) return;
+        Location bossLoc = arena.getBossEntity().getLocation();
+        World    world   = arena.getWorld();
+        for (int i = 0; i < 6; i++) {
+            final int idx = i;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (arena.getBossEntity() == null || !arena.getBossEntity().isValid()) return;
+                double angle  = idx * (Math.PI / 3.0);
+                double dist   = 3 + idx % 3 * 2.0;
+                Location strike = bossLoc.clone().add(
+                    Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+                world.strikeLightningEffect(strike);
+            }, idx * 8L);
+        }
     }
 
     private void updateBossBar(ArenaInstance arena) {

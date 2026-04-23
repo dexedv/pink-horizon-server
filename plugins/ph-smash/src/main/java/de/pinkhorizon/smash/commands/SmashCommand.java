@@ -61,6 +61,11 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
                 p.sendMessage("§e✦ §7Deine Münzen: §6§l" + coins);
             }
 
+            case "prestige" -> {
+                if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
+                plugin.getPrestigeManager().doPrestige(p);
+            }
+
             case "stats" -> {
                 if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
                 int  kills        = plugin.getPlayerDataManager().getKills(p.getUniqueId());
@@ -142,7 +147,7 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "abilities", "coins", "stats"));
+            List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "abilities", "coins", "prestige", "stats"));
             if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("sethub"); base.add("setnpc"); base.add("sethologram"); base.add("forceboss"); }
             return base.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }

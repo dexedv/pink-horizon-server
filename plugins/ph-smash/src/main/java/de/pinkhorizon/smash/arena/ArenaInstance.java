@@ -6,19 +6,25 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Entity;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class ArenaInstance {
 
-    private final UUID       playerUuid;
-    private final String     worldName;
-    private World            world;
-    private Entity           bossEntity;
-    private BossBar          bossBar;
-    private BossConfig       config;
-    private double           currentHp;
-    private double           sessionDamage;
-    private BukkitTask       targetTask;
+    private final UUID         playerUuid;
+    private final String       worldName;
+    private World              world;
+    private Entity             bossEntity;
+    private BossBar            bossBar;
+    private BossConfig         config;
+    private double             currentHp;
+    private double             sessionDamage;
+    private BukkitTask         targetTask;
+    // Boss phase tracking
+    private final Set<Double>  triggeredPhases = new HashSet<>();
+    private boolean            rageActive      = false;
+    private long               rageEndTime     = 0;
 
     public ArenaInstance(UUID playerUuid, String worldName, int bossLevel) {
         this.playerUuid    = playerUuid;
@@ -33,6 +39,10 @@ public class ArenaInstance {
         sessionDamage += dmg;
     }
 
+    public void heal(double amount) {
+        currentHp = Math.min(currentHp + amount, config.maxHp());
+    }
+
     public boolean isDead() {
         return currentHp <= 0;
     }
@@ -44,10 +54,13 @@ public class ArenaInstance {
     /** Welt bleibt, nur Boss und Zustand werden für nächstes Level resettet */
     public void resetForNextBoss(int newLevel) {
         if (targetTask != null) { targetTask.cancel(); targetTask = null; }
-        config        = BossConfig.forLevel(newLevel);
-        currentHp     = config.maxHp();
-        sessionDamage = 0;
-        bossEntity    = null;
+        config           = BossConfig.forLevel(newLevel);
+        currentHp        = config.maxHp();
+        sessionDamage    = 0;
+        bossEntity       = null;
+        triggeredPhases.clear();
+        rageActive       = false;
+        rageEndTime      = 0;
     }
 
     // ── Getter / Setter ────────────────────────────────────────────────────
@@ -66,4 +79,9 @@ public class ArenaInstance {
     public int        getBossLevel()               { return config.level(); }
     public BukkitTask getTargetTask()              { return targetTask; }
     public void       setTargetTask(BukkitTask t)  { this.targetTask = t; }
+    // Phase tracking
+    public boolean    isPhaseTriggered(double t)   { return triggeredPhases.contains(t); }
+    public void       triggerPhase(double t)       { triggeredPhases.add(t); }
+    public boolean    isRageActive()               { return rageActive && System.currentTimeMillis() < rageEndTime; }
+    public void       activateRage(long durationMs){ rageActive = true; rageEndTime = System.currentTimeMillis() + durationMs; }
 }

@@ -105,6 +105,53 @@ public class SmashDatabaseManager {
                   level      INT         NOT NULL DEFAULT 0,
                   PRIMARY KEY (uuid, ability_id)
                 )""");
+
+            // ── v2 tables ──────────────────────────────────────────────────
+            st.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS smash_prestige (
+                  uuid     CHAR(36) PRIMARY KEY,
+                  prestige INT      NOT NULL DEFAULT 0
+                )""");
+
+            st.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS smash_streaks (
+                  uuid           CHAR(36) PRIMARY KEY,
+                  current_streak INT      NOT NULL DEFAULT 0,
+                  best_streak    INT      NOT NULL DEFAULT 0
+                )""");
+
+            st.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS smash_milestones (
+                  uuid            CHAR(36) NOT NULL,
+                  milestone_level INT      NOT NULL,
+                  PRIMARY KEY (uuid, milestone_level)
+                )""");
+
+            st.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS smash_talents (
+                  uuid      CHAR(36)    NOT NULL,
+                  talent_id VARCHAR(32) NOT NULL,
+                  level     INT         NOT NULL DEFAULT 0,
+                  PRIMARY KEY (uuid, talent_id)
+                )""");
+
+            st.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS smash_daily (
+                  uuid           CHAR(36)    NOT NULL,
+                  challenge_date DATE        NOT NULL,
+                  challenge_id   VARCHAR(32) NOT NULL,
+                  progress       INT         NOT NULL DEFAULT 0,
+                  completed      TINYINT     NOT NULL DEFAULT 0,
+                  PRIMARY KEY (uuid, challenge_date, challenge_id)
+                )""");
+
+            st.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS smash_runes (
+                  uuid    CHAR(36)    NOT NULL,
+                  rune_id VARCHAR(32) NOT NULL,
+                  charges INT         NOT NULL DEFAULT 0,
+                  PRIMARY KEY (uuid, rune_id)
+                )""");
         }
     }
 }

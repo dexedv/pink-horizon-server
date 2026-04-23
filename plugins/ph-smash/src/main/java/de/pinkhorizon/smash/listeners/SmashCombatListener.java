@@ -2,6 +2,7 @@ package de.pinkhorizon.smash.listeners;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.arena.ArenaInstance;
+import de.pinkhorizon.smash.managers.DailyChallengeManager;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
@@ -97,12 +98,16 @@ public class SmashCombatListener implements Listener {
             event.setCancelled(true);
             player.sendMessage("§b⚡ §7Ausgewichen!");
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.5f);
+            plugin.getDailyChallengeManager().addProgress(player.getUniqueId(),
+                DailyChallengeManager.ChallengeType.DODGE_HITS, 1);
             return;
         }
 
-        // Boss-Schaden aus BossConfig (skaliert mit Level), dann Defense anwenden
+        // Boss-Schaden aus BossConfig (skaliert mit Level), dann Defense + Rage-Multiplikator anwenden
         double baseDamage = arena.getConfig().damage();
-        double defMulti   = plugin.getUpgradeManager().getDefenseMultiplier(player.getUniqueId());
+        if (arena.isRageActive()) baseDamage *= 1.5;
+        double defMulti = plugin.getUpgradeManager().getDefenseMultiplier(player.getUniqueId())
+            * plugin.getRuneManager().getShieldRuneMultiplier(player.getUniqueId());
         event.setDamage(baseDamage * defMulti);
     }
 
