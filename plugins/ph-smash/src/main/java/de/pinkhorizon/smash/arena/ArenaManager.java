@@ -351,11 +351,20 @@ public class ArenaManager {
         if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
         if (arena.getRegenTask() != null) { arena.getRegenTask().cancel(); arena.setRegenTask(null); }
 
-        // Spieler auf volle Leben heilen + alle Effekte entfernen
+        // Spieler auf volle Leben heilen + negative Effekte entfernen
         var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
         if (hpAttr != null) player.setHealth(hpAttr.getValue());
+        Set<PotionEffectType> negativeEffects = Set.of(
+            PotionEffectType.POISON, PotionEffectType.WITHER,
+            PotionEffectType.SLOWNESS, PotionEffectType.WEAKNESS,
+            PotionEffectType.HUNGER, PotionEffectType.NAUSEA,
+            PotionEffectType.BLINDNESS, PotionEffectType.MINING_FATIGUE,
+            PotionEffectType.LEVITATION, PotionEffectType.UNLUCK,
+            PotionEffectType.DARKNESS
+        );
         player.getActivePotionEffects().stream()
             .map(PotionEffect::getType)
+            .filter(negativeEffects::contains)
             .forEach(player::removePotionEffect);
 
         UUID uuid         = player.getUniqueId();
