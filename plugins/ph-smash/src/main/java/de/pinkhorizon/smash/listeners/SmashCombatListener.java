@@ -2,6 +2,7 @@ package de.pinkhorizon.smash.listeners;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.arena.ArenaInstance;
+import org.bukkit.Bukkit;
 import de.pinkhorizon.smash.managers.BossModifierManager.BossModifier;
 import de.pinkhorizon.smash.managers.DailyChallengeManager;
 import de.pinkhorizon.smash.managers.ForgeManager.ForgeEnchant;
@@ -66,19 +67,34 @@ public class SmashCombatListener implements Listener {
 
         UUID uuid = player.getUniqueId();
 
-        // ── Explosivpfeil (nur Bogen) ──
         if (isBow) {
+            // ── Explosivpfeil ──
             double expChance = plugin.getAbilityManager().getExplosiveChance(uuid);
             if (expChance > 0 && Math.random() < expChance) {
                 raw *= 2.0;
                 player.sendMessage("§6✦ §eExplosivpfeil!");
                 player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.5f);
             }
-            // Forge: POWER (+50% bow damage)
+            // Forge: POWER
             raw *= plugin.getForgeManager().getPowerMultiplier(uuid);
+            // ── Bogenstärke ──
+            raw *= plugin.getAbilityManager().getBowPowerMultiplier(uuid);
         } else {
-            // Forge: SHARPNESS (+50% sword damage)
+            // Forge: SHARPNESS
             raw *= plugin.getForgeManager().getSharpnessMultiplier(uuid);
+            // ── Kritischer Treffer ──
+            double critChance = plugin.getAbilityManager().getCritChance(uuid);
+            if (critChance > 0 && Math.random() < critChance) {
+                raw *= 2.5;
+                player.sendMessage("§c✦ §fKritischer Treffer!");
+                player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1.2f);
+            }
+            // ── Hinrichtung (Boss < 25% HP) ──
+            double exeBonus = plugin.getAbilityManager().getExecuteBonus(uuid);
+            if (exeBonus > 0 && arena.getHpPercent() < 0.25) {
+                raw *= (1.0 + exeBonus);
+                player.sendMessage("§4⚔ §fHinrichtung!");
+            }
         }
 
         // ── Berserker-Bonus (Schwert + Bogen) ──
@@ -91,6 +107,41 @@ public class SmashCombatListener implements Listener {
         }
 
         plugin.getArenaManager().applyDamage(player, raw);
+
+        // ── Wirbelwind: Doppel-Treffer (Schwert) ──
+        if (!isBow) {
+            double wwChance = plugin.getAbilityManager().getWhirlwindChance(uuid);
+            if (wwChance > 0 && Math.random() < wwChance) {
+                plugin.getArenaManager().applyDamage(player, raw * 0.5);
+                player.sendMessage("§6⚡ §fWirbelwind!");
+                player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.4f);
+            }
+        }
+
+        // ── Mehrfachschuss + Giftpfeil (Bogen) ──
+        if (isBow) {
+            double msChance = plugin.getAbilityManager().getMultishotChance(uuid);
+            if (msChance > 0 && Math.random() < msChance) {
+                plugin.getArenaManager().applyDamage(player, raw * 0.8);
+                player.sendMessage("§e🏹 §fMehrfachschuss!");
+                player.playSound(player.getLocation(), Sound.ENTITY_ARROW_HIT, 1f, 1.5f);
+            }
+            double poisonChance = plugin.getAbilityManager().getPoisonChance(uuid);
+            if (poisonChance > 0 && Math.random() < poisonChance) {
+                final double    tickDmg     = raw * 0.05;
+                final ArenaInstance pArena  = arena;
+                final Player        pPlayer = player;
+                for (int tick = 1; tick <= 3; tick++) {
+                    final long delay = tick * 20L;
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (pArena.getBossEntity() != null && pArena.getBossEntity().isValid())
+                            plugin.getArenaManager().applyDamage(pPlayer, tickDmg);
+                    }, delay);
+                }
+                player.sendMessage("§2☠ §aGiftpfeil!");
+                player.playSound(player.getLocation(), Sound.ENTITY_CREEPER_HURT, 0.5f, 1.5f);
+            }
+        }
 
         // ── Forge: FIRE_ASPECT – set boss on fire ──
         if (plugin.getForgeManager().hasFireAspect(uuid) && arena.getBossEntity() != null) {

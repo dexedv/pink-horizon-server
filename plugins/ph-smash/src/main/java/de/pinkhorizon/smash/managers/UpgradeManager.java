@@ -17,11 +17,11 @@ import java.util.UUID;
 public class UpgradeManager {
 
     public enum UpgradeType {
-        ATTACK    ("attack",    "§c⚔ Angriff",        100),
-        DEFENSE   ("defense",   "§a🛡 Verteidigung",    50),
-        HEALTH    ("health",    "§e❤ Gesundheit",       30),
-        SPEED     ("speed",     "§b⚡ Tempo",            20),
-        LIFESTEAL ("lifesteal", "§5⬛ Lebensraub",       15);
+        ATTACK    ("attack",    "§c⚔ Angriff",        300),
+        DEFENSE   ("defense",   "§a🛡 Verteidigung",   100),
+        HEALTH    ("health",    "§e❤ Gesundheit",       60),
+        SPEED     ("speed",     "§b⚡ Tempo",            35),
+        LIFESTEAL ("lifesteal", "§5⬛ Lebensraub",       25);
 
         public final String id;
         public final String displayName;
@@ -156,48 +156,63 @@ public class UpgradeManager {
         Map<LootItem, Integer> cost = new EnumMap<>(LootItem.class);
         switch (type) {
             case ATTACK -> {
-                if (targetLevel <= 25) {
-                    cost.put(LootItem.IRON_FRAGMENT, targetLevel * 8);
-                } else if (targetLevel <= 60) {
+                // Lv   1- 80: Eisen = lv × 3
+                // Lv  81-200: Eisen = 20, Gold = 15
+                // Lv 201-300: Gold = 18, Kristall = lv-275 (ab Lv 276, min 1)
+                if (targetLevel <= 80) {
+                    cost.put(LootItem.IRON_FRAGMENT, targetLevel * 3);
+                } else if (targetLevel <= 200) {
                     cost.put(LootItem.IRON_FRAGMENT, 20);
-                    cost.put(LootItem.GOLD_FRAGMENT, (targetLevel - 25) * 3);
+                    cost.put(LootItem.GOLD_FRAGMENT,  15);
                 } else {
-                    cost.put(LootItem.GOLD_FRAGMENT, 20);
-                    cost.put(LootItem.DIAMOND_SHARD, (targetLevel - 60) * 2);
+                    cost.put(LootItem.GOLD_FRAGMENT,  18);
+                    cost.put(LootItem.DIAMOND_SHARD,  Math.max(1, targetLevel - 275));
                 }
             }
             case DEFENSE -> {
-                if (targetLevel <= 20) {
-                    cost.put(LootItem.IRON_FRAGMENT, targetLevel * 5);
-                    cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 2);
+                // Lv  1- 50: Eisen = lv × 2, Gold = lv
+                // Lv 51- 80: Eisen = 40, Gold = (lv-50) × 2
+                // Lv 81-100: Gold = 40, Kristall = (lv-80) × 2
+                if (targetLevel <= 50) {
+                    cost.put(LootItem.IRON_FRAGMENT, targetLevel * 2);
+                    cost.put(LootItem.GOLD_FRAGMENT,  targetLevel);
+                } else if (targetLevel <= 80) {
+                    cost.put(LootItem.IRON_FRAGMENT, 40);
+                    cost.put(LootItem.GOLD_FRAGMENT,  (targetLevel - 50) * 2);
                 } else {
-                    cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 3);
-                    cost.put(LootItem.DIAMOND_SHARD, targetLevel - 20);
+                    cost.put(LootItem.GOLD_FRAGMENT,  40);
+                    cost.put(LootItem.DIAMOND_SHARD,  (targetLevel - 80) * 2);
                 }
             }
             case HEALTH -> {
-                if (targetLevel <= 15) {
-                    cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 6);
+                // Lv  1-30: Gold = lv × 3
+                // Lv 31-60: Gold = 20, Kristall = lv-50 (ab Lv 51, min 1)
+                if (targetLevel <= 30) {
+                    cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 3);
                 } else {
-                    cost.put(LootItem.GOLD_FRAGMENT, 20);
-                    cost.put(LootItem.DIAMOND_SHARD, (targetLevel - 15) * 4);
+                    cost.put(LootItem.GOLD_FRAGMENT,  20);
+                    cost.put(LootItem.DIAMOND_SHARD,  Math.max(1, targetLevel - 50));
                 }
             }
             case SPEED -> {
-                if (targetLevel <= 10) {
-                    cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 4);
-                    cost.put(LootItem.DIAMOND_SHARD, targetLevel);
+                // Lv  1-15: Gold = lv × 4, Kristall = lv
+                // Lv 16-35: Kristall = (lv-15) × 2, Kern = 1
+                if (targetLevel <= 15) {
+                    cost.put(LootItem.GOLD_FRAGMENT,  targetLevel * 4);
+                    cost.put(LootItem.DIAMOND_SHARD,  targetLevel);
                 } else {
-                    cost.put(LootItem.DIAMOND_SHARD, (targetLevel - 10) * 5);
-                    cost.put(LootItem.BOSS_CORE, targetLevel - 10);
+                    cost.put(LootItem.DIAMOND_SHARD, (targetLevel - 15) * 2);
+                    cost.put(LootItem.BOSS_CORE,      1);
                 }
             }
             case LIFESTEAL -> {
-                if (targetLevel <= 8) {
-                    cost.put(LootItem.DIAMOND_SHARD, targetLevel * 5);
+                // Lv  1-15: Kristall = lv × 3
+                // Lv 16-25: Kristall = 20, Kern = 2
+                if (targetLevel <= 15) {
+                    cost.put(LootItem.DIAMOND_SHARD, targetLevel * 3);
                 } else {
                     cost.put(LootItem.DIAMOND_SHARD, 20);
-                    cost.put(LootItem.BOSS_CORE, (targetLevel - 8) * 3);
+                    cost.put(LootItem.BOSS_CORE,     2);
                 }
             }
         }

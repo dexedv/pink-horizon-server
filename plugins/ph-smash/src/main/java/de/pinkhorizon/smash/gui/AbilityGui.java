@@ -26,18 +26,39 @@ public class AbilityGui implements Listener {
 
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
-    // 54-slot layout: abilities at these slots
-    private static final int[]         SLOTS = {10, 12, 14, 28, 30, 32, 46};
-    private static final AbilityType[] ORDER = AbilityType.values();
-
+    // 54-slot layout:
+    //  Row 1 (10-14): Allgemein
+    //  Row 2 (19-21): Schwert
+    //  Row 3 (28-31): Bogen
+    //  Row 4 (37)   : IMMUN
+    private static final int[] SLOTS = {
+        10, 11, 12, 13, 14,   // Allgemein
+        19, 20, 21,            // Schwert
+        28, 29, 30, 31,        // Bogen
+        37                     // Immunität
+    };
+    private static final AbilityType[] ORDER = {
+        AbilityType.BERSERKER, AbilityType.DODGE, AbilityType.HEAL_ON_KILL,
+        AbilityType.COIN_BOOST, AbilityType.REGEN,
+        AbilityType.KRITISCH, AbilityType.HINRICHTUNG, AbilityType.WIRBELWIND,
+        AbilityType.EXPLOSIVE, AbilityType.BOGENSTAERKE,
+        AbilityType.MEHRFACHSCHUSS, AbilityType.GIFTPFEIL,
+        AbilityType.IMMUN
+    };
     private static final Material[] ICONS = {
-        Material.IRON_SWORD,            // BERSERKER
-        Material.FEATHER,               // DODGE
-        Material.GOLDEN_APPLE,          // HEAL_ON_KILL
-        Material.TNT,                   // EXPLOSIVE
-        Material.GOLD_INGOT,            // COIN_BOOST
-        Material.GLISTERING_MELON_SLICE,// REGEN
-        Material.SHIELD                 // IMMUN
+        Material.IRON_SWORD,              // BERSERKER
+        Material.FEATHER,                 // DODGE
+        Material.GOLDEN_APPLE,            // HEAL_ON_KILL
+        Material.GOLD_INGOT,              // COIN_BOOST
+        Material.GLISTERING_MELON_SLICE,  // REGEN
+        Material.DIAMOND_SWORD,           // KRITISCH
+        Material.NETHERITE_SWORD,         // HINRICHTUNG
+        Material.WIND_CHARGE,             // WIRBELWIND
+        Material.TNT,                     // EXPLOSIVE
+        Material.BOW,                     // BOGENSTAERKE
+        Material.SPECTRAL_ARROW,          // MEHRFACHSCHUSS
+        Material.SLIME_BALL,              // GIFTPFEIL
+        Material.SHIELD                   // IMMUN
     };
 
     private final PHSmash   plugin;
@@ -86,22 +107,27 @@ public class AbilityGui implements Listener {
                 "§7  §5Boss-Kern:      §7" + coreQty
             )));
 
-        // Resource info items (right column)
-        inv.setItem(15, buildItemInfo(uid, LootItem.IRON_FRAGMENT,  Material.IRON_INGOT,   ironQty));
-        inv.setItem(24, buildItemInfo(uid, LootItem.GOLD_FRAGMENT,  Material.GOLD_INGOT,   goldQty));
-        inv.setItem(33, buildItemInfo(uid, LootItem.DIAMOND_SHARD,  Material.DIAMOND,      crystalQty));
-        inv.setItem(42, buildItemInfo(uid, LootItem.BOSS_CORE,      Material.NETHER_STAR,  coreQty));
+        // Kategorie-Labels (Trenn-Panes mit Text)
+        inv.setItem(9,  makeLabelPane(Material.LIME_STAINED_GLASS_PANE,   "§a§l✦ Allgemein"));
+        inv.setItem(18, makeLabelPane(Material.RED_STAINED_GLASS_PANE,    "§c§l⚔ Schwert"));
+        inv.setItem(27, makeLabelPane(Material.YELLOW_STAINED_GLASS_PANE, "§e§l🏹 Bogen"));
+        inv.setItem(36, makeLabelPane(Material.PURPLE_STAINED_GLASS_PANE, "§d§l🛡 Passiv"));
 
-        // Ability items
+        // Resource info items (rechte Spalte)
+        inv.setItem(15, buildItemInfo(uid, LootItem.IRON_FRAGMENT,  Material.IRON_INGOT,  ironQty));
+        inv.setItem(24, buildItemInfo(uid, LootItem.GOLD_FRAGMENT,  Material.GOLD_INGOT,  goldQty));
+        inv.setItem(33, buildItemInfo(uid, LootItem.DIAMOND_SHARD,  Material.DIAMOND,     crystalQty));
+        inv.setItem(42, buildItemInfo(uid, LootItem.BOSS_CORE,      Material.NETHER_STAR, coreQty));
+
+        // Fähigkeits-Items
         for (int i = 0; i < ORDER.length; i++) {
-            AbilityType type  = ORDER[i];
-            int         level = plugin.getAbilityManager().getLevel(uid, type);
-            long        cost  = type.nextCost(level);
-            boolean     maxed = level >= type.maxLevel;
-            boolean  canAfford = !maxed && coins >= cost;
+            AbilityType type     = ORDER[i];
+            int         level    = plugin.getAbilityManager().getLevel(uid, type);
+            long        cost     = type.nextCost(level);
+            boolean     maxed    = level >= type.maxLevel;
+            boolean     canAfford = !maxed && coins >= cost;
 
             List<String> lore = buildAbilityLore(type, level, cost, coins, maxed, canAfford);
-
             String nameColor = maxed ? "§a" : canAfford ? "§e" : "§c";
             inv.setItem(SLOTS[i], makeItem(ICONS[i], nameColor + type.displayName, lore));
         }
@@ -134,13 +160,19 @@ public class AbilityGui implements Listener {
 
     private static String effectValue(AbilityType type, int level) {
         return switch (type) {
-            case BERSERKER    -> "§c+" + (level * 8) + "% §7Schaden bei <35% HP";
-            case DODGE        -> "§b" + (level * 4) + "% §7Ausweich-Chance";
-            case HEAL_ON_KILL -> "§4+" + (level * 8) + "% §7max-HP Heilung";
-            case EXPLOSIVE    -> "§6" + (level * 7) + "% §7Chance 2× Pfeil";
-            case COIN_BOOST   -> "§e+" + (level * 20) + "% §7Münzen";
-            case REGEN        -> "§a+" + String.format("%.1f", level * 1.5) + " §7HP/5s";
-            case IMMUN        -> "§d" + level + "% §7Effekt-Resist";
+            case BERSERKER      -> "§c+" + (level * 8) + "% §7Schaden bei <35% HP";
+            case DODGE          -> "§b" + (level * 4) + "% §7Ausweich-Chance";
+            case HEAL_ON_KILL   -> "§4+" + (level * 8) + "% §7max-HP Heilung";
+            case EXPLOSIVE      -> "§6" + (level * 7) + "% §7Chance 2× Pfeil-Schaden";
+            case COIN_BOOST     -> "§e+" + (level * 20) + "% §7Münzen";
+            case REGEN          -> "§a+" + String.format("%.1f", level * 1.5) + " §7HP/5s";
+            case IMMUN          -> "§d" + level + "% §7Effekt-Resist";
+            case KRITISCH       -> "§c" + (level * 3) + "% §7Krit-Chance §8(2,5× Schaden)";
+            case HINRICHTUNG    -> "§4+" + (level * 10) + "% §7Schwert-Schaden §8(<25% Boss-HP)";
+            case WIRBELWIND     -> "§6" + (level * 5) + "% §7Chance: Doppel-Treffer §8(50% Schaden)";
+            case BOGENSTAERKE   -> "§a+" + (level * 5) + "% §7Bogen-Schaden";
+            case MEHRFACHSCHUSS -> "§e" + (level * 4) + "% §7Chance: 2. Pfeil §8(80% Schaden)";
+            case GIFTPFEIL      -> "§2" + (level * 5) + "% §7Chance: Gift-DOT §8(3× 5% des Treffers)";
         };
     }
 
@@ -192,6 +224,14 @@ public class AbilityGui implements Listener {
         ));
         item.setItemMeta(meta);
         return item;
+    }
+
+    private ItemStack makeLabelPane(Material mat, String name) {
+        ItemStack pane = new ItemStack(mat);
+        ItemMeta  meta = pane.getItemMeta();
+        meta.displayName(LEGACY.deserialize(name));
+        pane.setItemMeta(meta);
+        return pane;
     }
 
     private ItemStack makePane(Material mat) {

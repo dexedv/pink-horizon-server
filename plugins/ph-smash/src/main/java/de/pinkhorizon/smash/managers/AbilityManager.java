@@ -32,7 +32,23 @@ public class AbilityManager {
                 1690, 1940, 2230, 2565, 2950, 3390, 3900, 4485, 5160, 5935,
                 6825, 7850, 9030, 10385, 11940, 13730, 15790, 18160, 20885, 24015,
                 27620, 31760, 36525, 42005, 48305, 55550, 63880, 73465, 84485, 97160
-            });
+            }),
+
+        // ── Schwert-Fähigkeiten ───────────────────────────────────────────
+        KRITISCH      ("§c⚔ Kritischer Treffer", "3% Krit-Chance/Lv → 2,5× Schwert-Schaden",      15,
+            new long[]{300, 450, 650, 950, 1400, 2000, 2900, 4200, 6100, 8800, 12700, 18400, 26600, 38500, 55700}),
+        HINRICHTUNG   ("§4⚔ Hinrichtung",        "+10% Schwert-Schaden/Lv wenn Boss < 25% HP",     10,
+            new long[]{400, 900, 1700, 3000, 5000, 8200, 13000, 20000, 31000, 47000}),
+        WIRBELWIND    ("§6⚔ Wirbelwind",          "5% Chance/Lv: Boss zweimal treffen (50% Schaden)", 10,
+            new long[]{300, 700, 1400, 2500, 4200, 6800, 11000, 17500, 27500, 43000}),
+
+        // ── Bogen-Fähigkeiten ─────────────────────────────────────────────
+        BOGENSTAERKE  ("§a🏹 Bogenstärke",        "+5% Bogen-Schaden/Lv",                           15,
+            new long[]{300, 450, 650, 950, 1400, 2000, 2900, 4200, 6100, 8800, 12700, 18400, 26600, 38500, 55700}),
+        MEHRFACHSCHUSS("§e🏹 Mehrfachschuss",      "4% Chance/Lv: 2. Pfeil (80% Schaden)",           10,
+            new long[]{350, 800, 1600, 2800, 4600, 7500, 12000, 19000, 30000, 46000}),
+        GIFTPFEIL     ("§2🏹 Giftpfeil",           "5% Chance/Lv: Gift-DOT (3× 5% des Treffers)",    10,
+            new long[]{250, 600, 1200, 2200, 3700, 6000, 9700, 15500, 24500, 38500});
 
         public final String displayName;
         public final String effectDesc;
@@ -148,6 +164,40 @@ public class AbilityManager {
     /** Chance (0.0–0.50) negative Boss-Effekte zu blocken. */
     public double getEffectResistChance(UUID uuid) {
         return Math.min(getLevel(uuid, AbilityType.IMMUN), AbilityType.IMMUN.maxLevel) * 0.01;
+    }
+
+    // ── Schwert-Fähigkeiten ────────────────────────────────────────────────
+
+    /** Kritische-Treffer-Chance (max 45% bei Lv 15). */
+    public double getCritChance(UUID uuid) {
+        return Math.min(getLevel(uuid, AbilityType.KRITISCH) * 0.03, 0.45);
+    }
+
+    /** Zusatz-Multiplikator bei Boss < 25% HP. z.B. Lv10 = +1.0 (doppelter Schaden). */
+    public double getExecuteBonus(UUID uuid) {
+        return getLevel(uuid, AbilityType.HINRICHTUNG) * 0.10;
+    }
+
+    /** Wirbelwind-Chance auf Doppel-Treffer (50% Schaden, max 50% bei Lv 10). */
+    public double getWhirlwindChance(UUID uuid) {
+        return Math.min(getLevel(uuid, AbilityType.WIRBELWIND) * 0.05, 0.50);
+    }
+
+    // ── Bogen-Fähigkeiten ─────────────────────────────────────────────────
+
+    /** Bogen-Schaden-Multiplikator (1.0 = kein Bonus). */
+    public double getBowPowerMultiplier(UUID uuid) {
+        return 1.0 + getLevel(uuid, AbilityType.BOGENSTAERKE) * 0.05;
+    }
+
+    /** Chance auf zweiten Pfeil (80% Schaden, max 40% bei Lv 10). */
+    public double getMultishotChance(UUID uuid) {
+        return Math.min(getLevel(uuid, AbilityType.MEHRFACHSCHUSS) * 0.04, 0.40);
+    }
+
+    /** Chance auf Gift-DOT (3 Ticks à 5% des Treffers, max 50% bei Lv 10). */
+    public double getPoisonChance(UUID uuid) {
+        return Math.min(getLevel(uuid, AbilityType.GIFTPFEIL) * 0.05, 0.50);
     }
 
     // ── Regen-Task ─────────────────────────────────────────────────────────
