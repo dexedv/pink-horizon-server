@@ -91,6 +91,20 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
                     + String.format("%.1f / %.1f / %.1f", loc.getX(), loc.getY(), loc.getZ()));
             }
 
+            case "sethub" -> {
+                if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
+                if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
+                var loc = p.getLocation();
+                plugin.getConfig().set("hub.spawn.x",     loc.getX());
+                plugin.getConfig().set("hub.spawn.y",     loc.getY());
+                plugin.getConfig().set("hub.spawn.z",     loc.getZ());
+                plugin.getConfig().set("hub.spawn.yaw",   (double) loc.getYaw());
+                plugin.getConfig().set("hub.spawn.pitch", (double) loc.getPitch());
+                plugin.saveConfig();
+                p.sendMessage("§a✔ §7Hub-Spawn gesetzt: §f"
+                    + String.format("%.1f / %.1f / %.1f", loc.getX(), loc.getY(), loc.getZ()));
+            }
+
             case "forceboss" -> {
                 if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
                 if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
@@ -129,7 +143,7 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
             List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "abilities", "coins", "stats"));
-            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("setnpc"); base.add("sethologram"); base.add("forceboss"); }
+            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("sethub"); base.add("setnpc"); base.add("sethologram"); base.add("forceboss"); }
             return base.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("setarena"))

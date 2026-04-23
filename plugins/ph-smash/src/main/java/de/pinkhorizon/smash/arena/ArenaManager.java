@@ -123,7 +123,7 @@ public class ArenaManager {
 
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null && player.isOnline()) {
-            sendToLobby(player);
+            teleportToHub(player);
         }
     }
 
@@ -438,17 +438,20 @@ public class ArenaManager {
         return new Location(world, x, y, z);
     }
 
-    private void sendToLobby(Player player) {
-        try (ByteArrayOutputStream b = new ByteArrayOutputStream();
-             DataOutputStream out = new DataOutputStream(b)) {
-            out.writeUTF("Connect");
-            out.writeUTF("lobby");
-            player.sendPluginMessage(plugin, "BungeeCord", b.toByteArray());
-        } catch (IOException e) {
-            // Fallback: Spawn der Hauptwelt
-            World main = Bukkit.getWorlds().get(0);
-            player.teleport(main.getSpawnLocation());
-        }
+    /** Teleportiert den Spieler in den Hub (Hauptwelt des Smash-Servers). */
+    private void teleportToHub(Player player) {
+        World hub = Bukkit.getWorlds().get(0);  // "world" = Hub des Smash-Servers
+        player.teleport(getHubSpawn(hub));
+        player.getInventory().clear();
+    }
+
+    private Location getHubSpawn(World world) {
+        double x     = plugin.getConfig().getDouble("hub.spawn.x",   world.getSpawnLocation().getX());
+        double y     = plugin.getConfig().getDouble("hub.spawn.y",   world.getSpawnLocation().getY());
+        double z     = plugin.getConfig().getDouble("hub.spawn.z",   world.getSpawnLocation().getZ());
+        float  yaw   = (float) plugin.getConfig().getDouble("hub.spawn.yaw",   0.0);
+        float  pitch = (float) plugin.getConfig().getDouble("hub.spawn.pitch",  0.0);
+        return new Location(world, x, y, z, yaw, pitch);
     }
 
     private void giveArenaItems(Player player) {
