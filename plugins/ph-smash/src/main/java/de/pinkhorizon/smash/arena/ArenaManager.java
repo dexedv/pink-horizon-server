@@ -408,9 +408,9 @@ public class ArenaManager {
         // Heal on Kill
         double healPct = plugin.getAbilityManager().getHealOnKillPercent(uuid);
         if (healPct > 0) {
-            var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
-            if (hpAttr != null) {
-                double healed = Math.min(player.getHealth() + hpAttr.getValue() * healPct, hpAttr.getValue());
+            var hokAttr = player.getAttribute(Attribute.MAX_HEALTH);
+            if (hokAttr != null) {
+                double healed = Math.min(player.getHealth() + hokAttr.getValue() * healPct, hokAttr.getValue());
                 player.setHealth(healed);
             }
         }
