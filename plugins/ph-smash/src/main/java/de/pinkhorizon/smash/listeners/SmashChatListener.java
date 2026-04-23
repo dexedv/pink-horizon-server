@@ -55,7 +55,7 @@ public class SmashChatListener implements Listener {
                     return translateColors(prefix);
                 }
             }
-        } catch (IllegalStateException ignored) { }
+        } catch (Throwable ignored) { }
         return "";
     }
 
