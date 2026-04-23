@@ -13,12 +13,18 @@ public class AbilityManager {
     // ── Fähigkeiten-Definition ─────────────────────────────────────────────
 
     public enum AbilityType {
-        BERSERKER    ("§c⚔ Berserker",      "Bei <30% HP: +10% Schaden pro Lv",    5, new long[]{100, 250,  500, 1000, 2000}),
-        DODGE        ("§b⚡ Ausweichen",     "5% Chance, Schaden zu ignorieren/Lv", 5, new long[]{150, 350,  700, 1400, 2800}),
-        HEAL_ON_KILL ("§4❤ Boss-Heilung",   "+10% max-HP Heilung beim Kill/Lv",    5, new long[]{120, 300,  600, 1200, 2400}),
-        EXPLOSIVE    ("§6✦ Explosivpfeil",  "10% Chance auf 2x Pfeil-Schaden/Lv", 5, new long[]{200, 450,  900, 1800, 3500}),
-        COIN_BOOST   ("§e★ Münz-Boost",     "+25% Coins pro Boss-Kill pro Lv",     5, new long[]{ 80, 200,  400,  800, 1600}),
-        REGEN        ("§a◆ Regeneration",   "+1 HP alle 5 Sekunden pro Lv",        5, new long[]{100, 250,  500, 1000, 2000});
+        BERSERKER    ("§c⚔ Berserker",      "Bei <35% HP: +8% Schaden/Lv",         10,
+            new long[]{150, 350, 700, 1300, 2200, 3500, 5500, 8500, 13000, 20000}),
+        DODGE        ("§b⚡ Ausweichen",     "4% Ausweich-Chance/Lv (max 40%)",      10,
+            new long[]{200, 480, 950, 1800, 3000, 4800, 7500, 12000, 18000, 28000}),
+        HEAL_ON_KILL ("§4❤ Boss-Heilung",   "+8% max-HP Heilung beim Kill/Lv",      10,
+            new long[]{180, 420, 850, 1600, 2700, 4300, 6800, 10500, 16000, 25000}),
+        EXPLOSIVE    ("§6✦ Explosivpfeil",  "7% Chance auf 2× Pfeil-Schaden/Lv",   10,
+            new long[]{250, 600, 1200, 2300, 3800, 6000, 9500, 15000, 23000, 35000}),
+        COIN_BOOST   ("§e★ Münz-Boost",     "+20% Coins pro Boss-Kill/Lv",          10,
+            new long[]{100, 250, 500, 950, 1600, 2600, 4200, 6800, 11000, 17000}),
+        REGEN        ("§a◆ Regeneration",   "+1.5 HP alle 5 Sek/Lv",               10,
+            new long[]{120, 300, 600, 1100, 1900, 3100, 5000, 8000, 12500, 19000});
 
         public final String displayName;
         public final String effectDesc;
@@ -101,34 +107,34 @@ public class AbilityManager {
 
     // ── Stat-Getter ────────────────────────────────────────────────────────
 
-    /** Bonus-Schadensmultiplikator wenn HP < 30%. z.B. 0.30 = +30% */
+    /** Bonus-Schadensmultiplikator wenn HP < 35%. z.B. 0.08 = +8% pro Level */
     public double getBerserkerBonus(UUID uuid) {
-        return getLevel(uuid, AbilityType.BERSERKER) * 0.10;
+        return getLevel(uuid, AbilityType.BERSERKER) * 0.08;
     }
 
-    /** Dodge-Wahrscheinlichkeit. 0.0–0.25 */
+    /** Dodge-Wahrscheinlichkeit. max 0.40 */
     public double getDodgeChance(UUID uuid) {
-        return getLevel(uuid, AbilityType.DODGE) * 0.05;
+        return Math.min(getLevel(uuid, AbilityType.DODGE) * 0.04, 0.40);
     }
 
-    /** Heilung als Anteil der max HP beim Boss-Kill. 0.0–0.50 */
+    /** Heilung als Anteil der max HP beim Boss-Kill. */
     public double getHealOnKillPercent(UUID uuid) {
-        return getLevel(uuid, AbilityType.HEAL_ON_KILL) * 0.10;
+        return getLevel(uuid, AbilityType.HEAL_ON_KILL) * 0.08;
     }
 
-    /** Chance auf 2× Pfeil-Schaden. 0.0–0.50 */
+    /** Chance auf 2× Pfeil-Schaden. */
     public double getExplosiveChance(UUID uuid) {
-        return getLevel(uuid, AbilityType.EXPLOSIVE) * 0.10;
+        return getLevel(uuid, AbilityType.EXPLOSIVE) * 0.07;
     }
 
-    /** Coin-Multiplikator. 1.0–2.25 */
+    /** Coin-Multiplikator. */
     public double getCoinMultiplier(UUID uuid) {
-        return 1.0 + getLevel(uuid, AbilityType.COIN_BOOST) * 0.25;
+        return 1.0 + getLevel(uuid, AbilityType.COIN_BOOST) * 0.20;
     }
 
-    /** HP-Regeneration pro 5 Sekunden. 0–5 */
+    /** HP-Regeneration pro 5 Sekunden. */
     public double getRegenAmount(UUID uuid) {
-        return getLevel(uuid, AbilityType.REGEN);
+        return getLevel(uuid, AbilityType.REGEN) * 1.5;
     }
 
     // ── Regen-Task ─────────────────────────────────────────────────────────

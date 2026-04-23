@@ -2405,28 +2405,28 @@ async function smashLoadLb() {
     el.innerHTML = `<div class="lb-table">${data.rows.map((r,i) => `
       <div class="lb-row">
         <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
-        <span style="flex:2;font-family:var(--mono);font-size:.82em;color:var(--muted)">${r.uuid}</span>
-        <span style="color:#e74c3c;font-weight:700;min-width:60px">💀 ${Number(r.kills).toLocaleString('de-DE')}</span>
-        <span style="color:var(--muted);font-size:.82em;min-width:120px">Schaden: ${Number(r.total_damage).toLocaleString('de-DE')}</span>
+        <span style="flex:2;font-weight:600">${escH(r.name)}</span>
+        <span style="color:#e74c3c;font-weight:700;min-width:80px">💀 ${Number(r.kills).toLocaleString('de-DE')}</span>
+        <span style="color:var(--muted);font-size:.82em;min-width:130px">Schaden: ${Number(r.total_damage).toLocaleString('de-DE')}</span>
         <span style="color:#FF9800;min-width:80px">Lv. ${r.personal_level ?? r.best_level ?? 0}</span>
-        <span style="color:var(--yellow);min-width:80px">🪙 ${Number(r.coins ?? 0).toLocaleString('de-DE')}</span>
+        <span style="color:var(--yellow);min-width:90px">🪙 ${Number(r.coins ?? 0).toLocaleString('de-DE')}</span>
       </div>`).join('')}</div>`;
   } else if (smashLbTab === 'level') {
     el.innerHTML = `<div class="lb-table">${data.rows.map((r,i) => `
       <div class="lb-row">
         <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
-        <span style="flex:2;font-family:var(--mono);font-size:.82em;color:var(--muted)">${r.uuid}</span>
-        <span style="color:#F44336;font-weight:700;min-width:100px">⚡ Level ${Number(r.personal_level).toLocaleString('de-DE')}</span>
-        <span style="color:#e74c3c;min-width:80px">💀 ${Number(r.kills ?? 0).toLocaleString('de-DE')} Kills</span>
-        <span style="color:var(--yellow);min-width:80px">🪙 ${Number(r.coins ?? 0).toLocaleString('de-DE')}</span>
+        <span style="flex:2;font-weight:600">${escH(r.name)}</span>
+        <span style="color:#F44336;font-weight:700;min-width:110px">⚡ Level ${Number(r.personal_level).toLocaleString('de-DE')}</span>
+        <span style="color:#e74c3c;min-width:90px">💀 ${Number(r.kills ?? 0).toLocaleString('de-DE')} Kills</span>
+        <span style="color:var(--yellow);min-width:90px">🪙 ${Number(r.coins ?? 0).toLocaleString('de-DE')}</span>
       </div>`).join('')}</div>`;
   } else {
     el.innerHTML = `<div class="lb-table">${data.rows.map((r,i) => `
       <div class="lb-row">
         <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
-        <span style="flex:2;font-family:var(--mono);font-size:.82em;color:var(--muted)">${r.uuid}</span>
-        <span style="color:var(--yellow);font-weight:700;min-width:120px">🪙 ${Number(r.coins).toLocaleString('de-DE')} Münzen</span>
-        <span style="color:#e74c3c;min-width:80px">💀 ${Number(r.kills ?? 0).toLocaleString('de-DE')} Kills</span>
+        <span style="flex:2;font-weight:600">${escH(r.name)}</span>
+        <span style="color:var(--yellow);font-weight:700;min-width:130px">🪙 ${Number(r.coins).toLocaleString('de-DE')} Münzen</span>
+        <span style="color:#e74c3c;min-width:90px">💀 ${Number(r.kills ?? 0).toLocaleString('de-DE')} Kills</span>
         <span style="color:#FF9800;min-width:80px">Lv. ${r.personal_level ?? 0}</span>
       </div>`).join('')}</div>`;
   }

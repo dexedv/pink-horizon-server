@@ -68,6 +68,13 @@ public class SmashDatabaseManager {
             } catch (SQLException e) {
                 if (e.getErrorCode() != 1060) throw e; // 1060 = Duplicate column name
             }
+            // Migration: name Spalte hinzufügen
+            try {
+                st.executeUpdate(
+                    "ALTER TABLE smash_players ADD COLUMN name VARCHAR(16) DEFAULT NULL");
+            } catch (SQLException e) {
+                if (e.getErrorCode() != 1060) throw e;
+            }
 
             st.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS smash_inventory (

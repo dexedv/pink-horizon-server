@@ -3,14 +3,18 @@ package de.pinkhorizon.smash.gui;
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.managers.LootManager.LootItem;
 import de.pinkhorizon.smash.managers.UpgradeManager.UpgradeType;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -19,6 +23,13 @@ import java.util.List;
 import java.util.Map;
 
 public class UpgradeGui implements Listener, InventoryHolder {
+
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+
+    // Upgrade item slots (one per row, left column)
+    private static final int[] UPGRADE_SLOTS = {10, 19, 28, 37, 46};
+    // Status pane slots (right next to each upgrade item)
+    private static final int[] STATUS_SLOTS  = {11, 20, 29, 38, 47};
 
     private final PHSmash plugin;
 
@@ -30,43 +41,69 @@ public class UpgradeGui implements Listener, InventoryHolder {
     public Inventory getInventory() { return null; }
 
     public void open(Player player) {
-        Inventory inv = Bukkit.createInventory(this, 54, "§c§lUpgrades – Smash the Boss");
+        Inventory inv = Bukkit.createInventory(this, 54,
+            LEGACY.deserialize("§c§lUpgrades – Smash the Boss"));
         fill(inv, player);
         player.openInventory(inv);
     }
 
     private void fill(Inventory inv, Player player) {
+        // ── Gray glass filler ──────────────────────────────────────────────
+        ItemStack pane = makePure(Material.GRAY_STAINED_GLASS_PANE);
+        for (int s = 0; s < 54; s++) inv.setItem(s, pane);
+
+        // ── Row 0: dark border ─────────────────────────────────────────────
+        ItemStack darkPane = makePure(Material.BLACK_STAINED_GLASS_PANE);
+        for (int s = 0; s < 9; s++) inv.setItem(s, darkPane);
+
+        // ── Slot 4: title item ─────────────────────────────────────────────
+        inv.setItem(4, buildTitleItem(player));
+
+        // ── Upgrade items + status panes ───────────────────────────────────
         UpgradeType[] types = UpgradeType.values();
-        int[] slots = {10, 19, 28, 37, 46}; // linke Spalte, jeder Typ eine Zeile
-
         for (int i = 0; i < types.length; i++) {
-            UpgradeType type = types[i];
-            inv.setItem(slots[i], buildUpgradeItem(player, type));
+            inv.setItem(UPGRADE_SLOTS[i], buildUpgradeItem(player, types[i]));
+            inv.setItem(STATUS_SLOTS[i],  buildStatusPane(player, types[i]));
         }
 
-        // Item-Vorräte (rechte Seite, Slot 14–17)
-        inv.setItem(15, buildItemInfo(player, LootItem.IRON_FRAGMENT,   Material.IRON_INGOT));
-        inv.setItem(24, buildItemInfo(player, LootItem.GOLD_FRAGMENT,   Material.GOLD_INGOT));
-        inv.setItem(33, buildItemInfo(player, LootItem.DIAMOND_SHARD,   Material.DIAMOND));
-        inv.setItem(42, buildItemInfo(player, LootItem.BOSS_CORE,       Material.NETHER_STAR));
+        // ── Resource info items ────────────────────────────────────────────
+        inv.setItem(15, buildItemInfo(player, LootItem.IRON_FRAGMENT,  Material.IRON_INGOT));
+        inv.setItem(24, buildItemInfo(player, LootItem.GOLD_FRAGMENT,  Material.GOLD_INGOT));
+        inv.setItem(33, buildItemInfo(player, LootItem.DIAMOND_SHARD,  Material.DIAMOND));
+        inv.setItem(42, buildItemInfo(player, LootItem.BOSS_CORE,      Material.NETHER_STAR));
 
-        // Schließen-Button
+        // ── Close button ───────────────────────────────────────────────────
         inv.setItem(49, buildClose());
-
-        // Glasfüller
-        ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta gm = glass.getItemMeta();
-        gm.displayName(net.kyori.adventure.text.Component.empty());
-        glass.setItemMeta(gm);
-        for (int s = 0; s < 54; s++) {
-            if (inv.getItem(s) == null) inv.setItem(s, glass);
-        }
     }
 
+    // ── Title item (slot 4) ────────────────────────────────────────────────
+
+    private ItemStack buildTitleItem(Player player) {
+        ItemStack item = new ItemStack(Material.NETHER_STAR);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(LEGACY.deserialize("§c§l⚔ Upgrade-System"));
+
+        UpgradeType[] types = UpgradeType.values();
+        List<Component> lore = new ArrayList<>();
+        lore.add(LEGACY.deserialize("§8─────────────────────"));
+        lore.add(LEGACY.deserialize("§7Upgrade-Übersicht:"));
+        for (UpgradeType t : types) {
+            int level = plugin.getUpgradeManager().getLevel(player.getUniqueId(), t);
+            String tag = level >= t.maxLevel ? "§a✔ MAX" : "§7Lv §f" + level + "§8/§f" + t.maxLevel;
+            lore.add(LEGACY.deserialize("  " + t.displayName + " §8– " + tag));
+        }
+        lore.add(LEGACY.deserialize("§8─────────────────────"));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    // ── Upgrade item ──────────────────────────────────────────────────────
+
     private ItemStack buildUpgradeItem(Player player, UpgradeType type) {
-        int curLevel  = plugin.getUpgradeManager().getLevel(player.getUniqueId(), type);
-        int nextLevel = curLevel + 1;
-        boolean maxed = curLevel >= type.maxLevel;
+        int     curLevel  = plugin.getUpgradeManager().getLevel(player.getUniqueId(), type);
+        int     nextLevel = curLevel + 1;
+        boolean maxed     = curLevel >= type.maxLevel;
 
         Material mat = switch (type) {
             case ATTACK    -> Material.IRON_SWORD;
@@ -76,49 +113,51 @@ public class UpgradeGui implements Listener, InventoryHolder {
             case LIFESTEAL -> Material.GHAST_TEAR;
         };
 
-        ItemStack item = new ItemStack(maxed ? Material.BARRIER : mat);
+        ItemStack item = new ItemStack(mat);
         ItemMeta  meta = item.getItemMeta();
-        meta.displayName(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-            .legacySection().deserialize(type.displayName + (maxed ? " §8(MAX)" : "")));
 
-        List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
-        lore.add(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-            .legacySection().deserialize("§7Level: §f" + curLevel + "§8/§f" + type.maxLevel));
+        String nameColor = maxed ? "§a" : "§f";
+        meta.displayName(LEGACY.deserialize(nameColor + type.displayName));
+
+        List<Component> lore = new ArrayList<>();
+        lore.add(LEGACY.deserialize("§8─────────────────────"));
+        lore.add(LEGACY.deserialize("§7Level:  " + bar(curLevel, type.maxLevel)));
+        lore.add(LEGACY.deserialize("§8─────────────────────"));
 
         if (!maxed) {
-            String effect = switch (type) {
-                case ATTACK    -> "§c+" + (nextLevel * 10) + "% §7Schaden total";
-                case DEFENSE   -> "§a-" + (nextLevel * 3) + "% §7eingehender Schaden";
-                case HEALTH    -> "§e+" + (nextLevel * 4) + " §7Max-HP total";
-                case SPEED     -> "§b+" + (nextLevel * 5) + "% §7Geschwindigkeit total";
-                case LIFESTEAL -> "§5+" + (nextLevel * 4) + "% §7Lebensraub total";
-            };
-            lore.add(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                .legacySection().deserialize("§7Nächstes Level: " + effect));
-            lore.add(net.kyori.adventure.text.Component.empty());
+            String currentEffect = currentEffectText(type, curLevel);
+            String nextEffect    = currentEffectText(type, nextLevel);
+            lore.add(LEGACY.deserialize("§7Jetzt:  " + currentEffect));
+            lore.add(LEGACY.deserialize("§7→ Lv" + nextLevel + ": " + nextEffect));
+            lore.add(LEGACY.deserialize("§8─────────────────────"));
+            lore.add(LEGACY.deserialize("§7Kosten:"));
 
             Map<LootItem, Integer> cost = plugin.getUpgradeManager().getCost(type, nextLevel);
-            lore.add(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                .legacySection().deserialize("§7Kosten:"));
+            boolean canAfford = true;
+            String missingItem = null;
             for (Map.Entry<LootItem, Integer> e : cost.entrySet()) {
-                int have   = plugin.getLootManager().getQuantity(player.getUniqueId(), e.getKey());
-                String col = have >= e.getValue() ? "§a" : "§c";
-                lore.add(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                    .legacySection().deserialize("  " + col + e.getValue() + "x §7"
-                        + e.getKey().displayName + " §8(" + col + have + "§8)"));
+                int    have   = plugin.getLootManager().getQuantity(player.getUniqueId(), e.getKey());
+                String col    = have >= e.getValue() ? "§a" : "§c";
+                lore.add(LEGACY.deserialize("  " + col + e.getValue() + "x §f"
+                    + e.getKey().displayName
+                    + " §8(§f" + have + " vorhanden§8)"));
+                if (have < e.getValue()) {
+                    canAfford = false;
+                    if (missingItem == null) missingItem = e.getKey().displayName;
+                }
             }
-
-            boolean canAfford = cost.entrySet().stream().allMatch(e ->
-                plugin.getLootManager().getQuantity(player.getUniqueId(), e.getKey()) >= e.getValue());
-
-            lore.add(net.kyori.adventure.text.Component.empty());
-            lore.add(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                .legacySection().deserialize(canAfford ? "§aKlicken zum Aufwerten!" : "§cNicht genug Items!"));
-
+            lore.add(LEGACY.deserialize("§8─────────────────────"));
             if (canAfford) {
-                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
-                meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+                lore.add(LEGACY.deserialize("§a▶ Klicken!"));
+                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            } else {
+                lore.add(LEGACY.deserialize("§c✗ Fehlt: " + missingItem));
             }
+        } else {
+            lore.add(LEGACY.deserialize("§7Jetzt:  " + currentEffectText(type, curLevel)));
+            lore.add(LEGACY.deserialize("§8─────────────────────"));
+            lore.add(LEGACY.deserialize("§a✔ MAX"));
         }
 
         meta.lore(lore);
@@ -126,26 +165,60 @@ public class UpgradeGui implements Listener, InventoryHolder {
         return item;
     }
 
+    // ── Status pane (slot next to upgrade) ────────────────────────────────
+
+    private ItemStack buildStatusPane(Player player, UpgradeType type) {
+        int     curLevel = plugin.getUpgradeManager().getLevel(player.getUniqueId(), type);
+        boolean maxed    = curLevel >= type.maxLevel;
+
+        if (maxed) {
+            ItemStack pane = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
+            ItemMeta  meta = pane.getItemMeta();
+            meta.displayName(LEGACY.deserialize("§5§lMAX"));
+            pane.setItemMeta(meta);
+            return pane;
+        }
+
+        Map<LootItem, Integer> cost = plugin.getUpgradeManager().getCost(type, curLevel + 1);
+        boolean canAfford = cost.entrySet().stream().allMatch(e ->
+            plugin.getLootManager().getQuantity(player.getUniqueId(), e.getKey()) >= e.getValue());
+
+        Material mat  = canAfford ? Material.LIME_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE;
+        String   name = canAfford ? "§a§l▶ Kaufbar" : "§c§l✗ Zu teuer";
+        ItemStack pane = new ItemStack(mat);
+        ItemMeta  meta = pane.getItemMeta();
+        meta.displayName(LEGACY.deserialize(name));
+        pane.setItemMeta(meta);
+        return pane;
+    }
+
+    // ── Resource info item ─────────────────────────────────────────────────
+
     private ItemStack buildItemInfo(Player player, LootItem lootItem, Material mat) {
-        int qty  = plugin.getLootManager().getQuantity(player.getUniqueId(), lootItem);
+        int       qty  = plugin.getLootManager().getQuantity(player.getUniqueId(), lootItem);
         ItemStack item = new ItemStack(mat);
         ItemMeta  meta = item.getItemMeta();
-        meta.displayName(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-            .legacySection().deserialize(lootItem.color + lootItem.displayName));
-        meta.lore(List.of(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-            .legacySection().deserialize("§7Vorrat: §f" + qty)));
+        meta.displayName(LEGACY.deserialize(lootItem.color + lootItem.displayName));
+        meta.lore(List.of(
+            LEGACY.deserialize("§8─────────────────────"),
+            LEGACY.deserialize("§7Vorrat: §f" + qty),
+            LEGACY.deserialize("§8─────────────────────")
+        ));
         item.setItemMeta(meta);
         return item;
     }
 
+    // ── Close button ───────────────────────────────────────────────────────
+
     private ItemStack buildClose() {
         ItemStack item = new ItemStack(Material.BARRIER);
         ItemMeta  meta = item.getItemMeta();
-        meta.displayName(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-            .legacySection().deserialize("§cSchließen"));
+        meta.displayName(LEGACY.deserialize("§cSchließen"));
         item.setItemMeta(meta);
         return item;
     }
+
+    // ── Click handler ──────────────────────────────────────────────────────
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
@@ -159,14 +232,42 @@ public class UpgradeGui implements Listener, InventoryHolder {
         if (slot == 49) { player.closeInventory(); return; }
 
         UpgradeType[] types = UpgradeType.values();
-        int[] slots = {10, 19, 28, 37, 46};
-        for (int i = 0; i < slots.length; i++) {
-            if (slot == slots[i]) {
+        for (int i = 0; i < UPGRADE_SLOTS.length; i++) {
+            if (slot == UPGRADE_SLOTS[i]) {
                 plugin.getUpgradeManager().tryUpgrade(player, types[i]);
-                // GUI neu laden (nächsten Tick damit DB-Update durch ist)
                 Bukkit.getScheduler().runTaskLater(plugin, () -> open(player), 1L);
                 return;
             }
         }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+
+    private ItemStack makePure(Material mat) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(Component.empty());
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static String currentEffectText(UpgradeType type, int level) {
+        return switch (type) {
+            case ATTACK    -> "§c+" + Math.round((1.0 + 0.08 * level - 1.0) * 100)
+                              + "% §7Schaden total";
+            case DEFENSE   -> "§a-" + Math.round((1.0 - Math.max(0.25, 1.0 - 0.015 * level)) * 100)
+                              + "% §7eingehender Schaden";
+            case HEALTH    -> "§e+" + (level * 6) + " §7Max-HP total";
+            case SPEED     -> "§b+" + (level * 3) + "% §7Geschwindigkeit total";
+            case LIFESTEAL -> "§5+" + (level * 5) + "% §7Lebensraub total";
+        };
+    }
+
+    private static String bar(int current, int max) {
+        int len    = 15;
+        int filled = max > 0 ? Math.min(len, (int) Math.round(len * (double) current / max)) : 0;
+        String col = filled >= len ? "§a" : filled >= len / 2 ? "§e" : "§c";
+        return col + "█".repeat(filled) + "§8" + "█".repeat(len - filled)
+            + " §7(" + current + "/" + max + ")";
     }
 }

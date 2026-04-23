@@ -22,16 +22,16 @@ public class AbilityGui implements Listener {
 
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
-    // 3 Reihen = 27 Slots. Abilities in Reihe 1 und 2 (je 3 nebeneinander)
-    private static final int[]        SLOTS  = {10, 12, 14, 19, 21, 23};
-    private static final AbilityType[] ORDER  = AbilityType.values();
+    // 54-slot layout: abilities at these slots
+    private static final int[]         SLOTS = {10, 12, 14, 28, 30, 32};
+    private static final AbilityType[] ORDER = AbilityType.values();
 
     private static final Material[] ICONS = {
-        Material.IRON_SWORD,          // BERSERKER
-        Material.FEATHER,             // DODGE
-        Material.GOLDEN_APPLE,        // HEAL_ON_KILL
-        Material.TNT,                 // EXPLOSIVE
-        Material.GOLD_INGOT,          // COIN_BOOST
+        Material.IRON_SWORD,            // BERSERKER
+        Material.FEATHER,               // DODGE
+        Material.GOLDEN_APPLE,          // HEAL_ON_KILL
+        Material.TNT,                   // EXPLOSIVE
+        Material.GOLD_INGOT,            // COIN_BOOST
         Material.GLISTERING_MELON_SLICE // REGEN
     };
 
@@ -42,8 +42,8 @@ public class AbilityGui implements Listener {
     }
 
     public void open(Player player) {
-        Inventory inv = Bukkit.createInventory(new GuiHolder(), 27,
-            LEGACY.deserialize("§6§lFähigkeiten §8– §eMünz-Upgrades"));
+        Inventory inv = Bukkit.createInventory(new GuiHolder(), 54,
+            LEGACY.deserialize("§6§l★ Fähigkeiten §8– §eMünz-Upgrades"));
         fillGui(inv, player);
         player.openInventory(inv);
     }
@@ -51,37 +51,70 @@ public class AbilityGui implements Listener {
     // ── GUI füllen ─────────────────────────────────────────────────────────
 
     private void fillGui(Inventory inv, Player player) {
-        ItemStack pane = makePane();
-        for (int i = 0; i < 27; i++) inv.setItem(i, pane);
+        // Gray pane background
+        ItemStack pane = makePane(Material.GRAY_STAINED_GLASS_PANE);
+        for (int i = 0; i < 54; i++) inv.setItem(i, pane);
+
+        // Row 0: dark glass border
+        ItemStack darkPane = makePane(Material.BLACK_STAINED_GLASS_PANE);
+        for (int s = 0; s < 9; s++) inv.setItem(s, darkPane);
 
         long coins = plugin.getCoinManager().getCoins(player.getUniqueId());
 
-        // Münz-Anzeige oben Mitte
+        // Slot 4: coin display
         inv.setItem(4, makeItem(Material.GOLD_NUGGET,
             "§e§lMünzen: §f" + coins,
             List.of("§7Verdiene Münzen durch Boss-Kills")));
 
+        // Ability items
         for (int i = 0; i < ORDER.length; i++) {
             AbilityType type  = ORDER[i];
             int         level = plugin.getAbilityManager().getLevel(player.getUniqueId(), type);
             long        cost  = type.nextCost(level);
             boolean     maxed = level >= type.maxLevel;
-            boolean     canAfford = !maxed && coins >= cost;
+            boolean  canAfford = !maxed && coins >= cost;
 
-            List<String> lore = new ArrayList<>();
-            lore.add("§8" + type.effectDesc);
-            lore.add(" ");
-            lore.add("§7Level: §f" + level + " §8/ §f" + type.maxLevel);
-            if (!maxed) {
-                lore.add("§7Kosten: §e" + cost + " §7Münzen");
-                lore.add(canAfford ? "§a▶ Klicken zum Upgraden" : "§c✗ Nicht genug Münzen");
-            } else {
-                lore.add("§a✔ Maximales Level erreicht!");
-            }
+            List<String> lore = buildAbilityLore(type, level, cost, coins, maxed, canAfford);
 
             String nameColor = maxed ? "§a" : canAfford ? "§e" : "§c";
             inv.setItem(SLOTS[i], makeItem(ICONS[i], nameColor + type.displayName, lore));
         }
+
+        // Close button
+        inv.setItem(49, makeItem(Material.BARRIER, "§cSchließen", List.of()));
+    }
+
+    private List<String> buildAbilityLore(AbilityType type, int level, long cost,
+                                           long coins, boolean maxed, boolean canAfford) {
+        List<String> lore = new ArrayList<>();
+        lore.add("§8─────────────────────");
+        lore.add("§7" + type.effectDesc);
+        lore.add("§8─────────────────────");
+        lore.add("§7Level:  " + bar(level, type.maxLevel));
+        lore.add("§7Effekt: " + effectValue(type, level));
+        lore.add("§8─────────────────────");
+
+        if (!maxed) {
+            lore.add("§7Kosten: §e" + cost + " §7Münzen");
+            lore.add("§7Guthaben: §e" + coins);
+            lore.add("§8─────────────────────");
+            lore.add(canAfford ? "§a▶ Klicken zum Upgraden" : "§c✗ Nicht genug Münzen");
+        } else {
+            lore.add("§8─────────────────────");
+            lore.add("§a✔ MAX Level!");
+        }
+        return lore;
+    }
+
+    private static String effectValue(AbilityType type, int level) {
+        return switch (type) {
+            case BERSERKER    -> "§c+" + (level * 8) + "% §7Schaden bei <35% HP";
+            case DODGE        -> "§b" + (level * 4) + "% §7Ausweich-Chance";
+            case HEAL_ON_KILL -> "§4+" + (level * 8) + "% §7max-HP Heilung";
+            case EXPLOSIVE    -> "§6" + (level * 7) + "% §7Chance 2× Pfeil";
+            case COIN_BOOST   -> "§e+" + (level * 20) + "% §7Münzen";
+            case REGEN        -> "§a+" + String.format("%.1f", level * 1.5) + " §7HP/5s";
+        };
     }
 
     // ── Klick-Handler ──────────────────────────────────────────────────────
@@ -93,6 +126,10 @@ public class AbilityGui implements Listener {
         event.setCancelled(true);
 
         int slot = event.getRawSlot();
+
+        // Close button
+        if (slot == 49) { player.closeInventory(); return; }
+
         for (int i = 0; i < SLOTS.length; i++) {
             if (slot != SLOTS[i]) continue;
             AbilityType type = ORDER[i];
@@ -112,8 +149,8 @@ public class AbilityGui implements Listener {
 
     // ── Hilfsmethoden ─────────────────────────────────────────────────────
 
-    private ItemStack makePane() {
-        ItemStack pane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+    private ItemStack makePane(Material mat) {
+        ItemStack pane = new ItemStack(mat);
         ItemMeta  meta = pane.getItemMeta();
         meta.displayName(Component.empty());
         pane.setItemMeta(meta);
@@ -127,6 +164,14 @@ public class AbilityGui implements Listener {
         meta.lore(lore.stream().map(LEGACY::deserialize).toList());
         item.setItemMeta(meta);
         return item;
+    }
+
+    private static String bar(int current, int max) {
+        int len    = 15;
+        int filled = max > 0 ? Math.min(len, (int) Math.round(len * (double) current / max)) : 0;
+        String col = filled >= len ? "§a" : filled >= len / 2 ? "§e" : "§c";
+        return col + "█".repeat(filled) + "§8" + "█".repeat(len - filled)
+            + " §7(" + current + "/" + max + ")";
     }
 
     public static class GuiHolder implements InventoryHolder {

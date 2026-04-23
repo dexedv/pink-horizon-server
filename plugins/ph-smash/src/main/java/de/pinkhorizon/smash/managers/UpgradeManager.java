@@ -17,11 +17,11 @@ import java.util.UUID;
 public class UpgradeManager {
 
     public enum UpgradeType {
-        ATTACK    ("attack",    "§c⚔ Angriff",        50),
-        DEFENSE   ("defense",   "§a🛡 Verteidigung",   30),
-        HEALTH    ("health",    "§e❤ Gesundheit",      20),
-        SPEED     ("speed",     "§b⚡ Tempo",           10),
-        LIFESTEAL ("lifesteal", "§5⬛ Lebensraub",       5);
+        ATTACK    ("attack",    "§c⚔ Angriff",        100),
+        DEFENSE   ("defense",   "§a🛡 Verteidigung",    50),
+        HEALTH    ("health",    "§e❤ Gesundheit",       30),
+        SPEED     ("speed",     "§b⚡ Tempo",            20),
+        LIFESTEAL ("lifesteal", "§5⬛ Lebensraub",       15);
 
         public final String id;
         public final String displayName;
@@ -66,16 +66,16 @@ public class UpgradeManager {
 
     /** Gibt den Schaden-Multiplikator zurück (1.0 = kein Bonus) */
     public double getAttackMultiplier(UUID uuid) {
-        return 1.0 + 0.10 * getLevel(uuid, UpgradeType.ATTACK);
+        return 1.0 + 0.08 * getLevel(uuid, UpgradeType.ATTACK);
     }
 
-    /** Gibt den eingehenden Schaden-Multiplikator zurück (<1.0 = weniger Schaden) */
+    /** Gibt den eingehenden Schaden-Multiplikator zurück (<1.0 = weniger Schaden, min 0.25) */
     public double getDefenseMultiplier(UUID uuid) {
-        return 1.0 - 0.03 * Math.min(getLevel(uuid, UpgradeType.DEFENSE), 30);
+        return Math.max(0.25, 1.0 - 0.015 * getLevel(uuid, UpgradeType.DEFENSE));
     }
 
     public double getLifestealPercent(UUID uuid) {
-        return 0.04 * getLevel(uuid, UpgradeType.LIFESTEAL);
+        return 0.05 * getLevel(uuid, UpgradeType.LIFESTEAL);
     }
 
     /** Versucht ein Upgrade zu kaufen. Gibt false zurück wenn nicht leistbar. */
@@ -128,7 +128,7 @@ public class UpgradeManager {
             hpAttr.getModifiers().stream()
                 .filter(m -> m.getName().equals(MOD_KEY_HP))
                 .toList().forEach(hpAttr::removeModifier);
-            double hpBonus = 4.0 * getLevel(uuid, UpgradeType.HEALTH);
+            double hpBonus = 6.0 * getLevel(uuid, UpgradeType.HEALTH);
             if (hpBonus > 0) {
                 hpAttr.addModifier(new AttributeModifier(
                     MOD_KEY_HP, hpBonus, AttributeModifier.Operation.ADD_NUMBER));
@@ -141,7 +141,7 @@ public class UpgradeManager {
             speedAttr.getModifiers().stream()
                 .filter(m -> m.getName().equals(MOD_KEY_SPEED))
                 .toList().forEach(speedAttr::removeModifier);
-            double speedBonus = 0.05 * getLevel(uuid, UpgradeType.SPEED);
+            double speedBonus = 0.03 * getLevel(uuid, UpgradeType.SPEED);
             if (speedBonus > 0) {
                 speedAttr.addModifier(new AttributeModifier(
                     MOD_KEY_SPEED, speedBonus, AttributeModifier.Operation.ADD_SCALAR));
@@ -153,17 +153,51 @@ public class UpgradeManager {
     public Map<LootItem, Integer> getCost(UpgradeType type, int targetLevel) {
         Map<LootItem, Integer> cost = new EnumMap<>(LootItem.class);
         switch (type) {
-            case ATTACK    -> cost.put(LootItem.IRON_FRAGMENT, targetLevel * 10);
-            case DEFENSE   -> {
-                cost.put(LootItem.IRON_FRAGMENT, targetLevel * 5);
-                cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 2);
+            case ATTACK -> {
+                if (targetLevel <= 25) {
+                    cost.put(LootItem.IRON_FRAGMENT, targetLevel * 8);
+                } else if (targetLevel <= 60) {
+                    cost.put(LootItem.IRON_FRAGMENT, 20);
+                    cost.put(LootItem.GOLD_FRAGMENT, (targetLevel - 25) * 3);
+                } else {
+                    cost.put(LootItem.GOLD_FRAGMENT, 20);
+                    cost.put(LootItem.DIAMOND_SHARD, (targetLevel - 60) * 2);
+                }
             }
-            case HEALTH    -> cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 8);
-            case SPEED     -> {
-                cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 3);
-                cost.put(LootItem.DIAMOND_SHARD, targetLevel);
+            case DEFENSE -> {
+                if (targetLevel <= 20) {
+                    cost.put(LootItem.IRON_FRAGMENT, targetLevel * 5);
+                    cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 2);
+                } else {
+                    cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 3);
+                    cost.put(LootItem.DIAMOND_SHARD, targetLevel - 20);
+                }
             }
-            case LIFESTEAL -> cost.put(LootItem.DIAMOND_SHARD, targetLevel * 5);
+            case HEALTH -> {
+                if (targetLevel <= 15) {
+                    cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 6);
+                } else {
+                    cost.put(LootItem.GOLD_FRAGMENT, 20);
+                    cost.put(LootItem.DIAMOND_SHARD, (targetLevel - 15) * 4);
+                }
+            }
+            case SPEED -> {
+                if (targetLevel <= 10) {
+                    cost.put(LootItem.GOLD_FRAGMENT, targetLevel * 4);
+                    cost.put(LootItem.DIAMOND_SHARD, targetLevel);
+                } else {
+                    cost.put(LootItem.DIAMOND_SHARD, (targetLevel - 10) * 5);
+                    cost.put(LootItem.BOSS_CORE, targetLevel - 10);
+                }
+            }
+            case LIFESTEAL -> {
+                if (targetLevel <= 8) {
+                    cost.put(LootItem.DIAMOND_SHARD, targetLevel * 5);
+                } else {
+                    cost.put(LootItem.DIAMOND_SHARD, 20);
+                    cost.put(LootItem.BOSS_CORE, (targetLevel - 8) * 3);
+                }
+            }
         }
         return cost;
     }

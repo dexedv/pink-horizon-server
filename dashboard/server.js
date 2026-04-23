@@ -1078,8 +1078,8 @@ app.get('/api/smash/overview', auth, async (req, res) => {
 app.get('/api/smash/leaderboard', auth, async (req, res) => {
   try {
     const [rows] = await poolSmash.query(`
-      SELECT p.uuid, p.kills, p.total_damage, p.personal_level, p.best_level,
-             COALESCE(c.coins, 0) AS coins
+      SELECT p.uuid, COALESCE(p.name, p.uuid) AS name, p.kills, p.total_damage,
+             p.personal_level, p.best_level, COALESCE(c.coins, 0) AS coins
       FROM smash_players p
       LEFT JOIN smash_coins c ON p.uuid = c.uuid
       ORDER BY p.kills DESC LIMIT 10`);
@@ -1090,7 +1090,8 @@ app.get('/api/smash/leaderboard', auth, async (req, res) => {
 app.get('/api/smash/level-lb', auth, async (req, res) => {
   try {
     const [rows] = await poolSmash.query(`
-      SELECT p.uuid, p.personal_level, p.kills, COALESCE(c.coins, 0) AS coins
+      SELECT p.uuid, COALESCE(p.name, p.uuid) AS name, p.personal_level,
+             p.kills, COALESCE(c.coins, 0) AS coins
       FROM smash_players p
       LEFT JOIN smash_coins c ON p.uuid = c.uuid
       ORDER BY p.personal_level DESC LIMIT 10`);
@@ -1101,7 +1102,8 @@ app.get('/api/smash/level-lb', auth, async (req, res) => {
 app.get('/api/smash/coins-lb', auth, async (req, res) => {
   try {
     const [rows] = await poolSmash.query(`
-      SELECT c.uuid, c.coins, p.kills, p.personal_level
+      SELECT c.uuid, COALESCE(p.name, c.uuid) AS name, c.coins,
+             p.kills, p.personal_level
       FROM smash_coins c
       LEFT JOIN smash_players p ON c.uuid = p.uuid
       ORDER BY c.coins DESC LIMIT 10`);

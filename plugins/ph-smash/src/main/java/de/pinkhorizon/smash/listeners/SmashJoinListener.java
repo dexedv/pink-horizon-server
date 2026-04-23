@@ -34,7 +34,7 @@ public class SmashJoinListener implements Listener {
                 .append(Component.text(player.getName(), TextColor.color(0xFF5555))));
 
         // In DB registrieren + Stats anwenden
-        plugin.getPlayerDataManager().ensurePlayer(player.getUniqueId());
+        plugin.getPlayerDataManager().ensurePlayer(player.getUniqueId(), player.getName());
         plugin.getUpgradeManager().applyStats(player);
 
         // Scoreboard + Tab

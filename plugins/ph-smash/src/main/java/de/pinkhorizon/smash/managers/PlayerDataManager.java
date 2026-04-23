@@ -23,11 +23,13 @@ public class PlayerDataManager {
         return plugin.getDb().getConnection();
     }
 
-    public void ensurePlayer(UUID uuid) {
+    public void ensurePlayer(UUID uuid, String name) {
         try (Connection c = con();
              PreparedStatement st = c.prepareStatement(
-                 "INSERT IGNORE INTO smash_players (uuid) VALUES (?)")) {
+                 "INSERT INTO smash_players (uuid, name) VALUES (?, ?)" +
+                 " ON DUPLICATE KEY UPDATE name = VALUES(name), last_seen = NOW()")) {
             st.setString(1, uuid.toString());
+            st.setString(2, name);
             st.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().warning("PlayerDataManager.ensurePlayer: " + e.getMessage());
