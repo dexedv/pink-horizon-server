@@ -351,6 +351,13 @@ public class ArenaManager {
         if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
         if (arena.getRegenTask() != null) { arena.getRegenTask().cancel(); arena.setRegenTask(null); }
 
+        // Spieler auf volle Leben heilen + alle Effekte entfernen
+        var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
+        if (hpAttr != null) player.setHealth(hpAttr.getValue());
+        player.getActivePotionEffects().stream()
+            .map(PotionEffect::getType)
+            .forEach(player::removePotionEffect);
+
         UUID uuid         = player.getUniqueId();
         int defeatedLevel = arena.getBossLevel();
         int nextLevel     = Math.min(defeatedLevel + 1, 999);
