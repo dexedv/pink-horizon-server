@@ -233,7 +233,9 @@ public class ArenaManager {
     /** Beim Plugin-Disable: alle Arenen synchron aufräumen */
     public void destroyAll() {
         for (ArenaInstance arena : new ArrayList<>(arenas.values())) {
-            if (arena.getTargetTask() != null) arena.getTargetTask().cancel();
+            if (arena.getTargetTask()   != null) arena.getTargetTask().cancel();
+            if (arena.getRegenTask()    != null) arena.getRegenTask().cancel();
+            if (arena.getExplosivTask() != null) arena.getExplosivTask().cancel();
             if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
             if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
             World world = arena.getWorld();
@@ -318,6 +320,24 @@ public class ArenaManager {
                 }
             }, 20L, 20L);
             arena.setRegenTask(regenTask);
+        }
+
+        // EXPLOSIV modifier: alle 8s Explosion am Spieler
+        if (modifiers.contains(BossModifier.EXPLOSIV)) {
+            if (arena.getExplosivTask() != null) arena.getExplosivTask().cancel();
+            double explosionDmg = Math.min(2.0 + cfg.level() * 0.04, 8.0);
+            var explosivTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                if (arena.getBossEntity() == null || !arena.getBossEntity().isValid()) return;
+                if (arena.isDead()) return;
+                Player p = Bukkit.getPlayer(arena.getPlayerUuid());
+                if (p == null || !p.isOnline()) return;
+                p.getWorld().playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 1.1f);
+                p.getWorld().strikeLightningEffect(p.getLocation());
+                double newHp = Math.max(0.5, p.getHealth() - explosionDmg);
+                p.setHealth(newHp);
+                p.sendMessage("§c💥 §7Explosion! §c-" + String.format("%.1f", explosionDmg) + " ❤");
+            }, 160L, 160L);
+            arena.setExplosivTask(explosivTask);
         }
 
         // Periodisch Re-Target (alle 3 s), da EntityDamageEvent gecancelt wird
@@ -601,8 +621,9 @@ public class ArenaManager {
     }
 
     private void cleanupArenaResources(ArenaInstance arena) {
-        if (arena.getTargetTask() != null) arena.getTargetTask().cancel();
-        if (arena.getRegenTask()  != null) { arena.getRegenTask().cancel(); arena.setRegenTask(null); }
+        if (arena.getTargetTask()   != null) arena.getTargetTask().cancel();
+        if (arena.getRegenTask()    != null) { arena.getRegenTask().cancel();    arena.setRegenTask(null); }
+        if (arena.getExplosivTask() != null) { arena.getExplosivTask().cancel(); arena.setExplosivTask(null); }
         if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
         if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
         World world = arena.getWorld();

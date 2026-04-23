@@ -16,11 +16,15 @@ public class BossModifierManager {
 
     public enum BossModifier {
 
-        GEPANZERT   ("Gepanzert",      "§7⛏", "§7-30% Schaden an Boss"),
-        RASEND      ("Rasend",         "§c⚡", "§c+50% Boss-Geschwindigkeit"),
+        GEPANZERT    ("Gepanzert",     "§7⛏", "§7-30% Schaden an Boss"),
+        RASEND       ("Rasend",        "§c⚡", "§c+50% Boss-Geschwindigkeit"),
         REGENERIEREND("Regenerierend", "§a♥", "§a+0.5% HP/s"),
-        VERGIFTET   ("Vergiftet",      "§2☠", "§2Spieler vergiftet bei Treffer"),
-        GESPIEGELT  ("Gespiegelt",     "§b↩", "§b10% Schaden reflektiert");
+        VERGIFTET    ("Vergiftet",     "§2☠", "§2Poison II bei Treffer (3s)"),
+        GESPIEGELT   ("Gespiegelt",    "§b↩", "§b10% Schaden reflektiert"),
+        BRENNEND     ("Brennend",      "§6🔥", "§6Spieler brennt bei Treffer (4s)"),
+        VERDORREND   ("Verdorrend",    "§8💀", "§8Wither I bei Treffer (4s)"),
+        VERLANGSAMEND("Verlangsamend", "§9❄", "§9Slowness III bei Treffer (2s)"),
+        EXPLOSIV     ("Explosiv",      "§c💥", "§cExplosion alle 8s am Spieler");
 
         public final String name;
         public final String icon;

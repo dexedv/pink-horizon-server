@@ -30,6 +30,7 @@ public class ArenaInstance {
     // Boss modifiers (v3)
     private Set<BossModifierManager.BossModifier> modifiers = EnumSet.noneOf(BossModifierManager.BossModifier.class);
     private BukkitTask         regenTask         = null;
+    private BukkitTask         explosivTask      = null;
     // Warte-Spawn (Spieler muss manuell starten)
     private boolean            bossReadyToSpawn  = false;
     private int                nextBossLevel     = 1;
@@ -61,8 +62,9 @@ public class ArenaInstance {
 
     /** Welt bleibt, nur Boss und Zustand werden für nächstes Level resettet */
     public void resetForNextBoss(int newLevel) {
-        if (targetTask != null) { targetTask.cancel(); targetTask = null; }
-        if (regenTask  != null) { regenTask.cancel();  regenTask  = null; }
+        if (targetTask   != null) { targetTask.cancel();   targetTask   = null; }
+        if (regenTask    != null) { regenTask.cancel();    regenTask    = null; }
+        if (explosivTask != null) { explosivTask.cancel(); explosivTask = null; }
         config           = BossConfig.forLevel(newLevel);
         currentHp        = config.maxHp();
         sessionDamage    = 0;
@@ -99,6 +101,8 @@ public class ArenaInstance {
     public void setModifiers(Set<BossModifierManager.BossModifier> m)                             { modifiers = m; }
     public BukkitTask getRegenTask()                                                               { return regenTask; }
     public void       setRegenTask(BukkitTask t)                                                   { this.regenTask = t; }
+    public BukkitTask getExplosivTask()                                                            { return explosivTask; }
+    public void       setExplosivTask(BukkitTask t)                                                { this.explosivTask = t; }
     // Warte-Spawn
     public boolean    isBossReadyToSpawn()                                                         { return bossReadyToSpawn; }
     public void       setBossReadyToSpawn(boolean b)                                               { this.bossReadyToSpawn = b; }

@@ -142,9 +142,21 @@ public class SmashCombatListener implements Listener {
             * plugin.getRuneManager().getShieldRuneMultiplier(player.getUniqueId());
         event.setDamage(baseDamage * defMulti);
 
-        // VERGIFTET modifier: apply Poison II for 3 seconds on boss hit
+        // VERGIFTET modifier: Poison II für 3s
         if (arena.getModifiers().contains(BossModifier.VERGIFTET)) {
             player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 1, false, true));
+        }
+        // BRENNEND modifier: Spieler brennt 4s
+        if (arena.getModifiers().contains(BossModifier.BRENNEND)) {
+            player.setFireTicks(80);
+        }
+        // VERDORREND modifier: Wither I für 4s
+        if (arena.getModifiers().contains(BossModifier.VERDORREND)) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 0, false, true));
+        }
+        // VERLANGSAMEND modifier: Slowness III für 2s
+        if (arena.getModifiers().contains(BossModifier.VERLANGSAMEND)) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2, false, true));
         }
     }
 
