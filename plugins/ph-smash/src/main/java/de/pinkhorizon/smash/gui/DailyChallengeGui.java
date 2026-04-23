@@ -26,8 +26,8 @@ public class DailyChallengeGui implements Listener {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    /** Slots for the 3 daily challenges */
-    private static final int[] CHALLENGE_SLOTS = {11, 13, 15};
+    /** Slots for the 3 daily challenges (centered in row 2 of 54-slot GUI) */
+    private static final int[] CHALLENGE_SLOTS = {20, 22, 24};
 
     private final PHSmash plugin;
 
@@ -53,7 +53,7 @@ public class DailyChallengeGui implements Listener {
     public void open(Player player) {
         Inventory inv = Bukkit.createInventory(
             new DailyHolder(player.getUniqueId()),
-            27,
+            54,
             LEGACY.deserialize("§a§l✦ Tägliche Herausforderungen"));
         fillGui(inv, player);
         player.openInventory(inv);
@@ -64,7 +64,11 @@ public class DailyChallengeGui implements Listener {
 
         // Gray glass filler
         ItemStack pane = makePure(Material.GRAY_STAINED_GLASS_PANE);
-        for (int s = 0; s < 27; s++) inv.setItem(s, pane);
+        for (int s = 0; s < 54; s++) inv.setItem(s, pane);
+
+        // Row 0: dark border
+        ItemStack darkPane = makePure(Material.BLACK_STAINED_GLASS_PANE);
+        for (int s = 0; s < 9; s++) inv.setItem(s, darkPane);
 
         // Slot 4: Date display item
         String dateStr = LocalDate.now().format(DATE_FMT);
@@ -88,8 +92,8 @@ public class DailyChallengeGui implements Listener {
             }
         }
 
-        // Close button (slot 22)
-        inv.setItem(22, buildClose());
+        // Close button (slot 49)
+        inv.setItem(49, buildClose());
     }
 
     private ItemStack buildChallengeItem(UUID uuid, ChallengeType type, int slotIndex) {
@@ -116,7 +120,7 @@ public class DailyChallengeGui implements Listener {
         lore.add(LEGACY.deserialize("§8─────────────────────"));
         lore.add(LEGACY.deserialize("§7" + type.getDescription(target)));
         lore.add(LEGACY.deserialize("§8─────────────────────"));
-        lore.add(LEGACY.deserialize("§7Fortschritt: §f" + progress + "§8/§f" + target));
+        lore.add(LEGACY.deserialize("§7Fortschritt: " + bar(progress, target)));
         lore.add(LEGACY.deserialize("§7Belohnung: §e" + reward + " §7Münzen"));
         lore.add(LEGACY.deserialize("§8─────────────────────"));
         if (completed) {
@@ -141,10 +145,10 @@ public class DailyChallengeGui implements Listener {
 
         if (!(event.getWhoClicked() instanceof Player player)) return;
         int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 27) return;
+        if (slot < 0 || slot >= 54) return;
 
         // Close button
-        if (slot == 22) {
+        if (slot == 49) {
             player.closeInventory();
             return;
         }
@@ -174,6 +178,14 @@ public class DailyChallengeGui implements Listener {
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    private static String bar(int current, int max) {
+        int len    = 15;
+        int filled = max > 0 ? Math.min(len, (int) Math.round(len * (double) current / max)) : 0;
+        String col = filled >= len ? "§a" : filled > 0 ? "§e" : "§c";
+        return col + "█".repeat(filled) + "§8" + "█".repeat(len - filled)
+            + " §7(" + current + "/" + max + ")";
+    }
 
     private ItemStack makePure(Material mat) {
         ItemStack item = new ItemStack(mat);

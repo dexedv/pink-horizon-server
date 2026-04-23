@@ -19,7 +19,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class TalentGui implements Listener {
@@ -31,7 +33,8 @@ public class TalentGui implements Listener {
     // Status pane slots (right next to each talent item)
     private static final int[] STATUS_SLOTS = {11, 20, 29, 38, 47};
 
-    private final PHSmash plugin;
+    private final PHSmash   plugin;
+    private final Set<UUID> upgrading = new HashSet<>();
 
     public TalentGui(PHSmash plugin) {
         this.plugin = plugin;
@@ -76,9 +79,16 @@ public class TalentGui implements Listener {
             inv.setItem(STATUS_SLOTS[i], buildStatusPane(player, types[i]));
         }
 
-        // ── Boss Core resource info ────────────────────────────────────────
-        int coreCount = plugin.getLootManager().getQuantity(player.getUniqueId(), LootItem.BOSS_CORE);
-        inv.setItem(15, buildCoreInfo(coreCount));
+        // ── Resource info items (right column) ────────────────────────────
+        UUID uid = player.getUniqueId();
+        inv.setItem(15, buildResItem(Material.IRON_INGOT,  "§7Eisen-Splitter",
+            plugin.getLootManager().getQuantity(uid, LootItem.IRON_FRAGMENT)));
+        inv.setItem(24, buildResItem(Material.GOLD_INGOT,  "§6Gold-Splitter",
+            plugin.getLootManager().getQuantity(uid, LootItem.GOLD_FRAGMENT)));
+        inv.setItem(33, buildResItem(Material.DIAMOND,     "§bBoss-Kristall",
+            plugin.getLootManager().getQuantity(uid, LootItem.DIAMOND_SHARD)));
+        inv.setItem(42, buildResItem(Material.NETHER_STAR, "§5Boss-Kern",
+            plugin.getLootManager().getQuantity(uid, LootItem.BOSS_CORE)));
 
         // ── Close button ───────────────────────────────────────────────────
         inv.setItem(49, buildClose());
@@ -195,17 +205,16 @@ public class TalentGui implements Listener {
         return pane;
     }
 
-    // ── Boss Core resource info ────────────────────────────────────────────
+    // ── Resource info item ─────────────────────────────────────────────────
 
-    private ItemStack buildCoreInfo(int count) {
-        ItemStack item = new ItemStack(Material.NETHER_STAR);
+    private ItemStack buildResItem(Material mat, String name, int qty) {
+        ItemStack item = new ItemStack(mat);
         ItemMeta  meta = item.getItemMeta();
-        meta.displayName(LEGACY.deserialize("§5§lBoss-Kerne"));
+        meta.displayName(LEGACY.deserialize(name));
         meta.lore(List.of(
             LEGACY.deserialize("§8─────────────────────"),
-            LEGACY.deserialize("§7Vorrat: §5" + count),
-            LEGACY.deserialize("§8─────────────────────"),
-            LEGACY.deserialize("§7Durch Bosse besiegen verdient")
+            LEGACY.deserialize("§7Vorrat: §f" + qty),
+            LEGACY.deserialize("§8─────────────────────")
         ));
         item.setItemMeta(meta);
         return item;
@@ -234,12 +243,21 @@ public class TalentGui implements Listener {
 
         if (slot == 49) { player.closeInventory(); return; }
 
+        UUID uid = player.getUniqueId();
+        if (upgrading.contains(uid)) return;
+
         TalentType[] types = TalentType.values();
         for (int i = 0; i < TALENT_SLOTS.length; i++) {
             if (slot == TALENT_SLOTS[i]) {
-                TalentType type = types[i];
-                plugin.getTalentManager().tryUpgrade(player, type);
-                Bukkit.getScheduler().runTaskLater(plugin, () -> open(player), 1L);
+                final TalentType type = types[i];
+                upgrading.add(uid);
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    plugin.getTalentManager().tryUpgrade(player, type);
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        upgrading.remove(uid);
+                        if (player.isOnline()) open(player);
+                    });
+                });
                 return;
             }
         }

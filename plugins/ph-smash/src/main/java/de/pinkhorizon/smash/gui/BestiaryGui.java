@@ -40,8 +40,8 @@ public class BestiaryGui implements Listener {
         new MobEntry("WARDEN",      "Wächter",       Material.SCULK_SENSOR,       "Lv 750+")
     );
 
-    // 9 mob slots: 3 per row × 3 rows (rows 1, 2, 3 of the 54-slot inventory)
-    private static final int[] MOB_SLOTS = {10, 12, 14, 19, 21, 23, 28, 30, 32};
+    // 9 mob slots: 3×3 compact grid (rows 1–3, cols 1–3)
+    private static final int[] MOB_SLOTS = {10, 11, 12, 19, 20, 21, 28, 29, 30};
 
     private final PHSmash plugin;
 
@@ -83,9 +83,17 @@ public class BestiaryGui implements Listener {
 
         // ── Mob items ──────────────────────────────────────────────────────
         UUID uuid = player.getUniqueId();
+        int totalKills = 0;
+        int unlocked   = 0;
         for (int i = 0; i < MOBS.size(); i++) {
+            int k = plugin.getBestiaryManager().getKills(uuid, MOBS.get(i).mobType());
+            totalKills += k;
+            if (k > 0) unlocked++;
             inv.setItem(MOB_SLOTS[i], buildMobItem(uuid, MOBS.get(i)));
         }
+
+        // ── Stats summary (slot 15) ────────────────────────────────────────
+        inv.setItem(15, buildSummary(totalKills, unlocked));
 
         // ── Close button ───────────────────────────────────────────────────
         inv.setItem(49, buildClose());
@@ -149,6 +157,24 @@ public class BestiaryGui implements Listener {
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
 
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    // ── Stats summary ──────────────────────────────────────────────────────────
+
+    private ItemStack buildSummary(int totalKills, int unlocked) {
+        ItemStack item = new ItemStack(Material.BOOK);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(LEGACY.deserialize("§5§l📊 Statistiken"));
+        meta.lore(List.of(
+            LEGACY.deserialize("§8─────────────────────"),
+            LEGACY.deserialize("§7Bosse besiegt: §f" + totalKills),
+            LEGACY.deserialize("§7Typen freigeschaltet: §f" + unlocked + "§8/§f" + MOBS.size()),
+            LEGACY.deserialize("§8─────────────────────"),
+            LEGACY.deserialize("§7Besiege jeden Boss-Typ"),
+            LEGACY.deserialize("§7mindestens einmal: §6+200 Münzen")
+        ));
         item.setItemMeta(meta);
         return item;
     }

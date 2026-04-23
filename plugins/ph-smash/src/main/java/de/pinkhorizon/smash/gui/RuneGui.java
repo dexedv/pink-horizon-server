@@ -19,7 +19,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class RuneGui implements Listener {
@@ -33,7 +35,8 @@ public class RuneGui implements Listener {
     // Resource info slots (far right column per row)
     private static final int[] RES_SLOTS    = {15, 24, 33};
 
-    private final PHSmash plugin;
+    private final PHSmash   plugin;
+    private final Set<UUID> crafting = new HashSet<>();
 
     public RuneGui(PHSmash plugin) {
         this.plugin = plugin;
@@ -236,12 +239,21 @@ public class RuneGui implements Listener {
 
         if (slot == 49) { player.closeInventory(); return; }
 
+        UUID uid = player.getUniqueId();
+        if (crafting.contains(uid)) return;
+
         RuneType[] types = RuneType.values();
         for (int i = 0; i < RUNE_SLOTS.length; i++) {
             if (slot == RUNE_SLOTS[i]) {
-                RuneType type = types[i];
-                plugin.getRuneManager().craftRune(player, type, plugin);
-                Bukkit.getScheduler().runTaskLater(plugin, () -> open(player), 1L);
+                final RuneType type = types[i];
+                crafting.add(uid);
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    plugin.getRuneManager().craftRune(player, type, plugin);
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        crafting.remove(uid);
+                        if (player.isOnline()) open(player);
+                    });
+                });
                 return;
             }
         }
