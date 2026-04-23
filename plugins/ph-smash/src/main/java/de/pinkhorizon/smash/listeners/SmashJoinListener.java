@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import com.destroystokyo.paper.event.player.PlayerPostRespawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -93,16 +94,27 @@ public class SmashJoinListener implements Listener {
         // Respawn direkt in der Arena (nicht Welt-Spawn)
         event.setRespawnLocation(
             plugin.getArenaManager().getPlayerSpawnLocation(arena.getWorld()));
+    }
 
-        // Nach 1 Tick: Boss neu spawnen + Items wiederherstellen
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (!player.isOnline() || !plugin.getArenaManager().hasArena(player.getUniqueId())) return;
-            plugin.getArenaManager().respawnBossAfterDeath(player.getUniqueId());
-            plugin.getArenaManager().restoreArenaItems(player);
-            plugin.getScoreboardManager().update(player);
-            player.sendMessage("§c✗ §7Besiegt! Boss Level §c" + arena.getBossLevel() + " §7wurde zurückgesetzt.");
-            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_WITHER_SPAWN, 0.4f, 1.5f);
-        }, 1L);
+    /**
+     * PlayerPostRespawnEvent (Paper) feuert nachdem der Spieler vollständig in der
+     * neuen Welt ist – zuverlässiger als runTaskLater(1L) nach PlayerRespawnEvent.
+     */
+    @EventHandler
+    public void onPostRespawn(PlayerPostRespawnEvent event) {
+        Player        player = event.getPlayer();
+        ArenaInstance arena  = plugin.getArenaManager().getArena(player.getUniqueId());
+        if (arena == null || arena.getWorld() == null) return;
+
+        // Sicherstellen, dass der Spieler wirklich in der Arena-Welt ist
+        if (!player.getWorld().equals(arena.getWorld())) return;
+
+        int bossLevel = arena.getBossLevel();
+        plugin.getArenaManager().respawnBossAfterDeath(player.getUniqueId());
+        plugin.getArenaManager().restoreArenaItems(player);
+        plugin.getScoreboardManager().update(player);
+        player.sendMessage("§c✗ §7Besiegt! Boss Level §c" + bossLevel + " §7wurde zurückgesetzt.");
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_WITHER_SPAWN, 0.4f, 1.5f);
     }
 
     @EventHandler
