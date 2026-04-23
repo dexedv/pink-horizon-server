@@ -1059,6 +1059,24 @@ app.get('/api/audit', auth, (req, res) => {
 
 // ── REST-API: Smash the Boss ──────────────────────────────────────────────
 
+app.get('/api/smash/online', auth, async (req, res) => {
+  const cfg = SERVERS.smash;
+  if (!cfg?.rcon) return res.json({ ok: true, players: [], count: 0 });
+  try {
+    const { running } = await getContainerStatus(cfg.container);
+    if (!running) return res.json({ ok: true, players: [], count: 0, offline: true });
+    const raw   = await rconSend(cfg.rcon, 'list');
+    const clean = stripColors(raw);
+    const match = /players online:\s*(.+)/i.exec(clean);
+    const players = match
+      ? match[1].split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    res.json({ ok: true, players, count: players.length });
+  } catch {
+    res.json({ ok: true, players: [], count: 0 });
+  }
+});
+
 app.get('/api/smash/overview', auth, async (req, res) => {
   try {
     const [[players]]   = await poolSmash.query('SELECT COUNT(*) AS cnt FROM smash_players');

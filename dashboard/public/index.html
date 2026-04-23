@@ -2353,6 +2353,10 @@ async function renderSmash() {
       <div class="card stat-card"><span class="stat-icon">💀</span><div><div class="stat-lbl">Gesamt-Kills</div><div class="stat-val" id="sk-kills" style="color:#9C27B0">—</div></div></div>
       <div class="card stat-card"><span class="stat-icon">🪙</span><div><div class="stat-lbl">Coins im Umlauf</div><div class="stat-val" id="sk-coins" style="color:var(--yellow)">—</div></div></div>
     </div>
+    <div class="card" style="padding:14px 18px">
+      <div style="font-weight:600;margin-bottom:8px;color:var(--accent)">🟢 Gerade online auf Smash</div>
+      <div id="smash-online" style="color:var(--muted);font-size:0.9em">Lade…</div>
+    </div>
     <div class="card">
       <div class="rtabs" style="margin-bottom:10px">
         <button class="rtab ${smashLbTab==='kills'?'active':''}"   onclick="smashTab('kills')">💀 Kills</button>
@@ -2365,13 +2369,29 @@ async function renderSmash() {
     </div>
   </div>`;
 
-  const ovRes = await apiFetch('/api/smash/overview');
+  const [ovRes, onRes] = await Promise.all([
+    apiFetch('/api/smash/overview'),
+    apiFetch('/api/smash/online')
+  ]);
   if (ovRes?.ok) {
     const ov = await ovRes.json();
     document.getElementById('sk-level').textContent   = Number(ov.topBossLevel   ?? 0).toLocaleString('de-DE');
     document.getElementById('sk-players').textContent = Number(ov.totalPlayers   ?? 0).toLocaleString('de-DE');
     document.getElementById('sk-kills').textContent   = Number(ov.totalKills     ?? 0).toLocaleString('de-DE');
     document.getElementById('sk-coins').textContent   = Number(ov.totalCoins     ?? 0).toLocaleString('de-DE');
+  }
+  const onEl = document.getElementById('smash-online');
+  if (onEl && onRes?.ok) {
+    const on = await onRes.json();
+    if (on.offline) {
+      onEl.innerHTML = '<span style="color:var(--muted)">Server offline</span>';
+    } else if (!on.players.length) {
+      onEl.innerHTML = '<span style="color:var(--muted)">Niemand online</span>';
+    } else {
+      onEl.innerHTML = on.players.map(p =>
+        `<span style="display:inline-block;background:rgba(76,175,80,.15);color:#4CAF50;border-radius:4px;padding:2px 10px;margin:2px 4px 2px 0;font-weight:600">${escH(p)}</span>`
+      ).join('') + `<span style="color:var(--muted);font-size:0.82em;margin-left:6px">(${on.count} Spieler)</span>`;
+    }
   }
 
   await smashLoadLb();
