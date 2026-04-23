@@ -124,12 +124,13 @@ public class ArenaManager {
         ArenaInstance arena = arenas.remove(playerUuid);
         if (arena == null) return;
 
-        cleanupArenaResources(arena);
-
+        // Teleport player out BEFORE unloading – unloadWorld fails silently if players are still inside
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null && player.isOnline()) {
             teleportToHub(player);
         }
+
+        cleanupArenaResources(arena);
     }
 
     /** Schaden auf Boss des Spielers anwenden (vom CombatListener aufgerufen) */
@@ -585,12 +586,16 @@ public class ArenaManager {
 
     private void cleanupArenaResources(ArenaInstance arena) {
         if (arena.getTargetTask() != null) arena.getTargetTask().cancel();
+        if (arena.getRegenTask()  != null) { arena.getRegenTask().cancel(); arena.setRegenTask(null); }
         if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
         if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
         World world = arena.getWorld();
         if (world != null) {
             String name = world.getName();
-            Bukkit.unloadWorld(world, false);
+            boolean unloaded = Bukkit.unloadWorld(world, false);
+            if (!unloaded) {
+                plugin.getLogger().warning("Arena-Welt konnte nicht entladen werden: " + name + " (noch Spieler drin?)");
+            }
             deleteWorldAsync(name);
         }
     }

@@ -43,6 +43,13 @@ public class NpcManager implements Listener {
     }
 
     private UUID findOrRespawn(String key) {
+        Location loc = loadLocation(key);
+
+        // Chunk muss geladen sein, damit persistente Entities per UUID gefunden werden
+        if (loc != null) {
+            loc.getWorld().getChunkAt(loc).load(true);
+        }
+
         String saved = plugin.getConfig().getString("npcs." + key + ".uuid");
         if (saved != null) {
             try {
@@ -53,9 +60,30 @@ public class NpcManager implements Listener {
                 }
             } catch (IllegalArgumentException ignored) {}
         }
-        Location loc = loadLocation(key);
+
         if (loc == null) return null;
+
+        // Duplikate (von vorherigen Restarts) an dieser Position entfernen
+        removeDuplicatesAt(loc, key);
+
         return doSpawn(key, loc);
+    }
+
+    private void removeDuplicatesAt(Location loc, String key) {
+        String expectedName = switch (key) {
+            case KEY_DOWN    -> "§c§l▼ Level senken";
+            case KEY_UPGRADE -> "§6§l⬆ Upgrades";
+            case KEY_JOIN    -> "§a§l▶ Arena betreten";
+            case KEY_LEAVE   -> "§c§l◀ Arena verlassen";
+            default          -> null;
+        };
+        if (expectedName == null) return;
+        for (Entity e : loc.getWorld().getNearbyEntities(loc, 2, 2, 2)) {
+            if (e instanceof Villager && expectedName.equals(e.getCustomName())) {
+                e.remove();
+                plugin.getLogger().info("Duplikat-NPC entfernt: " + key);
+            }
+        }
     }
 
     // ── Öffentliche API ────────────────────────────────────────────────────
