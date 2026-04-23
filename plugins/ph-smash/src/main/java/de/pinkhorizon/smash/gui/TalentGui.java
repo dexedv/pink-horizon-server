@@ -26,8 +26,10 @@ public class TalentGui implements Listener {
 
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
-    /** Slots for the 5 talents in the 27-slot inventory */
-    private static final int[] TALENT_SLOTS = {10, 12, 14, 19, 21};
+    // Talent item slots (one per row, left column) — same pattern as UpgradeGui
+    private static final int[] TALENT_SLOTS = {10, 19, 28, 37, 46};
+    // Status pane slots (right next to each talent item)
+    private static final int[] STATUS_SLOTS = {11, 20, 29, 38, 47};
 
     private final PHSmash plugin;
 
@@ -35,9 +37,7 @@ public class TalentGui implements Listener {
         this.plugin = plugin;
     }
 
-    // -------------------------------------------------------------------------
-    // Inventory holder
-    // -------------------------------------------------------------------------
+    // ── Inventory holder ──────────────────────────────────────────────────
 
     public static class TalentHolder implements InventoryHolder {
         private final UUID playerUuid;
@@ -46,56 +46,77 @@ public class TalentGui implements Listener {
         @Override public Inventory getInventory() { return null; }
     }
 
-    // -------------------------------------------------------------------------
-    // Open / fill
-    // -------------------------------------------------------------------------
+    // ── Open / fill ───────────────────────────────────────────────────────
 
     public void open(Player player) {
         Inventory inv = Bukkit.createInventory(
             new TalentHolder(player.getUniqueId()),
-            27,
+            54,
             LEGACY.deserialize("§5§l✦ Talente §8– §7Boss-Kerne ausgeben"));
-        fillGui(inv, player);
+        fill(inv, player);
         player.openInventory(inv);
     }
 
-    private void fillGui(Inventory inv, Player player) {
-        UUID uuid = player.getUniqueId();
-
-        // Gray glass filler
+    private void fill(Inventory inv, Player player) {
+        // ── Gray glass filler ──────────────────────────────────────────────
         ItemStack pane = makePure(Material.GRAY_STAINED_GLASS_PANE);
-        for (int s = 0; s < 27; s++) inv.setItem(s, pane);
+        for (int s = 0; s < 54; s++) inv.setItem(s, pane);
 
-        // Slot 4: Boss Core display
-        int coreCount = plugin.getLootManager().getQuantity(uuid, LootItem.BOSS_CORE);
-        ItemStack coreItem = new ItemStack(Material.NETHER_STAR);
-        ItemMeta coreMeta = coreItem.getItemMeta();
-        coreMeta.displayName(LEGACY.deserialize("§5§lBoss-Kerne"));
-        coreMeta.lore(List.of(
-            LEGACY.deserialize("§8─────────────────────"),
-            LEGACY.deserialize("§7Vorrat: §5" + coreCount + " Boss-Kerne"),
-            LEGACY.deserialize("§8─────────────────────"),
-            LEGACY.deserialize("§7Gib deine Boss-Kerne für Talente aus.")
-        ));
-        coreItem.setItemMeta(coreMeta);
-        inv.setItem(4, coreItem);
+        // ── Row 0: dark border ─────────────────────────────────────────────
+        ItemStack darkPane = makePure(Material.BLACK_STAINED_GLASS_PANE);
+        for (int s = 0; s < 9; s++) inv.setItem(s, darkPane);
 
-        // Talent items
+        // ── Slot 4: title item ─────────────────────────────────────────────
+        inv.setItem(4, buildTitleItem(player));
+
+        // ── Talent items + status panes ────────────────────────────────────
         TalentType[] types = TalentType.values();
-        for (int i = 0; i < TALENT_SLOTS.length; i++) {
-            inv.setItem(TALENT_SLOTS[i], buildTalentItem(player, types[i], coreCount));
+        for (int i = 0; i < types.length; i++) {
+            inv.setItem(TALENT_SLOTS[i], buildTalentItem(player, types[i]));
+            inv.setItem(STATUS_SLOTS[i], buildStatusPane(player, types[i]));
         }
 
-        // Close button (slot 22)
-        inv.setItem(22, buildClose());
+        // ── Boss Core resource info ────────────────────────────────────────
+        int coreCount = plugin.getLootManager().getQuantity(player.getUniqueId(), LootItem.BOSS_CORE);
+        inv.setItem(15, buildCoreInfo(coreCount));
+
+        // ── Close button ───────────────────────────────────────────────────
+        inv.setItem(49, buildClose());
     }
 
-    private ItemStack buildTalentItem(Player player, TalentType type, int coresOwned) {
+    // ── Title item (slot 4) ────────────────────────────────────────────────
+
+    private ItemStack buildTitleItem(Player player) {
+        ItemStack item = new ItemStack(Material.NETHER_STAR);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(LEGACY.deserialize("§5§l✦ Talent-System"));
+
+        TalentType[] types = TalentType.values();
+        List<Component> lore = new ArrayList<>();
+        lore.add(LEGACY.deserialize("§8─────────────────────"));
+        lore.add(LEGACY.deserialize("§7Übersicht:"));
+        for (TalentType t : types) {
+            int level = plugin.getTalentManager().getLevel(player.getUniqueId(), t);
+            String tag = level >= t.maxLevel ? "§a✔ MAX" : "§7Lv §f" + level + "§8/§f" + t.maxLevel;
+            lore.add(LEGACY.deserialize("  " + t.displayName + " §8– " + tag));
+        }
+        lore.add(LEGACY.deserialize("§8─────────────────────"));
+        lore.add(LEGACY.deserialize("§7Kosten: §5Boss-Kerne"));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    // ── Talent item ───────────────────────────────────────────────────────
+
+    private ItemStack buildTalentItem(Player player, TalentType type) {
         UUID uuid     = player.getUniqueId();
-        int  current  = plugin.getTalentManager().getLevel(uuid, type);
-        boolean maxed = current >= type.maxLevel;
-        int  cost     = type.nextCost(current);
-        boolean canAfford = !maxed && coresOwned >= cost;
+        int  curLevel = plugin.getTalentManager().getLevel(uuid, type);
+        int  nextLv   = curLevel + 1;
+        boolean maxed = curLevel >= type.maxLevel;
+        int  cost     = type.nextCost(curLevel);
+        int  cores    = plugin.getLootManager().getQuantity(uuid, LootItem.BOSS_CORE);
+        boolean canAfford = !maxed && cores >= cost;
 
         Material mat = switch (type) {
             case TREASURE_HUNTER -> Material.EMERALD;
@@ -108,30 +129,33 @@ public class TalentGui implements Listener {
         ItemStack item = new ItemStack(mat);
         ItemMeta  meta = item.getItemMeta();
 
-        String name = type.displayName + (maxed ? " §a(MAX)" : "");
-        meta.displayName(LEGACY.deserialize(name));
+        String nameColor = maxed ? "§a" : "§f";
+        meta.displayName(LEGACY.deserialize(nameColor + type.displayName));
 
         List<Component> lore = new ArrayList<>();
         lore.add(LEGACY.deserialize("§8─────────────────────"));
-        lore.add(LEGACY.deserialize(type.effectDesc));
-        lore.add(LEGACY.deserialize("§7Level: §f" + bar(current, type.maxLevel)));
-        lore.add(LEGACY.deserialize("§7Level: §f" + current + "§8/§f" + type.maxLevel));
+        lore.add(LEGACY.deserialize("§7Level: " + bar(curLevel, type.maxLevel)));
         lore.add(LEGACY.deserialize("§8─────────────────────"));
 
         if (!maxed) {
-            lore.add(LEGACY.deserialize("§7Kosten: §5" + cost + " §7Boss-Kerne"));
-            String haveColor = coresOwned >= cost ? "§a" : "§c";
-            lore.add(LEGACY.deserialize("§7Besitzt: " + haveColor + coresOwned + " Boss-Kerne"));
+            lore.add(LEGACY.deserialize("§7Jetzt:  " + effectText(type, curLevel)));
+            lore.add(LEGACY.deserialize("§7→ Lv" + nextLv + ": " + effectText(type, nextLv)));
+            lore.add(LEGACY.deserialize("§8─────────────────────"));
+            String coreCol = cores >= cost ? "§a" : "§c";
+            lore.add(LEGACY.deserialize("§7Kosten: §5" + cost + " §7Boss-Kern(e)"));
+            lore.add(LEGACY.deserialize("§7Besitzt: " + coreCol + cores + " Boss-Kerne"));
             lore.add(LEGACY.deserialize("§8─────────────────────"));
             if (canAfford) {
-                lore.add(LEGACY.deserialize("§a▶ Klicken zum Upgraden!"));
+                lore.add(LEGACY.deserialize("§a▶ Klicken!"));
                 meta.addEnchant(Enchantment.UNBREAKING, 1, true);
                 meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             } else {
                 lore.add(LEGACY.deserialize("§c✗ Nicht genug Boss-Kerne"));
             }
         } else {
-            lore.add(LEGACY.deserialize("§a✔ Maximales Level erreicht!"));
+            lore.add(LEGACY.deserialize("§7Jetzt:  " + effectText(type, curLevel)));
+            lore.add(LEGACY.deserialize("§8─────────────────────"));
+            lore.add(LEGACY.deserialize("§a✔ MAX"));
         }
 
         meta.lore(lore);
@@ -139,57 +163,55 @@ public class TalentGui implements Listener {
         return item;
     }
 
-    // -------------------------------------------------------------------------
-    // Click handler
-    // -------------------------------------------------------------------------
+    // ── Status pane (slot next to talent) ─────────────────────────────────
 
-    @EventHandler
-    public void onClick(InventoryClickEvent event) {
-        if (!(event.getInventory().getHolder() instanceof TalentHolder holder)) return;
-        event.setCancelled(true);
+    private ItemStack buildStatusPane(Player player, TalentType type) {
+        UUID uuid     = player.getUniqueId();
+        int  curLevel = plugin.getTalentManager().getLevel(uuid, type);
+        boolean maxed = curLevel >= type.maxLevel;
 
-        if (!(event.getWhoClicked() instanceof Player player)) return;
-        int slot = event.getRawSlot();
-        if (slot < 0 || slot >= 27) return;
-
-        // Close button
-        if (slot == 22) {
-            player.closeInventory();
-            return;
+        if (maxed) {
+            ItemStack pane = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
+            ItemMeta  meta = pane.getItemMeta();
+            meta.displayName(LEGACY.deserialize("§5§lMAX"));
+            pane.setItemMeta(meta);
+            return pane;
         }
 
-        // Talent slots
-        TalentType[] types = TalentType.values();
-        for (int i = 0; i < TALENT_SLOTS.length; i++) {
-            if (slot == TALENT_SLOTS[i]) {
-                TalentType type = types[i];
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                    plugin.getTalentManager().tryUpgrade(player, type);
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        if (player.isOnline()) {
-                            // Refresh GUI
-                            fillGui(event.getInventory(), player);
-                            // Trigger scoreboard update
-                            plugin.getScoreboardManager().update(player);
-                        }
-                    });
-                });
-                return;
-            }
+        int  cost     = type.nextCost(curLevel);
+        int  cores    = plugin.getLootManager().getQuantity(uuid, LootItem.BOSS_CORE);
+        boolean canAfford = cores >= cost;
+
+        Material mat  = canAfford ? Material.LIME_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE;
+        String   name = canAfford ? "§a§l▶ Kaufbar" : "§c§l✗ Zu teuer";
+        ItemStack pane = new ItemStack(mat);
+        ItemMeta  meta = pane.getItemMeta();
+        meta.displayName(LEGACY.deserialize(name));
+        if (!canAfford) {
+            meta.lore(List.of(LEGACY.deserialize(
+                "§7Fehlt: §c" + (cost - cores) + " §7Boss-Kern(e)")));
         }
+        pane.setItemMeta(meta);
+        return pane;
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
+    // ── Boss Core resource info ────────────────────────────────────────────
 
-    private ItemStack makePure(Material mat) {
-        ItemStack item = new ItemStack(mat);
+    private ItemStack buildCoreInfo(int count) {
+        ItemStack item = new ItemStack(Material.NETHER_STAR);
         ItemMeta  meta = item.getItemMeta();
-        meta.displayName(Component.empty());
+        meta.displayName(LEGACY.deserialize("§5§lBoss-Kerne"));
+        meta.lore(List.of(
+            LEGACY.deserialize("§8─────────────────────"),
+            LEGACY.deserialize("§7Vorrat: §5" + count),
+            LEGACY.deserialize("§8─────────────────────"),
+            LEGACY.deserialize("§7Durch Bosse besiegen verdient")
+        ));
         item.setItemMeta(meta);
         return item;
     }
+
+    // ── Close button ───────────────────────────────────────────────────────
 
     private ItemStack buildClose() {
         ItemStack item = new ItemStack(Material.BARRIER);
@@ -199,13 +221,55 @@ public class TalentGui implements Listener {
         return item;
     }
 
-    /**
-     * Renders a 15-character progress bar.
-     */
+    // ── Click handler ──────────────────────────────────────────────────────
+
+    @EventHandler
+    public void onClick(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof TalentHolder)) return;
+        event.setCancelled(true);
+
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= 54) return;
+
+        if (slot == 49) { player.closeInventory(); return; }
+
+        TalentType[] types = TalentType.values();
+        for (int i = 0; i < TALENT_SLOTS.length; i++) {
+            if (slot == TALENT_SLOTS[i]) {
+                TalentType type = types[i];
+                plugin.getTalentManager().tryUpgrade(player, type);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> open(player), 1L);
+                return;
+            }
+        }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+
+    private ItemStack makePure(Material mat) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(Component.empty());
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static String effectText(TalentType type, int level) {
+        return switch (type) {
+            case TREASURE_HUNTER -> "§a+" + (level * 8) + "% §7Loot-Chance";
+            case IRON_HEART      -> "§e+" + (level * 8) + " §7Max-HP";
+            case FAST_HANDS      -> "§b+" + (level * 5) + "% §7Angriffsgeschw.";
+            case COIN_MASTER     -> "§6+" + (level * 10) + "% §7Münzen";
+            case BOSS_SLAYER     -> "§c+" + (level * 3) + "% §7Schaden (Boss > Lv50)";
+        };
+    }
+
     private static String bar(int current, int max) {
         int len    = 15;
         int filled = max > 0 ? Math.min(len, (int) Math.round(len * (double) current / max)) : 0;
         String col = filled >= len ? "§a" : filled >= len / 2 ? "§e" : "§c";
-        return col + "█".repeat(filled) + "§8" + "█".repeat(len - filled);
+        return col + "█".repeat(filled) + "§8" + "█".repeat(len - filled)
+            + " §7(" + current + "/" + max + ")";
     }
 }
