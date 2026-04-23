@@ -7,12 +7,15 @@ import de.pinkhorizon.smash.managers.BossModifierManager.BossModifier;
 import de.pinkhorizon.smash.managers.DailyChallengeManager;
 import de.pinkhorizon.smash.managers.ForgeManager.ForgeEnchant;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.SmallFireball;
 import de.pinkhorizon.smash.arena.ArenaManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -31,7 +34,12 @@ import org.bukkit.potion.PotionEffectType;
 
 public class SmashCombatListener implements Listener {
 
-    private final PHSmash plugin;
+    private static final LegacyComponentSerializer LEGACY             = LegacyComponentSerializer.legacySection();
+    private static final double                    FIREBALL_BASE_DMG  = 8.0;
+    private static final long                      FIREBALL_CD_MS     = 2000L;
+
+    private final PHSmash          plugin;
+    private final Map<UUID, Long>  fireballCooldowns = new HashMap<>();
 
     public SmashCombatListener(PHSmash plugin) {
         this.plugin = plugin;
@@ -43,20 +51,23 @@ public class SmashCombatListener implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerHitBoss(EntityDamageByEntityEvent event) {
-        // Spieler ermitteln – direkt (Schwert/Axt) oder über Projektil (Bogen)
+        // Spieler ermitteln – direkt (Schwert/Axt), Feuerball oder Projektil (Bogen)
         Player  player;
-        boolean isBow;
-        boolean isAxe;
+        boolean isBow      = false;
+        boolean isAxe      = false;
+        boolean isFireball = false;
 
         if (event.getDamager() instanceof Player p) {
             player = p;
-            isBow  = false;
             isAxe  = p.getInventory().getItemInMainHand().getType() == Material.DIAMOND_AXE;
+        } else if (event.getDamager() instanceof SmallFireball fb
+                   && fb.getShooter() instanceof Player p) {
+            player = p;
+            isFireball = true;
         } else if (event.getDamager() instanceof Projectile proj
                    && proj.getShooter() instanceof Player p) {
             player = p;
             isBow  = true;
-            isAxe  = false;
         } else {
             return;
         }
@@ -69,6 +80,38 @@ public class SmashCombatListener implements Listener {
         event.setCancelled(true);
 
         UUID uuid = player.getUniqueId();
+
+        // ── Feuerball-Handler ──────────────────────────────────────────────
+        if (isFireball) {
+            raw = FIREBALL_BASE_DMG * plugin.getAbilityManager().getFireballPowerMultiplier(uuid);
+            plugin.getArenaManager().applyDamage(player, raw);
+
+            // Doppelfeuer: zweiter Feuerball (80% Schaden)
+            double doppelChance = plugin.getAbilityManager().getDoppelfeuerChance(uuid);
+            if (doppelChance > 0 && Math.random() < doppelChance) {
+                plugin.getArenaManager().applyDamage(player, raw * 0.80);
+                player.sendMessage("§e🔥 §fDoppelfeuer!");
+                player.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.8f, 1.3f);
+            }
+
+            // Verbrennung: Brand-DOT (3 Ticks × 8% des Treffers)
+            double verbChance = plugin.getAbilityManager().getVerbrennungChance(uuid);
+            if (verbChance > 0 && Math.random() < verbChance) {
+                final double        tickDmg = raw * 0.08;
+                final ArenaInstance pArena  = arena;
+                final Player        pPlayer = player;
+                for (int tick = 1; tick <= 3; tick++) {
+                    final long delay = tick * 20L;
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (pArena.getBossEntity() != null && pArena.getBossEntity().isValid())
+                            plugin.getArenaManager().applyDamage(pPlayer, tickDmg);
+                    }, delay);
+                }
+                player.sendMessage("§c🔥 §fVerbrennung!");
+                player.playSound(player.getLocation(), Sound.ENTITY_BLAZE_HURT, 0.5f, 1.5f);
+            }
+            return;
+        }
 
         if (isBow) {
             // ── Explosivpfeil ──
@@ -256,6 +299,50 @@ public class SmashCombatListener implements Listener {
                 return;
             }
         }
+    }
+
+    /** Rechtsklick auf den Feuerball-Stab → SmallFireball in Richtung Boss schießen */
+    @EventHandler
+    public void onFireballStickClick(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        Action a = event.getAction();
+        if (a != Action.RIGHT_CLICK_AIR && a != Action.RIGHT_CLICK_BLOCK) return;
+
+        Player    player = event.getPlayer();
+        ItemStack item   = player.getInventory().getItemInMainHand();
+        if (item.getType() != Material.STICK || !item.hasItemMeta()) return;
+
+        Component name = item.getItemMeta().displayName();
+        if (name == null) return;
+        if (!LegacyComponentSerializer.legacySection().serialize(name).contains(ArenaManager.FIREBALL_STICK_NAME)) return;
+
+        event.setCancelled(true);
+
+        ArenaInstance arena = plugin.getArenaManager().getArena(player.getUniqueId());
+        if (arena == null || arena.getBossEntity() == null) return;
+
+        // Cooldown-Check
+        long now  = System.currentTimeMillis();
+        Long last = fireballCooldowns.get(player.getUniqueId());
+        if (last != null && now - last < FIREBALL_CD_MS) {
+            long remMs = FIREBALL_CD_MS - (now - last);
+            player.sendActionBar(LEGACY.deserialize("§c⏳ §7Feuerball in §c" + String.format("%.1f", remMs / 1000.0) + "s"));
+            return;
+        }
+        fireballCooldowns.put(player.getUniqueId(), now);
+
+        // SmallFireball in Richtung Boss spawnen
+        org.bukkit.Location from = player.getEyeLocation();
+        org.bukkit.util.Vector dir = arena.getBossEntity().getLocation().add(0, 1, 0)
+            .toVector().subtract(from.toVector()).normalize();
+
+        SmallFireball fb = player.getWorld().spawn(from, SmallFireball.class);
+        fb.setShooter(player);
+        fb.setDirection(dir);
+        fb.setYield(0f);
+        fb.setIsIncendiary(false);
+
+        player.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
     }
 
     /** Rechtsklick auf den Boss-Ruf-Kristall → Boss starten */

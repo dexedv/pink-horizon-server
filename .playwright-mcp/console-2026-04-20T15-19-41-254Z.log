@@ -1,0 +1,13 @@
+[     182ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://play.pinkhorizon.fun:3000/:0
+[     270ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://play.pinkhorizon.fun:3000/favicon.ico:0
+[  232876ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://play.pinkhorizon.fun:3000/:0
+[  234026ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://play.pinkhorizon.fun:3000/:0
+[  236108ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://play.pinkhorizon.fun:3000/:0
+[ 6382068ms] [ERROR] Failed to load resource: net::ERR_EMPTY_RESPONSE @ http://play.pinkhorizon.fun:3000/api/servers:0
+[ 6382068ms] [ERROR] API Fehler: TypeError: Failed to fetch
+    at apiFetch (http://play.pinkhorizon.fun:3000/:788:18)
+    at loadServers (http://play.pinkhorizon.fun:3000/:384:21) @ http://play.pinkhorizon.fun:3000/:792
+[ 6662084ms] [ERROR] Failed to load resource: net::ERR_EMPTY_RESPONSE @ http://play.pinkhorizon.fun:3000/api/servers:0
+[ 6662084ms] [ERROR] API Fehler: TypeError: Failed to fetch
+    at apiFetch (http://play.pinkhorizon.fun:3000/:788:18)
+    at loadServers (http://play.pinkhorizon.fun:3000/:384:21) @ http://play.pinkhorizon.fun:3000/:792

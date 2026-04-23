@@ -56,7 +56,15 @@ public class AbilityManager {
         KLAFFENDE_WUNDE("§4🗡 Klaffende Wunde", "+10% Blut-DOT-Schaden/Lv (Multiplikator)",           10,
             new long[]{400, 900, 1700, 3000, 5000, 8200, 13000, 20000, 31000, 47000}),
         TIEFE_HIEBE    ("§8⏱ Tiefe Hiebe",      "+1 Tick/Lv Blutungsdauer (Base 3 Ticks)",             10,
-            new long[]{300, 700, 1400, 2500, 4200, 6800, 11000, 17500, 27500, 43000});
+            new long[]{300, 700, 1400, 2500, 4200, 6800, 11000, 17500, 27500, 43000}),
+
+        // ── Feuerball-Fähigkeiten ─────────────────────────────────────────────
+        FEUERKRAFT    ("§6🔥 Feuerkraft",    "+8% Feuerball-Schaden/Lv",                             15,
+            new long[]{300, 450, 650, 950, 1400, 2000, 2900, 4200, 6100, 8800, 12700, 18400, 26600, 38500, 55700}),
+        VERBRENNUNG   ("§c🔥 Verbrennung",   "7% Chance/Lv: Brand-DOT (3 Ticks × 8% des Treffers)", 10,
+            new long[]{250, 600, 1200, 2200, 3700, 6000, 9700, 15500, 24500, 38500}),
+        DOPPELFEUER   ("§e🔥 Doppelfeuer",   "5% Chance/Lv: 2. Feuerball (80% Schaden)",             10,
+            new long[]{350, 800, 1600, 2800, 4600, 7500, 12000, 19000, 30000, 46000});
 
         public final String displayName;
         public final String effectDesc;
@@ -223,6 +231,23 @@ public class AbilityManager {
     /** Anzahl Blutungs-Ticks (Base 3 + Level, max 13 bei Lv 10). */
     public int getBlutungTicks(UUID uuid) {
         return 3 + getLevel(uuid, AbilityType.TIEFE_HIEBE);
+    }
+
+    // ── Feuerball-Fähigkeiten ──────────────────────────────────────────────
+
+    /** Feuerball-Schaden-Multiplikator (1.0 = kein Bonus). Lv15 = 2.2× */
+    public double getFireballPowerMultiplier(UUID uuid) {
+        return 1.0 + getLevel(uuid, AbilityType.FEUERKRAFT) * 0.08;
+    }
+
+    /** Chance auf Brand-DOT (3 Ticks à 8% des Treffers, max 70% bei Lv 10). */
+    public double getVerbrennungChance(UUID uuid) {
+        return Math.min(getLevel(uuid, AbilityType.VERBRENNUNG) * 0.07, 0.70);
+    }
+
+    /** Chance auf zweiten Feuerball (80% Schaden, max 50% bei Lv 10). */
+    public double getDoppelfeuerChance(UUID uuid) {
+        return Math.min(getLevel(uuid, AbilityType.DOPPELFEUER) * 0.05, 0.50);
     }
 
     // ── Regen-Task ─────────────────────────────────────────────────────────

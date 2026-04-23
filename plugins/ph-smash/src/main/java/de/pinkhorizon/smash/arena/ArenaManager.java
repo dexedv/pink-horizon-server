@@ -736,6 +736,18 @@ public class ArenaManager {
         axe.setItemMeta(am);
         player.getInventory().setItem(3, axe);
 
+        // Slot 4 – Feuerball-Stab
+        ItemStack stick = new ItemStack(Material.STICK);
+        ItemMeta  stm   = stick.getItemMeta();
+        stm.displayName(leg.deserialize("§6§l" + FIREBALL_STICK_NAME));
+        stm.lore(java.util.List.of(
+            leg.deserialize("§7Rechtsklick §8» §eFeuerball schießen"),
+            leg.deserialize("§7Cooldown: §c2s §8– Skaliert mit Fähigkeiten")));
+        stm.setUnbreakable(true);
+        stm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
+        stick.setItemMeta(stm);
+        player.getInventory().setItem(4, stick);
+
         // Slot 8 – Navigator-Kompass (ganz rechts)
         player.getInventory().setItem(8, SmashNavigatorListener.buildCompass());
 
@@ -769,7 +781,8 @@ public class ArenaManager {
 
     // ── Summon-Item ────────────────────────────────────────────────────────
 
-    public static final String SUMMON_ITEM_NAME = "Boss-Ruf-Kristall";
+    public static final String SUMMON_ITEM_NAME    = "Boss-Ruf-Kristall";
+    public static final String FIREBALL_STICK_NAME = "Feuerball-Stab";
 
     private void giveSummonItem(Player player, int nextLevel) {
         LegacyComponentSerializer leg = LegacyComponentSerializer.legacySection();

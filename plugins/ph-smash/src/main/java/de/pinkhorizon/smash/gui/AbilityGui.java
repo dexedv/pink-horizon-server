@@ -37,7 +37,8 @@ public class AbilityGui implements Listener {
         19, 20, 21,            // Schwert
         28, 29, 30, 31,        // Bogen
         37, 38, 39,            // Axt
-        46                     // Passiv
+        46, 47, 48,            // Feuerball
+        50                     // Passiv
     };
     private static final AbilityType[] ORDER = {
         AbilityType.BERSERKER, AbilityType.DODGE, AbilityType.HEAL_ON_KILL,
@@ -46,6 +47,7 @@ public class AbilityGui implements Listener {
         AbilityType.EXPLOSIVE, AbilityType.BOGENSTAERKE,
         AbilityType.MEHRFACHSCHUSS, AbilityType.GIFTPFEIL,
         AbilityType.BLUTUNG, AbilityType.KLAFFENDE_WUNDE, AbilityType.TIEFE_HIEBE,
+        AbilityType.FEUERKRAFT, AbilityType.VERBRENNUNG, AbilityType.DOPPELFEUER,
         AbilityType.IMMUN
     };
     private static final Material[] ICONS = {
@@ -64,6 +66,9 @@ public class AbilityGui implements Listener {
         Material.IRON_AXE,                // BLUTUNG
         Material.NETHERITE_AXE,           // KLAFFENDE_WUNDE
         Material.DIAMOND_AXE,             // TIEFE_HIEBE
+        Material.FIRE_CHARGE,             // FEUERKRAFT
+        Material.MAGMA_CREAM,             // VERBRENNUNG
+        Material.BLAZE_ROD,               // DOPPELFEUER
         Material.SHIELD                   // IMMUN
     };
 
@@ -118,7 +123,8 @@ public class AbilityGui implements Listener {
         inv.setItem(18, makeLabelPane(Material.RED_STAINED_GLASS_PANE,    "§c§l⚔ Schwert"));
         inv.setItem(27, makeLabelPane(Material.YELLOW_STAINED_GLASS_PANE, "§e§l🏹 Bogen"));
         inv.setItem(36, makeLabelPane(Material.CYAN_STAINED_GLASS_PANE,   "§b§l🪓 Axt"));
-        inv.setItem(45, makeLabelPane(Material.PURPLE_STAINED_GLASS_PANE, "§d§l🛡 Passiv"));
+        inv.setItem(45, makeLabelPane(Material.ORANGE_STAINED_GLASS_PANE, "§6§l🔥 Feuerball"));
+        inv.setItem(49, makeLabelPane(Material.PURPLE_STAINED_GLASS_PANE, "§d§l🛡 Passiv"));
 
         // Resource info items (rechte Spalte)
         inv.setItem(15, buildItemInfo(uid, LootItem.IRON_FRAGMENT,  Material.IRON_INGOT,  ironQty));
@@ -140,7 +146,7 @@ public class AbilityGui implements Listener {
         }
 
         // Close button
-        inv.setItem(49, makeItem(Material.BARRIER, "§cSchließen", List.of()));
+        inv.setItem(53, makeItem(Material.BARRIER, "§cSchließen", List.of()));
     }
 
     private List<String> buildAbilityLore(AbilityType type, int level, long cost,
@@ -183,6 +189,9 @@ public class AbilityGui implements Listener {
             case BLUTUNG         -> "§c" + (level * 5) + "% §7Blutungs-Chance §8(" + (3 + AbilityType.TIEFE_HIEBE.maxLevel) + " Ticks max × 6%)";
             case KLAFFENDE_WUNDE -> "§4+" + (level * 10) + "% §7Blut-DOT-Schaden §8(Multiplikator)";
             case TIEFE_HIEBE     -> "§7+" + level + " §7Tick(s) §8(Gesamt: " + (3 + level) + " Ticks)";
+            case FEUERKRAFT      -> "§6+" + (level * 8) + "% §7Feuerball-Schaden";
+            case VERBRENNUNG     -> "§c" + (level * 7) + "% §7Chance: Brand-DOT §8(3× 8% des Treffers)";
+            case DOPPELFEUER     -> "§e" + (level * 5) + "% §7Chance: 2. Feuerball §8(80% Schaden)";
         };
     }
 
@@ -197,7 +206,7 @@ public class AbilityGui implements Listener {
         int slot = event.getRawSlot();
 
         // Close button
-        if (slot == 49) { player.closeInventory(); return; }
+        if (slot == 53) { player.closeInventory(); return; }
 
         UUID uid = player.getUniqueId();
         if (upgrading.contains(uid)) return;
