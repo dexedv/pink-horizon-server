@@ -63,7 +63,7 @@ public class SmashCombatListener implements Listener {
         double berserker = plugin.getAbilityManager().getBerserkerBonus(player.getUniqueId());
         if (berserker > 0) {
             var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
-            if (hpAttr != null && player.getHealth() < hpAttr.getValue() * 0.30) {
+            if (hpAttr != null && player.getHealth() < hpAttr.getValue() * 0.35) {
                 raw *= (1.0 + berserker);
             }
         }
@@ -100,9 +100,10 @@ public class SmashCombatListener implements Listener {
             return;
         }
 
-        // Defense-Multiplikator
-        double defMulti = plugin.getUpgradeManager().getDefenseMultiplier(player.getUniqueId());
-        event.setDamage(event.getDamage() * defMulti);
+        // Boss-Schaden aus BossConfig (skaliert mit Level), dann Defense anwenden
+        double baseDamage = arena.getConfig().damage();
+        double defMulti   = plugin.getUpgradeManager().getDefenseMultiplier(player.getUniqueId());
+        event.setDamage(baseDamage * defMulti);
     }
 
     /** Verhindert, dass der Boss durch Umweltschäden stirbt */
