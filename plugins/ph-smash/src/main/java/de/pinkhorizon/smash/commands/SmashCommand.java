@@ -151,7 +151,7 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2 && args[0].equalsIgnoreCase("setnpc"))
             return List.of("leveldown", "upgrade").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
         if (args.length == 2 && (args[0].equalsIgnoreCase("sethologram") || args[0].equalsIgnoreCase("setholo")))
-            return List.of("kills", "level", "damage").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
+            return List.of("kills", "level", "damage", "commands").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
         return List.of();
     }
 }

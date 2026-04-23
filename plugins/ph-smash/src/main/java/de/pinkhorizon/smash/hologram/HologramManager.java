@@ -18,9 +18,10 @@ public class HologramManager {
     // ── Hologramm-Typen ────────────────────────────────────────────────────
 
     public enum HologramType {
-        KILLS  ("kills",   "§c§l⚔ Top Kills"),
-        LEVEL  ("level",   "§a§l★ Top Boss-Level"),
-        DAMAGE ("damage",  "§e§l✦ Top Schaden");
+        KILLS    ("kills",    "§c§l⚔ Top Kills"),
+        LEVEL    ("level",    "§a§l★ Top Boss-Level"),
+        DAMAGE   ("damage",   "§e§l✦ Top Schaden"),
+        COMMANDS ("commands", "§b§l✦ Befehle");
 
         public final String key;
         public final String title;
@@ -95,24 +96,28 @@ public class HologramManager {
         td.setBillboard(Display.Billboard.CENTER);
         td.setLineWidth(200);
         td.setViewRange(1.5f);
-        td.text(LEGACY.deserialize("§7Lade Rangliste..."));
         displays.put(type, td);
 
-        // Async: Daten aus DB holen, dann Anzeige aktualisieren
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            List<LeaderEntry> data = fetchData(type);
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (td.isValid()) td.text(buildText(type, data));
+        if (type == HologramType.COMMANDS) {
+            td.text(buildText(type, List.of()));
+        } else {
+            td.text(LEGACY.deserialize("§7Lade Rangliste..."));
+            // Async: Daten aus DB holen, dann Anzeige aktualisieren
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                List<LeaderEntry> data = fetchData(type);
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (td.isValid()) td.text(buildText(type, data));
+                });
             });
-        });
+        }
     }
 
     private void startRefreshTask() {
         refreshTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            // Für jeden aktiven Typ Daten holen
+            // Für jeden aktiven Typ Daten holen (COMMANDS ist statisch – kein Refresh nötig)
             Map<HologramType, List<LeaderEntry>> allData = new EnumMap<>(HologramType.class);
             for (HologramType type : displays.keySet()) {
-                allData.put(type, fetchData(type));
+                if (type != HologramType.COMMANDS) allData.put(type, fetchData(type));
             }
             // Text-Update zurück auf Main-Thread
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -129,10 +134,12 @@ public class HologramManager {
     // ── Daten aus Datenbank ────────────────────────────────────────────────
 
     private List<LeaderEntry> fetchData(HologramType type) {
+        if (type == HologramType.COMMANDS) return List.of();
         String col = switch (type) {
             case KILLS  -> "kills";
             case LEVEL  -> "personal_level";
             case DAMAGE -> "total_damage";
+            default     -> "kills";
         };
         List<LeaderEntry> result = new ArrayList<>();
         String sql = "SELECT uuid, " + col + " FROM smash_players"
@@ -155,6 +162,7 @@ public class HologramManager {
     // ── Text-Builder ───────────────────────────────────────────────────────
 
     private Component buildText(HologramType type, List<LeaderEntry> data) {
+        if (type == HologramType.COMMANDS) return buildCommandsText();
         StringBuilder sb = new StringBuilder();
         sb.append(type.title).append("\n");
         sb.append("§8§m──────────────────\n");
@@ -166,9 +174,10 @@ public class HologramManager {
             String rankColor = i < rankColors.length ? rankColors[i] : "§7";
             String medal     = i == 0 ? "§6✦ " : i == 1 ? "§7✦ " : i == 2 ? "§8✦ " : "  ";
             String valueStr  = switch (type) {
-                case KILLS  -> "§c" + e.value + " §7Kills";
-                case LEVEL  -> "§aLv. §2" + e.value;
-                case DAMAGE -> "§e" + formatDmg(e.value) + " §7Dmg";
+                case KILLS    -> "§c" + e.value + " §7Kills";
+                case LEVEL    -> "§aLv. §2" + e.value;
+                case DAMAGE   -> "§e" + formatDmg(e.value) + " §7Dmg";
+                case COMMANDS -> "";
             };
             sb.append(medal).append(rankColor).append("#").append(i + 1)
               .append(" §f").append(e.name)
@@ -207,6 +216,38 @@ public class HologramManager {
             plugin.getConfig().getDouble(path + ".x"),
             plugin.getConfig().getDouble(path + ".y"),
             plugin.getConfig().getDouble(path + ".z"));
+    }
+
+    // ── Befehls-Hologramm (statisch) ──────────────────────────────────────
+
+    private Component buildCommandsText() {
+        String nl = "\n";
+        String div = "§8§m─────────────────────" + nl;
+        return LEGACY.deserialize(
+            "§b§l≡ §r§c§lSmash the Boss §b§l≡" + nl +
+            div +
+            "§e§l✦ Allgemein" + nl +
+            " §7Rechtsklick Kompas §8» §aNavigator öffnen" + nl +
+            " §f/stb join      §8» §7Arena betreten" + nl +
+            " §f/stb leave     §8» §7Arena verlassen" + nl +
+            " §f/stb stats     §8» §7Deine Statistiken" + nl +
+            " §f/stb coins     §8» §7Münzstand anzeigen" + nl +
+            div +
+            "§6§l⬆ Upgrades & Fähigkeiten" + nl +
+            " §f/stb upgrades  §8» §7Item-Upgrades kaufen" + nl +
+            " §f/stb abilities §8» §7Fähigkeiten freischalten" + nl +
+            div +
+            "§a§l☆ Shop" + nl +
+            " §7Im Navigator §8(Kompas) §8» §aSlot Shop" + nl +
+            " §7Kaufe Tränke & Äpfel mit Münzen" + nl +
+            div +
+            "§c§l⚔ Kampf-Tipps" + nl +
+            " §7Links §8» §fSchwert §7| §7Rechts §8» §fBogen" + nl +
+            " §7Stirbst du? Bleibst du in der Arena!" + nl +
+            " §7Boss stirbt? §aNeuer Boss spawnt!" + nl +
+            div +
+            "§8play.pinkhorizon.fun"
+        );
     }
 
     // ── Hilfsmethoden ─────────────────────────────────────────────────────
