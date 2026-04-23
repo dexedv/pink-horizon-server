@@ -32,7 +32,7 @@ public class SmashTabManager {
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             frame = (frame + 1) % HEADER_FRAMES.length;
             int online = Bukkit.getOnlinePlayers().size();
-            Component header = Component.text(HEADER_FRAMES[frame]);
+            Component header = LEGACY.deserialize(HEADER_FRAMES[frame]);
 
             for (Player p : Bukkit.getOnlinePlayers()) {
                 ArenaInstance arena = plugin.getArenaManager().getArena(p.getUniqueId());
@@ -49,7 +49,7 @@ public class SmashTabManager {
                 // Tab-Spielername: [LP-Rang] [Prestige] Name
                 p.playerListName(buildTabName(lpPrefix, prestige, p.getName()));
 
-                Component footer = Component.text(
+                Component footer = LEGACY.deserialize(
                     "\n" + rank + " §7Rang  §8|  §7Level: §c" + bossLevel
                     + "  §8|  " + streak
                     + "  §8|  §7Online: §a" + online
@@ -76,8 +76,8 @@ public class SmashTabManager {
         player.playerListName(buildTabName(lpPrefix, prestige, player.getName()));
 
         player.sendPlayerListHeaderAndFooter(
-            Component.text(HEADER_FRAMES[frame]),
-            Component.text("\n" + rank + " §7Rang  §8|  §7Level: §c" + bossLevel
+            LEGACY.deserialize(HEADER_FRAMES[frame]),
+            LEGACY.deserialize("\n" + rank + " §7Rang  §8|  §7Level: §c" + bossLevel
                 + "  §8|  " + streak
                 + "  §8|  §7Online: §a" + Bukkit.getOnlinePlayers().size()
                 + "  §8|  " + status

@@ -40,7 +40,7 @@ public class SmashScoreboardManager {
         Objective  obj   = board.registerNewObjective("smash", Criteria.DUMMY, LEGACY.deserialize(TITLE));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
-        for (int i = 0; i < 14; i++) {
+        for (int i = 0; i < 15; i++) {
             Team team = board.registerNewTeam("line" + i);
             team.addEntry(ENTRIES[i]);
             obj.getScore(ENTRIES[i]).setScore(i);
@@ -101,23 +101,34 @@ public class SmashScoreboardManager {
         int  hpLevel  = plugin.getUpgradeManager().getLevel(uuid, UpgradeManager.UpgradeType.HEALTH);
         long coins    = plugin.getCoinManager().getCoins(uuid);
 
-        setLine(board, 13, " ");
-        setLine(board, 12, "§7Dein Boss:  §c§l" + bossLevel);
-        setLine(board, 11, "§7Boss-HP:");
-        setLine(board, 10, bossHpLine);
-        setLine(board, 9,  arena != null ? "§8" + bossHpRaw : "  ");
-        String combo = arena != null ? plugin.getComboManager().getComboDisplay(uuid) : "";
-        setLine(board, 8,  combo.isEmpty() ? "   " : combo);
-        setLine(board, 7,  "§7Schaden: §e" + formatDmg(totalDmg));
-        setLine(board, 6,  "§7Kills:   §a" + kills);
-        setLine(board, 5,  "§7Münzen:  §6" + coins);
-        String streak = plugin.getStreakManager().getStreakDisplay(uuid);
-        String rank   = RankManager.getRankDisplay(bossLevel);
-        setLine(board, 4,  "§7Streak: " + streak);
-        setLine(board, 3,  "§7⚔ Angriff: §6+" + (atkLevel * 8) + "%");
-        setLine(board, 2,  "§7❤ HP-Bonus: §a+" + (hpLevel * 6));
-        setLine(board, 1,  "§aplay.pinkhorizon.fun");
-        setLine(board, 0,  rank);
+        int    prestige = plugin.getPrestigeManager().getPrestige(uuid);
+        String streak   = plugin.getStreakManager().getStreakDisplay(uuid);
+        String rank     = RankManager.getRankDisplay(bossLevel);
+
+        // Kristall-Hinweis wenn Boss bereit, sonst Combo
+        String midLine;
+        if (arena != null && arena.isBossReadyToSpawn()) {
+            midLine = "§e▶ §6Kristall rechtsklicken!";
+        } else {
+            String combo = arena != null ? plugin.getComboManager().getComboDisplay(uuid) : "";
+            midLine = combo.isEmpty() ? "   " : combo;
+        }
+
+        setLine(board, 14, " ");
+        setLine(board, 13, "§7Dein Boss:  §c§l" + bossLevel);
+        setLine(board, 12, "§7Boss-HP:");
+        setLine(board, 11, bossHpLine);
+        setLine(board, 10, arena != null ? "§8" + bossHpRaw : "  ");
+        setLine(board, 9,  midLine);
+        setLine(board, 8,  "§7Schaden: §e" + formatDmg(totalDmg));
+        setLine(board, 7,  "§7Kills:   §a" + kills);
+        setLine(board, 6,  "§7Münzen:  §6" + coins);
+        setLine(board, 5,  prestige > 0 ? "§d✦ Prestige: §f§l" + prestige : "§7Streak: " + streak);
+        setLine(board, 4,  prestige > 0 ? "§7Streak: " + streak : "§7⚔ Angriff: §6+" + (atkLevel * 8) + "%");
+        setLine(board, 3,  prestige > 0 ? "§7⚔ Angriff: §6+" + (atkLevel * 8) + "%" : "§7❤ HP-Bonus: §a+" + (hpLevel * 6));
+        setLine(board, 2,  prestige > 0 ? "§7❤ HP-Bonus: §a+" + (hpLevel * 6) : rank);
+        setLine(board, 1,  prestige > 0 ? rank : "  ");
+        setLine(board, 0,  "§aplay.pinkhorizon.fun");
     }
 
     private void setLine(Scoreboard board, int score, String text) {
