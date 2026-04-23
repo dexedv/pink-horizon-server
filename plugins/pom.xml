@@ -18,6 +18,7 @@
         <module>ph-survival</module>
         <module>ph-skyblock</module>
         <module>ph-minigames</module>
+        <module>ph-smash</module>
     </modules>
 
     <properties>

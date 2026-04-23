@@ -138,6 +138,38 @@ services:
       mysql:
         condition: service_healthy
 
+  # ── Smash the Boss ────────────────────────────────────────────────────
+  smash:
+    image: itzg/minecraft-server:latest
+    container_name: ph-smash
+    mem_limit: 4g
+    healthcheck:
+      start_period: 3m
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: "1.21.4"
+      INIT_MEMORY: "512m"
+      MEMORY: "3500m"
+      USE_AIKAR_FLAGS: "true"
+      ONLINE_MODE: "false"
+      ENABLE_RCON: "true"
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "${RCON_PASSWORD}"
+      SERVER_PORT: "25570"
+      TZ: Europe/Berlin
+    ports:
+      - "25579:25575"             # RCON
+      - "25570:25570"             # Minecraft (intern für Velocity)
+    volumes:
+      - ./servers/smash:/data
+    networks:
+      - ph-net
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   # ── Dashboard ─────────────────────────────────────────────────────────
   dashboard:
     build: ./dashboard

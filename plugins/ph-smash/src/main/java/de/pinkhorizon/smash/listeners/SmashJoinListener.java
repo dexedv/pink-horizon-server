@@ -1,0 +1,66 @@
+package de.pinkhorizon.smash.listeners;
+
+import de.pinkhorizon.smash.PHSmash;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.title.Title;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+
+import java.time.Duration;
+
+public class SmashJoinListener implements Listener {
+
+    private final PHSmash plugin;
+
+    public SmashJoinListener(PHSmash plugin) {
+        this.plugin = plugin;
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+
+        event.joinMessage(
+            Component.text("§8[§c+§8] ")
+                .append(Component.text(player.getName(), TextColor.color(0xFF5555))));
+
+        // Spieler in DB registrieren
+        plugin.getPlayerDataManager().ensurePlayer(player.getUniqueId());
+
+        // Upgrade-Stats anwenden
+        plugin.getUpgradeManager().applyStats(player);
+
+        // Scoreboard + Tab
+        plugin.getScoreboardManager().giveScoreboard(player);
+        plugin.getTabManager().update(player);
+
+        // Boss-BossBar hinzufügen
+        plugin.getBossManager().addPlayerToBar(player);
+
+        // Title 1 Tick verzögert
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            int bossLevel = plugin.getPlayerDataManager().getGlobalBossLevel();
+            player.showTitle(Title.title(
+                Component.text("Smash the Boss", TextColor.color(0xFF5555), TextDecoration.BOLD),
+                Component.text("Aktueller Boss: Level " + bossLevel, NamedTextColor.GRAY),
+                Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(1000))));
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 1.2f);
+        }, 5L);
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        plugin.getScoreboardManager().removeScoreboard(player);
+
+        event.quitMessage(
+            Component.text("§8[§c-§8] ")
+                .append(Component.text(player.getName(), NamedTextColor.WHITE)));
+    }
+}

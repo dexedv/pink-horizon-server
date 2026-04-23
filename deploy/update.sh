@@ -23,7 +23,7 @@ echo ""
 
 # ── 3. Spielserver + Proxy neu starten (neue JARs aus Volume) ────────────
 echo "▶ [3/4] Server-Container neu starten..."
-docker compose restart lobby survival minigames velocity
+docker compose restart lobby survival minigames smash velocity
 echo ""
 
 # ── 4. Dashboard neu bauen (damit server.js-Änderungen aktiv werden) ─────

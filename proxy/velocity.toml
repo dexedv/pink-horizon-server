@@ -20,6 +20,7 @@ forwarding-secret-file = "forwarding.secret"
   lobby     = "ph-lobby:25566"
   survival  = "ph-survival:25567"
   minigames = "ph-minigames:25569"
+  smash     = "ph-smash:25570"
 
 # Server, auf den neue Spieler kommen
 try = ["lobby"]

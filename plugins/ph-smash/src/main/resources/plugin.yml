@@ -1,0 +1,22 @@
+name: PH-Smash
+version: '1.0.0'
+main: de.pinkhorizon.smash.PHSmash
+api-version: '1.21'
+description: Smash the Boss – Endloser PvE-Gamemode
+authors: [ PinkHorizon ]
+depend: [ PH-Core ]
+
+commands:
+  stb:
+    description: Smash the Boss – Spielen und verwalten
+    usage: /stb <join|leave|upgrades|stats|setarena|forceboss>
+    aliases: [ smash ]
+    permission: smash.play
+
+permissions:
+  smash.play:
+    description: Smash the Boss spielen
+    default: true
+  smash.admin:
+    description: Admin-Befehle (setarena, forceboss)
+    default: op

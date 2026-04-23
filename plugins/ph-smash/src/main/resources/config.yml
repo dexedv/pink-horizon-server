@@ -1,0 +1,26 @@
+# Smash the Boss – Konfiguration
+
+database:
+  host: ph-mysql
+  port: 3306
+  name: ph_smash
+  user: ph_user
+  password: ""   # wird aus Env-Variable überschrieben wenn leer
+
+arena:
+  # Spawn-Position für Spieler (wird per /stb setarena spawn gesetzt)
+  spawn:
+    world: world
+    x: 0.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+  # Spawn-Position für den Boss (wird per /stb setarena boss gesetzt)
+  boss:
+    world: world
+    x: 0.5
+    y: 64.0
+    z: 10.5
+    yaw: 0.0
+    pitch: 0.0

@@ -69,6 +69,12 @@ const SERVERS = {
     container: 'ph-minigames',
     color:     '#E91E63',
     rcon:      { host: process.env.MINIGAMES_RCON_HOST || 'minigames', port: 25575, password: process.env.RCON_PASSWORD || 'ph-admin-2024' }
+  },
+  smash: {
+    label:     'Smash the Boss',
+    container: 'ph-smash',
+    color:     '#F44336',
+    rcon:      { host: process.env.SMASH_RCON_HOST || 'smash', port: 25575, password: process.env.RCON_PASSWORD || 'ph-admin-2024' }
   }
 };
 
@@ -114,6 +120,12 @@ const poolSv = mysql.createPool({
 const poolMg = mysql.createPool({
   host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
   database: 'ph_minigames', waitForConnections: true,
+  connectionLimit: 5, connectTimeout: 5000
+});
+
+const poolSmash = mysql.createPool({
+  host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+  database: 'ph_smash', waitForConnections: true,
   connectionLimit: 5, connectTimeout: 5000
 });
 
@@ -1041,6 +1053,25 @@ app.get('/api/minigames/bedwars/arenas', auth, async (req, res) => {
 
 app.get('/api/audit', auth, (req, res) => {
   res.json({ ok: true, entries: [...auditEntries].reverse().slice(0, 200) });
+});
+
+// ── REST-API: Smash the Boss ──────────────────────────────────────────────
+
+app.get('/api/smash/overview', auth, async (req, res) => {
+  try {
+    const [[state]]   = await poolSmash.query('SELECT boss_level FROM smash_state WHERE id = 1');
+    const [[players]] = await poolSmash.query('SELECT COUNT(*) AS cnt FROM smash_players');
+    const [[kills]]   = await poolSmash.query('SELECT SUM(kills) AS total FROM smash_players');
+    res.json({ ok: true, bossLevel: state?.boss_level ?? 1, totalPlayers: players?.cnt ?? 0, totalKills: kills?.total ?? 0 });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/smash/leaderboard', auth, async (req, res) => {
+  try {
+    const [rows] = await poolSmash.query(
+      'SELECT uuid, kills, total_damage, best_level FROM smash_players ORDER BY kills DESC LIMIT 10');
+    res.json({ ok: true, rows });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 // ── REST-API: Economy-Übersicht ───────────────────────────────────────────

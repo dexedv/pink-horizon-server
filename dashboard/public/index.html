@@ -447,6 +447,8 @@ const NAV_DEF = [
   { id:'rights',       icon:'🔑', label:'Rechte'          },
   { sec: 'Minigames' },
   { id:'mg_bedwars',   icon:'🛏', label:'BedWars'         },
+  { sec: 'Smash the Boss' },
+  { id:'smash_lb',     icon:'⚔', label:'Leaderboard'     },
   { sec: 'Tools' },
   { id:'commands',     icon:'📋', label:'Befehlsreferenz' },
   { id:'sqlconsole',   icon:'🖥️', label:'SQL-Konsole'    },
@@ -513,6 +515,7 @@ function renderPage() {
   if (PAGE === 'backup')       return renderBackup();
   if (PAGE === 'motd')         return renderMotd();
   if (PAGE === 'mg_bedwars')   return renderBedWars();
+  if (PAGE === 'smash_lb')     return renderSmash();
   if (PAGE === 'sysmon')       return renderSysmon();
   if (PAGE === 'audit')        return renderAudit();
 }
@@ -2318,6 +2321,53 @@ async function saveMotd(srv) {
   const d = r ? await r.json() : null;
   showMsg(msg, d?.ok, d?.ok ? `✓ MOTD gespeichert (${srv})` : `✗ ${d?.error||'Fehler'}`);
   if (d?.ok) showToast(`✓ MOTD (${srv}) gespeichert`);
+}
+
+// ── Smash the Boss ────────────────────────────────────────────────────────
+async function renderSmash() {
+  setHdr('⚔ Smash the Boss', `<button class="btn" onclick="renderSmash()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="g3" id="smash-kpi"><div class="empty">Lade…</div></div>
+    <div class="card">
+      <div class="card-hdr">🏆 Leaderboard – Top 10 Kills</div>
+      <div id="smash-lb"><div class="empty">Lade…</div></div>
+    </div>
+  </div>`;
+
+  const [ov, lb] = await Promise.all([
+    apiFetch('/api/smash/overview'),
+    apiFetch('/api/smash/leaderboard')
+  ]);
+
+  if (ov?.ok) {
+    document.getElementById('smash-kpi').innerHTML = [
+      { label: '⚡ Globaler Boss-Level', val: ov.bossLevel,    color: '#F44336' },
+      { label: '👤 Registrierte Spieler', val: ov.totalPlayers, color: '#FF9800' },
+      { label: '💀 Gesamt-Kills',         val: ov.totalKills,   color: '#9C27B0' },
+    ].map(k => `<div class="kpi-card" style="border-color:${k.color}">
+      <div class="kpi-val" style="color:${k.color}">${k.val ?? 0}</div>
+      <div class="kpi-lbl">${k.label}</div>
+    </div>`).join('');
+  }
+
+  if (lb?.ok && lb.rows?.length) {
+    document.getElementById('smash-lb').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>#</th><th>UUID</th><th>Kills</th><th>Gesamt-Schaden</th><th>Bestes Level</th></tr></thead>
+        <tbody>${lb.rows.map((r,i) => `
+          <tr>
+            <td>${i+1}</td>
+            <td style="font-family:monospace;font-size:0.8em">${r.uuid}</td>
+            <td style="color:#F44336;font-weight:bold">${r.kills}</td>
+            <td>${Number(r.total_damage).toLocaleString()}</td>
+            <td style="color:#FF9800">${r.best_level}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } else {
+    document.getElementById('smash-lb').innerHTML = '<div class="empty">Noch keine Daten vorhanden.</div>';
+  }
 }
 
 // ── BedWars ───────────────────────────────────────────────────────────────
