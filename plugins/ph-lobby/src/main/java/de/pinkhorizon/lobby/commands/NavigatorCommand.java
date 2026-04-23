@@ -40,10 +40,11 @@ public class NavigatorCommand implements CommandExecutor, Listener {
     public void openNavigator(Player player) {
         Inventory inv = plugin.getServer().createInventory(null, 27, Component.text("Server-Navigator", TextColor.color(0xAA00AA)));
 
-        inv.setItem(10, buildItem(Material.GRASS_BLOCK,    "\u00a7aSurvival",   List.of("\u00a77Erkunde die Welt!", "\u00a77Economy, Claims & mehr"), "survival"));
-        inv.setItem(12, buildItem(Material.MAGMA_BLOCK,    "\u00a76SkyBlock",   List.of("\u00a77Baue deine eigene Insel!"), "skyblock"));
-        inv.setItem(14, buildItem(Material.DIAMOND_SWORD,  "\u00a7bMinigames",  List.of("\u00a77BedWars, SkyWars & mehr!"), "minigames"));
-        inv.setItem(16, buildItem(Material.NETHER_STAR,    "\u00a7dLobby",      List.of("\u00a77Zurueck zum Hub"), "lobby"));
+        inv.setItem(10, buildItem(Material.GRASS_BLOCK,    "\u00a7aSurvival",        List.of("\u00a77Erkunde die Welt!", "\u00a77Economy, Claims & mehr"), "survival"));
+        inv.setItem(12, buildItem(Material.MAGMA_BLOCK,    "\u00a76SkyBlock",        List.of("\u00a77Baue deine eigene Insel!"), "skyblock"));
+        inv.setItem(14, buildItem(Material.DIAMOND_SWORD,  "\u00a7bMinigames",       List.of("\u00a77BedWars, SkyWars & mehr!"), "minigames"));
+        inv.setItem(16, buildItem(Material.NETHER_STAR,    "\u00a7cSmash the Boss",  List.of("\u00a77Besiege endlos starke Bosse!", "\u00a77Upgrades, Loot & mehr"), "smash"));
+        inv.setItem(22, buildItem(Material.COMPASS,        "\u00a7dLobby",           List.of("\u00a77Zurueck zum Hub"), "lobby"));
 
         // Deko-Glasscheiben
         ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
