@@ -289,9 +289,8 @@ public class ArenaManager {
             if (speedAttr != null) speedAttr.setBaseValue(speedAttr.getBaseValue() * 1.5);
         }
 
-        String modBar = plugin.getBossModifierManager().buildModifierBar(modifiers);
         BossBar bar = Bukkit.createBossBar(
-            buildBarTitle(cfg, cfg.maxHp()) + (modBar.isEmpty() ? "" : " " + modBar),
+            buildBarTitle(cfg, cfg.maxHp(), modifiers),
             BarColor.GREEN, BarStyle.SEGMENTED_10);
         bar.setProgress(1.0);
 
@@ -368,7 +367,6 @@ public class ArenaManager {
 
     private void onBossDefeated(Player player, ArenaInstance arena) {
         if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
-        if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
         if (arena.getRegenTask() != null) { arena.getRegenTask().cancel(); arena.setRegenTask(null); }
 
         // Spieler auf volle Leben heilen + negative Effekte entfernen
@@ -473,6 +471,13 @@ public class ArenaManager {
 
         spawnFireworks(player.getLocation());
 
+        // Boss-Bar auf Warte-Status setzen
+        if (arena.getBossBar() != null) {
+            arena.getBossBar().setTitle("§a✔ §7Boss besiegt!  §8|  §7Nächster: §cLevel " + nextLevel + "  §8– §7Kristall benutzen");
+            arena.getBossBar().setProgress(1.0);
+            arena.getBossBar().setColor(BarColor.BLUE);
+        }
+
         // Warten bis Spieler bereit: Summon-Item geben statt Auto-Spawn
         arena.resetForNextBoss(nextLevel);
         arena.setNextBossLevel(nextLevel);
@@ -541,11 +546,21 @@ public class ArenaManager {
         double pct = arena.getHpPercent();
         bar.setProgress(Math.max(0, Math.min(1, pct)));
         bar.setColor(pct > 0.5 ? BarColor.GREEN : pct > 0.25 ? BarColor.YELLOW : BarColor.RED);
-        bar.setTitle(buildBarTitle(arena.getConfig(), arena.getCurrentHp()));
+        bar.setTitle(buildBarTitle(arena.getConfig(), arena.getCurrentHp(), arena.getModifiers()));
     }
 
-    private String buildBarTitle(BossConfig cfg, double hp) {
-        return cfg.displayName() + " §8– §f" + cfg.formatHp(hp) + " §8/ §f" + cfg.formatHp(cfg.maxHp());
+    private String buildBarTitle(BossConfig cfg, double hp, Set<BossModifierManager.BossModifier> mods) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(cfg.displayName())
+          .append(" §8– §f").append(cfg.formatHp(hp))
+          .append(" §8/ §f").append(cfg.formatHp(cfg.maxHp()));
+        if (mods != null && !mods.isEmpty()) {
+            sb.append("  §8|");
+            for (BossModifierManager.BossModifier mod : mods) {
+                sb.append("  ").append(mod.icon).append("§7").append(mod.name);
+            }
+        }
+        return sb.toString();
     }
 
     // ── Welt-Verwaltung ────────────────────────────────────────────────────
