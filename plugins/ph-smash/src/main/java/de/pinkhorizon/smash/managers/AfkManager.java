@@ -18,7 +18,7 @@ public class AfkManager {
 
     // Limits
     private static final long MAX_SECONDS_PER_KILL = 300L;    // max 5 Min pro Kill
-    private static final long MAX_STORED_SECONDS   = 86400L;  // max 24h gespeichert
+    private static final long MAX_STORED_SECONDS   = 7200L;   // max 2h gespeichert
 
     private final PHSmash plugin;
 
