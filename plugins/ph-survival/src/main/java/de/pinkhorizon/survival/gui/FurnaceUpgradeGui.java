@@ -157,6 +157,9 @@ public class FurnaceUpgradeGui implements Listener {
     public void onClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) return;
         if (!event.getView().title().equals(TITLE)) return;
+        // OPEN_NEW = Spieler öffnet direkt eine neue GUI (z.B. nach Upgrade-Refresh)
+        // → openBlocks NICHT entfernen, sonst funktioniert die neue GUI nicht
+        if (event.getReason() == InventoryCloseEvent.Reason.OPEN_NEW) return;
         openBlocks.remove(player.getUniqueId());
     }
 
