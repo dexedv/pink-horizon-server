@@ -22,13 +22,18 @@ chown -R 1000:1000 servers/lobby/ servers/survival/ servers/smash/ 2>/dev/null |
 echo ""
 
 # ── 3. Spielserver + Proxy neu starten (neue JARs aus Volume) ────────────
-echo "▶ [3/4] Server-Container neu starten..."
+echo "▶ [3/5] Server-Container neu starten..."
 docker compose restart lobby survival smash velocity
 echo ""
 
 # ── 4. Dashboard neu bauen (damit server.js-Änderungen aktiv werden) ─────
-echo "▶ [4/4] Dashboard neu bauen..."
+echo "▶ [4/5] Dashboard neu bauen..."
 docker compose up -d --build dashboard
+echo ""
+
+# ── 5. Discord-Bot neu bauen ──────────────────────────────────────────────
+echo "▶ [5/5] Discord-Bot neu bauen..."
+docker compose up -d --build discord-bot
 echo ""
 
 echo "╔══════════════════════════════════════╗"
