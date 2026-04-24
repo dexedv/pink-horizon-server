@@ -68,3 +68,4 @@ servers/*/plugins/PH-Core/data.db
 .idea/
 *.iml
 .vscode/
+servers/survival/plugins/PH-Survival/pending_spawn_paste.yml
