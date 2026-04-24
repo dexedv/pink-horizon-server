@@ -132,9 +132,7 @@ public class UpgradeManager {
         // ─ Max-HP ──────────────────────────────────────────────────────────
         var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
         if (hpAttr != null) {
-            hpAttr.getModifiers().stream()
-                .filter(m -> m.getKey().equals(MOD_KEY_HP))
-                .toList().forEach(hpAttr::removeModifier);
+            new java.util.HashSet<>(hpAttr.getModifiers()).forEach(hpAttr::removeModifier);
             double hpBonus = 6.0 * getLevel(uuid, UpgradeType.HEALTH);
             if (hpBonus > 0) {
                 hpAttr.addModifier(new AttributeModifier(
@@ -145,9 +143,7 @@ public class UpgradeManager {
         // ─ Speed ───────────────────────────────────────────────────────────
         var speedAttr = player.getAttribute(Attribute.MOVEMENT_SPEED);
         if (speedAttr != null) {
-            speedAttr.getModifiers().stream()
-                .filter(m -> m.getKey().equals(MOD_KEY_SPEED))
-                .toList().forEach(speedAttr::removeModifier);
+            new java.util.HashSet<>(speedAttr.getModifiers()).forEach(speedAttr::removeModifier);
             double speedBonus = 0.015 * getLevel(uuid, UpgradeType.SPEED);
             if (speedBonus > 0) {
                 speedAttr.addModifier(new AttributeModifier(
