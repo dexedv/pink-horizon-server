@@ -443,6 +443,24 @@ app.post('/api/players/action', auth, async (req, res) => {
       cmd = `srank set ${name} ${rank}`;
       break;
     }
+    case 'vote_give': {
+      const v = parseInt(value);
+      if (!Number.isInteger(v) || v <= 0) return res.status(400).json({ error: 'Ungültiger Betrag' });
+      cmd = `voteadmin give ${name} ${v}`;
+      break;
+    }
+    case 'vote_take': {
+      const v = parseInt(value);
+      if (!Number.isInteger(v) || v <= 0) return res.status(400).json({ error: 'Ungültiger Betrag' });
+      cmd = `voteadmin take ${name} ${v}`;
+      break;
+    }
+    case 'vote_set': {
+      const v = parseInt(value);
+      if (!Number.isInteger(v) || v < 0) return res.status(400).json({ error: 'Ungültiger Betrag' });
+      cmd = `voteadmin set ${name} ${v}`;
+      break;
+    }
     default:
       return res.status(400).json({ error: 'Unbekannte Aktion' });
   }
@@ -509,19 +527,22 @@ app.post('/api/players/unban', strictLimit, auth, async (req, res) => {
 // ── REST-API: Datenbanken ─────────────────────────────────────────────────
 
 app.get('/api/databases', auth, async (req, res) => {
-  const [ctr, ph, sv, mg, sm] = await Promise.allSettled([
+  const checkTable = async (pool, query) => { try { await pool.execute(query); return true; } catch { return false; } };
+  const [ctr, ph, sv, sm, vt, dc] = await Promise.allSettled([
     getContainerStatus('ph-mysql'),
     checkDb(poolCore),
     checkDb(poolSv),
-    checkDb(poolMg),
-    checkDb(poolSmash)
+    checkDb(poolSmash),
+    checkTable(poolCore, 'SELECT 1 FROM vote_coins LIMIT 1'),
+    checkTable(poolCore, 'SELECT 1 FROM discord_sync LIMIT 1')
   ]);
   res.json({
     container:    ctr.status === 'fulfilled' ? ctr.value : { running: false, status: 'error' },
     pinkhorizon:  ph.status  === 'fulfilled' ? ph.value  : false,
     ph_survival:  sv.status  === 'fulfilled' ? sv.value  : false,
-    ph_minigames: mg.status  === 'fulfilled' ? mg.value  : false,
-    ph_smash:     sm.status  === 'fulfilled' ? sm.value  : false
+    ph_smash:     sm.status  === 'fulfilled' ? sm.value  : false,
+    ph_vote:      vt.status  === 'fulfilled' ? vt.value  : false,
+    discord_sync: dc.status  === 'fulfilled' ? dc.value  : false
   });
 });
 
@@ -787,9 +808,9 @@ app.post('/api/db/query', auth, async (req, res) => {
   const { query, database } = req.body;
   if (!query?.trim()) return res.status(400).json({ error: 'Keine Abfrage' });
   if (!/^\s*SELECT\s/i.test(query)) return res.status(400).json({ error: 'Nur SELECT-Abfragen erlaubt' });
-  if (!/^(pinkhorizon|ph_survival|ph_minigames|ph_smash)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
+  if (!/^(pinkhorizon|ph_survival|ph_smash)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
   try {
-    const pool = database === 'pinkhorizon' ? poolCore : database === 'ph_minigames' ? poolMg : database === 'ph_smash' ? poolSmash : poolSv;
+    const pool = database === 'pinkhorizon' ? poolCore : database === 'ph_smash' ? poolSmash : poolSv;
     const lq = /\blimit\b/i.test(query) ? query.trimEnd().replace(/;$/, '') : `${query.trimEnd().replace(/;$/, '')} LIMIT 200`;
     const [rows, fields] = await pool.execute(lq);
     res.json({ ok: true, columns: fields.map(f => f.name), rows, count: rows.length });
@@ -812,7 +833,7 @@ app.get('/api/permissions/players', auth, async (req, res) => {
 
 // ── REST-API: Rechteverwaltung ────────────────────────────────────────────
 
-const MANAGED_SERVERS = ['lobby', 'survival', 'minigames'];
+const MANAGED_SERVERS = ['lobby', 'survival', 'smash'];
 
 app.get('/api/servers/:name/ops', auth, async (req, res) => {
   const name = req.params.name;
@@ -1311,6 +1332,84 @@ app.get('/api/players/timeline', auth, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'Nicht gefunden' });
     res.json({ ok: true, ...rows[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: VoteCoins ───────────────────────────────────────────────────
+
+app.get('/api/vote/leaderboard', auth, async (req, res) => {
+  try {
+    const [rows] = await poolCore.execute(
+      'SELECT name, coins, total_votes, last_vote FROM vote_coins ORDER BY coins DESC LIMIT 20'
+    );
+    res.json({ ok: true, rows: rows.map(r => ({ ...r, coins: Number(r.coins), total_votes: Number(r.total_votes) })) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/vote/player', auth, async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: 'Kein Name' });
+  try {
+    const [rows] = await poolCore.execute(
+      'SELECT name, coins, total_votes, last_vote FROM vote_coins WHERE name = ? LIMIT 1', [name]
+    );
+    if (!rows.length) return res.json({ ok: true, found: false });
+    const r = rows[0];
+    res.json({ ok: true, found: true, name: r.name, coins: Number(r.coins), totalVotes: Number(r.total_votes), lastVote: r.last_vote });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/vote/stats', auth, async (req, res) => {
+  try {
+    const [[r]] = await poolCore.execute(
+      'SELECT COUNT(*) AS players, COALESCE(SUM(coins),0) AS total_coins, COALESCE(SUM(total_votes),0) AS total_votes FROM vote_coins'
+    );
+    res.json({ ok: true, players: Number(r.players), totalCoins: Number(r.total_coins), totalVotes: Number(r.total_votes) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: Discord Sync ────────────────────────────────────────────────
+
+app.get('/api/discord/verified', auth, async (req, res) => {
+  try {
+    const [rows] = await poolCore.execute(
+      `SELECT mc_name, discord_id, verified_at FROM discord_sync
+       WHERE verified_at IS NOT NULL ORDER BY verified_at DESC LIMIT 50`
+    );
+    res.json({ ok: true, rows });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/discord/player', auth, async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: 'Kein Name' });
+  try {
+    const [rows] = await poolCore.execute(
+      'SELECT mc_name, discord_id, verified_at FROM discord_sync WHERE mc_name = ? LIMIT 1', [name]
+    );
+    if (!rows.length) return res.json({ ok: true, found: false });
+    res.json({ ok: true, found: true, ...rows[0], verified: !!rows[0].verified_at });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.delete('/api/discord/player', strictLimit, auth, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Kein Name' });
+  try {
+    await poolCore.execute('DELETE FROM discord_sync WHERE mc_name = ?', [name]);
+    addAudit('discord-unlink', name, '');
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: Network Events ──────────────────────────────────────────────
+
+app.get('/api/network/events', auth, async (req, res) => {
+  try {
+    const [rows] = await poolCore.execute(
+      'SELECT server_name, event_type, seconds_until, created_at FROM network_events ORDER BY created_at DESC LIMIT 50'
+    );
+    res.json({ ok: true, rows });
+  } catch (e) { res.json({ ok: true, rows: [] }); }
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────

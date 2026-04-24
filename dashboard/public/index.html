@@ -376,7 +376,7 @@ let ws = null;
 let conSrv = null;
 let cmdHist = [], histIdx = -1;
 let autoScroll = true;
-const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-minigames': [], 'ph-smash': [] };
+const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-smash': [] };
 
 // ── Rang-Definitionen ─────────────────────────────────────────────────────
 const RANK_DEFS = [
@@ -435,7 +435,6 @@ const NAV_DEF = [
   { id:'con_velocity', dot:true,  label:'Velocity Proxy', srv:'velocity'  },
   { id:'con_lobby',    dot:true,  label:'Lobby',          srv:'lobby'     },
   { id:'con_survival', dot:true,  label:'Survival',       srv:'survival'  },
-  { id:'con_minigames',dot:true,  label:'Minigames',      srv:'minigames' },
   { id:'con_smash',    dot:true,  label:'Smash the Boss', srv:'smash' },
   { sec: 'Survival' },
   { id:'players',      icon:'👥', label:'Spieler'         },
@@ -446,10 +445,12 @@ const NAV_DEF = [
   { id:'stats',        icon:'📈', label:'Statistiken'     },
   { id:'auction',      icon:'🏪', label:'Auktionshaus'    },
   { id:'rights',       icon:'🔑', label:'Rechte'          },
-  { sec: 'Minigames' },
-  { id:'mg_bedwars',   icon:'🛏', label:'BedWars'         },
   { sec: 'Smash the Boss' },
   { id:'smash_lb',     icon:'⚔', label:'Leaderboard'     },
+  { sec: 'Vote & Community' },
+  { id:'vote_lb',      icon:'🗳', label:'VoteCoins'       },
+  { id:'discord_sync', icon:'💬', label:'Discord Sync'    },
+  { id:'net_events',   icon:'🔔', label:'Netzwerk-Events' },
   { sec: 'Tools' },
   { id:'commands',     icon:'📋', label:'Befehlsreferenz' },
   { id:'sqlconsole',   icon:'🖥️', label:'SQL-Konsole'    },
@@ -515,8 +516,10 @@ function renderPage() {
   if (PAGE === 'sqlconsole')   return renderSqlConsole();
   if (PAGE === 'backup')       return renderBackup();
   if (PAGE === 'motd')         return renderMotd();
-  if (PAGE === 'mg_bedwars')   return renderBedWars();
   if (PAGE === 'smash_lb')     return renderSmash();
+  if (PAGE === 'vote_lb')      return renderVoteLb();
+  if (PAGE === 'discord_sync') return renderDiscordSync();
+  if (PAGE === 'net_events')   return renderNetEvents();
   if (PAGE === 'sysmon')       return renderSysmon();
   if (PAGE === 'audit')        return renderAudit();
 }
@@ -592,7 +595,13 @@ async function renderDash() {
     <div class="card stat-card"><span class="stat-icon">🖥️</span><div><div class="stat-lbl">Server online</div><div class="stat-val">${totalRun}/${Object.keys(srvData).length}</div></div></div>
     <div class="card stat-card"><span class="stat-icon">👥</span><div><div class="stat-lbl">Spieler online</div><div class="stat-val">${totalOn}</div></div></div>
     <div class="card stat-card" style="cursor:pointer" onclick="nav('players')"><span class="stat-icon">👤</span><div><div class="stat-lbl">Spielerverwaltung</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('vote_lb')"><span class="stat-icon">🗳️</span><div><div class="stat-lbl">VoteCoins</div><div class="stat-val" style="font-size:1rem;color:var(--yellow)" id="dash-vote-total">—</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('net_events')"><span class="stat-icon">🔔</span><div><div class="stat-lbl">Netzwerk-Events</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>
     <div class="card stat-card" style="cursor:pointer" onclick="nav('audit')"><span class="stat-icon">📜</span><div><div class="stat-lbl">Audit-Log</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>`;
+  apiFetch('/api/vote/stats').then(r => r?.ok && r.json()).then(d => {
+    const el = document.getElementById('dash-vote-total');
+    if (el && d) el.textContent = Number(d.totalCoins||d.total_coins||0).toLocaleString('de-DE');
+  }).catch(()=>{});
 
   loadOnlinePanel();
   loadSparkline();
@@ -747,7 +756,7 @@ async function doNetworkRestart() {
 async function loadResStats() {
   const el = document.getElementById('res-section'); if (!el) return;
   el.innerHTML = `<div class="g4" id="dash-res-grid">
-    ${['velocity','lobby','survival','minigames','smash'].map(k=>`
+    ${['velocity','lobby','survival','smash'].map(k=>`
       <div class="card res-card" id="dash-res-${k}">
         <div style="font-weight:700;font-size:.88rem;margin-bottom:4px">${escH(srvData[k]?.label||k)}</div>
         <div class="empty" style="padding:4px 0;font-size:.8rem">Lade…</div>
@@ -760,7 +769,7 @@ async function loadResStats() {
 }
 
 function updateDashStats(data) {
-  const srvOrder = ['velocity','lobby','survival','minigames','smash'];
+  const srvOrder = ['velocity','lobby','survival','smash'];
   for (const k of srvOrder) {
     const el = document.getElementById(`dash-res-${k}`); if (!el) continue;
     const d = data[k]; const s = srvData[k];
@@ -791,8 +800,9 @@ async function loadDbStatus() {
     { name:'ph-mysql (Container)',  ok: ctrOk,            detail: d.container?.status || '—' },
     { name:'pinkhorizon (DB)',       ok: d.pinkhorizon,    detail: d.pinkhorizon    ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_survival (DB)',       ok: d.ph_survival,    detail: d.ph_survival    ? 'Verbunden' : 'Nicht erreichbar' },
-    { name:'ph_minigames (DB)',      ok: d.ph_minigames,   detail: d.ph_minigames   ? 'Verbunden' : 'Nicht erreichbar' },
-    { name:'ph_smash (DB)',         ok: d.ph_smash,       detail: d.ph_smash       ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph_smash (DB)',          ok: d.ph_smash,       detail: d.ph_smash       ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph_vote (DB)',           ok: d.ph_vote,        detail: d.ph_vote        ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'discord_sync (Tabelle)', ok: d.discord_sync,   detail: d.discord_sync   ? 'Verbunden' : 'Nicht erreichbar' },
   ];
 
   el.innerHTML = `
@@ -930,16 +940,20 @@ async function loadPl(name) {
   if (r.status===404) { el.innerHTML='<div class="empty" style="color:var(--red)">Spieler nicht gefunden</div>'; return; }
   if (!r.ok) { const e=await r.json(); el.innerHTML=`<div class="empty" style="color:var(--red)">${escH(e.error||'Fehler')}</div>`; return; }
   curPlayer = await r.json();
-  const [br, clr, ivr, tlr] = await Promise.all([
+  const [br, clr, ivr, tlr, vtr, dcr] = await Promise.all([
     apiFetch(`/api/bank/player?name=${encodeURIComponent(name)}`),
     apiFetch(`/api/survival/claims?player=${encodeURIComponent(name)}`),
     apiFetch(`/api/survival/inventory?player=${encodeURIComponent(name)}`),
-    apiFetch(`/api/players/timeline?name=${encodeURIComponent(name)}`)
+    apiFetch(`/api/players/timeline?name=${encodeURIComponent(name)}`),
+    apiFetch(`/api/vote/player?name=${encodeURIComponent(name)}`),
+    apiFetch(`/api/discord/player?name=${encodeURIComponent(name)}`)
   ]);
   if (br?.ok)  { const bd = await br.json();  curPlayer.bankBalance = bd.balance; curPlayer.bankInterest = bd.lastInterest; }
   if (clr?.ok) { const cd = await clr.json(); curPlayer.claims = cd.claims; }
   if (ivr?.ok) { const id = await ivr.json(); curPlayer.inventory = id.items; curPlayer.inventoryTime = id.snapshotTime; }
   if (tlr?.ok) { const td = await tlr.json(); curPlayer.firstJoin = td.first_join; curPlayer.lastSeen = td.last_seen; }
+  if (vtr?.ok) { const vd = await vtr.json(); curPlayer.voteCoins = vd.coins; curPlayer.totalVotes = vd.totalVotes || vd.total_votes; }
+  if (dcr?.ok) { const dd = await dcr.json(); curPlayer.discordId = dd.discord_id; curPlayer.discordVerified = !!dd.discord_id; }
   renderPlCard(curPlayer);
 }
 
@@ -1003,6 +1017,30 @@ function renderPlCard(p) {
           <button class="btn" onclick="setBankBal('${escH(p.name)}')">💾 Guthaben setzen</button>
           <div id="bank-msg" style="display:none" class="msg"></div>
         </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🗳️ VoteCoins</div>
+        <div class="coin-big" id="vote-disp" style="color:var(--yellow)">${p.voteCoins!=null?Number(p.voteCoins).toLocaleString('de-DE'):'—'}</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Votes gesamt: ${p.totalVotes??'—'}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input class="field fsm" id="vote-amt" type="number" min="0" placeholder="Betrag…">
+          <div class="cbtns">
+            <button class="cbtn give" onclick="voteAct('give')">+ Hinzufügen</button>
+            <button class="cbtn take" onclick="voteAct('take')">– Abziehen</button>
+            <button class="cbtn setv" onclick="voteAct('set')">=  Setzen</button>
+          </div>
+          <div id="vote-msg" style="display:none" class="msg"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">💬 Discord Sync</div>
+        ${p.discordVerified
+          ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+               <span class="badge b-green">✓ Verifiziert</span>
+               <span style="font-family:var(--mono);font-size:.85rem;color:var(--muted)">${escH(p.discordId||'—')}</span>
+             </div>
+             <button class="btn btn-d" onclick="doDiscordUnlink('${escH(p.name)}')">🔗 Verknüpfung aufheben</button>`
+          : `<div class="badge b-red" style="display:inline-flex">✗ Nicht verknüpft</div>`}
       </div>
     </div>
     ${renderTimelineCard(p)}
@@ -1156,6 +1194,31 @@ async function coinAct(type) {
     const r2 = await apiFetch('/api/players/info',{method:'POST',body:JSON.stringify({name:curPlayer.name})});
     if (r2?.ok) { curPlayer=await r2.json(); const el=document.getElementById('coin-disp'); if(el) el.textContent=curPlayer.coins.toLocaleString('de-DE'); }
   }
+}
+
+async function voteAct(type) {
+  if (!curPlayer) return;
+  const amt = parseInt(document.getElementById('vote-amt')?.value);
+  const msg = document.getElementById('vote-msg');
+  if (!amt||amt<=0) { showMsg(msg,false,'Betrag eingeben'); return; }
+  const r = await apiFetch('/api/players/action',{method:'POST',body:JSON.stringify({name:curPlayer.name,type:'vote_'+type,value:amt})});
+  const d = r?await r.json():null;
+  showMsg(msg, d?.ok, d?.output||d?.error||'Fehler');
+  if (d?.ok) {
+    const r2 = await apiFetch(`/api/vote/player?name=${encodeURIComponent(curPlayer.name)}`);
+    if (r2?.ok) { const vd=await r2.json(); curPlayer.voteCoins=vd.coins; const el=document.getElementById('vote-disp'); if(el) el.textContent=Number(vd.coins||0).toLocaleString('de-DE'); }
+  }
+}
+
+async function doDiscordUnlink(name) {
+  showModal(`🔗 Discord-Verknüpfung aufheben: ${name}`,
+    `<p style="color:var(--muted);font-size:.88rem">Die Discord-Verknüpfung von <b>${escH(name)}</b> wird entfernt. Der Spieler muss sich neu verifizieren.</p>`,
+    'Aufheben', async () => {
+    const r = await apiFetch('/api/discord/player', { method:'DELETE', body: JSON.stringify({name}) });
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? `✓ Discord-Verknüpfung von ${name} aufgehoben` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+    if (d?.ok) loadPl(name);
+  });
 }
 
 async function doRank() {
@@ -1629,7 +1692,6 @@ async function renderRights() {
     <div class="rtabs">
       <button class="rtab ${rTab==='lobby'?'active':''}"     onclick="switchR('lobby')">Lobby</button>
       <button class="rtab ${rTab==='survival'?'active':''}"  onclick="switchR('survival')">Survival</button>
-      <button class="rtab ${rTab==='minigames'?'active':''}" onclick="switchR('minigames')">Minigames</button>
       <button class="rtab ${rTab==='smash'?'active':''}"     onclick="switchR('smash')">Smash</button>
     </div>
     <div class="rbody" id="rbody"><div class="empty">Lade…</div></div>
@@ -1639,7 +1701,7 @@ async function renderRights() {
 
 function switchR(t) {
   rTab = t;
-  const labels = { lobby:'Lobby', survival:'Survival', minigames:'Minigames', smash:'Smash' };
+  const labels = { lobby:'Lobby', survival:'Survival', smash:'Smash' };
   document.querySelectorAll('.rtab').forEach(b=>b.classList.toggle('active',b.textContent.trim()===labels[t]));
   const el=document.getElementById('rbody'); if(el) el.innerHTML='<div class="empty">Lade…</div>';
   loadR(t);
@@ -1747,6 +1809,14 @@ const CMD_DATA = [
       {n:'/rank',        u:'/rank <set|info|list>',                         d:'Rang verwalten',                       admin:true},
       {n:'/hologram',    u:'/hologram <create|delete|list>',                d:'Holograms verwalten',                  admin:true},
     ]},
+    { label:'VoteCoins (voteadmin)', cmds:[
+      {n:'/voteadmin give', u:'/voteadmin give <Spieler> <Betrag>',        d:'VoteCoins hinzufügen',                 admin:true},
+      {n:'/voteadmin take', u:'/voteadmin take <Spieler> <Betrag>',        d:'VoteCoins abziehen',                   admin:true},
+      {n:'/voteadmin set',  u:'/voteadmin set <Spieler> <Betrag>',         d:'VoteCoins exakt setzen',               admin:true},
+      {n:'/voteadmin check',u:'/voteadmin check <Spieler>',                d:'VoteCoin-Stand anzeigen',              admin:true},
+      {n:'/vote',           u:'/vote',                                     d:'Vote-Links anzeigen (Spieler)',         admin:false},
+      {n:'/voteshop',       u:'/voteshop',                                 d:'Vote-Shop öffnen (Spieler)',            admin:false},
+    ]},
   ]},
   { server:'Smash the Boss', sections:[
     { label:'Spieler', cmds:[
@@ -1844,6 +1914,17 @@ const CMD_DATA = [
       {n:'/phinfo',      u:'/phinfo <Spieler>',                             d:'Spielerdaten (Dashboard-API)',          admin:true},
       {n:'/itemclear',   u:'/itemclear',                                    d:'Alle Boden-Items entfernen',            admin:true},
       {n:'/networkrestart',u:'/networkrestart <Minuten>',                   d:'Netzwerk-Neustart mit Bossbar-Countdown',admin:true},
+    ]},
+  ]},
+  { server:'Discord & Vote', sections:[
+    { label:'Discord Sync', cmds:[
+      {n:'/syncdiscord',  u:'/syncdiscord',                                d:'Discord-Konto mit MC verknüpfen',       admin:false},
+      {n:'/discord',      u:'/discord',                                    d:'Discord-Einladungslink anzeigen',       admin:false},
+    ]},
+    { label:'Vote', cmds:[
+      {n:'/vote',         u:'/vote',                                       d:'Voting-Links anzeigen und VoteCoins sammeln', admin:false},
+      {n:'/voteshop',     u:'/voteshop',                                   d:'Vote-Shop öffnen',                      admin:false},
+      {n:'/votecoins',    u:'/votecoins',                                  d:'Eigenen VoteCoin-Stand anzeigen',       admin:false},
     ]},
   ]},
 ];
@@ -2216,8 +2297,9 @@ const SQL_HINTS = [
   { db:'ph_survival',  q:'SELECT quest_id, COUNT(*) AS done FROM sv_quests WHERE completed=TRUE GROUP BY quest_id ORDER BY done DESC' },
   { db:'ph_survival',  q:'SELECT COUNT(*) AS friends FROM sv_friends' },
   { db:'ph_survival',  q:'SELECT p.name, b.balance, b.last_interest FROM sv_bank b JOIN pinkhorizon.players p ON b.uuid=p.uuid WHERE b.balance > 0 ORDER BY b.balance DESC LIMIT 20' },
-  { db:'ph_minigames', q:'SELECT p.name, s.wins, s.kills, s.beds_broken, s.games_played FROM mg_bedwars_stats s LEFT JOIN pinkhorizon.players p ON s.uuid=p.uuid ORDER BY s.wins DESC LIMIT 20' },
-  { db:'ph_minigames', q:'SELECT name, world, max_teams, team_size FROM mg_bedwars_arenas ORDER BY name' },
+  { db:'pinkhorizon',  q:'SELECT name, coins AS vote_coins, total_votes FROM vote_coins ORDER BY coins DESC LIMIT 20' },
+  { db:'pinkhorizon',  q:'SELECT mc_name, discord_id, verified_at FROM discord_sync ORDER BY verified_at DESC LIMIT 20' },
+  { db:'pinkhorizon',  q:'SELECT server_name, event_type, seconds_until, FROM_UNIXTIME(created_at/1000) AS time FROM network_events ORDER BY created_at DESC LIMIT 20' },
 ];
 
 async function renderSqlConsole() {
@@ -2230,7 +2312,6 @@ async function renderSqlConsole() {
         <select class="field fsm" id="sql-db" style="width:160px">
           <option value="pinkhorizon">pinkhorizon</option>
           <option value="ph_survival">ph_survival</option>
-          <option value="ph_minigames">ph_minigames</option>
           <option value="ph_smash">ph_smash</option>
         </select>
         <span style="color:var(--muted);font-size:.82rem">Nur SELECT erlaubt</span>
@@ -2484,7 +2565,143 @@ async function smashLoadLb() {
   }
 }
 
-// ── BedWars ───────────────────────────────────────────────────────────────
+// ── VoteCoins Leaderboard ─────────────────────────────────────────────────
+async function renderVoteLb() {
+  setHdr('🗳️ VoteCoins', `<button class="btn" onclick="renderVoteLb()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="g3" id="vote-kpi">
+      <div class="card stat-card"><span class="stat-icon">👥</span><div><div class="stat-lbl">Wähler gesamt</div><div class="stat-val" id="vk-players">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🗳️</span><div><div class="stat-lbl">Votes gesamt</div><div class="stat-val" id="vk-votes" style="color:var(--green)">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🪙</span><div><div class="stat-lbl">VoteCoins im Umlauf</div><div class="stat-val" id="vk-coins" style="color:var(--yellow)">—</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 Top 20 – VoteCoins</div>
+      <div id="vote-lb-list"><div class="empty">Lade…</div></div>
+    </div>
+  </div>`;
+
+  const [stRes, lbRes] = await Promise.all([
+    apiFetch('/api/vote/stats'),
+    apiFetch('/api/vote/leaderboard')
+  ]);
+  if (stRes?.ok) {
+    const st = await stRes.json();
+    const vkp = document.getElementById('vk-players'); if (vkp) vkp.textContent = Number(st.players||0).toLocaleString('de-DE');
+    const vkv = document.getElementById('vk-votes');   if (vkv) vkv.textContent = Number(st.totalVotes||st.total_votes||0).toLocaleString('de-DE');
+    const vkc = document.getElementById('vk-coins');   if (vkc) vkc.textContent = Number(st.totalCoins||st.total_coins||0).toLocaleString('de-DE');
+  }
+  const el = document.getElementById('vote-lb-list'); if (!el) return;
+  if (!lbRes?.ok) { el.innerHTML='<div class="empty" style="color:var(--red)">Fehler beim Laden</div>'; return; }
+  const lbData = await lbRes.json();
+  const players = lbData.rows || lbData.players || [];
+  if (!players.length) { el.innerHTML='<div class="empty">Keine Daten</div>'; return; }
+  const cls = ['g1','g2','g3'];
+  el.innerHTML = '<div class="lb-table">' + players.map((p,i)=>`
+    <div class="lb-row">
+      <span class="lb-pos ${cls[i]||''}">#${i+1}</span>
+      <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),150)">${escH(p.name)}</span>
+      <span class="lb-val" style="color:var(--yellow)">🪙 ${Number(p.coins||0).toLocaleString('de-DE')}</span>
+      <span style="font-size:.78rem;color:var(--muted);min-width:70px;text-align:right">${p.total_votes||0} Votes</span>
+    </div>`).join('') + '</div>';
+}
+
+// ── Discord Sync ───────────────────────────────────────────────────────────
+async function renderDiscordSync() {
+  setHdr('💬 Discord Sync', `<button class="btn" onclick="renderDiscordSync()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="card">
+      <div class="card-title">🔍 Spieler-Lookup</div>
+      <div class="irow">
+        <input class="field" id="dc-pl-search" placeholder="Spielername…" onkeydown="if(event.key==='Enter')dcLookup()">
+        <button class="btn btn-p" onclick="dcLookup()">🔍 Suchen</button>
+      </div>
+      <div id="dc-pl-result" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">✅ Verifizierte Spieler</div>
+      <div id="dc-verified-list"><div class="empty">Lade…</div></div>
+    </div>
+  </div>`;
+
+  const r = await apiFetch('/api/discord/verified');
+  const el = document.getElementById('dc-verified-list'); if (!el) return;
+  if (!r?.ok) { el.innerHTML='<div class="empty" style="color:var(--red)">Fehler beim Laden</div>'; return; }
+  const dcData = await r.json();
+  const players = dcData.rows || dcData.players || [];
+  if (!players.length) { el.innerHTML='<div class="empty">Keine verifizierten Spieler</div>'; return; }
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:4px">` + players.map(p=>`
+    <div class="perm-row">
+      <span class="perm-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.mc_name)}'),150)">${escH(p.mc_name)}</span>
+      <span style="font-family:var(--mono);font-size:.8rem;color:var(--muted)">${escH(p.discord_id||'—')}</span>
+      <span class="badge b-green" style="font-size:.72rem">Discord</span>
+      <button class="btn-xs" onclick="doDiscordUnlink('${escH(p.mc_name)}')">Trennen</button>
+    </div>`).join('') + '</div>';
+}
+
+async function dcLookup() {
+  const name = document.getElementById('dc-pl-search')?.value?.trim(); if (!name) return;
+  const el = document.getElementById('dc-pl-result'); if (!el) return;
+  el.innerHTML = '<div class="empty">Lade…</div>';
+  const [dcr, vtr] = await Promise.all([
+    apiFetch(`/api/discord/player?name=${encodeURIComponent(name)}`),
+    apiFetch(`/api/vote/player?name=${encodeURIComponent(name)}`)
+  ]);
+  let dcHtml = '', vtHtml = '';
+  if (dcr?.ok) {
+    const d = await dcr.json();
+    dcHtml = d.discord_id
+      ? `<span class="badge b-green">✓ Verifiziert</span> <span style="font-family:var(--mono);font-size:.85rem;color:var(--muted)">${escH(d.discord_id)}</span>
+         <button class="btn-xs" style="margin-left:8px" onclick="doDiscordUnlink('${escH(name)}')">Trennen</button>`
+      : `<span class="badge b-red">✗ Nicht verknüpft</span>`;
+  }
+  if (vtr?.ok) {
+    const v = await vtr.json();
+    vtHtml = `<span style="color:var(--yellow);font-weight:700">🪙 ${Number(v.coins||0).toLocaleString('de-DE')}</span>
+              <span style="color:var(--muted);font-size:.82rem;margin-left:8px">(${v.totalVotes||v.total_votes||0} Votes)</span>`;
+  }
+  el.innerHTML = `<div class="card" style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-weight:700">${escH(name)}</div>
+    <div>${dcHtml || '<span class="badge b-red">Nicht gefunden</span>'}</div>
+    <div>${vtHtml}</div>
+  </div>`;
+}
+
+// ── Netzwerk-Events ────────────────────────────────────────────────────────
+async function renderNetEvents() {
+  setHdr('🔔 Netzwerk-Events', `<button class="btn" onclick="renderNetEvents()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="card">
+      <div class="card-title">📋 Letzte Netzwerk-Events (Neustarts & Ausfälle)</div>
+      <div id="net-events-list"><div class="empty">Lade…</div></div>
+    </div>
+  </div>`;
+
+  const r = await apiFetch('/api/network/events');
+  const el = document.getElementById('net-events-list'); if (!el) return;
+  if (!r?.ok) { el.innerHTML='<div class="empty" style="color:var(--red)">Fehler beim Laden</div>'; return; }
+  const evData = await r.json();
+  const events = evData.rows || evData.events || [];
+  if (!events.length) { el.innerHTML='<div class="empty">Keine Events vorhanden</div>'; return; }
+  const typeColor = { RESTART_ANNOUNCED:'var(--yellow)', RESTART_NOW:'var(--red)', ONLINE:'var(--green)' };
+  const typeLabel = { RESTART_ANNOUNCED:'⚠ Neustart angekündigt', RESTART_NOW:'🔄 Neustart jetzt', ONLINE:'🟢 Wieder online' };
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:4px">` + events.map(e=>{
+    const col = typeColor[e.event_type] || 'var(--muted)';
+    const lbl = typeLabel[e.event_type] || e.event_type;
+    const ts  = new Date(e.created_at).toLocaleString('de-DE');
+    const extra = e.seconds_until > 0 ? ` (in ${Math.round(e.seconds_until/60)} Min)` : '';
+    return `<div class="audit-row">
+      <span class="audit-ts">${ts}</span>
+      <span class="audit-action" style="color:${col}">${lbl}</span>
+      <span class="audit-target">${escH(e.server_name)}</span>
+      <span class="audit-detail" style="color:var(--muted)">${extra}</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+// ── BedWars (inaktiv) ──────────────────────────────────────────────────────
 async function renderBedWars() {
   setHdr('🛏 BedWars', `<button class="btn" onclick="renderBedWars()">↺ Aktualisieren</button>`);
   const c = document.getElementById('page-content');
@@ -2662,11 +2879,11 @@ function showToast(msg, ok=true) {
 }
 
 // ── System-Monitor ────────────────────────────────────────────────────────
-const SYSMON_ORDER  = ['velocity','lobby','survival','minigames','smash','mysql','dashboard'];
-const SYSMON_LABELS = { velocity:'Velocity Proxy', lobby:'Lobby', survival:'Survival', minigames:'Minigames', smash:'Smash the Boss', mysql:'MySQL', dashboard:'Dashboard' };
+const SYSMON_ORDER  = ['velocity','lobby','survival','smash','mysql','dashboard'];
+const SYSMON_LABELS = { velocity:'Velocity Proxy', lobby:'Lobby', survival:'Survival', smash:'Smash the Boss', mysql:'MySQL', dashboard:'Dashboard' };
 const SYSMON_SECTIONS = [
   { label: '📡 Velocity',   keys: ['velocity'] },
-  { label: '🖥️ Server',    keys: ['lobby','survival','minigames','smash'] },
+  { label: '🖥️ Server',    keys: ['lobby','survival','smash'] },
   { label: '🗄️ Datenbank', keys: ['mysql'] },
   { label: '📊 Dashboard',  keys: ['dashboard'] },
 ];
