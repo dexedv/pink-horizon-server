@@ -1,0 +1,15 @@
+{
+  "name": "ph-discord-bot",
+  "version": "1.0.0",
+  "description": "Pink Horizon Discord Community Bot",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "minecraft-server-util": "^5.4.0",
+    "mysql2": "^3.11.0",
+    "dotenv": "^16.4.5"
+  }
+}

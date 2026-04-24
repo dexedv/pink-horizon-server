@@ -200,6 +200,37 @@ services:
       - lobby
       - survival
 
+  # ── Discord Bot ───────────────────────────────────────────────────────────
+  discord-bot:
+    build: ./discord-bot
+    container_name: ph-discord-bot
+    mem_limit: 256m
+    environment:
+      DISCORD_TOKEN:     "${DISCORD_TOKEN}"
+      DISCORD_CLIENT_ID: "${DISCORD_CLIENT_ID}"
+      DISCORD_GUILD_ID:  "${DISCORD_GUILD_ID}"
+      MC_ADDRESS:        "play.pinkhorizon.fun"
+      PROXY_HOST:        "velocity"
+      PROXY_PORT:        "25565"
+      SMASH_HOST:        "smash"
+      SMASH_PORT:        "25570"
+      SURVIVAL_HOST:     "survival"
+      SURVIVAL_PORT:     "25565"
+      LOBBY_HOST:        "lobby"
+      LOBBY_PORT:        "25565"
+      DB_HOST:           "ph-mysql"
+      DB_PORT:           "3306"
+      DB_USER:           "${MYSQL_USER}"
+      DB_PASS:           "${MYSQL_PASSWORD}"
+      DB_NAME:           "${MYSQL_DATABASE}"
+      TZ:                Europe/Berlin
+    networks:
+      - ph-net
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+
 networks:
   ph-net:
     driver: bridge
