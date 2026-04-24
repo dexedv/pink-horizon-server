@@ -44,6 +44,7 @@ public class PHSurvival extends JavaPlugin {
     private SurvivalDatabaseManager survivalDb;
     private ItemClearManager itemClearManager;
     private JobBonusManager jobBonusManager;
+    private FurnaceUpgradeManager furnaceUpgradeManager;
 
     @Override
     public void onEnable() {
@@ -78,9 +79,10 @@ public class PHSurvival extends JavaPlugin {
         spawnPasteManager  = new SpawnPasteManager(this);
         spawnBorderManager = new SpawnBorderManager(this);
         npcManager         = new de.pinkhorizon.survival.managers.NpcManager(this);
-        auctionManager     = new de.pinkhorizon.survival.managers.AuctionManager(this);
-        itemClearManager   = new ItemClearManager(this);
-        jobBonusManager    = new JobBonusManager(this);
+        auctionManager        = new de.pinkhorizon.survival.managers.AuctionManager(this);
+        itemClearManager      = new ItemClearManager(this);
+        jobBonusManager       = new JobBonusManager(this);
+        furnaceUpgradeManager = new FurnaceUpgradeManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -250,6 +252,12 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.JobBonusListener(this), this);
         getServer().getPluginManager().registerEvents(new ClaimMapListener(this), this);
 
+        de.pinkhorizon.survival.gui.FurnaceUpgradeGui furnaceGui =
+            new de.pinkhorizon.survival.gui.FurnaceUpgradeGui(this);
+        getServer().getPluginManager().registerEvents(furnaceGui, this);
+        getServer().getPluginManager().registerEvents(
+            new de.pinkhorizon.survival.listeners.FurnaceUpgradeListener(this, furnaceGui), this);
+
         // Inventar-Snapshots für Dashboard
         de.pinkhorizon.survival.listeners.InventorySnapshotListener invSnap =
             new de.pinkhorizon.survival.listeners.InventorySnapshotListener(this);
@@ -309,4 +317,5 @@ public class PHSurvival extends JavaPlugin {
     public ItemClearManager getItemClearManager()          { return itemClearManager; }
     public JobBonusManager getJobBonusManager()            { return jobBonusManager; }
     public ClaimBorderVisualizer getClaimBorderVisualizer() { return claimBorderVisualizer; }
+    public FurnaceUpgradeManager getFurnaceUpgradeManager() { return furnaceUpgradeManager; }
 }
