@@ -207,24 +207,23 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
                 if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
                 if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
                 var speedAttr = p.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
-                if (speedAttr == null) { p.sendMessage("§cKein Speed-Attribut gefunden!"); return true; }
-                p.sendMessage("§e§l── Speed-Debug ──────────────────");
-                p.sendMessage("§7Base-Value:      §f" + speedAttr.getBaseValue());
-                p.sendMessage("§7Default-Value:   §f" + speedAttr.getDefaultValue());
-                p.sendMessage("§7Final-Value:     §f" + speedAttr.getValue());
-                p.sendMessage("§7Modifier (" + speedAttr.getModifiers().size() + "):");
-                if (speedAttr.getModifiers().isEmpty()) {
-                    p.sendMessage("  §8(keine)");
-                } else {
-                    for (var m : speedAttr.getModifiers()) {
-                        p.sendMessage("  §8key=§f" + m.getKey()
-                            + " §8op=§f" + m.getOperation()
-                            + " §8val=§f" + m.getAmount());
-                    }
-                }
+                if (speedAttr == null) { sender.sendMessage("Kein Speed-Attribut gefunden!"); return true; }
                 int speedLvl = plugin.getUpgradeManager().getLevel(p.getUniqueId(),
                     de.pinkhorizon.smash.managers.UpgradeManager.UpgradeType.SPEED);
-                p.sendMessage("§7DB Speed-Level: §f" + speedLvl);
+                StringBuilder sb = new StringBuilder();
+                sb.append("\n[debugspeed] Player=").append(p.getName())
+                  .append(" base=").append(speedAttr.getBaseValue())
+                  .append(" default=").append(speedAttr.getDefaultValue())
+                  .append(" final=").append(speedAttr.getValue())
+                  .append(" dbLevel=").append(speedLvl)
+                  .append(" modifiers(").append(speedAttr.getModifiers().size()).append("):");
+                for (var m : speedAttr.getModifiers()) {
+                    sb.append("\n  key=").append(m.getKey())
+                      .append(" op=").append(m.getOperation())
+                      .append(" val=").append(m.getAmount());
+                }
+                plugin.getLogger().info(sb.toString());
+                sender.sendMessage("§aDebug-Info in den Server-Log geschrieben (docker compose logs smash).");
             }
 
             case "maxout" -> {
