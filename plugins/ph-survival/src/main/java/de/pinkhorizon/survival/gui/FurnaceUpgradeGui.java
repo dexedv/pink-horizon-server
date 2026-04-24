@@ -111,9 +111,6 @@ public class FurnaceUpgradeGui implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (!event.getView().title().equals(Component.text(TITLE_PREFIX))) return;
-
-        // Prüfen ob Titel stimmt (Fallback über String-Vergleich)
         String titleStr = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
             .legacySection().serialize(event.getView().title());
         if (!titleStr.startsWith("§6§l⚒ Ofen-Upgrade")) return;
