@@ -2,9 +2,11 @@
  * Pink Horizon – Discord Community Bot
  *
  * Features:
- *  - /setup  – erstellt alle Rollen, Kategorien & Kanäle
- *  - /status – zeigt aktuellen Serverstatus
- *  - /stats  – zeigt Smash-Statistiken eines Spielers
+ *  - /setup         – erstellt alle Rollen, Kategorien & Kanäle
+ *  - /status        – zeigt aktuellen Serverstatus
+ *  - /stats         – zeigt Smash-Statistiken eines Spielers
+ *  - /ticket-panel  – postet das Ticket-Panel (Admin)
+ *  - Ticket-System  – Erstellen, Claimen, Schließen + Transcript
  *  - Automatisches Status-Embed (60s Update)
  *  - Sprachkanal-Statistiken (Mitglieder / Ingame)
  *  - @Spieler-Rolle bei Join + Willkommensnachricht
@@ -22,6 +24,11 @@ const {
   ChannelType,
   ActivityType,
   SlashCommandBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
   REST,
   Routes,
 } = require('discord.js');
@@ -38,7 +45,6 @@ const CLIENT_ID  = process.env.DISCORD_CLIENT_ID;
 const GUILD_ID   = process.env.DISCORD_GUILD_ID;
 const MC_ADDRESS = process.env.MC_ADDRESS || 'play.pinkhorizon.fun';
 
-// Minecraft servers to monitor (inside Docker: service name = hostname)
 const SERVERS = [
   { label: '🎮 Smash the Boss', host: process.env.SMASH_HOST    || 'smash',    port: parseInt(process.env.SMASH_PORT    || '25570') },
   { label: '⛏️ Survival',       host: process.env.SURVIVAL_HOST || 'survival', port: parseInt(process.env.SURVIVAL_PORT || '25565') },
@@ -48,36 +54,35 @@ const PROXY_HOST = process.env.PROXY_HOST || 'velocity';
 const PROXY_PORT = parseInt(process.env.PROXY_PORT || '25565');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Database (optional – for /stats)
+// Database
 // ─────────────────────────────────────────────────────────────────────────────
 
 let db = null;
-
 async function getDb() {
   if (db) return db;
   if (!process.env.DB_HOST) return null;
   db = mysql.createPool({
-    host:     process.env.DB_HOST,
-    port:     parseInt(process.env.DB_PORT || '3306'),
-    user:     process.env.DB_USER,
-    password: process.env.DB_PASS,
+    host: process.env.DB_HOST, port: parseInt(process.env.DB_PORT || '3306'),
+    user: process.env.DB_USER, password: process.env.DB_PASS,
     database: process.env.DB_NAME || 'pinkhorizon',
-    waitForConnections: true,
-    connectionLimit: 3,
+    waitForConnections: true, connectionLimit: 3,
   });
   return db;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Runtime state (channel/message IDs)
+// Runtime state
 // ─────────────────────────────────────────────────────────────────────────────
 
 const state = {
-  statusChannelId:       null,
-  statusMessageId:       null,
-  memberCountChannelId:  null,
-  ingameCountChannelId:  null,
+  statusChannelId:      null,
+  statusMessageId:      null,
+  memberCountChannelId: null,
+  ingameCountChannelId: null,
 };
+
+// ticket channel id → { userId, userName, category, number, claimedBy }
+const tickets = new Map();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Discord Client
@@ -88,6 +93,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
   ],
 });
 
@@ -111,11 +117,8 @@ async function ping(host, port) {
 async function buildStatusEmbed() {
   const proxy   = await ping(PROXY_HOST, PROXY_PORT);
   const results = await Promise.all(SERVERS.map(s => ping(s.host, s.port).then(r => ({ ...s, ...r }))));
-
   const timeStr = new Date().toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin' });
-  const anyOnline = results.some(r => r.online);
-  const color = proxy.online ? 0x57F287 : (anyOnline ? 0xFEE75C : 0xED4245);
-
+  const color   = proxy.online ? 0x57F287 : (results.some(r => r.online) ? 0xFEE75C : 0xED4245);
   const serverField = results
     .map(s => `**${s.label}**\n${s.online ? `🟢 Online · \`${s.players}\` Spieler` : '🔴 Offline'}`)
     .join('\n\n');
@@ -125,35 +128,24 @@ async function buildStatusEmbed() {
     .setColor(color)
     .setDescription(`**\`${MC_ADDRESS}\`**`)
     .addFields(
-      {
-        name: '📡 Netzwerk',
-        value: proxy.online
-          ? `🟢 Online · **${proxy.players}** Spieler verbunden`
-          : '🔴 Offline',
-        inline: false,
-      },
-      {
-        name: '🖥️ Server',
-        value: serverField || '–',
-        inline: false,
-      },
+      { name: '📡 Netzwerk', value: proxy.online ? `🟢 Online · **${proxy.players}** Spieler verbunden` : '🔴 Offline', inline: false },
+      { name: '🖥️ Server',  value: serverField || '–', inline: false },
     )
     .setFooter({ text: `Zuletzt geprüft: ${timeStr} Uhr · Aktualisierung alle 60s` })
     .setTimestamp();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Monitor (runs every 60 seconds)
+// Monitor
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Voice channel names are rate-limited by Discord (2 changes / 10 min per channel).
-// We track the last update time to avoid hitting the limit.
 const lastVoiceUpdate = { members: 0, ingame: 0 };
-const VOICE_COOLDOWN = 10 * 60 * 1000; // 10 minutes
+const VOICE_COOLDOWN  = 10 * 60 * 1000;
+let monitorInterval   = null;
 
 async function runMonitor(guild) {
   try {
-    // ── Status Embed ──────────────────────────────────────────────────────
+    // Status embed
     const statusCh = state.statusChannelId ? guild.channels.cache.get(state.statusChannelId) : null;
     if (statusCh) {
       const embed = await buildStatusEmbed();
@@ -171,43 +163,255 @@ async function runMonitor(guild) {
       }
     }
 
-    // ── Voice Stat Channels ───────────────────────────────────────────────
+    // Voice stat channels (rate-limited: max 2 per 10 min)
     const now = Date.now();
-
     if (state.memberCountChannelId && now - lastVoiceUpdate.members > VOICE_COOLDOWN) {
       const ch = guild.channels.cache.get(state.memberCountChannelId);
-      if (ch) {
-        await ch.setName(`👥 Mitglieder: ${guild.memberCount}`).catch(() => {});
-        lastVoiceUpdate.members = now;
-      }
+      if (ch) { await ch.setName(`👥 Mitglieder: ${guild.memberCount}`).catch(() => {}); lastVoiceUpdate.members = now; }
     }
-
     if (state.ingameCountChannelId && now - lastVoiceUpdate.ingame > VOICE_COOLDOWN) {
       const proxy = await ping(PROXY_HOST, PROXY_PORT);
       const ch = guild.channels.cache.get(state.ingameCountChannelId);
-      if (ch) {
-        await ch.setName(`🎮 Ingame: ${proxy.players}`).catch(() => {});
-        lastVoiceUpdate.ingame = now;
-      }
+      if (ch) { await ch.setName(`🎮 Ingame: ${proxy.players}`).catch(() => {}); lastVoiceUpdate.ingame = now; }
     }
 
-    // ── Bot Presence ──────────────────────────────────────────────────────
+    // Bot presence
     const proxy = await ping(PROXY_HOST, PROXY_PORT);
     client.user.setActivity(
       proxy.online ? `${proxy.players} Spieler · ${MC_ADDRESS}` : 'Server offline',
       { type: proxy.online ? ActivityType.Watching : ActivityType.Listening },
     );
-  } catch (e) {
-    console.error('[Monitor]', e.message);
-  }
+  } catch (e) { console.error('[Monitor]', e.message); }
 }
-
-let monitorInterval = null;
 
 function startMonitor(guild) {
   if (monitorInterval) clearInterval(monitorInterval);
   runMonitor(guild);
   monitorInterval = setInterval(() => runMonitor(guild), 60_000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ticket System
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TICKET_CATEGORIES = [
+  { id: 'help',  label: '🔧 Allgemeine Hilfe', description: 'Allgemeine Fragen & Hilfe' },
+  { id: 'bug',   label: '🐛 Bug Report',       description: 'Einen Fehler melden'       },
+  { id: 'apply', label: '📝 Bewerbung',         description: 'Als Staff bewerben'        },
+  { id: 'other', label: '❓ Sonstiges',          description: 'Andere Anliegen'           },
+];
+
+function ticketPanelEmbed() {
+  return new EmbedBuilder()
+    .setTitle('📩 Pink Horizon Support')
+    .setColor(0x5865F2)
+    .setDescription([
+      'Brauchst du Hilfe oder hast du ein Anliegen?',
+      '',
+      'Klicke auf **Ticket öffnen**, wähle eine Kategorie und das Support-Team meldet sich bei dir.',
+      '',
+      '> **Reaktionszeit:** So schnell wie möglich',
+      '> **Sprache:** Deutsch / Englisch',
+    ].join('\n'))
+    .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' });
+}
+
+function ticketPanelRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('ticket_open')
+      .setLabel('📩 Ticket öffnen')
+      .setStyle(ButtonStyle.Primary),
+  );
+}
+
+function getNextTicketNumber(guild) {
+  let max = 0;
+  for (const ch of guild.channels.cache.values()) {
+    const m = ch.name.match(/^ticket-(\d+)$/);
+    if (m) max = Math.max(max, parseInt(m[1]));
+  }
+  return max + 1;
+}
+
+function isStaff(member) {
+  return member.roles.cache.some(r => ['Admin', 'Moderator', 'Supporter'].includes(r.name));
+}
+
+async function openTicketCategory(interaction) {
+  const select = new StringSelectMenuBuilder()
+    .setCustomId('ticket_category')
+    .setPlaceholder('Wähle eine Kategorie...')
+    .addOptions(TICKET_CATEGORIES.map(c =>
+      new StringSelectMenuOptionBuilder()
+        .setLabel(c.label)
+        .setDescription(c.description)
+        .setValue(c.id),
+    ));
+
+  await interaction.reply({
+    content: '**Bitte wähle eine Kategorie für dein Ticket:**',
+    components: [new ActionRowBuilder().addComponents(select)],
+    ephemeral: true,
+  });
+}
+
+async function createTicket(interaction, categoryId) {
+  const guild    = interaction.guild;
+  const user     = interaction.user;
+  const member   = interaction.member;
+  const category = TICKET_CATEGORIES.find(c => c.id === categoryId);
+
+  // Only one open ticket per user
+  const existing = guild.channels.cache.find(ch =>
+    ch.name.startsWith('ticket-') && tickets.get(ch.id)?.userId === user.id,
+  );
+  if (existing) {
+    await interaction.update({ content: `❌ Du hast bereits ein offenes Ticket: ${existing}`, components: [], ephemeral: true });
+    return;
+  }
+
+  await interaction.update({ content: '⏳ Ticket wird erstellt...', components: [], ephemeral: true });
+
+  const num       = String(getNextTicketNumber(guild)).padStart(4, '0');
+  const modRole   = guild.roles.cache.find(r => r.name === 'Moderator');
+  const suppRole  = guild.roles.cache.find(r => r.name === 'Supporter');
+  const adminRole = guild.roles.cache.find(r => r.name === 'Admin');
+  const supportCat = guild.channels.cache.find(c => c.name === '🆘 SUPPORT' && c.type === ChannelType.GuildCategory);
+
+  const perms = [
+    { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+    { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
+  ];
+  if (adminRole) perms.push({ id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.ReadMessageHistory] });
+  if (modRole)   perms.push({ id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.ReadMessageHistory] });
+  if (suppRole)  perms.push({ id: suppRole.id,  allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] });
+
+  const channel = await guild.channels.create({
+    name: `ticket-${num}`,
+    type: ChannelType.GuildText,
+    parent: supportCat?.id,
+    topic: `${user.id} | ${category.label} | #${num}`,
+    permissionOverwrites: perms,
+  });
+
+  tickets.set(channel.id, { userId: user.id, userName: user.tag, category: category.label, number: num, claimedBy: null });
+
+  const embed = new EmbedBuilder()
+    .setTitle(`📩 Ticket #${num} · ${category.label}`)
+    .setColor(0x5865F2)
+    .setDescription([
+      `Willkommen ${user}! 👋`,
+      '',
+      'Das Support-Team meldet sich so schnell wie möglich bei dir.',
+      '**Beschreibe dein Anliegen so genau wie möglich.**',
+    ].join('\n'))
+    .addFields(
+      { name: '👤 Erstellt von', value: `${user}`,          inline: true },
+      { name: '📂 Kategorie',   value: category.label,      inline: true },
+      { name: '🔢 Ticket-Nr.',  value: `#${num}`,           inline: true },
+      { name: '🛡️ Status',      value: '🟡 Offen · Warte auf Staff', inline: false },
+    )
+    .setTimestamp()
+    .setFooter({ text: 'Pink Horizon Support · Ticket öffnen jederzeit möglich' });
+
+  const pingText = [modRole, suppRole].filter(Boolean).map(r => `${r}`).join(' ');
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('ticket_claim').setLabel('✋ Übernehmen').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId('ticket_close').setLabel('🔒 Schließen').setStyle(ButtonStyle.Danger),
+  );
+
+  await channel.send({ content: `${user} ${pingText}`, embeds: [embed], components: [row] });
+  await interaction.editReply({ content: `✅ Dein Ticket wurde erstellt: ${channel}`, components: [] });
+}
+
+async function claimTicket(interaction) {
+  const channel = interaction.channel;
+  const data    = tickets.get(channel.id);
+  if (!data) return interaction.reply({ content: '❌ Kein Ticket-Kanal.', ephemeral: true });
+  if (!isStaff(interaction.member)) return interaction.reply({ content: '❌ Nur Staff kann ein Ticket übernehmen.', ephemeral: true });
+  if (data.claimedBy) return interaction.reply({ content: `❌ Bereits übernommen von <@${data.claimedBy}>.`, ephemeral: true });
+
+  data.claimedBy = interaction.user.id;
+
+  // Update button row: disable claim, show who claimed
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('ticket_claim').setLabel(`✅ ${interaction.user.username}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
+    new ButtonBuilder().setCustomId('ticket_close').setLabel('🔒 Schließen').setStyle(ButtonStyle.Danger),
+  );
+
+  await interaction.update({ components: [row] });
+
+  await channel.send({
+    embeds: [
+      new EmbedBuilder()
+        .setColor(0x57F287)
+        .setDescription(`✋ **${interaction.user}** hat dieses Ticket übernommen.`),
+    ],
+  });
+}
+
+async function closeTicket(interaction) {
+  const channel = interaction.channel;
+  const data    = tickets.get(channel.id);
+  if (!data) return interaction.reply({ content: '❌ Kein Ticket-Kanal.', ephemeral: true });
+
+  // Only staff or the ticket creator can close
+  if (!isStaff(interaction.member) && interaction.user.id !== data.userId) {
+    return interaction.reply({ content: '❌ Nur der Ersteller oder Staff kann das Ticket schließen.', ephemeral: true });
+  }
+
+  await interaction.reply({
+    embeds: [new EmbedBuilder().setColor(0xED4245).setDescription('🔒 Ticket wird geschlossen und Transcript gespeichert...')],
+  });
+
+  // Build transcript
+  const messages = await channel.messages.fetch({ limit: 100 }).catch(() => null);
+  let transcriptLines = [];
+  if (messages) {
+    transcriptLines = [...messages.values()]
+      .reverse()
+      .map(m => `[${m.createdAt.toLocaleTimeString('de-DE')}] ${m.author.tag}: ${m.content || '[Anhang/Embed]'}`);
+  }
+  const transcript = transcriptLines.join('\n').slice(0, 4000) || '(leer)';
+
+  // Post to admin-logs
+  const logCh = interaction.guild.channels.cache.find(c => c.name === 'admin-logs' && c.type === ChannelType.GuildText);
+  if (logCh) {
+    await logCh.send({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle(`📋 Ticket #${data.number} geschlossen`)
+          .setColor(0xED4245)
+          .addFields(
+            { name: '👤 Ersteller',         value: `<@${data.userId}> (${data.userName})`, inline: true },
+            { name: '📂 Kategorie',          value: data.category,                          inline: true },
+            { name: '🛡️ Geschlossen von',   value: `${interaction.user}`,                  inline: true },
+            { name: data.claimedBy ? '✋ Bearbeitet von' : '⚠️ Bearbeitet von', value: data.claimedBy ? `<@${data.claimedBy}>` : 'Niemand', inline: true },
+          )
+          .setTimestamp()
+          .setFooter({ text: `Ticket #${data.number} · Pink Horizon Support` }),
+      ],
+    });
+    // Send transcript as code block if not empty
+    if (transcriptLines.length > 0) {
+      const chunks = splitIntoChunks(transcript, 1900);
+      for (const chunk of chunks) {
+        await logCh.send({ content: `\`\`\`\n${chunk}\n\`\`\`` });
+      }
+    }
+  }
+
+  tickets.delete(channel.id);
+  await sleep(3000);
+  await channel.delete(`Ticket #${data.number} geschlossen von ${interaction.user.tag}`).catch(() => {});
+}
+
+function splitIntoChunks(str, size) {
+  const chunks = [];
+  for (let i = 0; i < str.length; i += size) chunks.push(str.slice(i, i + size));
+  return chunks;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,10 +432,7 @@ async function ensureRoles(guild) {
   const created = {};
   for (const def of ROLE_DEFS) {
     let role = guild.roles.cache.find(r => r.name === def.name);
-    if (!role) {
-      role = await guild.roles.create({ name: def.name, color: def.color, hoist: def.hoist, mentionable: def.mentionable });
-      await sleep(400);
-    }
+    if (!role) { role = await guild.roles.create({ name: def.name, color: def.color, hoist: def.hoist, mentionable: def.mentionable }); await sleep(400); }
     created[def.name] = role;
   }
   return created;
@@ -244,13 +445,12 @@ async function ensureRoles(guild) {
 function buildChannelDefs() {
   return [
     {
-      name: '📌 INFORMATION',
-      teamOnly: false,
+      name: '📌 INFORMATION', teamOnly: false,
       children: [
-        { name: 'regeln',        readonly: true  },
-        { name: 'ankündigungen', readonly: true  },
-        { name: 'changelog',     readonly: true  },
-        { name: 'server-status', readonly: true,  tag: 'status' },
+        { name: 'regeln',        readonly: true          },
+        { name: 'ankündigungen', readonly: true          },
+        { name: 'changelog',     readonly: true          },
+        { name: 'server-status', readonly: true, tag: 'status' },
       ],
     },
     {
@@ -280,13 +480,13 @@ function buildChannelDefs() {
     {
       name: '🆘 SUPPORT',
       children: [
+        { name: 'ticket-erstellen', readonly: true, tag: 'tickets' },
         { name: 'hilfe'       },
         { name: 'bug-reports' },
       ],
     },
     {
-      name: '🔧 TEAM',
-      teamOnly: true,
+      name: '🔧 TEAM', teamOnly: true,
       children: [
         { name: 'team-allgemein' },
         { name: 'admin-logs'     },
@@ -306,40 +506,24 @@ async function ensureChannels(guild, roles) {
   const everyone  = guild.roles.everyone;
   const adminRole = roles['Admin'];
   const modRole   = roles['Moderator'];
+  const created   = {};
 
   for (const catDef of buildChannelDefs()) {
-    // ── Category ──────────────────────────────────────────────────────────
     const catPerms = catDef.teamOnly
       ? [
-          { id: everyone.id,   deny:  [PermissionFlagsBits.ViewChannel] },
-          { id: adminRole.id,  allow: [PermissionFlagsBits.ViewChannel] },
-          { id: modRole.id,    allow: [PermissionFlagsBits.ViewChannel] },
+          { id: everyone.id,  deny:  [PermissionFlagsBits.ViewChannel] },
+          { id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel] },
+          { id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel] },
         ]
       : [];
 
-    let category = guild.channels.cache.find(
-      c => c.name === catDef.name && c.type === ChannelType.GuildCategory,
-    );
-    if (!category) {
-      category = await guild.channels.create({
-        name: catDef.name,
-        type: ChannelType.GuildCategory,
-        permissionOverwrites: catPerms,
-      });
-      await sleep(400);
-    }
+    let category = guild.channels.cache.find(c => c.name === catDef.name && c.type === ChannelType.GuildCategory);
+    if (!category) { category = await guild.channels.create({ name: catDef.name, type: ChannelType.GuildCategory, permissionOverwrites: catPerms }); await sleep(400); }
 
-    // ── Children ──────────────────────────────────────────────────────────
     for (const chDef of catDef.children) {
       if (!chDef.voice) {
-        // Text channel – skip if already exists
-        const exists = guild.channels.cache.find(
-          c => c.name === chDef.name && c.parentId === category.id && c.type === ChannelType.GuildText,
-        );
-        if (exists) {
-          if (chDef.tag === 'status') state.statusChannelId = exists.id;
-          continue;
-        }
+        const exists = guild.channels.cache.find(c => c.name === chDef.name && c.parentId === category.id && c.type === ChannelType.GuildText);
+        if (exists) { if (chDef.tag) created[chDef.tag] = exists.id; continue; }
 
         const perms = [];
         if (chDef.readonly) {
@@ -348,64 +532,44 @@ async function ensureChannels(guild, roles) {
           perms.push({ id: modRole.id,   allow: [PermissionFlagsBits.SendMessages] });
         }
 
-        const ch = await guild.channels.create({
-          name: chDef.name,
-          type: ChannelType.GuildText,
-          parent: category.id,
-          permissionOverwrites: perms,
-        });
+        const ch = await guild.channels.create({ name: chDef.name, type: ChannelType.GuildText, parent: category.id, permissionOverwrites: perms });
         await sleep(400);
-
-        if (chDef.tag === 'status') state.statusChannelId = ch.id;
+        if (chDef.tag) created[chDef.tag] = ch.id;
       } else {
-        // Voice stat channel – always recreate if tag exists
         const perms = [{ id: everyone.id, deny: [PermissionFlagsBits.Connect] }];
-        const ch = await guild.channels.create({
-          name: chDef.name,
-          type: ChannelType.GuildVoice,
-          parent: category.id,
-          permissionOverwrites: perms,
-        });
+        const ch = await guild.channels.create({ name: chDef.name, type: ChannelType.GuildVoice, parent: category.id, permissionOverwrites: perms });
         await sleep(400);
-
-        if (chDef.tag === 'members') state.memberCountChannelId = ch.id;
-        if (chDef.tag === 'ingame')  state.ingameCountChannelId = ch.id;
+        if (chDef.tag) created[chDef.tag] = ch.id;
       }
     }
   }
+  return created;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Setup: Default content
 // ─────────────────────────────────────────────────────────────────────────────
 
-const RULES_TEXT = [
-  '**1.** Behandle alle Mitglieder respektvoll.',
-  '**2.** Kein Spam, keine beleidigenden oder anstößigen Inhalte.',
-  '**3.** Keine unaufgeforderte Werbung.',
-  '**4.** Halte dich an die Discord-Nutzungsbedingungen.',
-  '**5.** Cheaten, Exploiten oder Hacking auf dem Server ist verboten.',
-  '**6.** Staff-Entscheidungen sind zu respektieren.',
-  '**7.** Beleidigungen gegenüber dem Team werden nicht toleriert.',
-  '',
-  '*Bei Regelverstößen drohen Verwarnungen, Mutes oder Bans.*',
-].join('\n');
-
-async function postDefaultContent(guild) {
+async function postDefaultContent(guild, createdChannels) {
   // #regeln
   const regelnCh = guild.channels.cache.find(c => c.name === 'regeln' && c.type === ChannelType.GuildText);
   if (regelnCh) {
     const msgs = await regelnCh.messages.fetch({ limit: 5 }).catch(() => null);
-    if (msgs && msgs.size === 0) {
-      await regelnCh.send({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle('📜 Serverregeln · Pink Horizon')
-            .setColor(0xFF3333)
-            .setDescription(RULES_TEXT)
-            .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' }),
-        ],
-      });
+    if (msgs?.size === 0) {
+      await regelnCh.send({ embeds: [new EmbedBuilder()
+        .setTitle('📜 Serverregeln · Pink Horizon').setColor(0xFF3333)
+        .setDescription([
+          '**1.** Behandle alle Mitglieder respektvoll.',
+          '**2.** Kein Spam, keine beleidigenden oder anstößigen Inhalte.',
+          '**3.** Keine unaufgeforderte Werbung.',
+          '**4.** Halte dich an die Discord-Nutzungsbedingungen.',
+          '**5.** Cheaten, Exploiten oder Hacking auf dem Server ist verboten.',
+          '**6.** Staff-Entscheidungen sind zu respektieren.',
+          '**7.** Beleidigungen gegenüber dem Team werden nicht toleriert.',
+          '',
+          '*Bei Regelverstößen drohen Verwarnungen, Mutes oder Bans.*',
+        ].join('\n'))
+        .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' })] });
     }
   }
 
@@ -413,29 +577,34 @@ async function postDefaultContent(guild) {
   const tippsCh = guild.channels.cache.find(c => c.name === 'smash-tipps' && c.type === ChannelType.GuildText);
   if (tippsCh) {
     const msgs = await tippsCh.messages.fetch({ limit: 5 }).catch(() => null);
-    if (msgs && msgs.size === 0) {
-      await tippsCh.send({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle('⚔️ Smash the Boss – Tipps')
-            .setColor(0xFF5555)
-            .setDescription([
-              '**Befehle:**',
-              '`/stb join` – Betritt deine persönliche Arena',
-              '`/stb leave` – Verlasse die Arena',
-              '`/stb shop` – Kaufe Upgrades',
-              '`/stb afkfarm` – Starte die AFK-Farm',
-              '`/stb prestige` – Prestige (ab Boss 100)',
-              '',
-              '**Tipps:**',
-              '• Töte Bosse für AFK-Zeit und Belohnungen',
-              '• Nutze Kombos für Schadensbonus',
-              '• Upgrades und Talente verbessern deinen Schaden dauerhaft',
-              '• Beim Prestige wird alles zurückgesetzt – dafür +50% Schaden',
-            ].join('\n'))
-            .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' }),
-        ],
-      });
+    if (msgs?.size === 0) {
+      await tippsCh.send({ embeds: [new EmbedBuilder()
+        .setTitle('⚔️ Smash the Boss – Tipps').setColor(0xFF5555)
+        .setDescription([
+          '**Befehle:**',
+          '`/stb join` – Betritt deine persönliche Arena',
+          '`/stb leave` – Verlasse die Arena',
+          '`/stb shop` – Kaufe Upgrades',
+          '`/stb afkfarm` – Starte die AFK-Farm',
+          '`/stb prestige` – Prestige (ab Boss 100)',
+          '',
+          '**Tipps:**',
+          '• Töte Bosse für AFK-Zeit und Belohnungen',
+          '• Nutze Kombos für Schadensbonus',
+          '• Upgrades und Talente verbessern deinen Schaden dauerhaft',
+          '• Beim Prestige wird alles zurückgesetzt – dafür +50% Schaden',
+        ].join('\n'))
+        .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' })] });
+    }
+  }
+
+  // #ticket-erstellen – Ticket-Panel
+  const ticketChId = createdChannels?.tickets || state.ticketsChannelId;
+  const ticketCh   = ticketChId ? guild.channels.cache.get(ticketChId) : guild.channels.cache.find(c => c.name === 'ticket-erstellen');
+  if (ticketCh) {
+    const msgs = await ticketCh.messages.fetch({ limit: 5 }).catch(() => null);
+    if (msgs?.size === 0) {
+      await ticketCh.send({ embeds: [ticketPanelEmbed()], components: [ticketPanelRow()] });
     }
   }
 }
@@ -450,10 +619,14 @@ async function runSetup(guild, interaction) {
     const roles = await ensureRoles(guild);
 
     await interaction.editReply('⚙️ Rollen ✅ – Kanäle werden erstellt...');
-    await ensureChannels(guild, roles);
+    const created = await ensureChannels(guild, roles);
+
+    if (created.status)  state.statusChannelId      = created.status;
+    if (created.members) state.memberCountChannelId  = created.members;
+    if (created.ingame)  state.ingameCountChannelId  = created.ingame;
 
     await interaction.editReply('⚙️ Kanäle ✅ – Standard-Inhalte werden gepostet...');
-    await postDefaultContent(guild);
+    await postDefaultContent(guild, created);
 
     await interaction.editReply('⚙️ Inhalte ✅ – Server-Monitor wird gestartet...');
     await guild.members.fetch();
@@ -462,10 +635,10 @@ async function runSetup(guild, interaction) {
     await interaction.editReply([
       '✅ **Setup abgeschlossen!**',
       '',
-      `• Rollen erstellt: ${ROLE_DEFS.length}`,
+      `• ${ROLE_DEFS.length} Rollen erstellt`,
       '• Kategorien + Kanäle erstellt',
+      '• Ticket-Panel in #ticket-erstellen gepostet',
       '• Server-Monitor aktiv (60s Intervall)',
-      '• Willkommens-System aktiv',
       '',
       `Tritt dem Server bei: \`${MC_ADDRESS}\``,
     ].join('\n'));
@@ -476,13 +649,18 @@ async function runSetup(guild, interaction) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Slash Commands definition
+// Slash Commands
 // ─────────────────────────────────────────────────────────────────────────────
 
 const COMMANDS = [
   new SlashCommandBuilder()
     .setName('setup')
-    .setDescription('Erstellt alle Kanäle, Rollen und startet den Monitor (nur Admin)')
+    .setDescription('Erstellt alle Kanäle, Rollen und startet den Monitor (Admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName('ticket-panel')
+    .setDescription('Postet das Ticket-Panel in diesen Kanal (Admin)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
@@ -492,11 +670,7 @@ const COMMANDS = [
   new SlashCommandBuilder()
     .setName('stats')
     .setDescription('Zeigt Smash-the-Boss Statistiken eines Spielers')
-    .addStringOption(o =>
-      o.setName('spieler')
-       .setDescription('Minecraft-Name des Spielers')
-       .setRequired(true)
-    ),
+    .addStringOption(o => o.setName('spieler').setDescription('Minecraft-Name').setRequired(true)),
 ].map(c => c.toJSON());
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -506,116 +680,111 @@ const COMMANDS = [
 client.once('ready', async () => {
   console.log(`[Bot] Eingeloggt als ${client.user.tag}`);
 
-  // Register slash commands
   const rest = new REST({ version: '10' }).setToken(TOKEN);
   try {
     await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: COMMANDS });
     console.log('[Bot] Slash-Commands registriert.');
-  } catch (e) {
-    console.error('[Bot] Command-Registrierung fehlgeschlagen:', e.message);
-  }
+  } catch (e) { console.error('[Bot] Command-Registrierung:', e.message); }
 
   client.user.setActivity('Pink Horizon wird geladen...', { type: ActivityType.Watching });
 
-  // Auto-start monitor
   const guild = client.guilds.cache.get(GUILD_ID);
   if (guild) {
     await guild.members.fetch().catch(() => {});
 
-    // Try to find existing status channel
-    const statusCh = guild.channels.cache.find(c => c.name === 'server-status');
-    if (statusCh) state.statusChannelId = statusCh.id;
+    // Auto-find existing channels
+    const statusCh  = guild.channels.cache.find(c => c.name === 'server-status');
     const membersCh = guild.channels.cache.find(c => c.name.startsWith('👥 Mitglieder'));
-    if (membersCh) state.memberCountChannelId = membersCh.id;
-    const ingameCh = guild.channels.cache.find(c => c.name.startsWith('🎮 Ingame'));
-    if (ingameCh) state.ingameCountChannelId = ingameCh.id;
+    const ingameCh  = guild.channels.cache.find(c => c.name.startsWith('🎮 Ingame'));
+    if (statusCh)  state.statusChannelId      = statusCh.id;
+    if (membersCh) state.memberCountChannelId  = membersCh.id;
+    if (ingameCh)  state.ingameCountChannelId  = ingameCh.id;
 
     startMonitor(guild);
   }
 });
 
-// Auto-assign @Spieler role + welcome message
+// Auto-assign @Spieler + welcome
 client.on('guildMemberAdd', async member => {
   const spielerRole = member.guild.roles.cache.find(r => r.name === 'Spieler');
   if (spielerRole) await member.roles.add(spielerRole).catch(() => {});
 
   const allgemeinCh = member.guild.channels.cache.find(c => c.name === 'allgemein' && c.type === ChannelType.GuildText);
   const regelnCh    = member.guild.channels.cache.find(c => c.name === 'regeln'    && c.type === ChannelType.GuildText);
-
   if (allgemeinCh) {
     const rulesHint = regelnCh ? ` Bitte lies dir die <#${regelnCh.id}> durch.` : '';
-    await allgemeinCh.send(
-      `🎉 Willkommen auf dem **Pink Horizon** Discord, ${member}!${rulesHint}\nTritt dem Server bei: \`${MC_ADDRESS}\``,
-    ).catch(() => {});
+    await allgemeinCh.send(`🎉 Willkommen auf dem **Pink Horizon** Discord, ${member}!${rulesHint}\nTritt dem Server bei: \`${MC_ADDRESS}\``).catch(() => {});
   }
 });
 
-// Slash command handler
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
   if (interaction.guildId !== GUILD_ID) return;
 
-  await interaction.deferReply();
+  // ── Slash Commands ──────────────────────────────────────────────────────
+  if (interaction.isChatInputCommand()) {
+    await interaction.deferReply();
+    const { commandName, guild } = interaction;
 
-  const { commandName, guild } = interaction;
+    if (commandName === 'setup') {
+      await runSetup(guild, interaction);
 
-  // ── /setup ──────────────────────────────────────────────────────────────
-  if (commandName === 'setup') {
-    await runSetup(guild, interaction);
+    } else if (commandName === 'ticket-panel') {
+      await interaction.channel.send({ embeds: [ticketPanelEmbed()], components: [ticketPanelRow()] });
+      await interaction.editReply({ content: '✅ Ticket-Panel gepostet.', ephemeral: true });
 
-  // ── /status ─────────────────────────────────────────────────────────────
-  } else if (commandName === 'status') {
-    const embed = await buildStatusEmbed();
-    await interaction.editReply({ embeds: [embed] });
+    } else if (commandName === 'status') {
+      await interaction.editReply({ embeds: [await buildStatusEmbed()] });
 
-  // ── /stats ──────────────────────────────────────────────────────────────
-  } else if (commandName === 'stats') {
-    const name = interaction.options.getString('spieler');
-    const pool = await getDb();
-
-    if (!pool) {
-      await interaction.editReply('❌ Datenbank nicht konfiguriert.');
-      return;
+    } else if (commandName === 'stats') {
+      const name = interaction.options.getString('spieler');
+      const pool = await getDb();
+      if (!pool) { await interaction.editReply('❌ Datenbank nicht konfiguriert.'); return; }
+      try {
+        const [rows] = await pool.query(
+          `SELECT pd.boss_level, pd.kills, pd.total_damage,
+                  COALESCE(sc.amount, 0) AS coins,
+                  COALESCE(pr.prestige, 0) AS prestige
+           FROM smash_players pd
+           LEFT JOIN smash_coins    sc ON sc.uuid = pd.uuid
+           LEFT JOIN smash_prestige pr ON pr.uuid = pd.uuid
+           WHERE pd.name = ? LIMIT 1`, [name],
+        );
+        if (!rows.length) { await interaction.editReply(`❌ Spieler \`${name}\` nicht gefunden.`); return; }
+        const r = rows[0];
+        await interaction.editReply({ embeds: [new EmbedBuilder()
+          .setTitle(`⚔️ Smash Stats · ${name}`).setColor(0xFF5555)
+          .addFields(
+            { name: '🎯 Boss Level',    value: String(r.boss_level),      inline: true },
+            { name: '☠️ Boss Kills',    value: String(r.kills),           inline: true },
+            { name: '✦ Prestige',       value: String(r.prestige),        inline: true },
+            { name: '⚡ Gesamtschaden', value: formatDmg(r.total_damage), inline: true },
+            { name: '💰 Münzen',        value: String(r.coins),           inline: true },
+          )
+          .setFooter({ text: 'Pink Horizon · Smash the Boss' })] });
+      } catch (e) {
+        console.error('[/stats]', e.message);
+        await interaction.editReply('❌ Datenbankfehler: ' + e.message);
+      }
     }
 
-    try {
-      const [rows] = await pool.query(
-        `SELECT
-           pd.boss_level,
-           pd.kills,
-           pd.total_damage,
-           COALESCE(sc.amount, 0)   AS coins,
-           COALESCE(pr.prestige, 0) AS prestige
-         FROM smash_players pd
-         LEFT JOIN smash_coins     sc ON sc.uuid = pd.uuid
-         LEFT JOIN smash_prestige  pr ON pr.uuid = pd.uuid
-         WHERE pd.name = ?
-         LIMIT 1`,
-        [name],
-      );
+  // ── Button Interactions ──────────────────────────────────────────────────
+  } else if (interaction.isButton()) {
+    const id = interaction.customId;
 
-      if (!rows.length) {
-        await interaction.editReply(`❌ Spieler \`${name}\` nicht gefunden.`);
-        return;
-      }
+    if (id === 'ticket_open') {
+      await openTicketCategory(interaction);
 
-      const r = rows[0];
-      const embed = new EmbedBuilder()
-        .setTitle(`⚔️ Smash Stats · ${name}`)
-        .setColor(0xFF5555)
-        .addFields(
-          { name: '🎯 Boss Level',      value: String(r.boss_level),       inline: true },
-          { name: '☠️ Boss Kills',      value: String(r.kills),            inline: true },
-          { name: '✦ Prestige',         value: String(r.prestige),         inline: true },
-          { name: '⚡ Gesamtschaden',   value: formatDmg(r.total_damage),  inline: true },
-          { name: '💰 Münzen',          value: String(r.coins),            inline: true },
-        )
-        .setFooter({ text: 'Pink Horizon · Smash the Boss · play.pinkhorizon.fun' });
+    } else if (id === 'ticket_claim') {
+      await claimTicket(interaction);
 
-      await interaction.editReply({ embeds: [embed] });
-    } catch (e) {
-      console.error('[/stats]', e.message);
-      await interaction.editReply('❌ Datenbankfehler: ' + e.message);
+    } else if (id === 'ticket_close') {
+      await closeTicket(interaction);
+    }
+
+  // ── Select Menu Interactions ─────────────────────────────────────────────
+  } else if (interaction.isStringSelectMenu()) {
+    if (interaction.customId === 'ticket_category') {
+      await createTicket(interaction, interaction.values[0]);
     }
   }
 });
@@ -631,20 +800,15 @@ function formatDmg(dmg) {
   return String(dmg);
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Start
 // ─────────────────────────────────────────────────────────────────────────────
 
 if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
-  console.error('❌ Fehlende Umgebungsvariablen: DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_GUILD_ID');
+  console.error('❌ Fehlende Env-Vars: DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_GUILD_ID');
   process.exit(1);
 }
 
-client.login(TOKEN).catch(e => {
-  console.error('❌ Login fehlgeschlagen:', e.message);
-  process.exit(1);
-});
+client.login(TOKEN).catch(e => { console.error('❌ Login fehlgeschlagen:', e.message); process.exit(1); });
