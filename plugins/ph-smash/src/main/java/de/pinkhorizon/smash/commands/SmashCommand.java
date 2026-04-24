@@ -203,6 +203,30 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
                 plugin.getHologramManager().setupHolosAroundCenter(p, lateralDist);
             }
 
+            case "debugspeed" -> {
+                if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
+                if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
+                var speedAttr = p.getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
+                if (speedAttr == null) { p.sendMessage("§cKein Speed-Attribut gefunden!"); return true; }
+                p.sendMessage("§e§l── Speed-Debug ──────────────────");
+                p.sendMessage("§7Base-Value:      §f" + speedAttr.getBaseValue());
+                p.sendMessage("§7Default-Value:   §f" + speedAttr.getDefaultValue());
+                p.sendMessage("§7Final-Value:     §f" + speedAttr.getValue());
+                p.sendMessage("§7Modifier (" + speedAttr.getModifiers().size() + "):");
+                if (speedAttr.getModifiers().isEmpty()) {
+                    p.sendMessage("  §8(keine)");
+                } else {
+                    for (var m : speedAttr.getModifiers()) {
+                        p.sendMessage("  §8key=§f" + m.getKey()
+                            + " §8op=§f" + m.getOperation()
+                            + " §8val=§f" + m.getAmount());
+                    }
+                }
+                int speedLvl = plugin.getUpgradeManager().getLevel(p.getUniqueId(),
+                    de.pinkhorizon.smash.managers.UpgradeManager.UpgradeType.SPEED);
+                p.sendMessage("§7DB Speed-Level: §f" + speedLvl);
+            }
+
             case "maxout" -> {
                 if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
                 Player target;
@@ -229,7 +253,7 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
             List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "abilities", "coins", "prestige", "stats", "forge", "bestiary", "weekly", "bounty"));
-            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("sethub"); base.add("setnpc"); base.add("sethologram"); base.add("setupholos"); base.add("forceboss"); base.add("setlevel"); base.add("maxout"); }
+            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("sethub"); base.add("setnpc"); base.add("sethologram"); base.add("setupholos"); base.add("forceboss"); base.add("setlevel"); base.add("maxout"); base.add("debugspeed"); }
             return base.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("setarena"))
