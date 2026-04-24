@@ -22,11 +22,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Listener für das Ofen-Upgrade-System (PDC-basiert).
+ * Listener für das Ofen-Upgrade-System.
  *
- * Das Upgrade-Level wird im PersistentDataContainer des Block-States gespeichert
- * und beim Abbauen auf das Item-Drop übertragen → beim Platzieren wieder auf den
- * neuen Block-State geschrieben. Das Upgrade bleibt so am Ofen-Item erhalten.
+ * Upgrade-Daten werden im In-Memory-Cache + DB (zuverlässig) gespeichert.
+ * Beim Abbau wird das Level per Item-PDC auf den Drop geschrieben;
+ * beim Platzieren wird es zurück in Cache + DB geladen.
+ * So bleiben Upgrades auch beim Umsetzen des Ofens erhalten.
  */
 public class FurnaceUpgradeListener implements Listener {
 
@@ -39,11 +40,7 @@ public class FurnaceUpgradeListener implements Listener {
     private final PHSurvival plugin;
     private final FurnaceUpgradeGui gui;
 
-    /**
-     * Zwischenspeicher: Beim BlockBreakEvent lesen wir das Level aus dem
-     * Block-State (der kurz danach entfernt wird) und legen es hier ab,
-     * damit BlockDropItemEvent es auf das Item übertragen kann.
-     */
+    // Zwischenspeicher: locKey → level, gesetzt in onBlockBreak, gelesen in onBlockDrop
     private final Map<String, Integer> pendingLevels = new HashMap<>();
 
     public FurnaceUpgradeListener(PHSurvival plugin, FurnaceUpgradeGui gui) {
@@ -55,7 +52,7 @@ public class FurnaceUpgradeListener implements Listener {
         return b.getWorld().getUID() + ";" + b.getX() + ";" + b.getY() + ";" + b.getZ();
     }
 
-    // ── Schmelzzeit anpassen ──────────────────────────────────────────────
+    // ── Schmelzzeit anpassen ─────────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onSmeltStart(FurnaceStartSmeltEvent event) {
@@ -78,19 +75,20 @@ public class FurnaceUpgradeListener implements Listener {
         gui.open(player, block);
     }
 
-    // ── Ofen abgebaut: Level aus Block-State lesen (bevor er verschwindet) ─
+    // ── Ofen abgebaut: Level aus Cache lesen, für Drop merken ────────────
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
         if (!FURNACE_TYPES.contains(block.getType())) return;
         int level = plugin.getFurnaceUpgradeManager().getLevel(block);
+        plugin.getFurnaceUpgradeManager().remove(block);
         if (level > 1) {
             pendingLevels.put(locKey(block), level);
         }
     }
 
-    // ── Item-Drop: Level auf das fallende Ofen-Item schreiben ────────────
+    // ── Level auf den gedropten Ofen schreiben ───────────────────────────
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockDrop(BlockDropItemEvent event) {
@@ -107,7 +105,7 @@ public class FurnaceUpgradeListener implements Listener {
         }
     }
 
-    // ── Ofen platziert: Level vom Item auf Block-State übertragen ─────────
+    // ── Ofen platziert: Level vom Item in Cache + DB laden ───────────────
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
@@ -116,9 +114,6 @@ public class FurnaceUpgradeListener implements Listener {
         ItemStack item = event.getItemInHand();
         int level = plugin.getFurnaceUpgradeManager().getLevelFromItem(item);
         if (level <= 1) return;
-        // Nächsten Tick abwarten, damit der Block-State vollständig initialisiert ist
-        plugin.getServer().getScheduler().runTask(plugin, () ->
-            plugin.getFurnaceUpgradeManager().setLevel(block, level)
-        );
+        plugin.getFurnaceUpgradeManager().setLevel(block, level);
     }
 }
