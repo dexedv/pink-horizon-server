@@ -12,13 +12,9 @@ import java.util.List;
 
 public class HelpHoloCommand implements CommandExecutor, TabCompleter {
 
-    // Titel
-    private static final List<String> TITLE_LINES = List.of(
-        "<bold><gradient:#FF69B4:#9B59B6>✦ Pink Horizon – Survival ✦</gradient></bold>"
-    );
-
-    // Spalte 1: Allgemein + Claims
-    private static final List<String> COL1_LINES = List.of(
+    private static final List<String> LINES = List.of(
+        "<bold><gradient:#FF69B4:#9B59B6>✦ Pink Horizon – Survival ✦</gradient></bold>",
+        " ",
         "<bold><gold>⚙ Allgemein</gold></bold>",
         "<gray>/spawn          <white>→ Zum Spawn",
         "<gray>/rtp            <white>→ Zufällig teleportieren",
@@ -33,11 +29,8 @@ public class HelpHoloCommand implements CommandExecutor, TabCompleter {
         "<gray>/claimlist      <white>→ Eigene Claims",
         "<gray>/claimmap       <white>→ Claim-Karte anzeigen",
         "<gray>/trust <Sp.>    <white>→ Spieler vertrauen",
-        "<gray>/untrust <Sp.>  <white>→ Vertrauen entziehen"
-    );
-
-    // Spalte 2: Homes & Teleport + Warps + Soziales
-    private static final List<String> COL2_LINES = List.of(
+        "<gray>/untrust <Sp.>  <white>→ Vertrauen entziehen",
+        " ",
         "<bold><gold>🏠 Homes & Teleport</gold></bold>",
         "<gray>/sethome [Name]  <white>→ Home setzen",
         "<gray>/home [Name]     <white>→ Home tp.",
@@ -51,14 +44,6 @@ public class HelpHoloCommand implements CommandExecutor, TabCompleter {
         "<gray>/warps           <white>→ Alle Warps",
         "<gray>/warp <Name>     <white>→ Zu Warp tp.",
         " ",
-        "<bold><gold>💬 Soziales</gold></bold>",
-        "<gray>/friend          <white>→ Freunde verwalten",
-        "<gray>/mail            <white>→ Nachrichten",
-        "<gray>/trade <Spieler> <white>→ Handel starten"
-    );
-
-    // Spalte 3: Wirtschaft + Jobs + Bank + AH + Upgrades
-    private static final List<String> COL3_LINES = List.of(
         "<bold><gold>💰 Wirtschaft</gold></bold>",
         "<gray>/balance        <white>→ Kontostand",
         "<gray>/pay <Sp.> <B>  <white>→ Coins überweisen",
@@ -73,16 +58,19 @@ public class HelpHoloCommand implements CommandExecutor, TabCompleter {
         "<gray>/bank           <white>→ Bankkonto (Zinsen!)",
         "<gray>/ah             <white>→ Auktionshaus",
         " ",
+        "<bold><gold>💬 Soziales</gold></bold>",
+        "<gray>/friend          <white>→ Freunde verwalten",
+        "<gray>/mail            <white>→ Nachrichten",
+        "<gray>/trade <Spieler> <white>→ Handel starten",
+        "<gray>/report <Sp.>    <white>→ Spieler melden",
+        " ",
         "<bold><gold>⚒ Block-Upgrades</gold></bold>",
         "<gray>Shift+Rechtsklick <white>→ Ofen/Trichter upgraden",
         " ",
         "<bold><gold>🏆 Fortschritt</gold></bold>",
         "<gray>/achievements   <white>→ Erfolge",
-        "<gray>/quests         <white>→ Quests",
-        "<gray>/report <Sp.>   <white>→ Spieler melden"
+        "<gray>/quests         <white>→ Quests"
     );
-
-    private static final double COL_OFFSET = 4.0;
 
     private final PHSurvival plugin;
 
@@ -105,27 +93,20 @@ public class HelpHoloCommand implements CommandExecutor, TabCompleter {
 
         switch (sub) {
             case "place" -> {
-                Location base = player.getLocation();
                 var hm = plugin.getHologramManager();
-
+                hm.remove("help");
                 hm.remove("help-title");
                 hm.remove("help-col1");
                 hm.remove("help-col2");
                 hm.remove("help-col3");
-                hm.remove("help");
-
-                hm.create("help-title", base.clone().add(0, 1.5, 0), TITLE_LINES, 1.1f);
-                hm.create("help-col1", base.clone().add(-COL_OFFSET, 0, 0), COL1_LINES, 0.85f);
-                hm.create("help-col2", base.clone(),                         COL2_LINES, 0.85f);
-                hm.create("help-col3", base.clone().add( COL_OFFSET, 0, 0), COL3_LINES, 0.85f);
-
+                hm.create("help", player.getLocation(), LINES, 0.85f);
                 player.sendMessage("§aHilfe-Hologram gesetzt!");
             }
             case "remove" -> {
                 var hm = plugin.getHologramManager();
-                boolean any = hm.remove("help-title") | hm.remove("help-col1")
-                            | hm.remove("help-col2") | hm.remove("help-col3")
-                            | hm.remove("help");
+                boolean any = hm.remove("help") | hm.remove("help-title")
+                            | hm.remove("help-col1") | hm.remove("help-col2")
+                            | hm.remove("help-col3");
                 player.sendMessage(any ? "§aHilfe-Hologram entfernt!" : "§cKein Hilfe-Hologram gefunden.");
             }
             default -> player.sendMessage("§cVerwendung: /helpholo [place|remove]");
