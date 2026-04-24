@@ -1,0 +1,28 @@
+name: PH-Vote
+version: '1.0.0'
+main: de.pinkhorizon.vote.PHVote
+api-version: '1.21'
+description: Vote-Plugin mit VoteCoins und VoteShop
+authors: [ PinkHorizon ]
+depend: [ PH-Core ]
+softdepend: [ NuVotifier ]
+
+commands:
+  vote:
+    description: Zeigt Voting-Links und deinen VoteCoin-Stand
+    usage: /vote
+  votecoins:
+    description: Zeigt deinen VoteCoin-Kontostand
+    usage: /votecoins
+  voteshop:
+    description: Oeffnet den VoteShop
+    usage: /voteshop
+  voteadmin:
+    description: VoteAdmin-Befehle
+    usage: /voteadmin <give|take|set|check> <Spieler> [Menge]
+    permission: vote.admin
+
+permissions:
+  vote.admin:
+    description: Zugriff auf VoteAdmin-Befehle
+    default: op

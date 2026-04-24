@@ -1,0 +1,80 @@
+# PH-Vote Konfiguration
+# Passe diese Datei auf jedem Server individuell an!
+
+# Voting-Links (angezeigt bei /vote)
+voting-links:
+  - "https://minecraft-server-list.de"
+  - "https://topg.org"
+  - "https://minecraft-mp.com"
+
+# Belohnungen pro Vote
+vote-reward:
+  coins: 1
+  broadcast: true
+  broadcast-message: "&d&l[Vote] &f%player% &7hat gevotet und &d1 VoteCoin &7erhalten! &8(/vote)"
+
+# VoteShop GUI
+shop:
+  title: "&5&lVoteShop &8| &7Deine Coins: %coins%"
+  rows: 3
+
+  # Jedes Item:
+  #   slot:     0-26 (3 Reihen) / 0-53 (6 Reihen)
+  #   material: Bukkit-Material-Name
+  #   name:     Anzeigename
+  #   cost:     VoteCoins
+  #   lore:     Beschreibung
+  #   commands: Konsolenbefehle (nach Kauf), [player] = Spielername
+  items:
+    speed:
+      slot: 10
+      material: SUGAR
+      name: "&6⚡ Speed II &8(15 Min)"
+      cost: 1
+      lore:
+        - "&7Gibt dir für 15 Minuten"
+        - "&6Schnelligkeit II"
+      commands:
+        - "effect give [player] speed 900 1 true"
+
+    saturation:
+      slot: 12
+      material: COOKED_BEEF
+      name: "&aSättigung &8(15 Min)"
+      cost: 1
+      lore:
+        - "&7Du wirst für 15 Minuten"
+        - "&asatt gehalten"
+      commands:
+        - "effect give [player] saturation 900 0 true"
+
+    xp_bottle:
+      slot: 14
+      material: EXPERIENCE_BOTTLE
+      name: "&aErfahrungsflaschen &8x32"
+      cost: 2
+      lore:
+        - "&732 Erfahrungsflaschen"
+      commands:
+        - "give [player] experience_bottle 32"
+
+    diamond:
+      slot: 16
+      material: DIAMOND
+      name: "&bDiamantenpaket &8x5"
+      cost: 3
+      lore:
+        - "&75 Diamanten"
+      commands:
+        - "give [player] diamond 5"
+
+    nether_star:
+      slot: 22
+      material: NETHER_STAR
+      name: "&5Mystery Box"
+      cost: 5
+      lore:
+        - "&7Eine zufällige Belohnung"
+        - "&8Überrasch dich selbst!"
+      commands:
+        - "ph-vote-mystery [player]"

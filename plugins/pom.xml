@@ -19,6 +19,7 @@
         <module>ph-skyblock</module>
         <module>ph-minigames</module>
         <module>ph-smash</module>
+        <module>ph-vote</module>
     </modules>
 
     <properties>
