@@ -53,8 +53,9 @@ const SERVERS = [
   { label: '⛏️ Survival',       container: 'ph-survival' },
   { label: '🏠 Lobby',          container: 'ph-lobby'    },
 ];
-const PROXY_HOST = process.env.PROXY_HOST || 'velocity';
-const PROXY_PORT = parseInt(process.env.PROXY_PORT || '25565');
+const PROXY_HOST        = process.env.PROXY_HOST || 'velocity';
+const PROXY_PORT        = parseInt(process.env.PROXY_PORT || '25565');
+const NOTIFY_CHANNEL_ID = '1497212053377781851';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Database
@@ -165,9 +166,66 @@ async function buildStatusEmbed() {
 // Monitor
 // ─────────────────────────────────────────────────────────────────────────────
 
-const lastVoiceUpdate = { members: 0, ingame: 0 };
-const VOICE_COOLDOWN  = 10 * 60 * 1000;
-let monitorInterval   = null;
+const lastVoiceUpdate   = { members: 0, ingame: 0 };
+const VOICE_COOLDOWN    = 10 * 60 * 1000;
+let monitorInterval     = null;
+const containerWasUp    = {};   // container → bool (vorheriger Status)
+
+async function pollRestartEvents(guild) {
+  const ch = guild.channels.cache.get(NOTIFY_CHANNEL_ID);
+  if (!ch) return;
+  const pool = await getDb();
+  if (!pool) return;
+  try {
+    const [rows] = await pool.query('SELECT * FROM network_events ORDER BY created_at ASC');
+    if (rows.length === 0) return;
+    for (const row of rows) {
+      const server = row.server_name;
+      if (row.event_type === 'RESTART_ANNOUNCED') {
+        const min = Math.round(row.seconds_until / 60);
+        await ch.send({
+          embeds: [new EmbedBuilder()
+            .setTitle('⚠️ Serverneustart angekündigt')
+            .setColor(0xFFA500)
+            .setDescription(`**${server}** startet in **${min} Minute${min !== 1 ? 'n' : ''}** neu.`)
+            .setTimestamp()],
+        });
+      } else if (row.event_type === 'RESTART_NOW') {
+        await ch.send({
+          embeds: [new EmbedBuilder()
+            .setTitle('🔴 Server wird neu gestartet')
+            .setColor(0xED4245)
+            .setDescription(`**${server}** fährt jetzt herunter und startet gleich wieder hoch.`)
+            .setTimestamp()],
+        });
+      }
+    }
+    await pool.query('DELETE FROM network_events');
+  } catch (e) { /* Tabelle existiert noch nicht */ }
+}
+
+async function checkContainersOnline(guild) {
+  const ch = guild.channels.cache.get(NOTIFY_CHANNEL_ID);
+  if (!ch) return;
+  const allContainers = [
+    ...SERVERS.map(s => ({ name: s.label, container: s.container })),
+    { name: '📡 Proxy', container: 'ph-velocity' },
+  ];
+  for (const srv of allContainers) {
+    const running = await isContainerRunning(srv.container);
+    const wasUp   = containerWasUp[srv.container];
+    if (wasUp === false && running === true) {
+      await ch.send({
+        embeds: [new EmbedBuilder()
+          .setTitle('🟢 Server wieder online')
+          .setColor(0x57F287)
+          .setDescription(`**${srv.name}** ist wieder erreichbar!`)
+          .setTimestamp()],
+      }).catch(() => {});
+    }
+    containerWasUp[srv.container] = running;
+  }
+}
 
 async function runMonitor(guild) {
   try {
@@ -208,10 +266,18 @@ async function runMonitor(guild) {
   } catch (e) { console.error('[Monitor]', e.message); }
 }
 
+async function runEventPoller(guild) {
+  try {
+    await pollRestartEvents(guild);
+    await checkContainersOnline(guild);
+  } catch (e) { console.error('[EventPoller]', e.message); }
+}
+
 function startMonitor(guild) {
   if (monitorInterval) clearInterval(monitorInterval);
   runMonitor(guild);
-  monitorInterval = setInterval(() => runMonitor(guild), 60 * 60_000); // stündlich
+  monitorInterval = setInterval(() => runMonitor(guild), 60 * 60_000); // stündlich Status-Embed
+  setInterval(() => runEventPoller(guild), 30_000);                    // alle 30s Events + Container
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

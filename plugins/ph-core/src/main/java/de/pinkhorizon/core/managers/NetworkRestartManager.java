@@ -8,6 +8,8 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -60,6 +62,7 @@ public class NetworkRestartManager {
         bossBar.setProgress(1.0);
         Bukkit.getOnlinePlayers().forEach(bossBar::addPlayer);
 
+        writeEvent("RESTART_ANNOUNCED", totalSeconds);
         broadcastChat(totalSeconds);   // erste Ankündigung sofort
 
         final int[] remaining = {totalSeconds};
@@ -72,6 +75,7 @@ public class NetworkRestartManager {
                 bossBar.removeAll();
                 bossBar = null;
                 Bukkit.broadcastMessage("§c§l[!] §cServer wird jetzt neu gestartet – bis gleich!");
+                writeEvent("RESTART_NOW", 0);
                 Bukkit.getScheduler().runTaskLater(plugin, Bukkit.getServer()::shutdown, 40L);
                 return;
             }
@@ -117,6 +121,34 @@ public class NetworkRestartManager {
         if (countdownTask != null) { countdownTask.cancel(); countdownTask = null; }
         if (bossBar != null) { bossBar.removeAll(); bossBar = null; }
         Bukkit.getScheduler().runTask(plugin, () -> startCountdown(Math.max(10, seconds)));
+    }
+
+    private void writeEvent(String type, int secondsUntil) {
+        String serverName = plugin.getServer().getName();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection con = plugin.getDatabaseManager().getConnection();
+                 PreparedStatement ps = con.prepareStatement(
+                     "CREATE TABLE IF NOT EXISTS network_events (" +
+                     "  id INT AUTO_INCREMENT PRIMARY KEY," +
+                     "  server_name VARCHAR(64) NOT NULL," +
+                     "  event_type VARCHAR(32) NOT NULL," +
+                     "  seconds_until INT DEFAULT 0," +
+                     "  created_at BIGINT NOT NULL" +
+                     ")")) {
+                ps.execute();
+            } catch (Exception ignored) {}
+            try (Connection con = plugin.getDatabaseManager().getConnection();
+                 PreparedStatement ps = con.prepareStatement(
+                     "INSERT INTO network_events (server_name, event_type, seconds_until, created_at) VALUES (?, ?, ?, ?)")) {
+                ps.setString(1, serverName);
+                ps.setString(2, type);
+                ps.setInt(3, secondsUntil);
+                ps.setLong(4, System.currentTimeMillis());
+                ps.executeUpdate();
+            } catch (Exception e) {
+                plugin.getLogger().warning("[NetworkRestart] DB-Event fehlgeschlagen: " + e.getMessage());
+            }
+        });
     }
 
     /** Joinen während laufendem Countdown → sofort zur Bossbar hinzufügen */
