@@ -758,6 +758,7 @@ public class ArenaManager {
         sm.setUnbreakable(true);
         sm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
         sword.setItemMeta(sm);
+        sword.addUnsafeEnchantment(Enchantment.SHARPNESS, 10);
         player.getInventory().setItem(0, sword);
 
         // Slot 1 – Bogen (Infinity + Power V)
@@ -952,20 +953,20 @@ public class ArenaManager {
         else if (damage >= 10)   dmgText = String.valueOf((int) Math.round(damage));
         else                     dmgText = String.format("%.1f", damage);
 
-        String color = damage >= 50_000 ? "§5§l"   // lila (mega)
-                     : damage >= 10_000 ? "§c§l"   // rot (huge)
-                     : damage >= 1_000  ? "§6§l"   // orange (groß)
-                     : damage >= 100    ? "§e"      // gelb (mittel)
-                     :                    "§f";     // weiß (klein)
+        String color = damage >= 1_000_000 ? "§5§l"   // lila (mega) 1M+
+                     : damage >= 100_000  ? "§c§l"   // rot (huge) 100K+
+                     : damage >= 10_000   ? "§6§l"   // orange (groß) 10K+
+                     : damage >= 1_000    ? "§e"      // gelb (mittel) 1K+
+                     :                      "§f";     // weiß (klein)
 
         Component text = LegacyComponentSerializer.legacySection()
             .deserialize(color + "⚔ " + dmgText);
 
-        float scale = damage >= 50_000 ? 5.0f
-                    : damage >= 10_000 ? 4.0f
-                    : damage >= 1_000  ? 3.0f
-                    : damage >= 100    ? 2.5f
-                    :                    2.5f;
+        float scale = damage >= 1_000_000 ? 5.0f
+                    : damage >= 100_000   ? 4.0f
+                    : damage >= 10_000    ? 3.0f
+                    : damage >= 1_000     ? 2.5f
+                    :                       2.5f;
 
         TextDisplay td = world.spawn(spawnLoc, TextDisplay.class, display -> {
             display.text(text);

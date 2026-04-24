@@ -30,7 +30,7 @@ public record BossConfig(int level, double maxHp, double damage, String displayN
     );
 
     public static BossConfig forLevel(int level) {
-        double hp     = Math.max(10, Math.round(100 * Math.pow(1.15, level - 1)));
+        double hp     = Math.max(10, Math.round(100.0 * Math.pow(level, 2.3)));
         double damage = 4.0 + level * 0.8;
 
         String tier;

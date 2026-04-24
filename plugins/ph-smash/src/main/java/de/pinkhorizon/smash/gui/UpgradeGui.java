@@ -267,8 +267,14 @@ public class UpgradeGui implements Listener, InventoryHolder {
 
     private static String currentEffectText(UpgradeType type, int level) {
         return switch (type) {
-            case ATTACK    -> "§c+" + Math.round((1.0 + 0.08 * level - 1.0) * 100)
-                              + "% §7Schaden §8(Schwert, Bogen, Axt & Feuerball)";
+            case ATTACK    -> {
+                double mult = Math.pow(1.03, level);
+                long   pct  = Math.round((mult - 1.0) * 100);
+                String ps   = pct >= 10_000_000 ? String.format("%.1fM", pct / 1_000_000.0)
+                            : pct >= 10_000     ? String.format("%.1fK", pct / 1_000.0)
+                            : String.valueOf(pct);
+                yield "§c+" + ps + "% §7Schaden §8(×" + String.format("%.1f", mult) + ")";
+            }
             case DEFENSE   -> "§a-" + Math.round((1.0 - Math.max(0.25, 1.0 - 0.015 * level)) * 100)
                               + "% §7eingehender Schaden";
             case HEALTH    -> "§e+" + (level * 6) + " §7Max-HP total";

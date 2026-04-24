@@ -13,7 +13,7 @@ public class AbilityManager {
     // ── Fähigkeiten-Definition ─────────────────────────────────────────────
 
     public enum AbilityType {
-        BERSERKER    ("§c⚔ Berserker",      "Bei <35% HP: +8% Schaden/Lv",         10,
+        BERSERKER    ("§c⚔ Berserker",      "Bei <35% HP: +12% Schaden/Lv",        10,
             new long[]{150, 350, 700, 1300, 2200, 3500, 5500, 8500, 13000, 20000}),
         DODGE        ("§b⚡ Ausweichen",     "4% Ausweich-Chance/Lv (max 40%)",      10,
             new long[]{200, 480, 950, 1800, 3000, 4800, 7500, 12000, 18000, 28000}),
@@ -35,15 +35,15 @@ public class AbilityManager {
             }),
 
         // ── Schwert-Fähigkeiten ───────────────────────────────────────────
-        KRITISCH      ("§c⚔ Kritischer Treffer", "3% Krit-Chance/Lv → 2,5× Schwert-Schaden",      15,
+        KRITISCH      ("§c⚔ Kritischer Treffer", "5% Krit-Chance/Lv → 2,5× Schwert-Schaden (max 60%)", 15,
             new long[]{300, 450, 650, 950, 1400, 2000, 2900, 4200, 6100, 8800, 12700, 18400, 26600, 38500, 55700}),
-        HINRICHTUNG   ("§4⚔ Hinrichtung",        "+10% Schwert-Schaden/Lv wenn Boss < 25% HP",     10,
+        HINRICHTUNG   ("§4⚔ Hinrichtung",        "+15% Schwert-Schaden/Lv wenn Boss < 25% HP",     10,
             new long[]{400, 900, 1700, 3000, 5000, 8200, 13000, 20000, 31000, 47000}),
-        WIRBELWIND    ("§6⚔ Wirbelwind",          "5% Chance/Lv: Boss zweimal treffen (50% Schaden)", 10,
+        WIRBELWIND    ("§6⚔ Wirbelwind",          "8% Chance/Lv: Boss zweimal treffen (50% Schaden)", 10,
             new long[]{300, 700, 1400, 2500, 4200, 6800, 11000, 17500, 27500, 43000}),
 
         // ── Bogen-Fähigkeiten ─────────────────────────────────────────────
-        BOGENSTAERKE  ("§a🏹 Bogenstärke",        "+5% Bogen-Schaden/Lv",                           15,
+        BOGENSTAERKE  ("§a🏹 Bogenstärke",        "+7% Bogen-Schaden/Lv",                           15,
             new long[]{300, 450, 650, 950, 1400, 2000, 2900, 4200, 6100, 8800, 12700, 18400, 26600, 38500, 55700}),
         MEHRFACHSCHUSS("§e🏹 Mehrfachschuss",      "4% Chance/Lv: 2. Pfeil (80% Schaden)",           10,
             new long[]{350, 800, 1600, 2800, 4600, 7500, 12000, 19000, 30000, 46000}),
@@ -59,7 +59,7 @@ public class AbilityManager {
             new long[]{300, 700, 1400, 2500, 4200, 6800, 11000, 17500, 27500, 43000}),
 
         // ── Feuerball-Fähigkeiten ─────────────────────────────────────────────
-        FEUERKRAFT    ("§6🔥 Feuerkraft",    "+8% Feuerball-Schaden/Lv",                             15,
+        FEUERKRAFT    ("§6🔥 Feuerkraft",    "+11% Feuerball-Schaden/Lv",                            15,
             new long[]{300, 450, 650, 950, 1400, 2000, 2900, 4200, 6100, 8800, 12700, 18400, 26600, 38500, 55700}),
         VERBRENNUNG   ("§c🔥 Verbrennung",   "7% Chance/Lv: Brand-DOT (3 Ticks × 8% des Treffers)", 10,
             new long[]{250, 600, 1200, 2200, 3700, 6000, 9700, 15500, 24500, 38500}),
@@ -147,9 +147,9 @@ public class AbilityManager {
 
     // ── Stat-Getter ────────────────────────────────────────────────────────
 
-    /** Bonus-Schadensmultiplikator wenn HP < 35%. z.B. 0.08 = +8% pro Level */
+    /** Bonus-Schadensmultiplikator wenn HP < 35%. z.B. 0.12 = +12% pro Level */
     public double getBerserkerBonus(UUID uuid) {
-        return getLevel(uuid, AbilityType.BERSERKER) * 0.08;
+        return getLevel(uuid, AbilityType.BERSERKER) * 0.12;
     }
 
     /** Dodge-Wahrscheinlichkeit. max 0.40 */
@@ -184,26 +184,26 @@ public class AbilityManager {
 
     // ── Schwert-Fähigkeiten ────────────────────────────────────────────────
 
-    /** Kritische-Treffer-Chance (max 45% bei Lv 15). */
+    /** Kritische-Treffer-Chance (max 60% bei Lv 12+). */
     public double getCritChance(UUID uuid) {
-        return Math.min(getLevel(uuid, AbilityType.KRITISCH) * 0.03, 0.45);
+        return Math.min(getLevel(uuid, AbilityType.KRITISCH) * 0.05, 0.60);
     }
 
-    /** Zusatz-Multiplikator bei Boss < 25% HP. z.B. Lv10 = +1.0 (doppelter Schaden). */
+    /** Zusatz-Multiplikator bei Boss < 25% HP. z.B. Lv10 = +1.5 (2,5× Schaden). */
     public double getExecuteBonus(UUID uuid) {
-        return getLevel(uuid, AbilityType.HINRICHTUNG) * 0.10;
+        return getLevel(uuid, AbilityType.HINRICHTUNG) * 0.15;
     }
 
-    /** Wirbelwind-Chance auf Doppel-Treffer (50% Schaden, max 50% bei Lv 10). */
+    /** Wirbelwind-Chance auf Doppel-Treffer (50% Schaden, max 50% bei Lv 7+). */
     public double getWhirlwindChance(UUID uuid) {
-        return Math.min(getLevel(uuid, AbilityType.WIRBELWIND) * 0.05, 0.50);
+        return Math.min(getLevel(uuid, AbilityType.WIRBELWIND) * 0.08, 0.50);
     }
 
     // ── Bogen-Fähigkeiten ─────────────────────────────────────────────────
 
     /** Bogen-Schaden-Multiplikator (1.0 = kein Bonus). */
     public double getBowPowerMultiplier(UUID uuid) {
-        return 1.0 + getLevel(uuid, AbilityType.BOGENSTAERKE) * 0.05;
+        return 1.0 + getLevel(uuid, AbilityType.BOGENSTAERKE) * 0.07;
     }
 
     /** Chance auf zweiten Pfeil (80% Schaden, max 40% bei Lv 10). */
@@ -235,9 +235,9 @@ public class AbilityManager {
 
     // ── Feuerball-Fähigkeiten ──────────────────────────────────────────────
 
-    /** Feuerball-Schaden-Multiplikator (1.0 = kein Bonus). Lv15 = 2.2× */
+    /** Feuerball-Schaden-Multiplikator (1.0 = kein Bonus). Lv15 = 2.65× */
     public double getFireballPowerMultiplier(UUID uuid) {
-        return 1.0 + getLevel(uuid, AbilityType.FEUERKRAFT) * 0.08;
+        return 1.0 + getLevel(uuid, AbilityType.FEUERKRAFT) * 0.11;
     }
 
     /** Chance auf Brand-DOT (3 Ticks à 8% des Treffers, max 70% bei Lv 10). */

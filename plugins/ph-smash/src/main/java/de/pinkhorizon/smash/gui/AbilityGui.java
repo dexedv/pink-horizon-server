@@ -183,23 +183,23 @@ public class AbilityGui implements Listener {
 
     private static String effectValue(AbilityType type, int level) {
         return switch (type) {
-            case BERSERKER      -> "§c+" + (level * 8) + "% §7Schaden bei <35% HP";
+            case BERSERKER      -> "§c+" + (level * 12) + "% §7Schaden bei <35% HP";
             case DODGE          -> "§b" + (level * 4) + "% §7Ausweich-Chance";
             case HEAL_ON_KILL   -> "§4+" + (level * 8) + "% §7max-HP Heilung";
             case EXPLOSIVE      -> "§6" + (level * 7) + "% §7Chance 2× Pfeil-Schaden";
             case COIN_BOOST     -> "§e+" + (level * 20) + "% §7Münzen";
             case REGEN          -> "§a+" + String.format("%.1f", level * 1.5) + " §7HP/5s";
             case IMMUN          -> "§d" + level + "% §7Effekt-Resist";
-            case KRITISCH       -> "§c" + (level * 3) + "% §7Krit-Chance §8(2,5× Schaden)";
-            case HINRICHTUNG    -> "§4+" + (level * 10) + "% §7Schwert-Schaden §8(<25% Boss-HP)";
-            case WIRBELWIND     -> "§6" + (level * 5) + "% §7Chance: Doppel-Treffer §8(50% Schaden)";
-            case BOGENSTAERKE   -> "§a+" + (level * 5) + "% §7Bogen-Schaden";
+            case KRITISCH       -> "§c" + Math.min(level * 5, 60) + "% §7Krit-Chance §8(2,5× Schaden)";
+            case HINRICHTUNG    -> "§4+" + (level * 15) + "% §7Schwert-Schaden §8(<25% Boss-HP)";
+            case WIRBELWIND     -> "§6" + Math.min(level * 8, 50) + "% §7Chance: Doppel-Treffer §8(50% Schaden)";
+            case BOGENSTAERKE   -> "§a+" + (level * 7) + "% §7Bogen-Schaden";
             case MEHRFACHSCHUSS -> "§e" + (level * 4) + "% §7Chance: 2. Pfeil §8(80% Schaden)";
             case GIFTPFEIL      -> "§2" + (level * 5) + "% §7Chance: Gift-DOT §8(3× 5% des Treffers)";
             case BLUTUNG         -> "§c" + (level * 5) + "% §7Blutungs-Chance §8(" + (3 + AbilityType.TIEFE_HIEBE.maxLevel) + " Ticks max × 6%)";
             case KLAFFENDE_WUNDE -> "§4+" + (level * 10) + "% §7Blut-DOT-Schaden §8(Multiplikator)";
             case TIEFE_HIEBE     -> "§7+" + level + " §7Tick(s) §8(Gesamt: " + (3 + level) + " Ticks)";
-            case FEUERKRAFT      -> "§6+" + (level * 8) + "% §7Feuerball-Schaden";
+            case FEUERKRAFT      -> "§6+" + (level * 11) + "% §7Feuerball-Schaden";
             case VERBRENNUNG     -> "§c" + (level * 7) + "% §7Chance: Brand-DOT §8(3× 8% des Treffers)";
             case DOPPELFEUER     -> "§e" + (level * 5) + "% §7Chance: 2. Feuerball §8(80% Schaden)";
         };

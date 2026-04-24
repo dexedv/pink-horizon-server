@@ -66,7 +66,7 @@ public class UpgradeManager {
 
     /** Gibt den Schaden-Multiplikator zurück (1.0 = kein Bonus) */
     public double getAttackMultiplier(UUID uuid) {
-        return 1.0 + 0.08 * getLevel(uuid, UpgradeType.ATTACK);
+        return Math.pow(1.03, getLevel(uuid, UpgradeType.ATTACK));
     }
 
     /** Gibt den eingehenden Schaden-Multiplikator zurück (<1.0 = weniger Schaden, min 0.25) */
