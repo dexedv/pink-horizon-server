@@ -72,6 +72,69 @@ public class HologramManager {
         admin.sendMessage("§a✔ §7Hologramm §e" + type.title + " §7gesetzt. Lädt Daten...");
     }
 
+    /**
+     * Platziert alle 7 Hologramme symmetrisch um die aktuelle Position des Admins:
+     * - COMMANDS  in der Mitte
+     * - 6 weitere im Kreis (Radius = radius Blöcke), ausgerichtet an der Blickrichtung
+     *
+     * Anordnung (im Uhrzeigersinn, vorwärts = Blickrichtung):
+     *   vorne:        KILLS
+     *   rechts-vorne: LEVEL
+     *   rechts-hinten:DAMAGE
+     *   hinten:       COINS
+     *   links-hinten: PRESTIGE
+     *   links-vorne:  WEEKLY
+     */
+    public void setupHolosAroundCenter(Player admin, double radius) {
+        Location center = admin.getLocation().clone();
+
+        // COMMANDS in der Mitte (leicht über Kopfhöhe)
+        Location cmdLoc = center.clone().add(0, 0.3, 0);
+        saveLocation(HologramType.COMMANDS, cmdLoc);
+        spawnEntity(HologramType.COMMANDS, cmdLoc);
+
+        // 6 äußere Hologramme – Winkel relativ zur Blickrichtung des Admins
+        // Minecraft-Yaw: 0° = Süd, 90° = West, 180° = Nord, -90°/270° = Ost
+        // Umrechnung: Winkel_von_Nord = yaw + 180°
+        double yaw = admin.getLocation().getYaw();
+        double forwardAngleFromNorth = yaw + 180.0;
+
+        record RingEntry(HologramType type, double relAngle) {}
+        List<RingEntry> ring = List.of(
+            new RingEntry(HologramType.KILLS,     0),    // vorne
+            new RingEntry(HologramType.LEVEL,    60),    // rechts-vorne
+            new RingEntry(HologramType.DAMAGE,  120),    // rechts-hinten
+            new RingEntry(HologramType.COINS,   180),    // hinten
+            new RingEntry(HologramType.PRESTIGE,240),    // links-hinten
+            new RingEntry(HologramType.WEEKLY,  300)     // links-vorne
+        );
+
+        for (RingEntry entry : ring) {
+            double finalAngleDeg = forwardAngleFromNorth + entry.relAngle();
+            double rad = Math.toRadians(finalAngleDeg);
+            double dx  =  Math.sin(rad) * radius;
+            double dz  = -Math.cos(rad) * radius;
+            Location loc = center.clone().add(dx, 0.3, dz);
+            saveLocation(entry.type(), loc);
+            spawnEntity(entry.type(), loc);
+        }
+
+        admin.sendMessage("§8§m──────────────────────────────");
+        admin.sendMessage("§a§l✔ §7Alle §f7 §7Hologramme gesetzt!");
+        admin.sendMessage("§8§m──────────────────────────────");
+        admin.sendMessage("  §7Radius§8:        §f" + radius + " §7Blöcke");
+        admin.sendMessage("  §7Blickrichtung§8: §f" + String.format("%.0f°", ((yaw % 360) + 360) % 360));
+        admin.sendMessage("  §7Mitte§8:         §fCOMMANDS §8(Hilfe-Holo)");
+        admin.sendMessage("  §7Ring§8:");
+        admin.sendMessage("   §8vorne§8:         §c⚔ §7KILLS");
+        admin.sendMessage("   §8rechts-vorne§8:  §a★ §7LEVEL");
+        admin.sendMessage("   §8rechts-hinten§8: §e✦ §7DAMAGE");
+        admin.sendMessage("   §8hinten§8:        §6✦ §7COINS");
+        admin.sendMessage("   §8links-hinten§8:  §d★ §7PRESTIGE");
+        admin.sendMessage("   §8links-vorne§8:   §b⏳ §7WEEKLY");
+        admin.sendMessage("§8§m──────────────────────────────");
+    }
+
     /** Beim Plugin-Disable alle Holograms entfernen */
     public void removeAll() {
         if (refreshTask != null) refreshTask.cancel();
