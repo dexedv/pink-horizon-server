@@ -12,7 +12,7 @@ import java.util.List;
 
 public class HelpHoloCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> LINES = List.of(
+    private static final List<String> LINES_1 = List.of(
         "<bold><gradient:#FF69B4:#9B59B6>✦ Pink Horizon – Survival ✦</gradient></bold>",
         " ",
         "<bold><gold>⚙ Allgemein</gold></bold>",
@@ -42,7 +42,11 @@ public class HelpHoloCommand implements CommandExecutor, TabCompleter {
         " ",
         "<bold><gold>🗺 Warps</gold></bold>",
         "<gray>/warps           <white>→ Alle Warps",
-        "<gray>/warp <Name>     <white>→ Zu Warp tp.",
+        "<gray>/warp <Name>     <white>→ Zu Warp tp."
+    );
+
+    private static final List<String> LINES_2 = List.of(
+        "<bold><gradient:#FF69B4:#9B59B6>✦ Pink Horizon – Survival ✦</gradient></bold>",
         " ",
         "<bold><gold>💰 Wirtschaft</gold></bold>",
         "<gray>/balance        <white>→ Kontostand",
@@ -89,27 +93,36 @@ public class HelpHoloCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        String sub = args.length > 0 ? args[0].toLowerCase() : "place";
+        String sub  = args.length > 0 ? args[0].toLowerCase() : "";
+        String part = args.length > 1 ? args[1] : "";
 
         switch (sub) {
             case "place" -> {
                 var hm = plugin.getHologramManager();
-                hm.remove("help");
-                hm.remove("help-title");
-                hm.remove("help-col1");
-                hm.remove("help-col2");
-                hm.remove("help-col3");
-                hm.create("help", player.getLocation(), LINES, 0.85f);
-                player.sendMessage("§aHilfe-Hologram gesetzt!");
+                switch (part) {
+                    case "1" -> {
+                        hm.remove("help-1");
+                        hm.remove("help");          // altes Einzel-Holo aufräumen
+                        hm.create("help-1", player.getLocation(), LINES_1, 0.85f);
+                        player.sendMessage("§aHilfe-Hologram Teil 1 gesetzt!");
+                    }
+                    case "2" -> {
+                        hm.remove("help-2");
+                        hm.create("help-2", player.getLocation(), LINES_2, 0.85f);
+                        player.sendMessage("§aHilfe-Hologram Teil 2 gesetzt!");
+                    }
+                    default -> player.sendMessage("§cVerwendung: /helpholo place <1|2>");
+                }
             }
             case "remove" -> {
                 var hm = plugin.getHologramManager();
-                boolean any = hm.remove("help") | hm.remove("help-title")
+                boolean any = hm.remove("help-1") | hm.remove("help-2")
+                            | hm.remove("help")   | hm.remove("help-title")
                             | hm.remove("help-col1") | hm.remove("help-col2")
                             | hm.remove("help-col3");
-                player.sendMessage(any ? "§aHilfe-Hologram entfernt!" : "§cKein Hilfe-Hologram gefunden.");
+                player.sendMessage(any ? "§aHilfe-Hologram(e) entfernt!" : "§cKein Hilfe-Hologram gefunden.");
             }
-            default -> player.sendMessage("§cVerwendung: /helpholo [place|remove]");
+            default -> player.sendMessage("§cVerwendung: /helpholo <place <1|2>|remove>");
         }
         return true;
     }
@@ -117,6 +130,7 @@ public class HelpHoloCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 1) return List.of("place", "remove");
+        if (args.length == 2 && args[0].equalsIgnoreCase("place")) return List.of("1", "2");
         return List.of();
     }
 }
