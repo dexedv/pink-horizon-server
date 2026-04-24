@@ -147,7 +147,7 @@ public class UpgradeManager {
             speedAttr.getModifiers().stream()
                 .filter(m -> m.getName().equals(MOD_KEY_SPEED))
                 .toList().forEach(speedAttr::removeModifier);
-            double speedBonus = 0.03 * getLevel(uuid, UpgradeType.SPEED);
+            double speedBonus = 0.015 * getLevel(uuid, UpgradeType.SPEED);
             if (speedBonus > 0) {
                 speedAttr.addModifier(new AttributeModifier(
                     MOD_KEY_SPEED, speedBonus, AttributeModifier.Operation.ADD_SCALAR));
