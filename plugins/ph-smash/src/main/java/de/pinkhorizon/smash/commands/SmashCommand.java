@@ -134,9 +134,9 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
             case "sethologram", "setholo" -> {
                 if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
                 if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
-                if (args.length < 2) { p.sendMessage("§c/stb sethologram <kills|level|damage|coins|prestige|commands>"); return true; }
+                if (args.length < 2) { p.sendMessage("§c/stb sethologram <kills|level|damage|coins|prestige|weekly|commands>"); return true; }
                 HologramType type = HologramType.fromKey(args[1]);
-                if (type == null) { p.sendMessage("§cUnbekannter Typ. Wähle: kills, level, damage, coins, prestige, commands"); return true; }
+                if (type == null) { p.sendMessage("§cUnbekannter Typ. Wähle: kills, level, damage, coins, prestige, weekly, commands"); return true; }
                 plugin.getHologramManager().setHologram(p, type);
             }
 
@@ -190,7 +190,7 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2 && args[0].equalsIgnoreCase("setnpc"))
             return List.of("leveldown", "upgrade", "join", "leave").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
         if (args.length == 2 && (args[0].equalsIgnoreCase("sethologram") || args[0].equalsIgnoreCase("setholo")))
-            return List.of("kills", "level", "damage", "coins", "prestige", "commands").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
+            return List.of("kills", "level", "damage", "coins", "prestige", "weekly", "commands").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
         return List.of();
     }
 }

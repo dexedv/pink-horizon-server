@@ -41,7 +41,9 @@ public class HologramManager {
         }
     }
 
-    private record LeaderEntry(String name, long value) {}
+    private record LeaderEntry(String name, long value, long extra) {
+        LeaderEntry(String name, long value) { this(name, value, 0); }
+    }
 
     // ── Felder ─────────────────────────────────────────────────────────────
 
@@ -180,16 +182,17 @@ public class HologramManager {
         if (type == HologramType.WEEKLY) {
             java.time.LocalDate weekStart = java.time.LocalDate.now()
                 .with(java.time.DayOfWeek.MONDAY);
-            String sql = "SELECT uuid, kills FROM smash_weekly WHERE week_start = ? AND kills > 0 ORDER BY kills DESC LIMIT 10";
+            String sql = "SELECT uuid, kills, best_level FROM smash_weekly WHERE week_start = ? AND kills > 0 ORDER BY kills DESC LIMIT 10";
             try (Connection c = plugin.getDb().getConnection();
                  PreparedStatement st = c.prepareStatement(sql)) {
                 st.setDate(1, java.sql.Date.valueOf(weekStart));
                 try (ResultSet rs = st.executeQuery()) {
                     while (rs.next()) {
                         UUID   uuid  = UUID.fromString(rs.getString("uuid"));
-                        long   value = rs.getLong("kills");
+                        long   kills = rs.getLong("kills");
+                        long   best  = rs.getLong("best_level");
                         String name  = Bukkit.getOfflinePlayer(uuid).getName();
-                        result.add(new LeaderEntry(name != null ? name : "???", value));
+                        result.add(new LeaderEntry(name != null ? name : "???", kills, best));
                     }
                 }
             } catch (SQLException e) {
@@ -225,33 +228,49 @@ public class HologramManager {
 
     private Component buildText(HologramType type, List<LeaderEntry> data) {
         if (type == HologramType.COMMANDS) return buildCommandsText();
-        StringBuilder sb = new StringBuilder();
-        sb.append(type.title).append("\n");
-        sb.append("§8§m──────────────────\n");
 
-        String[] rankColors = {"§6", "§7", "§8"};  // Gold / Silber / Bronze
+        StringBuilder sb = new StringBuilder();
+
+        // Wochendatum im Header nur beim Weekly-Hologramm
+        if (type == HologramType.WEEKLY) {
+            java.time.LocalDate monday = java.time.LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+            java.time.LocalDate sunday = monday.plusDays(6);
+            String weekRange = String.format("%02d.%02d. – %02d.%02d.",
+                monday.getDayOfMonth(), monday.getMonthValue(),
+                sunday.getDayOfMonth(), sunday.getMonthValue());
+            sb.append(type.title).append("\n");
+            sb.append("§8§m──────────────────\n");
+            sb.append("§7Woche: §f").append(weekRange).append("\n");
+            sb.append("§8§m──────────────────\n");
+        } else {
+            sb.append(type.title).append("\n");
+            sb.append("§8§m──────────────────\n");
+        }
+
+        String[] medals = {"§6✦ ", "§7✦ ", "§8✦ ", "  ", "  ", "  ", "  ", "  ", "  ", "  "};
+        String[] rankColors = {"§6", "§7", "§8", "§7", "§7", "§7", "§7", "§7", "§7", "§7"};
 
         for (int i = 0; i < data.size(); i++) {
             LeaderEntry e    = data.get(i);
+            String medal     = i < medals.length ? medals[i] : "  ";
             String rankColor = i < rankColors.length ? rankColors[i] : "§7";
-            String medal     = i == 0 ? "§6✦ " : i == 1 ? "§7✦ " : i == 2 ? "§8✦ " : "  ";
             String valueStr  = switch (type) {
-                case KILLS    -> "§c" + e.value + " §7Kills";
-                case LEVEL    -> "§aLv. §2" + e.value;
-                case DAMAGE   -> "§e" + formatDmg(e.value) + " §7Dmg";
-                case COINS    -> "§6" + e.value + " §7Münzen";
-                case PRESTIGE -> "§d✦ §f" + e.value + " §7Prestige";
-                case WEEKLY   -> "§b" + e.value + " §7Kills diese Woche";
+                case KILLS    -> "§c" + e.value() + " §7Kills";
+                case LEVEL    -> "§aLv. §2" + e.value();
+                case DAMAGE   -> "§e" + formatDmg(e.value()) + " §7Dmg";
+                case COINS    -> "§6" + e.value() + " §7Münzen";
+                case PRESTIGE -> "§d✦ §f" + e.value() + " §7Prestige";
+                case WEEKLY   -> "§b" + e.value() + " §7Kills  §8(§7Lv. §c" + e.extra() + "§8)";
                 case COMMANDS -> "";
             };
             sb.append(medal).append(rankColor).append("#").append(i + 1)
-              .append(" §f").append(e.name)
+              .append(" §f").append(e.name())
               .append(" §8– ").append(valueStr);
             if (i < data.size() - 1) sb.append("\n");
         }
 
         if (data.isEmpty()) {
-            sb.append("\n§7Noch keine Einträge vorhanden.\n§8Besiege deinen ersten Boss!");
+            sb.append("§7Noch keine Einträge vorhanden.\n§8Besiege deinen ersten Boss!");
         }
 
         sb.append("\n§8§m──────────────────");
