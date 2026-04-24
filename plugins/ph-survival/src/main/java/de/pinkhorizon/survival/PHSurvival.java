@@ -37,7 +37,6 @@ public class PHSurvival extends JavaPlugin {
     private AchievementManager achievementManager;
     private QuestManager questManager;
     private TradeManager tradeManager;
-    private SpawnPasteManager spawnPasteManager;
     private SpawnBorderManager spawnBorderManager;
     private de.pinkhorizon.survival.managers.NpcManager npcManager;
     private de.pinkhorizon.survival.managers.AuctionManager auctionManager;
@@ -77,7 +76,6 @@ public class PHSurvival extends JavaPlugin {
         bankManager        = new BankManager(this);
         questManager       = new QuestManager(this);
         tradeManager       = new TradeManager(this);
-        spawnPasteManager  = new SpawnPasteManager(this);
         spawnBorderManager = new SpawnBorderManager(this);
         npcManager         = new de.pinkhorizon.survival.managers.NpcManager(this);
         auctionManager        = new de.pinkhorizon.survival.managers.AuctionManager(this);
@@ -187,7 +185,6 @@ public class PHSurvival extends JavaPlugin {
             getCommand("schem").setTabCompleter(schemCmd);
             getCommand("flatarea").setExecutor(new FlatAreaCommand(this));
             getLogger().info("FAWE erkannt – /schem und /flatarea aktiviert.");
-            spawnPasteManager.checkAndExecute();
         }
 
         StatsCommand statsCmd = new StatsCommand(this);

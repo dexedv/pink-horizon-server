@@ -81,9 +81,6 @@ public class ResetWorldCommand implements CommandExecutor {
                 }
             }
 
-            // pending_spawn_paste.yml löschen damit keine Auto-Paste passiert
-            new File(plugin.getDataFolder(), "pending_spawn_paste.yml").delete();
-
             // Border-Punkte leeren
             plugin.getSpawnBorderManager().clearPoints();
 
