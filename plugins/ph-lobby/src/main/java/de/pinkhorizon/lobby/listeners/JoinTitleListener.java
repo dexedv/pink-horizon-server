@@ -1,10 +1,13 @@
 package de.pinkhorizon.lobby.listeners;
 
+import de.pinkhorizon.core.PHCore;
 import de.pinkhorizon.lobby.PHLobby;
 import de.pinkhorizon.lobby.managers.HotbarManager;
 import de.pinkhorizon.lobby.managers.ScoreboardManager;
 import de.pinkhorizon.lobby.managers.TabManager;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -18,6 +21,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.Duration;
 
 public class JoinTitleListener implements Listener {
@@ -89,6 +95,40 @@ public class JoinTitleListener implements Listener {
             player.sendActionBar(Component.text(
                     "\u00a7dDrücke \u00a7fLeertaste 2x \u00a7dfür einen Doppelsprung!"));
         }, 5L);
+
+        // Discord-Verifizierungs-Hinweis (3 s verzögert, async DB-Check)
+        plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+            boolean verified = false;
+            try (Connection c = PHCore.getInstance().getDatabaseManager().getConnection();
+                 PreparedStatement ps = c.prepareStatement(
+                     "SELECT 1 FROM discord_sync WHERE uuid = ? AND verified_at IS NOT NULL LIMIT 1")) {
+                ps.setString(1, player.getUniqueId().toString());
+                try (ResultSet rs = ps.executeQuery()) { verified = rs.next(); }
+            } catch (Exception ignored) {}
+
+            if (!verified && player.isOnline()) {
+                plugin.getServer().getScheduler().runTask(plugin, () -> sendDiscordHint(player));
+            }
+        }, 60L); // 3 Sekunden
+    }
+
+    private static void sendDiscordHint(Player player) {
+        if (!player.isOnline()) return;
+        Component line = Component.text("─────────────────────────────────", TextColor.color(0xFF69B4));
+        Component icon = Component.text(" \uD83D\uDCE2 ", NamedTextColor.WHITE);
+
+        Component link = Component.text("discord.gg/j5C4h5XaK6", TextColor.color(0x5865F2), TextDecoration.UNDERLINED)
+            .clickEvent(ClickEvent.openUrl("https://discord.gg/j5C4h5XaK6"))
+            .hoverEvent(HoverEvent.showText(Component.text("Klicken zum Öffnen", NamedTextColor.GRAY)));
+
+        player.sendMessage(line);
+        player.sendMessage(icon
+            .append(Component.text("Du bist noch nicht im Discord verifiziert!", TextColor.color(0xFF69B4), TextDecoration.BOLD)));
+        player.sendMessage(Component.text("   Tritt unserem Discord bei und verifiziere dich: ", NamedTextColor.GRAY)
+            .append(link));
+        player.sendMessage(Component.text("   Danach erhältst du Zugang zu exklusiven Channels.", NamedTextColor.DARK_GRAY));
+        player.sendMessage(line);
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 1.5f);
     }
 
     private void playRankSound(Player player, String rankId) {
