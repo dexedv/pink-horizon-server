@@ -156,7 +156,7 @@ async function buildStatusEmbed() {
       },
       { name: '🖥️ Server', value: serverField || '–', inline: false },
     )
-    .setFooter({ text: `Zuletzt geprüft: ${timeStr} Uhr · Aktualisierung alle 60s` })
+    .setFooter({ text: `Zuletzt aktualisiert: ${timeStr} Uhr · Aktualisierung stündlich` })
     .setTimestamp();
 }
 
@@ -170,22 +170,20 @@ let monitorInterval   = null;
 
 async function runMonitor(guild) {
   try {
-    // Status embed
+    // Status embed – stündlich: alte Nachricht löschen, neue posten
     const statusCh = state.statusChannelId ? guild.channels.cache.get(state.statusChannelId) : null;
     if (statusCh) {
       const embed = await buildStatusEmbed();
+      // Alte Nachricht löschen
       if (state.statusMessageId) {
-        try {
-          const msg = await statusCh.messages.fetch(state.statusMessageId);
-          await msg.edit({ embeds: [embed] });
-        } catch {
-          const msg = await statusCh.send({ embeds: [embed] });
-          state.statusMessageId = msg.id;
-        }
-      } else {
-        const msg = await statusCh.send({ embeds: [embed] });
-        state.statusMessageId = msg.id;
+        await statusCh.messages.fetch(state.statusMessageId)
+          .then(msg => msg.delete())
+          .catch(() => {});
+        state.statusMessageId = null;
       }
+      // Neue Nachricht posten
+      const msg = await statusCh.send({ embeds: [embed] });
+      state.statusMessageId = msg.id;
     }
 
     // Voice stat channels (rate-limited: max 2 per 10 min)
@@ -212,7 +210,7 @@ async function runMonitor(guild) {
 function startMonitor(guild) {
   if (monitorInterval) clearInterval(monitorInterval);
   runMonitor(guild);
-  monitorInterval = setInterval(() => runMonitor(guild), 60_000);
+  monitorInterval = setInterval(() => runMonitor(guild), 60 * 60_000); // stündlich
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
