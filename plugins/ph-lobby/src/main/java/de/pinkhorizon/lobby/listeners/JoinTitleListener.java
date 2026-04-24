@@ -57,9 +57,6 @@ public class JoinTitleListener implements Listener {
         // Hotbar-Items
         HotbarManager.giveHotbar(player, plugin);
 
-        // Server-Status BossBar anzeigen
-        plugin.getBossBarManager().showAll(player);
-
         // Scoreboard
         scoreboardManager.giveScoreboard(player);
 
@@ -95,7 +92,6 @@ public class JoinTitleListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        plugin.getBossBarManager().hideAll(player);
         scoreboardManager.removeScoreboard(player);
 
         event.quitMessage(

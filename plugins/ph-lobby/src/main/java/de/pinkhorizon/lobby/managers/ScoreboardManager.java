@@ -2,8 +2,6 @@ package de.pinkhorizon.lobby.managers;
 
 import de.pinkhorizon.lobby.PHLobby;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -16,6 +14,7 @@ import org.bukkit.scoreboard.Team;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,7 +31,7 @@ public class ScoreboardManager {
     };
     private int titleFrame = 0;
 
-    // 16 einzigartige unsichtbare Eintraege (§0§r .. §f§r)
+    // 16 unique invisible entries (§0§r .. §f§r)
     private static final String[] ENTRIES;
     static {
         String hex = "0123456789abcdef";
@@ -47,6 +46,14 @@ public class ScoreboardManager {
         startUpdateTask();
     }
 
+    // Fixed header + footer slots: blank, title, blank, online, date, separator → 6 lines
+    // + one line per server + website line at score 0 → total = 7 + servers.size()
+    private int lineCount() {
+        ServerStatusManager ssm = plugin.getServerStatusManager();
+        if (ssm == null) return 10; // fallback
+        return 7 + ssm.getServers().size();
+    }
+
     public void giveScoreboard(Player player) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
 
@@ -54,8 +61,8 @@ public class ScoreboardManager {
                 Component.text(TITLE_FRAMES[0]));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
-        // Teams + Eintraege einmalig registrieren
-        for (int i = 0; i < 9; i++) {
+        int lines = lineCount();
+        for (int i = 0; i < lines; i++) {
             Team team = board.registerNewTeam("line" + i);
             team.addEntry(ENTRIES[i]);
             obj.getScore(ENTRIES[i]).setScore(i);
@@ -69,6 +76,17 @@ public class ScoreboardManager {
     public void removeScoreboard(Player player) {
         playerBoards.remove(player.getUniqueId());
         player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
+    }
+
+    /** Wird vom ServerStatusManager nach jedem Ping-Zyklus aufgerufen. */
+    public void refreshAll() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Scoreboard board = playerBoards.get(player.getUniqueId());
+            if (board == null) continue;
+            Objective obj = board.getObjective("ph_sb");
+            if (obj == null) continue;
+            refreshLines(player, board, obj);
+        }
     }
 
     private void startUpdateTask() {
@@ -86,22 +104,41 @@ public class ScoreboardManager {
     }
 
     private void refreshLines(Player player, Scoreboard board, Objective obj) {
-        String date  = LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-        int online   = Bukkit.getOnlinePlayers().size();
+        ServerStatusManager ssm = plugin.getServerStatusManager();
+        List<ServerStatusManager.ServerEntry> servers = (ssm != null) ? ssm.getServers() : List.of();
 
-        // Score 10 = oberste Zeile, Score 0 = unterste
-        setLine(board, 8,  " ");
-        setLine(board, 7,  "\u00a7d\u00a7l\u00bb \u00a7fServer-Hub");
-        setLine(board, 6,  "  ");
-        setLine(board, 5,  "\u00a77Online: \u00a7d\u00a7l" + online);
-        setLine(board, 4,  "\u00a77Datum:  \u00a7f" + date);
-        setLine(board, 3,  "   ");
-        setLine(board, 2,  "\u00a77\u00bb \u00a7aSurvival");
-        setLine(board, 1,  "    ");
-        setLine(board, 0,  "\u00a7dplay.pinkhorizon.de");
+        String date   = LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        int    online = Bukkit.getOnlinePlayers().size();
+
+        // top = highest score (topmost visible line)
+        int top = servers.size() + 6;
+
+        setLine(board, top,     " ");
+        setLine(board, top - 1, "\u00a7d\u00a7l\u00bb \u00a7fServer-Hub");
+        setLine(board, top - 2, "  ");
+        setLine(board, top - 3, "\u00a77Online: \u00a7d\u00a7l" + online);
+        setLine(board, top - 4, "\u00a77Datum:  \u00a7f" + date);
+        setLine(board, top - 5, "   ");
+
+        // Server-Status-Zeilen
+        for (int i = 0; i < servers.size(); i++) {
+            ServerStatusManager.ServerEntry srv = servers.get(i);
+            ServerStatusManager.Status status = (ssm != null) ? ssm.getStatus(srv.id()) : ServerStatusManager.Status.OFFLINE;
+            int players = (ssm != null) ? ssm.getPlayerCount(srv.id()) : 0;
+            setLine(board, top - 6 - i, buildServerLine(srv.display(), status, players));
+        }
+
+        setLine(board, 0, "\u00a7dplay.pinkhorizon.de");
     }
 
-    // Nur den Team-Prefix updaten – keine Teams neu registrieren
+    private String buildServerLine(String display, ServerStatusManager.Status status, int players) {
+        return switch (status) {
+            case ONLINE     -> "\u00a7a\u25cf \u00a7f" + display + " \u00a78| \u00a7f" + players + " \u00a77Spieler";
+            case RESTARTING -> "\u00a7e\u25cf \u00a7f" + display + " \u00a78| \u00a7eNeustart...";
+            case OFFLINE    -> "\u00a7c\u25cf \u00a7f" + display + " \u00a78| \u00a7cOffline";
+        };
+    }
+
     private void setLine(Scoreboard board, int score, String text) {
         Team team = board.getTeam("line" + score);
         if (team == null) return;

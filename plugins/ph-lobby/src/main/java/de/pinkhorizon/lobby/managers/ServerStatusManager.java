@@ -88,7 +88,7 @@ public class ServerStatusManager {
                 // OFFLINE bleibt OFFLINE
             }
         }
-        plugin.getBossBarManager().updateAll(this);
+        plugin.getScoreboardManager().refreshAll();
     }
 
     public void stop() {
