@@ -161,7 +161,7 @@ public class ScoreboardManager {
             setLine(board, top - 7 - i, buildServerLine(srv.display(), status, players));
         }
 
-        setLine(board, 0, "\u00a7dplay.pinkhorizon.de");
+        setLine(board, 0, "\u00a7dplay.pinkhorizon.fun");
     }
 
     private String buildServerLine(String display, ServerStatusManager.Status status, int players) {

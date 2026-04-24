@@ -59,7 +59,7 @@ public class TabManager {
             "\n\u00a77Lobby: \u00a7d" + lobby
             + "  \u00a77\u00a7l|\u00a7r  \u00a77Netzwerk: \u00a7d" + network
             + "  \u00a77\u00a7l|\u00a7r  \u00a77Zeit: \u00a7f" + time
-            + "\n\u00a77play.pinkhorizon.de\n"
+            + "\n\u00a77play.pinkhorizon.fun\n"
         );
     }
 
