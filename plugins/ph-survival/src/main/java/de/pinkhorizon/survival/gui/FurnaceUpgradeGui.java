@@ -43,7 +43,8 @@ public class FurnaceUpgradeGui implements Listener {
 
     public void open(Player player, Block furnaceBlock) {
         openBlocks.put(player.getUniqueId(), furnaceBlock);
-        plugin.getFurnaceUpgradeManager().claimOwnership(furnaceBlock, player.getUniqueId().toString());
+        if (plugin.getClaimManager().isOwner(furnaceBlock.getChunk(), player.getUniqueId()))
+            plugin.getFurnaceUpgradeManager().claimOwnership(furnaceBlock, player.getUniqueId().toString());
 
         FurnaceUpgradeManager mgr = plugin.getFurnaceUpgradeManager();
         int currentLevel = mgr.getLevel(furnaceBlock);

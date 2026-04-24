@@ -40,7 +40,8 @@ public class HopperUpgradeGui implements Listener {
 
     public void open(Player player, Block hopperBlock) {
         openBlocks.put(player.getUniqueId(), hopperBlock);
-        plugin.getHopperUpgradeManager().claimOwnership(hopperBlock, player.getUniqueId().toString());
+        if (plugin.getClaimManager().isOwner(hopperBlock.getChunk(), player.getUniqueId()))
+            plugin.getHopperUpgradeManager().claimOwnership(hopperBlock, player.getUniqueId().toString());
 
         HopperUpgradeManager mgr = plugin.getHopperUpgradeManager();
         int currentLevel = mgr.getLevel(hopperBlock);
