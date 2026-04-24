@@ -849,17 +849,8 @@ public class ArenaManager {
         if (arena == null || !arena.isBossReadyToSpawn()) return;
         arena.setBossReadyToSpawn(false);
 
-        // Summon-Item entfernen
-        for (int i = 0; i < player.getInventory().getSize(); i++) {
-            ItemStack it = player.getInventory().getItem(i);
-            if (it != null && it.getType() == Material.NETHER_STAR && it.hasItemMeta()) {
-                Component name = it.getItemMeta().displayName();
-                if (name != null && LegacyComponentSerializer.legacySection().serialize(name).contains(SUMMON_ITEM_NAME)) {
-                    player.getInventory().setItem(i, null);
-                    break;
-                }
-            }
-        }
+        // Inventar komplett neu setzen: entfernt Kristall + alle Enchant-Belohnungen der letzten Runde
+        giveArenaItems(player);
 
         spawnBossInArena(arena);
         plugin.getScoreboardManager().update(player);
