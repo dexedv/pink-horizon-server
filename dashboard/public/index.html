@@ -2665,9 +2665,10 @@ function showToast(msg, ok=true) {
 const SYSMON_ORDER  = ['velocity','lobby','survival','minigames','smash','mysql','dashboard'];
 const SYSMON_LABELS = { velocity:'Velocity Proxy', lobby:'Lobby', survival:'Survival', minigames:'Minigames', smash:'Smash the Boss', mysql:'MySQL', dashboard:'Dashboard' };
 const SYSMON_SECTIONS = [
-  { label: '🖥️ SERVER',    keys: ['velocity','lobby','survival','minigames','smash'] },
-  { label: '🗄️ MYSQL',     keys: ['mysql'] },
-  { label: '📊 DASHBOARD', keys: ['dashboard'] },
+  { label: '📡 Velocity',   keys: ['velocity'] },
+  { label: '🖥️ Server',    keys: ['lobby','survival','minigames','smash'] },
+  { label: '🗄️ Datenbank', keys: ['mysql'] },
+  { label: '📊 Dashboard',  keys: ['dashboard'] },
 ];
 
 function renderSysmon() {
@@ -2743,7 +2744,7 @@ function updateSysmonStats(data) {
   }
 
   for (const k of SYSMON_ORDER) {
-    const el = document.getElementById(`sm-${k}`); if (!el) return;
+    const el = document.getElementById(`sm-${k}`); if (!el) continue;
     const d = data[k];
     if (!d) {
       el.innerHTML = `<div style="font-weight:700;font-size:.95rem;margin-bottom:6px">${SYSMON_LABELS[k]||k}</div><span class="badge b-red">Offline</span>`;
