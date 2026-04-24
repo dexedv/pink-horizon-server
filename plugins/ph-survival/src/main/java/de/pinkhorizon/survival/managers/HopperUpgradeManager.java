@@ -60,10 +60,17 @@ public class HopperUpgradeManager {
                 "CREATE TABLE IF NOT EXISTS sv_hopper_upgrades (" +
                 "  hopper_id CHAR(36) NOT NULL PRIMARY KEY," +
                 "  level TINYINT NOT NULL DEFAULT 1," +
+                "  owner_uuid VARCHAR(36)," +
                 "  world VARCHAR(64)," +
                 "  x INT, y INT, z INT" +
                 ")"
             );
+            try (ResultSet rs = c.getMetaData().getColumns(null, null, "sv_hopper_upgrades", "owner_uuid")) {
+                if (!rs.next()) {
+                    s.execute("ALTER TABLE sv_hopper_upgrades ADD COLUMN owner_uuid VARCHAR(36) AFTER level");
+                    plugin.getLogger().info("[HopperUpgrade] owner_uuid Spalte hinzugefügt.");
+                }
+            }
         } catch (SQLException e) {
             plugin.getLogger().warning("[HopperUpgrade] Tabelle: " + e.getMessage());
         }
@@ -100,17 +107,21 @@ public class HopperUpgradeManager {
         if (current >= MAX_LEVEL) return false;
         int next = current + 1;
         if (!plugin.getEconomyManager().withdraw(player.getUniqueId(), COSTS[next])) return false;
-        setLevel(block, next);
+        setLevel(block, next, player.getUniqueId().toString());
         return true;
     }
 
     public void setLevel(Block block, int level) {
+        setLevel(block, level, null);
+    }
+
+    private void setLevel(Block block, int level, String ownerUuid) {
         String id = locToId.get(coordKey(block));
         if (id == null) {
             id = UUID.randomUUID().toString();
             locToId.put(coordKey(block), id);
             idToLevel.put(id, level);
-            insertOrUpdate(id, level, block);
+            insertOrUpdate(id, level, block, ownerUuid);
         } else {
             idToLevel.put(id, level);
             updateLevelAsync(id, level);
@@ -171,10 +182,10 @@ public class HopperUpgradeManager {
         });
     }
 
-    private void insertOrUpdate(String id, int level, Block block) {
-        db("INSERT INTO sv_hopper_upgrades (hopper_id,level,world,x,y,z) VALUES(?,?,?,?,?,?) " +
+    private void insertOrUpdate(String id, int level, Block block, String ownerUuid) {
+        db("INSERT INTO sv_hopper_upgrades (hopper_id,level,owner_uuid,world,x,y,z) VALUES(?,?,?,?,?,?,?) " +
            "ON DUPLICATE KEY UPDATE level=VALUES(level),world=VALUES(world),x=VALUES(x),y=VALUES(y),z=VALUES(z)",
-           id, level, block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
+           id, level, ownerUuid, block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
     }
 
     private void updateLevelAsync(String id, int level) {

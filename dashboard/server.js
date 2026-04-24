@@ -986,6 +986,36 @@ wss.on('connection', (ws) => {
   });
 });
 
+// ── Survival – Ofen & Trichter Upgrades ──────────────────────────────────
+
+app.get('/api/survival/upgrades', auth, async (req, res) => {
+  const { player } = req.query;
+  if (!player) return res.status(400).json({ error: 'Kein Spielername' });
+  try {
+    const [[uuidRow]] = await poolCore.execute('SELECT uuid FROM players WHERE name = ?', [player]);
+    if (!uuidRow) return res.status(404).json({ error: 'Spieler nicht gefunden' });
+    const uuid = uuidRow.uuid;
+
+    // Kumulierte Kosten bis zum jeweiligen Level
+    const COSTS = [0, 0, 500, 2000, 6000, 16000, 41000];
+    const paid  = lvl => COSTS[Math.min(lvl, 6)] || 0;
+
+    const [furnaces] = await poolSv.execute(
+      'SELECT level, world, x, y, z FROM sv_furnace_upgrades WHERE owner_uuid = ?', [uuid]);
+    const [hoppers]  = await poolSv.execute(
+      'SELECT level, world, x, y, z FROM sv_hopper_upgrades  WHERE owner_uuid = ?', [uuid]);
+
+    const fList = furnaces.map(r => ({ level: r.level, world: r.world, x: r.x, y: r.y, z: r.z, paid: paid(r.level) }));
+    const hList = hoppers .map(r => ({ level: r.level, world: r.world, x: r.x, y: r.y, z: r.z, paid: paid(r.level) }));
+
+    res.json({
+      furnaces:  fList,
+      hoppers:   hList,
+      totalPaid: [...fList, ...hList].reduce((s, r) => s + r.paid, 0)
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── Survival – Claims & Inventar ─────────────────────────────────────────
 
 app.get('/api/survival/claims', auth, async (req, res) => {

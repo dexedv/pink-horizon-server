@@ -951,13 +951,14 @@ async function loadPl(name) {
   if (r.status===404) { el.innerHTML='<div class="empty" style="color:var(--red)">Spieler nicht gefunden</div>'; return; }
   if (!r.ok) { const e=await r.json(); el.innerHTML=`<div class="empty" style="color:var(--red)">${escH(e.error||'Fehler')}</div>`; return; }
   curPlayer = await r.json();
-  const [br, clr, ivr, tlr, vtr, dcr] = await Promise.all([
+  const [br, clr, ivr, tlr, vtr, dcr, ugr] = await Promise.all([
     apiFetch(`/api/bank/player?name=${encodeURIComponent(name)}`),
     apiFetch(`/api/survival/claims?player=${encodeURIComponent(name)}`),
     apiFetch(`/api/survival/inventory?player=${encodeURIComponent(name)}`),
     apiFetch(`/api/players/timeline?name=${encodeURIComponent(name)}`),
     apiFetch(`/api/vote/player?name=${encodeURIComponent(name)}`),
-    apiFetch(`/api/discord/player?name=${encodeURIComponent(name)}`)
+    apiFetch(`/api/discord/player?name=${encodeURIComponent(name)}`),
+    apiFetch(`/api/survival/upgrades?player=${encodeURIComponent(name)}`)
   ]);
   if (br?.ok)  { const bd = await br.json();  curPlayer.bankBalance = bd.balance; curPlayer.bankInterest = bd.lastInterest; }
   if (clr?.ok) { const cd = await clr.json(); curPlayer.claims = cd.claims; }
@@ -965,6 +966,7 @@ async function loadPl(name) {
   if (tlr?.ok) { const td = await tlr.json(); curPlayer.firstJoin = td.first_join; curPlayer.lastSeen = td.last_seen; }
   if (vtr?.ok) { const vd = await vtr.json(); curPlayer.voteCoins = vd.coins; curPlayer.totalVotes = vd.totalVotes || vd.total_votes; }
   if (dcr?.ok) { const dd = await dcr.json(); curPlayer.discordId = dd.discord_id; curPlayer.discordVerified = !!dd.discord_id; }
+  if (ugr?.ok) { const ud = await ugr.json(); curPlayer.upgrades = ud; }
   renderPlCard(curPlayer);
 }
 
@@ -1055,6 +1057,7 @@ function renderPlCard(p) {
       </div>
     </div>
     ${renderTimelineCard(p)}
+    ${renderUpgradesCard(p)}
     ${renderClaimsCard(p)}
     ${renderInventoryCard(p)}`;
 }
@@ -1068,6 +1071,50 @@ function renderTimelineCard(p) {
     <div class="stat-tbl">
       <div class="stat-row"><span class="sl">Erstbeitritt</span><span class="sv" style="color:var(--green)">${fj}</span></div>
       <div class="stat-row"><span class="sl">Zuletzt online</span><span class="sv">${ls}</span></div>
+    </div>
+  </div>`;
+}
+
+function renderUpgradesCard(p) {
+  const ud = p.upgrades;
+  if (!ud) return '';
+  const F_NAMES = ['','Normal','Verbessert','Schnell','Blitz','Quantumfusion','Plasmaschmelze'];
+  const H_NAMES = ['','Normal','Verbessert','Schnell','Blitz','Quantumflow','Plasmaflow'];
+  function upgradeRows(list, names) {
+    if (!list.length) return '<tr><td colspan="6" style="text-align:center;color:var(--muted);font-size:.82rem">Keine Einträge</td></tr>';
+    return list.map(r => {
+      const loc = r.world ? `${escH(r.world)} ${r.x} / ${r.y} / ${r.z}` : '<span style="color:var(--muted)">Im Inventar</span>';
+      return `<tr>
+        <td>${r.level}</td>
+        <td>${escH(names[r.level] || '?')}</td>
+        <td style="font-family:var(--mono);font-size:.78rem">${loc}</td>
+        <td style="color:var(--yellow);font-weight:600">${r.paid.toLocaleString('de-DE')} 💰</td>
+      </tr>`;
+    }).join('');
+  }
+  const hasFurnaces = ud.furnaces?.length > 0;
+  const hasHoppers  = ud.hoppers?.length  > 0;
+  if (!hasFurnaces && !hasHoppers) return '';
+  return `<div class="card" style="margin-top:12px">
+    <div class="card-title">⚒ Upgrades (Öfen &amp; Trichter)</div>
+    ${hasFurnaces ? `
+    <div style="font-size:.82rem;font-weight:600;color:var(--gold,#f0a030);margin:8px 0 4px">🔥 Öfen (${ud.furnaces.length})</div>
+    <div style="overflow-x:auto">
+      <table class="sql-tbl" style="width:100%">
+        <thead><tr><th>Lv.</th><th>Name</th><th>Koordinaten</th><th>Bezahlt</th></tr></thead>
+        <tbody>${upgradeRows(ud.furnaces, F_NAMES)}</tbody>
+      </table>
+    </div>` : ''}
+    ${hasHoppers ? `
+    <div style="font-size:.82rem;font-weight:600;color:var(--blue);margin:8px 0 4px">📦 Trichter (${ud.hoppers.length})</div>
+    <div style="overflow-x:auto">
+      <table class="sql-tbl" style="width:100%">
+        <thead><tr><th>Lv.</th><th>Name</th><th>Koordinaten</th><th>Bezahlt</th></tr></thead>
+        <tbody>${upgradeRows(ud.hoppers, H_NAMES)}</tbody>
+      </table>
+    </div>` : ''}
+    <div style="margin-top:10px;text-align:right;font-size:.88rem;color:var(--muted)">
+      Gesamt bezahlt: <strong style="color:var(--yellow)">${(ud.totalPaid||0).toLocaleString('de-DE')} 💰</strong>
     </div>
   </div>`;
 }
