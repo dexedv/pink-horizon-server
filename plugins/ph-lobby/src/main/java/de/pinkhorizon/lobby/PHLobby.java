@@ -7,6 +7,7 @@ import de.pinkhorizon.lobby.commands.NavigatorCommand;
 import de.pinkhorizon.lobby.commands.PortalCommand;
 import de.pinkhorizon.lobby.commands.RankCommand;
 import de.pinkhorizon.lobby.commands.SetSpawnCommand;
+import de.pinkhorizon.lobby.commands.SyncCommand;
 import de.pinkhorizon.lobby.commands.TogglePlayersCommand;
 import de.pinkhorizon.lobby.commands.VanishCommand;
 import de.pinkhorizon.lobby.listeners.DoubleJumpListener;
@@ -85,6 +86,10 @@ public class PHLobby extends JavaPlugin {
         BorderCommand borderCommand = new BorderCommand(this);
         getCommand("border").setExecutor(borderCommand);
         getCommand("border").setTabCompleter(borderCommand);
+
+        SyncCommand syncCommand = new SyncCommand(this);
+        getCommand("sync").setExecutor(syncCommand);
+        getCommand("sync").setTabCompleter(syncCommand);
 
         // Listeners
         getServer().getPluginManager().registerEvents(new JoinTitleListener(this, scoreboardManager, tabManager), this);

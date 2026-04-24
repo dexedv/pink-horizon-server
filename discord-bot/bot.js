@@ -447,6 +447,7 @@ const ROLE_DEFS = [
   { name: 'Supporter',      color: 0xFFAA00, hoist: true,  mentionable: true  },
   { name: 'Booster',        color: 0xFF73FA, hoist: false, mentionable: false },
   { name: 'Verifiziert',    color: 0x57F287, hoist: false, mentionable: false },
+  { name: 'igv',            color: 0x00FFAA, hoist: false, mentionable: false },
   { name: 'Server-Updates', color: 0x5865F2, hoist: false, mentionable: true  },
   { name: 'Neuigkeiten',    color: 0x2ECC71, hoist: false, mentionable: true  },
   { name: 'Spieler',        color: 0xAAAAAA, hoist: false, mentionable: false },
@@ -825,6 +826,95 @@ async function verifyMember(interaction) {
     ephemeral: true,
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ingame Verifikation (Code-Check)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const IGV_CHANNEL_ID  = '1497218143813242941';
+const CODE_EXPIRE_MS  = 15 * 60 * 1000;
+
+client.on('messageCreate', async message => {
+  if (message.author.bot) return;
+  if (message.channelId !== IGV_CHANNEL_ID) return;
+  if (message.guildId !== GUILD_ID) return;
+
+  const code = message.content.trim();
+
+  // Sofort löschen (Channel sauber halten)
+  await message.delete().catch(() => {});
+
+  if (!/^\d{5}$/.test(code)) {
+    const m = await message.channel.send(`${message.author} ❌ Bitte nur den **5-stelligen Code** aus dem Spiel eingeben.`);
+    setTimeout(() => m.delete().catch(() => {}), 6000);
+    return;
+  }
+
+  const pool = await getDb();
+  if (!pool) {
+    const m = await message.channel.send(`${message.author} ❌ Datenbankfehler – bitte später nochmal versuchen.`);
+    setTimeout(() => m.delete().catch(() => {}), 6000);
+    return;
+  }
+
+  try {
+    const expiry = Date.now() - CODE_EXPIRE_MS;
+    const [rows] = await pool.query(
+      'SELECT uuid, mc_name FROM discord_sync WHERE code = ? AND verified_at IS NULL AND created_at > ?',
+      [code, expiry],
+    );
+
+    if (!rows.length) {
+      const m = await message.channel.send(`${message.author} ❌ Ungültiger oder abgelaufener Code. Nutze \`/sync discord\` ingame für einen neuen Code.`);
+      setTimeout(() => m.delete().catch(() => {}), 8000);
+      return;
+    }
+
+    const { uuid, mc_name } = rows[0];
+
+    // Bereits mit anderem Discord-Account verknüpft?
+    const [existing] = await pool.query(
+      'SELECT discord_id FROM discord_sync WHERE uuid = ? AND verified_at IS NOT NULL',
+      [uuid],
+    );
+    if (existing.length && existing[0].discord_id !== message.author.id) {
+      const m = await message.channel.send(`${message.author} ❌ Dieser Minecraft-Account ist bereits mit einem anderen Discord verknüpft.`);
+      setTimeout(() => m.delete().catch(() => {}), 8000);
+      return;
+    }
+
+    // Verifizierung speichern
+    await pool.query(
+      'UPDATE discord_sync SET verified_at = ?, discord_id = ? WHERE code = ?',
+      [Date.now(), message.author.id, code],
+    );
+
+    // igv-Rolle vergeben
+    const igvRole = message.guild.roles.cache.find(r => r.name === 'igv');
+    if (igvRole) await message.member.roles.add(igvRole).catch(() => {});
+
+    // Bestätigung
+    const m = await message.channel.send({
+      embeds: [new EmbedBuilder()
+        .setColor(0x00FFAA)
+        .setTitle('✅ Ingame Verifiziert!')
+        .setDescription(`${message.author} wurde erfolgreich mit dem Minecraft-Account **\`${mc_name}\`** verknüpft!`)
+        .addFields(
+          { name: '🎮 Minecraft',  value: `\`${mc_name}\``,      inline: true },
+          { name: '💬 Discord',    value: `${message.author}`,   inline: true },
+          { name: '🏅 Rolle',      value: `\`igv\``,             inline: true },
+        )
+        .setFooter({ text: 'Pink Horizon · Ingame Verification' })
+        .setTimestamp()],
+    });
+    setTimeout(() => m.delete().catch(() => {}), 15000);
+
+  } catch (e) {
+    console.error('[IGV]', e.message);
+    const m = await message.channel.send(`${message.author} ❌ Fehler: ${e.message}`);
+    setTimeout(() => m.delete().catch(() => {}), 6000);
+  }
+});
 
 // Beim Join: nur Hinweis im #regeln (kein Auto-Zugriff)
 client.on('guildMemberAdd', async member => {

@@ -35,6 +35,9 @@ commands:
   hologram:
     description: Holograms verwalten
     usage: /hologram <create|delete|list>
+  sync:
+    description: Discord-Account mit Minecraft verknüpfen
+    usage: /sync discord
 
 permissions:
   lobby.admin:
