@@ -497,6 +497,9 @@ public class ArenaManager {
         // 10% Chance auf zufällige Verzauberung
         tryEnchantReward(player);
 
+        // AFK-Zeit gutschreiben
+        plugin.getAfkManager().onBossKill(uuid, defeatedLevel);
+
         // Combo increment
         plugin.getComboManager().increment(uuid);
 

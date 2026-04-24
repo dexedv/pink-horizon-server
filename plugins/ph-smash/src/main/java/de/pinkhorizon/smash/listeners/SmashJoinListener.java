@@ -45,6 +45,9 @@ public class SmashJoinListener implements Listener {
             plugin.getPlayerDataManager().ensurePlayer(player.getUniqueId(), player.getName());
             int personalLevel = plugin.getPlayerDataManager().getPersonalBossLevel(player.getUniqueId());
 
+            // AFK-Farm-Belohnungen berechnen und gutschreiben
+            plugin.getAfkManager().onPlayerJoin(player);
+
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (!player.isOnline()) return;
                 plugin.getUpgradeManager().applyStats(player);

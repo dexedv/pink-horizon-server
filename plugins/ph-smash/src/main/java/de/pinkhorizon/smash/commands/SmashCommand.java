@@ -159,6 +159,22 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
                 plugin.getHologramManager().setHologram(p, type);
             }
 
+            case "afkfarm" -> {
+                if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
+                long afkSec = plugin.getAfkManager().getAfkSeconds(p.getUniqueId());
+                boolean farming = plugin.getAfkManager().isFarming(p.getUniqueId());
+                if (farming) {
+                    p.sendMessage("§b⏰ §7AFK-Farm läuft bereits.");
+                    p.sendMessage("§7Gespeicherte Zeit: §b" + de.pinkhorizon.smash.managers.AfkManager.formatTime(afkSec));
+                    p.sendMessage("§7Geh offline – beim nächsten Login bekommst du deine Belohnungen.");
+                } else if (afkSec <= 0) {
+                    p.sendMessage("§c✗ §7Keine AFK-Zeit gespeichert.");
+                    p.sendMessage("§7Du verdienst §bAFK-Zeit §7durch Boss-Kills §8(30s + Boss-Level pro Kill, max 5 Min)§7.");
+                } else {
+                    plugin.getAfkManager().startFarming(p);
+                }
+            }
+
             case "forge" -> {
                 if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
                 plugin.getForgeGui().open(p);
@@ -251,7 +267,7 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "abilities", "coins", "prestige", "stats", "forge", "bestiary", "weekly", "bounty"));
+            List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "abilities", "coins", "prestige", "stats", "forge", "bestiary", "weekly", "bounty", "afkfarm"));
             if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("sethub"); base.add("setnpc"); base.add("sethologram"); base.add("setupholos"); base.add("forceboss"); base.add("setlevel"); base.add("maxout"); base.add("debugspeed"); }
             return base.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }

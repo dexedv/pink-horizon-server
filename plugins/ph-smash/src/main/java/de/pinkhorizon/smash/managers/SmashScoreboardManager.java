@@ -153,7 +153,12 @@ public class SmashScoreboardManager {
         setLine(board, 4,  "§8Eisen  Gold  Kristall  Kern");
         setLine(board, 3,  streakLine);
         setLine(board, 2,  rank);
-        setLine(board, 1,  "  ");
+        long afkSec     = plugin.getAfkManager().getAfkSeconds(uuid);
+        boolean farming = plugin.getAfkManager().isFarming(uuid);
+        String afkLine  = farming
+            ? "§b⏰ §7Farm: §b" + de.pinkhorizon.smash.managers.AfkManager.formatTime(afkSec) + " §8(aktiv)"
+            : afkSec > 0 ? "§b⏰ §7AFK: §b" + de.pinkhorizon.smash.managers.AfkManager.formatTime(afkSec) : "§8⏰ §7AFK: §8–";
+        setLine(board, 1,  afkLine);
         setLine(board, 0,  "§aplay.pinkhorizon.fun");
     }
 
