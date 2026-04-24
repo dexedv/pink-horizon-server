@@ -734,11 +734,11 @@ client.on('guildMemberAdd', async member => {
   const spielerRole = member.guild.roles.cache.find(r => r.name === 'Spieler');
   if (spielerRole) await member.roles.add(spielerRole).catch(() => {});
 
-  const allgemeinCh = member.guild.channels.cache.find(c => c.name === 'allgemein' && c.type === ChannelType.GuildText);
-  const regelnCh    = member.guild.channels.cache.find(c => c.name === 'regeln'    && c.type === ChannelType.GuildText);
-  if (allgemeinCh) {
+  const welcomeCh = member.guild.channels.cache.get('1497213734555226182');
+  const regelnCh  = member.guild.channels.cache.find(c => c.name === 'regeln' && c.type === ChannelType.GuildText);
+  if (welcomeCh) {
     const rulesHint = regelnCh ? ` Bitte lies dir die <#${regelnCh.id}> durch.` : '';
-    await allgemeinCh.send(`🎉 Willkommen auf dem **Pink Horizon** Discord, ${member}!${rulesHint}\nTritt dem Server bei: \`${MC_ADDRESS}\``).catch(() => {});
+    await welcomeCh.send(`🎉 Willkommen auf dem **Pink Horizon** Discord, ${member}!${rulesHint}\nTritt dem Server bei: \`${MC_ADDRESS}\``).catch(() => {});
   }
 });
 
