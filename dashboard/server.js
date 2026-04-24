@@ -1001,9 +1001,9 @@ app.get('/api/survival/upgrades', auth, async (req, res) => {
     const paid  = lvl => COSTS[Math.min(lvl, 6)] || 0;
 
     const [furnaces] = await poolSv.execute(
-      'SELECT level, world, x, y, z FROM sv_furnace_upgrades WHERE owner_uuid = ?', [uuid]);
+      'SELECT level, world, x, y, z FROM sv_furnace_upgrades WHERE owner_uuid = ? AND world IS NOT NULL', [uuid]);
     const [hoppers]  = await poolSv.execute(
-      'SELECT level, world, x, y, z FROM sv_hopper_upgrades  WHERE owner_uuid = ?', [uuid]);
+      'SELECT level, world, x, y, z FROM sv_hopper_upgrades  WHERE owner_uuid = ? AND world IS NOT NULL', [uuid]);
 
     const fList = furnaces.map(r => ({ level: r.level, world: r.world, x: r.x, y: r.y, z: r.z, paid: paid(r.level) }));
     const hList = hoppers .map(r => ({ level: r.level, world: r.world, x: r.x, y: r.y, z: r.z, paid: paid(r.level) }));
