@@ -124,7 +124,11 @@ public class HopperUpgradeManager {
             insertOrUpdate(id, level, block, ownerUuid);
         } else {
             idToLevel.put(id, level);
-            updateLevelAsync(id, level);
+            if (ownerUuid != null) {
+                db("UPDATE sv_hopper_upgrades SET level=?, owner_uuid=COALESCE(owner_uuid,?) WHERE hopper_id=?", level, ownerUuid, id);
+            } else {
+                updateLevelAsync(id, level);
+            }
         }
     }
 
