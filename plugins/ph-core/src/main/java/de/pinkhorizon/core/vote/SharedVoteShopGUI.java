@@ -3,6 +3,8 @@ package de.pinkhorizon.core.vote;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,8 +23,9 @@ import java.util.Map;
 
 /**
  * Gemeinsame VoteShop-GUI für alle Server.
- * Liest die Shop-Items aus der config.yml des jeweiligen Server-Plugins (Abschnitt "vote-shop").
- * Als Listener bei jedem Server-Plugin registrieren, das /voteshop anbietet.
+ * Liest die Shop-Items aus vote-shop.yml im Plugin-Data-Ordner.
+ * Die Datei wird beim ersten Start aus dem JAR kopiert (saveResource).
+ * Zum Aktualisieren: vote-shop.yml per Git deployen, dann Plugin neu laden.
  */
 public class SharedVoteShopGUI implements Listener {
 
@@ -35,17 +39,21 @@ public class SharedVoteShopGUI implements Listener {
 
     public SharedVoteShopGUI(JavaPlugin plugin) {
         this.plugin = plugin;
+        // Kopiert vote-shop.yml aus dem JAR wenn noch nicht vorhanden
+        plugin.saveResource("vote-shop.yml", false);
         reload();
     }
 
-    /** Items aus der Plugin-eigenen config.yml (re)laden. */
+    /** Items aus vote-shop.yml (re)laden. */
     public void reload() {
         items.clear();
-        title = color(plugin.getConfig().getString("vote-shop.title",
-            "&5&lVoteShop &8| &7Deine Coins: %coins%"));
-        rows  = plugin.getConfig().getInt("vote-shop.rows", 3);
+        File file = new File(plugin.getDataFolder(), "vote-shop.yml");
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
 
-        ConfigurationSection sec = plugin.getConfig().getConfigurationSection("vote-shop.items");
+        title = color(cfg.getString("title", "&5&lVoteShop &8| &7Deine Coins: %coins%"));
+        rows  = cfg.getInt("rows", 3);
+
+        ConfigurationSection sec = cfg.getConfigurationSection("items");
         if (sec == null) return;
         for (String key : sec.getKeys(false)) {
             ConfigurationSection it = sec.getConfigurationSection(key);

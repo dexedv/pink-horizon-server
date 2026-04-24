@@ -1,0 +1,5 @@
+# VoteShop-Konfiguration fuer die Lobby
+# Aenderungen: Datei bearbeiten, per Git deployen, Server neu starten
+title: "&5&lVoteShop &8| &7Deine Coins: %coins%"
+rows: 3
+items: {}

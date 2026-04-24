@@ -1,0 +1,35 @@
+# VoteShop-Konfiguration fuer Survival
+# Aenderungen: Datei bearbeiten, per Git deployen, Server neu starten
+title: "&5&lVoteShop &8| &7Deine Coins: %coins%"
+rows: 3
+items:
+  claim_slot:
+    slot: 11
+    material: GRASS_BLOCK
+    name: "&a+1 Claim-Slot"
+    cost: 1
+    lore:
+      - "&7Einen extra Chunk-Claim"
+      - "&7dauerhaft freischalten"
+    commands:
+      - "claimadd [player] 1"
+  extra_home:
+    slot: 13
+    material: RED_BED
+    name: "&a+1 Home-Slot"
+    cost: 1
+    lore:
+      - "&7Einen extra Home-Slot"
+      - "&7dauerhaft freischalten"
+    commands:
+      - "homeadd [player] 1"
+  villager_egg:
+    slot: 15
+    material: VILLAGER_SPAWN_EGG
+    name: "&eVillager-Ei"
+    cost: 2
+    lore:
+      - "&7Fange einen Dorfbewohner ein"
+      - "&7und bringe ihn in deine Base!"
+    commands:
+      - "give [player] villager_spawn_egg 1"
