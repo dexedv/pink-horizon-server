@@ -49,8 +49,6 @@ public class AfkManager {
                 // AFK-Pool erkannt → sofort AFK markieren
                 if (!Boolean.TRUE.equals(afkStatus.get(uuid))) {
                     afkStatus.put(uuid, true);
-                    plugin.getServer().broadcastMessage(
-                        "§e" + player.getName() + " §7ist jetzt AFK. §8(Bewegungsmuster erkannt)");
                     plugin.getTabManager().update(player);
                     plugin.getRankManager().applyTabName(player);
                 }
@@ -62,7 +60,6 @@ public class AfkManager {
         lastActivity.put(uuid, System.currentTimeMillis());
         if (Boolean.TRUE.equals(afkStatus.get(uuid))) {
             afkStatus.put(uuid, false);
-            plugin.getServer().broadcastMessage("§e" + player.getName() + " §7ist nicht mehr AFK.");
             plugin.getTabManager().update(player);
             plugin.getRankManager().applyTabName(player);
         }
@@ -75,7 +72,6 @@ public class AfkManager {
         posHistory.remove(uuid); // History leeren bei echter Aktion
         if (Boolean.TRUE.equals(afkStatus.get(uuid))) {
             afkStatus.put(uuid, false);
-            plugin.getServer().broadcastMessage("§e" + player.getName() + " §7ist nicht mehr AFK.");
             plugin.getTabManager().update(player);
             plugin.getRankManager().applyTabName(player);
         }
@@ -114,7 +110,6 @@ public class AfkManager {
 
             if (!currentlyAfk && idle > AFK_TIMEOUT_MS) {
                 afkStatus.put(uuid, true);
-                plugin.getServer().broadcastMessage("§e" + player.getName() + " §7ist jetzt AFK.");
                 plugin.getTabManager().update(player);
                 plugin.getRankManager().applyTabName(player);
             }
