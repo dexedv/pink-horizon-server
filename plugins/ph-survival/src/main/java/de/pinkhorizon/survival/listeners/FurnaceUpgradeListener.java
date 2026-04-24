@@ -21,14 +21,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Listener für das Ofen-Upgrade-System.
- *
- * Upgrade-Daten werden im In-Memory-Cache + DB (zuverlässig) gespeichert.
- * Beim Abbau wird das Level per Item-PDC auf den Drop geschrieben;
- * beim Platzieren wird es zurück in Cache + DB geladen.
- * So bleiben Upgrades auch beim Umsetzen des Ofens erhalten.
- */
 public class FurnaceUpgradeListener implements Listener {
 
     private static final Set<Material> FURNACE_TYPES = EnumSet.of(
@@ -40,8 +32,8 @@ public class FurnaceUpgradeListener implements Listener {
     private final PHSurvival plugin;
     private final FurnaceUpgradeGui gui;
 
-    // Zwischenspeicher: locKey → level, gesetzt in onBlockBreak, gelesen in onBlockDrop
-    private final Map<String, Integer> pendingLevels = new HashMap<>();
+    // locKey → furnace UUID; gesetzt in onBlockBreak, gelesen in onBlockDrop
+    private final Map<String, String> pendingIds = new HashMap<>();
 
     public FurnaceUpgradeListener(PHSurvival plugin, FurnaceUpgradeGui gui) {
         this.plugin = plugin;
@@ -52,7 +44,7 @@ public class FurnaceUpgradeListener implements Listener {
         return b.getWorld().getUID() + ";" + b.getX() + ";" + b.getY() + ";" + b.getZ();
     }
 
-    // ── Schmelzzeit anpassen ─────────────────────────────────────────────
+    // ── Schmelzzeit ───────────────────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onSmeltStart(FurnaceStartSmeltEvent event) {
@@ -61,7 +53,7 @@ public class FurnaceUpgradeListener implements Listener {
         event.setTotalCookTime(plugin.getFurnaceUpgradeManager().getCookTicks(event.getBlock()));
     }
 
-    // ── Shift + Rechtsklick → GUI öffnen ─────────────────────────────────
+    // ── Shift + Rechtsklick → GUI ─────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.LOW)
     public void onInteract(PlayerInteractEvent event) {
@@ -75,45 +67,43 @@ public class FurnaceUpgradeListener implements Listener {
         gui.open(player, block);
     }
 
-    // ── Ofen abgebaut: Level aus Cache lesen, für Drop merken ────────────
+    // ── Ofen abgebaut: UUID merken, aus Cache entfernen ──────────────────
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
         if (!FURNACE_TYPES.contains(block.getType())) return;
-        int level = plugin.getFurnaceUpgradeManager().getLevel(block);
-        plugin.getFurnaceUpgradeManager().remove(block);
-        if (level > 1) {
-            pendingLevels.put(locKey(block), level);
+        String id = plugin.getFurnaceUpgradeManager().removeAndGetId(block);
+        if (id != null) {
+            pendingIds.put(locKey(block), id);
         }
     }
 
-    // ── Level auf den gedropten Ofen schreiben ───────────────────────────
+    // ── UUID auf den gedropten Ofen schreiben ─────────────────────────────
+    // Kein block.getType()-Check hier – Block ist zu diesem Zeitpunkt bereits AIR
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockDrop(BlockDropItemEvent event) {
-        Block block = event.getBlock();
-        if (!FURNACE_TYPES.contains(block.getType())) return;
-        Integer level = pendingLevels.remove(locKey(block));
-        if (level == null || level <= 1) return;
+        String id = pendingIds.remove(locKey(event.getBlock()));
+        if (id == null) return;
         for (org.bukkit.entity.Item dropped : event.getItems()) {
             ItemStack stack = dropped.getItemStack();
             if (FURNACE_TYPES.contains(stack.getType())) {
-                plugin.getFurnaceUpgradeManager().applyLevelToItem(stack, level);
+                plugin.getFurnaceUpgradeManager().applyToItem(stack, id);
                 dropped.setItemStack(stack);
+                break;
             }
         }
     }
 
-    // ── Ofen platziert: Level vom Item in Cache + DB laden ───────────────
+    // ── Ofen platziert: UUID vom Item laden ───────────────────────────────
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Block block = event.getBlock();
         if (!FURNACE_TYPES.contains(block.getType())) return;
-        ItemStack item = event.getItemInHand();
-        int level = plugin.getFurnaceUpgradeManager().getLevelFromItem(item);
-        if (level <= 1) return;
-        plugin.getFurnaceUpgradeManager().setLevel(block, level);
+        String id = plugin.getFurnaceUpgradeManager().getIdFromItem(event.getItemInHand());
+        if (id == null) return;
+        plugin.getFurnaceUpgradeManager().placeWithId(block, id);
     }
 }

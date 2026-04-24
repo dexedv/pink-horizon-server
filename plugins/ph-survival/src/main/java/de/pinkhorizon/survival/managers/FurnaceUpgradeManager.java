@@ -15,14 +15,16 @@ import java.sql.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
- * Verwaltet Ofen-Upgrades.
+ * Ofen-Upgrade-System – UUID-basiert.
  *
- * Speicherung: In-Memory-Cache + DB (sv_furnace_upgrades) für Zuverlässigkeit
- * beim Serverneustart. Item-PDC wird beim Abbau auf den Drop geschrieben und
- * beim Platzieren zurück in Cache + DB geladen, sodass Upgrades beim Umsetzen
- * des Ofens erhalten bleiben.
+ * Jeder upgegradete Ofen bekommt eine eindeutige UUID.
+ * DB: sv_furnace_upgrades (furnace_id PK, level, world, x, y, z)
+ *
+ * Koordinaten sind NULL wenn der Ofen sich im Inventar befindet.
+ * Item-PDC trägt die UUID → Upgrade bleibt beim Umsetzen erhalten.
  */
 public class FurnaceUpgradeManager {
 
@@ -34,34 +36,38 @@ public class FurnaceUpgradeManager {
     public  static final int[] SPEED_PCT  = { 0, 0, 25, 50, 70, 85, 90 };
 
     private final PHSurvival plugin;
-    private final NamespacedKey itemKey;   // PDC-Key für Item-Transfers
-    private final Map<String, Integer> cache = new HashMap<>();
+    private final NamespacedKey itemKey;  // UUID auf Item-PDC
+
+    // coordinate key ("world;x;y;z") → furnace UUID
+    private final Map<String, String> locToId    = new HashMap<>();
+    // furnace UUID → level
+    private final Map<String, Integer> idToLevel = new HashMap<>();
 
     public FurnaceUpgradeManager(PHSurvival plugin) {
         this.plugin  = plugin;
-        this.itemKey = new NamespacedKey(plugin, "furnace_level");
+        this.itemKey = new NamespacedKey(plugin, "furnace_id");
         createTable();
         loadAll();
     }
 
-    // ── Koordinaten-Cache + DB ────────────────────────────────────────────
-
-    private static String key(Block b) {
-        return b.getWorld().getName() + ";" + b.getX() + ";" + b.getY() + ";" + b.getZ();
-    }
+    // ── DB ────────────────────────────────────────────────────────────────
 
     private Connection con() throws SQLException {
         return plugin.getSurvivalDb().getConnection();
+    }
+
+    private static String coordKey(Block b) {
+        return b.getWorld().getName() + ";" + b.getX() + ";" + b.getY() + ";" + b.getZ();
     }
 
     private void createTable() {
         try (Connection c = con(); Statement s = c.createStatement()) {
             s.execute(
                 "CREATE TABLE IF NOT EXISTS sv_furnace_upgrades (" +
-                "  world VARCHAR(64) NOT NULL," +
-                "  x INT NOT NULL, y INT NOT NULL, z INT NOT NULL," +
+                "  furnace_id CHAR(36) NOT NULL PRIMARY KEY," +
                 "  level TINYINT NOT NULL DEFAULT 1," +
-                "  PRIMARY KEY (world, x, y, z)" +
+                "  world VARCHAR(64)," +
+                "  x INT, y INT, z INT" +
                 ")"
             );
         } catch (SQLException e) {
@@ -72,73 +78,32 @@ public class FurnaceUpgradeManager {
     private void loadAll() {
         try (Connection c = con();
              PreparedStatement ps = c.prepareStatement(
-                 "SELECT world,x,y,z,level FROM sv_furnace_upgrades");
+                 "SELECT furnace_id, level, world, x, y, z FROM sv_furnace_upgrades");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                cache.put(
-                    rs.getString("world") + ";" + rs.getInt("x") + ";"
-                    + rs.getInt("y") + ";" + rs.getInt("z"),
-                    rs.getInt("level")
-                );
+                String id    = rs.getString("furnace_id");
+                int    level = rs.getInt("level");
+                idToLevel.put(id, level);
+                String world = rs.getString("world");
+                if (world != null) {
+                    locToId.put(world + ";" + rs.getInt("x") + ";" + rs.getInt("y") + ";" + rs.getInt("z"), id);
+                }
             }
         } catch (SQLException e) {
             plugin.getLogger().warning("[FurnaceUpgrade] Laden: " + e.getMessage());
         }
     }
 
-    private void saveAsync(Block block, int level) {
-        final String world = block.getWorld().getName();
-        final int bx = block.getX(), by = block.getY(), bz = block.getZ();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = con();
-                 PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO sv_furnace_upgrades (world,x,y,z,level) VALUES(?,?,?,?,?) " +
-                     "ON DUPLICATE KEY UPDATE level=?")) {
-                ps.setString(1, world);
-                ps.setInt(2, bx); ps.setInt(3, by); ps.setInt(4, bz);
-                ps.setInt(5, level); ps.setInt(6, level);
-                ps.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().warning("[FurnaceUpgrade] Speichern: " + e.getMessage());
-            }
-        });
-    }
-
-    private void deleteAsync(Block block) {
-        final String world = block.getWorld().getName();
-        final int bx = block.getX(), by = block.getY(), bz = block.getZ();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = con();
-                 PreparedStatement ps = c.prepareStatement(
-                     "DELETE FROM sv_furnace_upgrades WHERE world=? AND x=? AND y=? AND z=?")) {
-                ps.setString(1, world);
-                ps.setInt(2, bx); ps.setInt(3, by); ps.setInt(4, bz);
-                ps.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().warning("[FurnaceUpgrade] Löschen: " + e.getMessage());
-            }
-        });
-    }
-
-    // ── Öffentliche API (Block) ───────────────────────────────────────────
+    // ── Öffentliche API ───────────────────────────────────────────────────
 
     public int getLevel(Block block) {
-        return cache.getOrDefault(key(block), 1);
+        String id = locToId.get(coordKey(block));
+        if (id == null) return 1;
+        return idToLevel.getOrDefault(id, 1);
     }
 
     public int getCookTicks(Block block) {
         return COOK_TICKS[Math.min(getLevel(block), MAX_LEVEL)];
-    }
-
-    public void setLevel(Block block, int level) {
-        cache.put(key(block), level);
-        saveAsync(block, level);
-    }
-
-    /** Entfernt das Upgrade aus Cache + DB (beim Abbau). */
-    public void remove(Block block) {
-        cache.remove(key(block));
-        deleteAsync(block);
     }
 
     public boolean tryUpgrade(Block block, org.bukkit.entity.Player player) {
@@ -150,22 +115,53 @@ public class FurnaceUpgradeManager {
         return true;
     }
 
-    // ── Item-PDC für Transfer beim Umsetzen ──────────────────────────────
-
-    public int getLevelFromItem(ItemStack item) {
-        if (item == null || !item.hasItemMeta()) return 1;
-        return item.getItemMeta()
-                   .getPersistentDataContainer()
-                   .getOrDefault(itemKey, PersistentDataType.INTEGER, 1);
+    /** Setzt Level – generiert beim ersten Mal eine neue UUID. */
+    public void setLevel(Block block, int level) {
+        String id = locToId.get(coordKey(block));
+        if (id == null) {
+            id = UUID.randomUUID().toString();
+            locToId.put(coordKey(block), id);
+            idToLevel.put(id, level);
+            insertAsync(id, level, block);
+        } else {
+            idToLevel.put(id, level);
+            updateLevelAsync(id, level);
+        }
     }
 
-    public void applyLevelToItem(ItemStack item, int level) {
-        if (item == null || level <= 1) return;
+    /** Ofen abgebaut: aus Koordinaten-Cache entfernen, DB-Koordinaten auf NULL. */
+    public String removeAndGetId(Block block) {
+        String id = locToId.remove(coordKey(block));
+        if (id != null) clearCoordinatesAsync(id);
+        return id;
+    }
+
+    /** Ofen platziert: UUID in Koordinaten-Cache + DB-Koordinaten aktualisieren. */
+    public void placeWithId(Block block, String id) {
+        locToId.put(coordKey(block), id);
+        updateCoordinatesAsync(id, block);
+    }
+
+    // ── Item-PDC ─────────────────────────────────────────────────────────
+
+    public String getIdFromItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return null;
+        return item.getItemMeta().getPersistentDataContainer()
+                   .get(itemKey, PersistentDataType.STRING);
+    }
+
+    public int getLevelForId(String id) {
+        return id == null ? 1 : idToLevel.getOrDefault(id, 1);
+    }
+
+    public void applyToItem(ItemStack item, String id) {
+        if (item == null || id == null) return;
+        int level = getLevelForId(id);
         ItemMeta meta = item.getItemMeta();
-        meta.getPersistentDataContainer().set(itemKey, PersistentDataType.INTEGER, level);
-        meta.displayName(Component.text("⚒ " + friendlyName(item.getType())
-            + " (Lv. " + level + " – " + NAMES[level] + ")", NamedTextColor.GOLD)
-            .decoration(TextDecoration.ITALIC, false));
+        meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, id);
+        meta.displayName(Component.text(
+            "⚒ " + friendlyName(item.getType()) + " (Lv. " + level + " – " + NAMES[level] + ")",
+            NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
             Component.text("Schmelzgeschwindigkeit: +" + SPEED_PCT[level] + "%", NamedTextColor.AQUA)
                 .decoration(TextDecoration.ITALIC, false),
@@ -173,6 +169,66 @@ public class FurnaceUpgradeManager {
                 .decoration(TextDecoration.ITALIC, false)
         ));
         item.setItemMeta(meta);
+    }
+
+    // ── Async DB-Operationen ──────────────────────────────────────────────
+
+    private void insertAsync(String id, int level, Block block) {
+        final String world = block.getWorld().getName();
+        final int bx = block.getX(), by = block.getY(), bz = block.getZ();
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection c = con();
+                 PreparedStatement ps = c.prepareStatement(
+                     "INSERT INTO sv_furnace_upgrades (furnace_id,level,world,x,y,z) VALUES(?,?,?,?,?,?)")) {
+                ps.setString(1, id); ps.setInt(2, level);
+                ps.setString(3, world); ps.setInt(4, bx); ps.setInt(5, by); ps.setInt(6, bz);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().warning("[FurnaceUpgrade] Insert: " + e.getMessage());
+            }
+        });
+    }
+
+    private void updateLevelAsync(String id, int level) {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection c = con();
+                 PreparedStatement ps = c.prepareStatement(
+                     "UPDATE sv_furnace_upgrades SET level=? WHERE furnace_id=?")) {
+                ps.setInt(1, level); ps.setString(2, id);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().warning("[FurnaceUpgrade] UpdateLevel: " + e.getMessage());
+            }
+        });
+    }
+
+    private void clearCoordinatesAsync(String id) {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection c = con();
+                 PreparedStatement ps = c.prepareStatement(
+                     "UPDATE sv_furnace_upgrades SET world=NULL,x=NULL,y=NULL,z=NULL WHERE furnace_id=?")) {
+                ps.setString(1, id);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().warning("[FurnaceUpgrade] ClearCoords: " + e.getMessage());
+            }
+        });
+    }
+
+    private void updateCoordinatesAsync(String id, Block block) {
+        final String world = block.getWorld().getName();
+        final int bx = block.getX(), by = block.getY(), bz = block.getZ();
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection c = con();
+                 PreparedStatement ps = c.prepareStatement(
+                     "UPDATE sv_furnace_upgrades SET world=?,x=?,y=?,z=? WHERE furnace_id=?")) {
+                ps.setString(1, world); ps.setInt(2, bx); ps.setInt(3, by); ps.setInt(4, bz);
+                ps.setString(5, id);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().warning("[FurnaceUpgrade] UpdateCoords: " + e.getMessage());
+            }
+        });
     }
 
     private static String friendlyName(Material mat) {
