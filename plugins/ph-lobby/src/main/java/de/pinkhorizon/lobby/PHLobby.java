@@ -18,6 +18,7 @@ import de.pinkhorizon.lobby.managers.AfkManager;
 import de.pinkhorizon.lobby.managers.HologramManager;
 import de.pinkhorizon.lobby.managers.RankManager;
 import de.pinkhorizon.lobby.managers.ScoreboardManager;
+import de.pinkhorizon.lobby.managers.CosmeticsManager;
 import de.pinkhorizon.lobby.managers.ServerStatusManager;
 import de.pinkhorizon.lobby.managers.TabManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -36,6 +37,7 @@ public class PHLobby extends JavaPlugin {
     private RankManager           rankManager;
     private HologramManager       hologramManager;
     private ServerStatusManager   serverStatusManager;
+    private CosmeticsManager      cosmeticsManager;
 
     @Override
     public void onEnable() {
@@ -51,6 +53,7 @@ public class PHLobby extends JavaPlugin {
         afkManager           = new AfkManager(this);
         rankManager          = new RankManager(this);
         hologramManager      = new HologramManager(this);
+        cosmeticsManager     = new CosmeticsManager(this);
 
         // Server-Status
         serverStatusManager = new ServerStatusManager(this);
@@ -119,6 +122,7 @@ public class PHLobby extends JavaPlugin {
         if (tabManager        != null) tabManager.stop();
         if (portalCommand     != null) portalCommand.stopParticleTask();
         if (afkManager          != null) afkManager.stop();
+        if (cosmeticsManager    != null) cosmeticsManager.stop();
         if (serverStatusManager != null) serverStatusManager.stop();
         getLogger().info("PH-Lobby gestoppt.");
     }
@@ -134,4 +138,5 @@ public class PHLobby extends JavaPlugin {
     public RankManager getRankManager()                       { return rankManager; }
     public HologramManager getHologramManager()               { return hologramManager; }
     public ServerStatusManager getServerStatusManager()       { return serverStatusManager; }
+    public CosmeticsManager getCosmeticsManager()             { return cosmeticsManager; }
 }

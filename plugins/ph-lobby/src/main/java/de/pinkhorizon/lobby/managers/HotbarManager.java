@@ -32,6 +32,12 @@ public class HotbarManager {
                 List.of("\u00a77Zeigt alle Online-Spieler"),
                 "playerlist"));
 
+        // Slot 6: Feuerwerk = Kosmetik
+        player.getInventory().setItem(6, buildItem(plugin, Material.FIREWORK_ROCKET,
+                "\u00a7b\u00a7l\u2605 Kosmetik",
+                List.of("\u00a77Trails & Effekte auswählen"),
+                "cosmetics"));
+
         // Slot 8: Buch = Regeln
         player.getInventory().setItem(8, buildItem(plugin, Material.BOOK,
                 "\u00a7f\u00a7lServerregeln",

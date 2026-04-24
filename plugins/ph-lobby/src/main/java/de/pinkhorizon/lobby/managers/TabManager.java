@@ -1,6 +1,7 @@
 package de.pinkhorizon.lobby.managers;
 
 import de.pinkhorizon.lobby.PHLobby;
+import de.pinkhorizon.lobby.managers.ServerStatusManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -31,15 +32,8 @@ public class TabManager {
     private void start() {
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             frame = (frame + 1) % HEADER_FRAMES.length;
-            String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-
             Component header = Component.text(HEADER_FRAMES[frame]);
-            Component footer = Component.text(
-                "\n\u00a77Online: \u00a7d" + Bukkit.getOnlinePlayers().size()
-                + "  \u00a77\u00a7l|\u00a7r  \u00a77Zeit: \u00a7f" + time
-                + "\n\u00a77play.pinkhorizon.de\n"
-            );
-
+            Component footer = buildFooter();
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.sendPlayerListHeaderAndFooter(header, footer);
             }
@@ -47,12 +41,25 @@ public class TabManager {
     }
 
     public void update(Player player) {
-        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         player.sendPlayerListHeaderAndFooter(
             Component.text(HEADER_FRAMES[frame]),
-            Component.text("\n\u00a77Online: \u00a7d" + Bukkit.getOnlinePlayers().size()
-                + "  \u00a77\u00a7l|\u00a7r  \u00a77Zeit: \u00a7f" + time
-                + "\n\u00a77play.pinkhorizon.de\n")
+            buildFooter()
+        );
+    }
+
+    private Component buildFooter() {
+        String time    = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        int    lobby   = Bukkit.getOnlinePlayers().size();
+        int    network = lobby;
+        ServerStatusManager ssm = plugin.getServerStatusManager();
+        if (ssm != null) {
+            network += ssm.getServers().stream().mapToInt(s -> ssm.getPlayerCount(s.id())).sum();
+        }
+        return Component.text(
+            "\n\u00a77Lobby: \u00a7d" + lobby
+            + "  \u00a77\u00a7l|\u00a7r  \u00a77Netzwerk: \u00a7d" + network
+            + "  \u00a77\u00a7l|\u00a7r  \u00a77Zeit: \u00a7f" + time
+            + "\n\u00a77play.pinkhorizon.de\n"
         );
     }
 

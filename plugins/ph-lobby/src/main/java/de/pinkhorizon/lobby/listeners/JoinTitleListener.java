@@ -11,6 +11,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -64,7 +65,7 @@ public class JoinTitleListener implements Listener {
         tabManager.update(player);
         plugin.getRankManager().applyTabName(player);
 
-        // Title anzeigen (1 Tick verzögert damit der Client bereit ist)
+        // Title + Rank-Sound (1 Tick verzögert)
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             boolean firstJoin = !player.hasPlayedBefore();
             Component title = Component.text("Pink Horizon", TextColor.color(0xFF69B4), TextDecoration.BOLD);
@@ -79,9 +80,9 @@ public class JoinTitleListener implements Listener {
                             Duration.ofMillis(1000)
                     )));
 
-            // Begrüßungs-Sound
-            player.playSound(player.getLocation(),
-                    org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.7f, 1.2f);
+            // Rang-abhängiger Join-Sound
+            String rankId = plugin.getRankManager().getRankId(player.getUniqueId());
+            playRankSound(player, rankId);
 
             // Action-Bar
             player.sendActionBar(Component.text(
@@ -89,10 +90,29 @@ public class JoinTitleListener implements Listener {
         }, 5L);
     }
 
+    private void playRankSound(Player player, String rankId) {
+        Sound  sound  = Sound.ENTITY_PLAYER_LEVELUP;
+        float  volume = 0.7f;
+        float  pitch  = 1.2f;
+
+        switch (rankId) {
+            case "owner"     -> { sound = Sound.UI_TOAST_CHALLENGE_COMPLETE;  volume = 1.0f; pitch = 1.0f; }
+            case "admin"     -> { sound = Sound.BLOCK_BEACON_POWER_SELECT;    volume = 0.8f; pitch = 1.1f; }
+            case "dev"       -> { sound = Sound.ENTITY_ENDERMAN_TELEPORT;      volume = 0.4f; pitch = 1.4f; }
+            case "moderator" -> { sound = Sound.BLOCK_BEACON_ACTIVATE;        volume = 0.6f; pitch = 1.2f; }
+            case "supporter" -> { sound = Sound.ENTITY_EXPERIENCE_ORB_PICKUP; volume = 0.8f; pitch = 1.3f; }
+            case "vip"       -> { sound = Sound.ENTITY_VILLAGER_CELEBRATE;    volume = 0.7f; pitch = 1.2f; }
+            default          -> { sound = Sound.ENTITY_PLAYER_LEVELUP;        volume = 0.7f; pitch = 1.2f; }
+        }
+
+        player.playSound(player.getLocation(), sound, volume, pitch);
+    }
+
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         scoreboardManager.removeScoreboard(player);
+        plugin.getCosmeticsManager().removePlayer(player.getUniqueId());
 
         event.quitMessage(
             Component.text("\u00a78[\u00a7c-\u00a78] ", NamedTextColor.GRAY)

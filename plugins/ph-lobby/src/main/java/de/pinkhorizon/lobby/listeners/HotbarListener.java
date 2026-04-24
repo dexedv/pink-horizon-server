@@ -46,9 +46,10 @@ public class HotbarListener implements Listener {
         event.setCancelled(true);
 
         switch (action) {
-            case "navigator" -> plugin.getNavigatorCommand().openNavigator(player);
+            case "navigator"  -> plugin.getNavigatorCommand().openNavigator(player);
             case "playerlist" -> showPlayerList(player);
             case "rules"      -> showRules(player);
+            case "cosmetics"  -> plugin.getCosmeticsManager().openGui(player);
         }
     }
 

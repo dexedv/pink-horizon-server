@@ -3,10 +3,13 @@ package de.pinkhorizon.lobby.commands;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import de.pinkhorizon.lobby.PHLobby;
+import de.pinkhorizon.lobby.managers.ServerStatusManager;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -17,13 +20,26 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class NavigatorCommand implements CommandExecutor, Listener {
 
+    private record ServerEntry(String id, String displayName, Material icon, List<String> desc) {}
+
+    private static final List<ServerEntry> SERVERS = List.of(
+        new ServerEntry("survival",  "Survival",       Material.GRASS_BLOCK,   List.of("Erkunde die Welt!", "Economy, Claims & mehr")),
+        new ServerEntry("smash",     "Smash the Boss",  Material.NETHER_STAR,   List.of("Besiege endlos starke Bosse!", "Upgrades, Loot & mehr")),
+        new ServerEntry("minigames", "Minigames",       Material.DIAMOND_SWORD, List.of("BedWars & mehr")),
+        new ServerEntry("skyblock",  "SkyBlock",        Material.MAGMA_BLOCK,   List.of("Baue deine eigene Insel!"))
+    );
+
+    // Slot-Positionen für die 4 Server (mittlere Reihe zentriert)
+    private static final int[] SERVER_SLOTS = {10, 12, 14, 16};
+
     private final PHLobby plugin;
-    private static final String INV_TITLE = "\u00a75\u00a7lServer-Navigator";
 
     public NavigatorCommand(PHLobby plugin) {
         this.plugin = plugin;
@@ -38,37 +54,69 @@ public class NavigatorCommand implements CommandExecutor, Listener {
     }
 
     public void openNavigator(Player player) {
-        Inventory inv = plugin.getServer().createInventory(null, 27, Component.text("Server-Navigator", TextColor.color(0xAA00AA)));
+        Inventory inv = Bukkit.createInventory(null, 27,
+            Component.text("Server-Navigator", TextColor.color(0xAA00AA)));
 
-        inv.setItem(10, buildItem(Material.GRASS_BLOCK,    "\u00a7aSurvival",        List.of("\u00a77Erkunde die Welt!", "\u00a77Economy, Claims & mehr"), "survival"));
-        inv.setItem(12, buildItem(Material.MAGMA_BLOCK,    "\u00a76SkyBlock",        List.of("\u00a77Baue deine eigene Insel!"), "skyblock"));
-        inv.setItem(14, buildItem(Material.DIAMOND_SWORD,  "\u00a7bMinigames",       List.of("\u00a77BedWars, SkyWars & mehr!"), "minigames"));
-        inv.setItem(16, buildItem(Material.NETHER_STAR,    "\u00a7cSmash the Boss",  List.of("\u00a77Besiege endlos starke Bosse!", "\u00a77Upgrades, Loot & mehr"), "smash"));
-        inv.setItem(22, buildItem(Material.COMPASS,        "\u00a7dLobby",           List.of("\u00a77Zurueck zum Hub"), "lobby"));
+        // Hintergrund
+        ItemStack pane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta  pm   = pane.getItemMeta();
+        pm.displayName(Component.empty());
+        pane.setItemMeta(pm);
+        for (int i = 0; i < 27; i++) inv.setItem(i, pane);
 
-        // Deko-Glasscheiben
-        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta m = filler.getItemMeta();
-        m.displayName(Component.text(" "));
-        filler.setItemMeta(m);
-        for (int i = 0; i < 27; i++) {
-            if (inv.getItem(i) == null) inv.setItem(i, filler);
+        ServerStatusManager ssm = plugin.getServerStatusManager();
+
+        for (int i = 0; i < SERVERS.size(); i++) {
+            ServerEntry entry   = SERVERS.get(i);
+            ServerStatusManager.Status status  = ssm != null ? ssm.getStatus(entry.id())      : ServerStatusManager.Status.OFFLINE;
+            int                        players = ssm != null ? ssm.getPlayerCount(entry.id()) : 0;
+            inv.setItem(SERVER_SLOTS[i], buildServerItem(entry, status, players));
         }
+
+        // Lobby-Button
+        inv.setItem(22, buildLobbyItem());
 
         player.openInventory(inv);
     }
 
-    private ItemStack buildItem(Material mat, String name, List<String> lore, String serverTag) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text(name));
+    private ItemStack buildServerItem(ServerEntry entry, ServerStatusManager.Status status, int players) {
+        boolean online      = status == ServerStatusManager.Status.ONLINE;
+        boolean restarting  = status == ServerStatusManager.Status.RESTARTING;
+
+        String nameColor = online ? "§a" : restarting ? "§e" : "§8";
+        String statusLine = online
+            ? "§a● Online §7– §f" + players + " §7Spieler"
+            : restarting
+                ? "§e● Neustart..."
+                : "§c● Offline";
+
+        ItemStack item = new ItemStack(entry.icon());
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(Component.text(nameColor + entry.displayName()));
+
+        List<String> lore = new ArrayList<>();
+        lore.add("§8─────────────────────");
+        entry.desc().forEach(d -> lore.add("§7" + d));
+        lore.add("§8─────────────────────");
+        lore.add(statusLine);
+        lore.add(online ? "§7▶ Klicken zum Verbinden" : "§c✗ Derzeit nicht verfügbar");
+
         meta.lore(lore.stream().map(Component::text).toList());
-        // Server-Tag im PDC speichern
         meta.getPersistentDataContainer().set(
-                new org.bukkit.NamespacedKey(plugin, "server"),
-                org.bukkit.persistence.PersistentDataType.STRING,
-                serverTag
-        );
+            new NamespacedKey(plugin, "server"),
+            PersistentDataType.STRING, entry.id());
+        meta.getPersistentDataContainer().set(
+            new NamespacedKey(plugin, "server_online"),
+            PersistentDataType.BOOLEAN, online);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack buildLobbyItem() {
+        ItemStack item = new ItemStack(Material.COMPASS);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(Component.text("§d§lLobby"));
+        meta.lore(List.of(Component.text("§7Du bist bereits in der Lobby")));
         item.setItemMeta(meta);
         return item;
     }
@@ -76,27 +124,34 @@ public class NavigatorCommand implements CommandExecutor, Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (event.getView().title().equals(Component.text("Server-Navigator", TextColor.color(0xAA00AA)))) {
-            event.setCancelled(true);
-            if (event.getCurrentItem() == null) return;
+        if (!event.getView().title().equals(Component.text("Server-Navigator", TextColor.color(0xAA00AA)))) return;
 
-            ItemMeta meta = event.getCurrentItem().getItemMeta();
-            if (meta == null) return;
+        event.setCancelled(true);
+        if (event.getCurrentItem() == null) return;
+        ItemMeta meta = event.getCurrentItem().getItemMeta();
+        if (meta == null) return;
 
-            String server = meta.getPersistentDataContainer().get(
-                    new org.bukkit.NamespacedKey(plugin, "server"),
-                    org.bukkit.persistence.PersistentDataType.STRING
-            );
-            if (server == null) return;
+        String server = meta.getPersistentDataContainer().get(
+            new NamespacedKey(plugin, "server"), PersistentDataType.STRING);
+        if (server == null) return;
 
-            player.closeInventory();
-            player.sendMessage("\u00a7dVerbinde mit \u00a7f" + server + "\u00a7d...");
+        Boolean online = meta.getPersistentDataContainer().get(
+            new NamespacedKey(plugin, "server_online"), PersistentDataType.BOOLEAN);
 
-            @SuppressWarnings("UnstableApiUsage")
-            ByteArrayDataOutput out = ByteStreams.newDataOutput();
-            out.writeUTF("Connect");
-            out.writeUTF(server);
-            player.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());
+        if (!Boolean.TRUE.equals(online)) {
+            player.sendMessage("§c✗ Dieser Server ist gerade nicht verfügbar.");
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f);
+            return;
         }
+
+        player.closeInventory();
+        player.sendMessage("§dVerbinde mit §f" + server + "§d...");
+        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.2f);
+
+        @SuppressWarnings("UnstableApiUsage")
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeUTF("Connect");
+        out.writeUTF(server);
+        player.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());
     }
 }
