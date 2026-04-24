@@ -129,32 +129,32 @@ async function ping(host, port) {
 
 async function buildStatusEmbed() {
   // Container-Status via Docker Socket (zuverlässig)
-  const serverResults = await Promise.all(
-    SERVERS.map(async s => ({ ...s, running: await isContainerRunning(s.container) }))
-  );
-  // Spielerzahl via Proxy-Ping
-  const proxy = await ping(PROXY_HOST, PROXY_PORT);
+  const [serverResults, proxyRunning, proxy] = await Promise.all([
+    Promise.all(SERVERS.map(async s => ({ ...s, running: await isContainerRunning(s.container) }))),
+    isContainerRunning('ph-velocity'),
+    ping(PROXY_HOST, PROXY_PORT),
+  ]);
 
   const timeStr   = new Date().toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin' });
   const anyOnline = serverResults.some(r => r.running);
-  const color     = anyOnline ? 0x57F287 : 0xED4245;
+  const color     = proxyRunning ? 0x57F287 : 0xED4245;
 
   const serverField = serverResults
     .map(s => `**${s.label}**\n${s.running ? '🟢 Online' : '🔴 Offline'}`)
     .join('\n\n');
+
+  const proxyValue = !proxyRunning
+    ? '🔴 Offline'
+    : proxy.online
+      ? `🟢 Online · **${proxy.players}** Spieler verbunden`
+      : '🟢 Online';
 
   return new EmbedBuilder()
     .setTitle('🌐 Pink Horizon · Serverstatus')
     .setColor(color)
     .setDescription(`**\`${MC_ADDRESS}\`**`)
     .addFields(
-      {
-        name: '📡 Netzwerk',
-        value: proxy.online
-          ? `🟢 Online · **${proxy.players}** Spieler verbunden`
-          : (anyOnline ? '🟡 Proxy startet...' : '🔴 Offline'),
-        inline: false,
-      },
+      { name: '📡 Netzwerk', value: proxyValue, inline: false },
       { name: '🖥️ Server', value: serverField || '–', inline: false },
     )
     .setFooter({ text: `Zuletzt aktualisiert: ${timeStr} Uhr · Aktualisierung stündlich` })
