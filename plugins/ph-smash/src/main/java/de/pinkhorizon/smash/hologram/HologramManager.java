@@ -393,6 +393,12 @@ public class HologramManager {
             " §f/stb bounty   §8» §7Tages-Kopfgeld ansehen" + nl +
             " §7Tages-Kopfgeld: §6+1000 Coins §8+ §d3x Boss-Kern" + nl +
             div +
+            "§b§l⏰ AFK-Farm" + nl +
+            " §f/stb afkfarm  §8» §7AFK-Farm starten (offline farmen)" + nl +
+            " §7Jeder Boss-Kill gibt §bAFK-Zeit §8(30s + Boss-Level§8)" + nl +
+            " §7Max. §b2 Stunden §7speicherbar" + nl +
+            " §7Belohnungen: §6Münzen §8/ §7Eisen §8/ §6Gold §8/ §bDiamant §8/ §5Kern" + nl +
+            div +
             "§a§l☆ Shop" + nl +
             " §7Im Navigator §8» §aShop §8– Tränke & Items" + nl +
             div +
