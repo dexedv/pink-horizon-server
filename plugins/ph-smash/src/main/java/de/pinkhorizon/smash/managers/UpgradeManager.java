@@ -2,6 +2,7 @@ package de.pinkhorizon.smash.managers;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.managers.LootManager.LootItem;
+import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
@@ -34,8 +35,8 @@ public class UpgradeManager {
         }
     }
 
-    private static final String MOD_KEY_HP    = "smash_health";
-    private static final String MOD_KEY_SPEED = "smash_speed";
+    private static final NamespacedKey MOD_KEY_HP    = new NamespacedKey("smash", "health");
+    private static final NamespacedKey MOD_KEY_SPEED = new NamespacedKey("smash", "speed");
 
     private final PHSmash plugin;
 
@@ -132,7 +133,7 @@ public class UpgradeManager {
         var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
         if (hpAttr != null) {
             hpAttr.getModifiers().stream()
-                .filter(m -> m.getName().equals(MOD_KEY_HP))
+                .filter(m -> m.getKey().equals(MOD_KEY_HP))
                 .toList().forEach(hpAttr::removeModifier);
             double hpBonus = 6.0 * getLevel(uuid, UpgradeType.HEALTH);
             if (hpBonus > 0) {
@@ -145,7 +146,7 @@ public class UpgradeManager {
         var speedAttr = player.getAttribute(Attribute.MOVEMENT_SPEED);
         if (speedAttr != null) {
             speedAttr.getModifiers().stream()
-                .filter(m -> m.getName().equals(MOD_KEY_SPEED))
+                .filter(m -> m.getKey().equals(MOD_KEY_SPEED))
                 .toList().forEach(speedAttr::removeModifier);
             double speedBonus = 0.015 * getLevel(uuid, UpgradeType.SPEED);
             if (speedBonus > 0) {

@@ -116,7 +116,9 @@ public class PrestigeManager {
         plugin.getUpgradeManager().applyStats(player);
 
         int newPrestige = getPrestige(uuid);
-        player.sendMessage("§d✦ §7PRESTIGE §d" + newPrestige + "§7! Upgrades zurückgesetzt. +5% permanenter Schaden.");
+        double totalBoostPct = newPrestige * 5.0;
+        player.sendMessage("§d✦ §7PRESTIGE §d" + newPrestige
+            + "§7! Alles zurückgesetzt. §6+" + (int) totalBoostPct + "% §7permanenter Schaden gesamt.");
         return true;
     }
 
