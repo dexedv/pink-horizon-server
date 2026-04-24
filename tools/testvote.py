@@ -16,7 +16,7 @@ key_pem = (
 )
 
 pub_key = serialization.load_pem_public_key(key_pem, backend=default_backend())
-vote = ("VOTE\nTestSite\nP3RPL3X0\n127.0.0.1\n" + str(int(time.time())) + "\n").encode().ljust(256)
+vote = ("VOTE\nTestSite\nP3RPL3X0\n127.0.0.1\n" + str(int(time.time())) + "\n").encode()
 encrypted = pub_key.encrypt(vote, padding.PKCS1v15())
 
 s = socket.socket()
