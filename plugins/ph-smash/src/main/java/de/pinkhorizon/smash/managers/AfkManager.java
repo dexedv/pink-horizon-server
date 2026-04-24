@@ -9,12 +9,17 @@ import java.util.UUID;
 
 public class AfkManager {
 
-    // Belohnungen pro Sekunde AFK-Zeit
-    private static final double COINS_PER_SEC   = 5.0;
-    private static final double IRON_PER_SEC    = 0.3;
-    private static final double GOLD_PER_SEC    = 0.05;
-    private static final double DIAMOND_PER_SEC = 0.01;
-    private static final double CORE_PER_SEC    = 0.002;
+    // Belohnungen pro Sekunde AFK-Zeit (bei 2h = 7200s ohne Prestige)
+    // Coins: 20.000 / 7200 ≈ 2.78/s
+    // Eisen:    500 / 7200 ≈ 0.069/s
+    // Gold:     150 / 7200 ≈ 0.021/s
+    // Diamant:   30 / 7200 ≈ 0.0042/s
+    // Kern:       7 / 7200 ≈ 0.00097/s
+    private static final double COINS_PER_SEC   = 20000.0 / 7200.0;
+    private static final double IRON_PER_SEC    =   500.0 / 7200.0;
+    private static final double GOLD_PER_SEC    =   150.0 / 7200.0;
+    private static final double DIAMOND_PER_SEC =    30.0 / 7200.0;
+    private static final double CORE_PER_SEC    =     7.0 / 7200.0;
 
     // Limits
     private static final long MAX_SECONDS_PER_KILL = 300L;    // max 5 Min pro Kill
