@@ -7,8 +7,10 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Entity;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -31,9 +33,14 @@ public class ArenaInstance {
     private Set<BossModifierManager.BossModifier> modifiers = EnumSet.noneOf(BossModifierManager.BossModifier.class);
     private BukkitTask         regenTask         = null;
     private BukkitTask         explosivTask      = null;
+    private BukkitTask         bossAttackTask    = null;
     // Warte-Spawn (Spieler muss manuell starten)
     private boolean            bossReadyToSpawn  = false;
     private int                nextBossLevel     = 1;
+    // DOT-Task-Tracking (für Cancel bei Boss-Tod)
+    private final List<BukkitTask> dotTasks      = new ArrayList<>();
+    // Boss-Spawn-Zeit für Schnellkill-Challenge
+    private long               bossSpawnTime     = 0;
 
     public ArenaInstance(UUID playerUuid, String worldName, int bossLevel) {
         this.playerUuid    = playerUuid;
@@ -60,11 +67,26 @@ public class ArenaInstance {
         return Math.max(0, Math.min(1, currentHp / config.maxHp()));
     }
 
+    /** Registriert einen DOT-Task (Blutung/Gift/Brand), damit er bei Boss-Tod abgebrochen werden kann. */
+    public void addDotTask(BukkitTask task) {
+        dotTasks.add(task);
+    }
+
+    /** Bricht alle laufenden DOT-Tasks ab und leert die Liste. */
+    public void cancelDotTasks() {
+        for (BukkitTask t : dotTasks) {
+            if (!t.isCancelled()) t.cancel();
+        }
+        dotTasks.clear();
+    }
+
     /** Welt bleibt, nur Boss und Zustand werden für nächstes Level resettet */
     public void resetForNextBoss(int newLevel) {
-        if (targetTask   != null) { targetTask.cancel();   targetTask   = null; }
-        if (regenTask    != null) { regenTask.cancel();    regenTask    = null; }
-        if (explosivTask != null) { explosivTask.cancel(); explosivTask = null; }
+        cancelDotTasks();
+        if (targetTask      != null) { targetTask.cancel();      targetTask      = null; }
+        if (regenTask       != null) { regenTask.cancel();       regenTask       = null; }
+        if (explosivTask    != null) { explosivTask.cancel();    explosivTask    = null; }
+        if (bossAttackTask  != null) { bossAttackTask.cancel();  bossAttackTask  = null; }
         config           = BossConfig.forLevel(newLevel);
         currentHp        = config.maxHp();
         sessionDamage    = 0;
@@ -103,9 +125,14 @@ public class ArenaInstance {
     public void       setRegenTask(BukkitTask t)                                                   { this.regenTask = t; }
     public BukkitTask getExplosivTask()                                                            { return explosivTask; }
     public void       setExplosivTask(BukkitTask t)                                                { this.explosivTask = t; }
+    public BukkitTask getBossAttackTask()                                                          { return bossAttackTask; }
+    public void       setBossAttackTask(BukkitTask t)                                              { this.bossAttackTask = t; }
     // Warte-Spawn
     public boolean    isBossReadyToSpawn()                                                         { return bossReadyToSpawn; }
     public void       setBossReadyToSpawn(boolean b)                                               { this.bossReadyToSpawn = b; }
     public int        getNextBossLevel()                                                            { return nextBossLevel; }
     public void       setNextBossLevel(int l)                                                       { this.nextBossLevel = l; }
+    // Boss-Spawn-Zeit
+    public long       getBossSpawnTime()                                                           { return bossSpawnTime; }
+    public void       setBossSpawnTime(long t)                                                     { this.bossSpawnTime = t; }
 }

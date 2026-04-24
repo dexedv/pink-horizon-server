@@ -234,9 +234,11 @@ public class ArenaManager {
     /** Beim Plugin-Disable: alle Arenen synchron aufräumen */
     public void destroyAll() {
         for (ArenaInstance arena : new ArrayList<>(arenas.values())) {
-            if (arena.getTargetTask()   != null) arena.getTargetTask().cancel();
-            if (arena.getRegenTask()    != null) arena.getRegenTask().cancel();
-            if (arena.getExplosivTask() != null) arena.getExplosivTask().cancel();
+            arena.cancelDotTasks();
+            if (arena.getTargetTask()      != null) arena.getTargetTask().cancel();
+            if (arena.getRegenTask()       != null) arena.getRegenTask().cancel();
+            if (arena.getExplosivTask()    != null) arena.getExplosivTask().cancel();
+            if (arena.getBossAttackTask()  != null) arena.getBossAttackTask().cancel();
             if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
             if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
             World world = arena.getWorld();
@@ -306,6 +308,7 @@ public class ArenaManager {
 
         arena.setBossEntity(entity);
         arena.setBossBar(bar);
+        arena.setBossSpawnTime(System.currentTimeMillis());
 
         // REGENERIEREND modifier: heal 0.5% max HP per second
         if (modifiers.contains(BossModifier.REGENERIEREND)) {
@@ -353,6 +356,37 @@ public class ArenaManager {
             }
         }, 20L, 60L);
         arena.setTargetTask(task);
+
+        // Boss-Angriffsmuster: periodische Spezialangriffe (schneller bei höherem Level)
+        if (arena.getBossAttackTask() != null) arena.getBossAttackTask().cancel();
+        long attackInterval = Math.max(8L, 15L - cfg.level() / 50L);
+        var attackTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (arena.isDead() || !entity.isValid()) return;
+            Player p = Bukkit.getPlayer(arena.getPlayerUuid());
+            if (p == null || !p.isOnline() || p.isDead()) return;
+
+            int attackType = (int) (Math.random() * 3);
+            switch (attackType) {
+                case 0 -> { // Erdbeben-Slam: direkte HP-Reduzierung
+                    p.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                        .legacySection().deserialize("§c⚡ §7Boss-Slam!"));
+                    world.strikeLightningEffect(p.getLocation());
+                    double slamDmg = Math.min(2.0 + cfg.level() * 0.03, 8.0);
+                    p.setHealth(Math.max(0.5, p.getHealth() - slamDmg));
+                }
+                case 1 -> { // Giftstoß
+                    p.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                        .legacySection().deserialize("§2☠ §7Boss vergiftet dich!"));
+                    p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 0, false, true));
+                }
+                case 2 -> { // Verlangsamung
+                    p.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                        .legacySection().deserialize("§9❄ §7Boss verlangsamt dich!"));
+                    p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 1, false, true));
+                }
+            }
+        }, 20L * attackInterval, 20L * attackInterval);
+        arena.setBossAttackTask(attackTask);
     }
 
     private EntityType getBossEntityType(int level) {
@@ -370,8 +404,11 @@ public class ArenaManager {
     }
 
     private void onBossDefeated(Player player, ArenaInstance arena) {
+        // DOT-Tasks stoppen, bevor Boss-HP auf 0 war
+        arena.cancelDotTasks();
         if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
-        if (arena.getRegenTask() != null) { arena.getRegenTask().cancel(); arena.setRegenTask(null); }
+        if (arena.getRegenTask()       != null) { arena.getRegenTask().cancel();      arena.setRegenTask(null); }
+        if (arena.getBossAttackTask()  != null) { arena.getBossAttackTask().cancel(); arena.setBossAttackTask(null); }
 
         // Spieler auf volle Leben heilen + negative Effekte entfernen
         var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
@@ -429,8 +466,9 @@ public class ArenaManager {
         // Rune charges decrement
         plugin.getRuneManager().onBossDefeated(uuid);
 
-        // Forge charges decrement
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> plugin.getForgeManager().onBossDefeated(uuid));
+        // Forge charges decrement (+ Spieler-Feedback)
+        final Player pRef = player;
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> plugin.getForgeManager().onBossDefeated(uuid, pRef));
 
         // Bestiary tracking (entity type name)
         String mobType = getBossEntityType(defeatedLevel).name();
@@ -466,6 +504,11 @@ public class ArenaManager {
             (int) Math.min(coins, Integer.MAX_VALUE));
         if (newStreak >= 3) {
             plugin.getDailyChallengeManager().addProgress(uuid, DailyChallengeManager.ChallengeType.STREAK_REACH, newStreak);
+        }
+        // Schnellkill: Boss in unter 90 Sekunden besiegt
+        long fightMs = System.currentTimeMillis() - arena.getBossSpawnTime();
+        if (fightMs <= 90_000L) {
+            plugin.getDailyChallengeManager().addProgress(uuid, DailyChallengeManager.ChallengeType.FAST_KILL, 1);
         }
 
         // Titel
@@ -643,9 +686,11 @@ public class ArenaManager {
     }
 
     private void cleanupArenaResources(ArenaInstance arena) {
-        if (arena.getTargetTask()   != null) arena.getTargetTask().cancel();
-        if (arena.getRegenTask()    != null) { arena.getRegenTask().cancel();    arena.setRegenTask(null); }
-        if (arena.getExplosivTask() != null) { arena.getExplosivTask().cancel(); arena.setExplosivTask(null); }
+        arena.cancelDotTasks();
+        if (arena.getTargetTask()      != null) arena.getTargetTask().cancel();
+        if (arena.getRegenTask()       != null) { arena.getRegenTask().cancel();       arena.setRegenTask(null); }
+        if (arena.getExplosivTask()    != null) { arena.getExplosivTask().cancel();    arena.setExplosivTask(null); }
+        if (arena.getBossAttackTask()  != null) { arena.getBossAttackTask().cancel();  arena.setBossAttackTask(null); }
         if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) arena.getBossEntity().remove();
         if (arena.getBossBar()   != null) arena.getBossBar().removeAll();
         World world = arena.getWorld();
@@ -741,7 +786,7 @@ public class ArenaManager {
         ItemMeta  stm   = stick.getItemMeta();
         stm.displayName(leg.deserialize("§6§l" + FIREBALL_STICK_NAME));
         stm.lore(java.util.List.of(
-            leg.deserialize("§7Rechtsklick §8» §eFeuerball schießen"),
+            leg.deserialize("§7Linksklick §8» §eFeuerball schießen"),
             leg.deserialize("§7Cooldown: §c2s §8– Skaliert mit Fähigkeiten")));
         stm.setUnbreakable(true);
         stm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);

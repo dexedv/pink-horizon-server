@@ -2,8 +2,12 @@ package de.pinkhorizon.smash.managers;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.managers.LootManager.LootItem;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -170,13 +174,22 @@ public class ForgeManager {
 
     /**
      * Called after a boss is defeated by the given player.
-     * Decrements charges for every ForgeEnchant that is currently active.
+     * Decrements charges for every ForgeEnchant that is currently active and notifies the player.
      */
-    public void onBossDefeated(UUID uuid) {
+    public void onBossDefeated(UUID uuid, Player player) {
+        List<String> consumed = new ArrayList<>();
         for (ForgeEnchant enchant : ForgeEnchant.values()) {
             if (isActive(uuid, enchant)) {
                 consumeCharge(uuid, enchant);
+                consumed.add(enchant.displayName);
             }
+        }
+        if (!consumed.isEmpty() && player != null) {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (player.isOnline()) {
+                    player.sendMessage("§6⚒ §7Schmied-Ladungen verbraucht: " + String.join("§7, ", consumed));
+                }
+            });
         }
     }
 

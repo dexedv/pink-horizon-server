@@ -164,6 +164,9 @@ public class AbilityGui implements Listener {
         lore.add("§8─────────────────────");
         lore.add("§7Level:  " + bar(level, type.maxLevel));
         lore.add("§7Effekt: " + effectValue(type, level));
+        if (!maxed) {
+            lore.add("§7→ Lv" + (level + 1) + ":  " + effectValue(type, level + 1));
+        }
         lore.add("§8─────────────────────");
 
         if (!maxed) {

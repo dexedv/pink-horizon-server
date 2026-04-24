@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.sql.*;
+import java.time.DayOfWeek;
 import java.util.*;
 
 public class HologramManager {
@@ -23,6 +24,7 @@ public class HologramManager {
         DAMAGE   ("damage",   "§e§l✦ Top Schaden"),
         COINS    ("coins",    "§6§l✦ Top Münzen"),
         PRESTIGE ("prestige", "§d§l★ Top Prestige"),
+        WEEKLY   ("weekly",   "§b§l⏳ Wochenturnier – Top Kills"),
         COMMANDS ("commands", "§b§l✦ Befehle");
 
         public final String key;
@@ -175,6 +177,27 @@ public class HologramManager {
             return result;
         }
 
+        if (type == HologramType.WEEKLY) {
+            java.time.LocalDate weekStart = java.time.LocalDate.now()
+                .with(java.time.DayOfWeek.MONDAY);
+            String sql = "SELECT uuid, kills FROM smash_weekly WHERE week_start = ? AND kills > 0 ORDER BY kills DESC LIMIT 10";
+            try (Connection c = plugin.getDb().getConnection();
+                 PreparedStatement st = c.prepareStatement(sql)) {
+                st.setDate(1, java.sql.Date.valueOf(weekStart));
+                try (ResultSet rs = st.executeQuery()) {
+                    while (rs.next()) {
+                        UUID   uuid  = UUID.fromString(rs.getString("uuid"));
+                        long   value = rs.getLong("kills");
+                        String name  = Bukkit.getOfflinePlayer(uuid).getName();
+                        result.add(new LeaderEntry(name != null ? name : "???", value));
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().warning("HologramManager.fetchData(WEEKLY): " + e.getMessage());
+            }
+            return result;
+        }
+
         String col = switch (type) {
             case KILLS  -> "kills";
             case LEVEL  -> "personal_level";
@@ -218,6 +241,7 @@ public class HologramManager {
                 case DAMAGE   -> "§e" + formatDmg(e.value) + " §7Dmg";
                 case COINS    -> "§6" + e.value + " §7Münzen";
                 case PRESTIGE -> "§d✦ §f" + e.value + " §7Prestige";
+                case WEEKLY   -> "§b" + e.value + " §7Kills diese Woche";
                 case COMMANDS -> "";
             };
             sb.append(medal).append(rankColor).append("#").append(i + 1)

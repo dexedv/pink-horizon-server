@@ -273,7 +273,7 @@ public class UpgradeGui implements Listener, InventoryHolder {
                               + "% §7eingehender Schaden";
             case HEALTH    -> "§e+" + (level * 6) + " §7Max-HP total";
             case SPEED     -> "§b+" + (level * 3) + "% §7Geschwindigkeit total";
-            case LIFESTEAL -> "§5+" + (level * 5) + "% §7Lebensraub total";
+            case LIFESTEAL -> "§5+" + Math.min(level * 5, 50) + "% §7Lebensraub total §8(max 50%)";
         };
     }
 

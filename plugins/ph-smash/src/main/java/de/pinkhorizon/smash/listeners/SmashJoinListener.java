@@ -18,6 +18,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
 import java.time.Duration;
+import java.util.UUID;
 
 public class SmashJoinListener implements Listener {
 
@@ -120,12 +121,16 @@ public class SmashJoinListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        UUID   uuid   = player.getUniqueId();
 
         // Arena beim Verlassen automatisch aufräumen
-        if (plugin.getArenaManager().hasArena(player.getUniqueId())) {
-            // destroyArena ohne sendToLobby (Spieler trennt sich ja gerade)
-            plugin.getArenaManager().destroyArenaOnQuit(player.getUniqueId());
+        if (plugin.getArenaManager().hasArena(uuid)) {
+            plugin.getArenaManager().destroyArenaOnQuit(uuid);
         }
+
+        // Cooldown + Combo-Cache bereinigen
+        plugin.getCombatListener().clearCooldown(uuid);
+        plugin.getComboManager().unload(uuid);
 
         plugin.getScoreboardManager().removeScoreboard(player);
 

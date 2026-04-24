@@ -45,6 +45,11 @@ public class SmashCombatListener implements Listener {
         this.plugin = plugin;
     }
 
+    /** Entfernt den Feuerball-Cooldown eines Spielers (z. B. beim Disconnect). */
+    public void clearCooldown(UUID uuid) {
+        fireballCooldowns.remove(uuid);
+    }
+
     /**
      * Spieler trifft Boss (Schwert oder Bogen).
      * Echter Schaden wird abgefangen; virtuelles HP-System übernimmt.
@@ -98,6 +103,10 @@ public class SmashCombatListener implements Listener {
                 * plugin.getForgeManager().getPowerMultiplier(uuid);
             plugin.getArenaManager().applyDamage(player, raw);
 
+            // Feuerball-Treffer-Challenge tracken
+            plugin.getDailyChallengeManager().addProgress(uuid,
+                DailyChallengeManager.ChallengeType.FIREBALL_HITS, 1);
+
             // Doppelfeuer: zweiter Feuerball (80% Schaden)
             double doppelChance = plugin.getAbilityManager().getDoppelfeuerChance(uuid);
             if (doppelChance > 0 && Math.random() < doppelChance) {
@@ -114,10 +123,11 @@ public class SmashCombatListener implements Listener {
                 final Player        pPlayer = player;
                 for (int tick = 1; tick <= 3; tick++) {
                     final long delay = tick * 20L;
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    org.bukkit.scheduler.BukkitTask dotTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (pArena.getBossEntity() != null && pArena.getBossEntity().isValid())
                             plugin.getArenaManager().applyDamage(pPlayer, tickDmg);
                     }, delay);
+                    pArena.addDotTask(dotTask);
                 }
                 player.sendMessage("§c🔥 §fVerbrennung!");
                 player.playSound(player.getLocation(), Sound.ENTITY_BLAZE_HURT, 0.5f, 1.5f);
@@ -215,10 +225,11 @@ public class SmashCombatListener implements Listener {
                 final Player        pPlayer = player;
                 for (int tick = 1; tick <= 3; tick++) {
                     final long delay = tick * 20L;
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    org.bukkit.scheduler.BukkitTask dotTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (pArena.getBossEntity() != null && pArena.getBossEntity().isValid())
                             plugin.getArenaManager().applyDamage(pPlayer, tickDmg);
                     }, delay);
+                    pArena.addDotTask(dotTask);
                 }
                 player.sendMessage("§2☠ §aGiftpfeil!");
                 player.playSound(player.getLocation(), Sound.ENTITY_CREEPER_HURT, 0.5f, 1.5f);
@@ -236,13 +247,17 @@ public class SmashCombatListener implements Listener {
                 final Player        pPlayer = player;
                 for (int tick = 1; tick <= ticks; tick++) {
                     final long delay = tick * 20L;
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    org.bukkit.scheduler.BukkitTask dotTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (pArena.getBossEntity() != null && pArena.getBossEntity().isValid())
                             plugin.getArenaManager().applyDamage(pPlayer, tickDmg);
                     }, delay);
+                    pArena.addDotTask(dotTask);
                 }
                 player.sendMessage("§c🩸 §fBlutung! §8(" + ticks + " Ticks)");
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, 0.6f, 0.4f);
+                // Blutungs-Challenge tracken
+                plugin.getDailyChallengeManager().addProgress(uuid,
+                    DailyChallengeManager.ChallengeType.AXE_BLEED, 1);
             }
         }
 

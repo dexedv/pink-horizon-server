@@ -63,6 +63,7 @@ public class PHSmash extends JavaPlugin {
     private BestiaryManager        bestiaryManager;
     private ForgeGui               forgeGui;
     private BestiaryGui            bestiaryGui;
+    private SmashCombatListener    combatListener;
 
     @Override
     public void onEnable() {
@@ -112,7 +113,7 @@ public class PHSmash extends JavaPlugin {
         dailyChallengeGui  = new DailyChallengeGui(this);
 
         // New managers & GUIs (v3)
-        comboManager        = new ComboManager();
+        comboManager        = new ComboManager(this);
         bossModifierManager = new BossModifierManager();
         bountyManager       = new BountyManager(this);
         weeklyManager       = new WeeklyManager(this);
@@ -126,7 +127,8 @@ public class PHSmash extends JavaPlugin {
         hologramManager = new HologramManager(this);
 
         // Listener
-        getServer().getPluginManager().registerEvents(new SmashCombatListener(this), this);
+        combatListener = new SmashCombatListener(this);
+        getServer().getPluginManager().registerEvents(combatListener, this);
         getServer().getPluginManager().registerEvents(new SmashJoinListener(this), this);
         getServer().getPluginManager().registerEvents(new SmashNavigatorListener(this), this);
         getServer().getPluginManager().registerEvents(new SmashChatListener(this), this);
@@ -201,4 +203,5 @@ public class PHSmash extends JavaPlugin {
     public BestiaryManager        getBestiaryManager()      { return bestiaryManager; }
     public ForgeGui               getForgeGui()             { return forgeGui; }
     public BestiaryGui            getBestiaryGui()          { return bestiaryGui; }
+    public SmashCombatListener    getCombatListener()       { return combatListener; }
 }

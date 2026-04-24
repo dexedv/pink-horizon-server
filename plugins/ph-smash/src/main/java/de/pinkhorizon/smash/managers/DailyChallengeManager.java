@@ -23,8 +23,11 @@ public class DailyChallengeManager {
         BOSS_KILLS  ("boss_kills",   "§c💀 Boss-Kills",       "Besiege {target} Bosse",          10,    new long[]{500,  1000,  2000}),
         TOTAL_DAMAGE("total_damage", "§e⚔ Schaden",           "Verursache {target} Schaden",      50000, new long[]{800,  1500,  3000}),
         COINS_EARNED("coins_earned", "§6★ Münzen verdienen",  "Verdiene {target} Münzen",         2000,  new long[]{400,   800,  2000}),
-        DODGE_HITS  ("dodge_hits",   "§b⚡ Ausweichen",        "Weiche {target} Treffern aus",     15,    new long[]{300,   600,  1500}),
-        STREAK_REACH("streak_reach", "§6🔥 Streak",           "Erreiche einen {target}er Streak", 3,     new long[]{600,  1200,  3000});
+        DODGE_HITS    ("dodge_hits",     "§b⚡ Ausweichen",          "Weiche {target} Treffern aus",              15, new long[]{300,   600,  1500}),
+        STREAK_REACH  ("streak_reach",  "§6🔥 Streak",             "Erreiche einen {target}er Streak",          3,  new long[]{600,  1200,  3000}),
+        FIREBALL_HITS ("fireball_hits", "§6🔥 Feuerball-Treffer",  "Treffe den Boss {target}x mit Feuerball",  20, new long[]{400,   800,  2000}),
+        AXE_BLEED     ("axe_bleed",     "§c🩸 Blutungs-Treffer",   "Löse {target} Blutungs-DOTs aus",          15, new long[]{300,   600,  1500}),
+        FAST_KILL     ("fast_kill",     "§d⚡ Schnellkill",         "Besiege {target} Bosse in unter 90 Sek.",  3,  new long[]{600,  1200,  3000});
 
         public final String   id;
         public final String   displayName;

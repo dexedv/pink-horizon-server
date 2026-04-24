@@ -75,7 +75,7 @@ public class UpgradeManager {
     }
 
     public double getLifestealPercent(UUID uuid) {
-        return 0.05 * getLevel(uuid, UpgradeType.LIFESTEAL);
+        return Math.min(0.05 * getLevel(uuid, UpgradeType.LIFESTEAL), 0.50);
     }
 
     /** Versucht ein Upgrade zu kaufen. Gibt false zurück wenn nicht leistbar. */
