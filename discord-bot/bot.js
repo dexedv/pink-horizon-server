@@ -172,36 +172,111 @@ const VOICE_COOLDOWN    = 10 * 60 * 1000;
 let monitorInterval     = null;
 const containerWasUp    = {};   // container → bool (vorheriger Status)
 
+// Restart-Event-Tracking
+let lastSeenEventId  = -1;   // -1 = noch nicht initialisiert
+let restartTimers    = [];   // laufende setTimeout-Handles für Zwischenschritte
+
+// Einmalig beim Start: aktuellen Max-ID laden, damit alte Events nicht nochmal gepostet werden
+async function initLastEventId() {
+  const pool = await getDb(); if (!pool) return;
+  try {
+    const [[row]] = await pool.query('SELECT COALESCE(MAX(id),0) AS maxid FROM network_events');
+    lastSeenEventId = row.maxid;
+  } catch { lastSeenEventId = 0; }
+}
+
+function clearRestartTimers() {
+  restartTimers.forEach(t => clearTimeout(t));
+  restartTimers = [];
+}
+
 async function pollRestartEvents(guild) {
   const ch = guild.channels.cache.get(NOTIFY_CHANNEL_ID);
   if (!ch) return;
   const pool = await getDb();
   if (!pool) return;
+
+  // Initialisierung beim ersten Aufruf
+  if (lastSeenEventId === -1) { await initLastEventId(); return; }
+
   try {
-    const [rows] = await pool.query('SELECT * FROM network_events ORDER BY created_at ASC');
-    if (rows.length === 0) return;
+    const [rows] = await pool.query(
+      'SELECT * FROM network_events WHERE id > ? ORDER BY created_at ASC',
+      [lastSeenEventId]
+    );
+    if (!rows.length) return;
+
+    // Höchste gesehene ID merken
+    lastSeenEventId = Math.max(...rows.map(r => r.id));
+
+    // Deduplizieren: pro Event-Typ nur einmal posten (mehrere Server schreiben denselben Event)
+    const handled = new Set();
+
     for (const row of rows) {
-      const server = row.server_name;
+      if (handled.has(row.event_type)) continue;
+      handled.add(row.event_type);
+
       if (row.event_type === 'RESTART_ANNOUNCED') {
-        const min = Math.round(row.seconds_until / 60);
-        await ch.send({
-          embeds: [new EmbedBuilder()
-            .setTitle('⚠️ Serverneustart angekündigt')
-            .setColor(0xFFA500)
-            .setDescription(`**${server}** startet in **${min} Minute${min !== 1 ? 'n' : ''}** neu.`)
-            .setTimestamp()],
-        });
+        const sec = row.seconds_until || 300;
+        const min = Math.round(sec / 60);
+
+        // Alte Timer verwerfen, neuen Countdown starten
+        clearRestartTimers();
+
+        await ch.send({ embeds: [new EmbedBuilder()
+          .setTitle('⚠️ Serverneustart angekündigt')
+          .setColor(0xFFA500)
+          .setDescription(`Das Netzwerk startet in **${min} Minute${min !== 1 ? 'n' : ''}** neu!\nBitte bereite dich vor.`)
+          .setFooter({ text: 'Pink Horizon • Automatisch' })
+          .setTimestamp(),
+        ]});
+
+        // Zwischenschritte: 3min / 2min / 1min / 30s / 10s
+        const milestones = [180, 120, 60, 30, 10].filter(s => s < sec - 5);
+        for (const ms of milestones) {
+          const delay = (sec - ms) * 1000;
+          const label = ms >= 60
+            ? `${ms / 60} Minute${ms / 60 > 1 ? 'n' : ''}`
+            : `${ms} Sekunden`;
+          const color  = ms <= 30 ? 0xED4245 : ms <= 60 ? 0xFFA500 : 0xFEE75C;
+          const t = setTimeout(async () => {
+            await ch.send({ embeds: [new EmbedBuilder()
+              .setTitle(`⏰ Neustart in ${label}`)
+              .setColor(color)
+              .setDescription(`Das Netzwerk startet in **${label}** neu!`)
+              .setFooter({ text: 'Pink Horizon • Automatisch' })
+              .setTimestamp(),
+            ]}).catch(() => {});
+          }, delay);
+          restartTimers.push(t);
+        }
+
       } else if (row.event_type === 'RESTART_NOW') {
-        await ch.send({
-          embeds: [new EmbedBuilder()
-            .setTitle('🔴 Server wird neu gestartet')
-            .setColor(0xED4245)
-            .setDescription(`**${server}** fährt jetzt herunter und startet gleich wieder hoch.`)
-            .setTimestamp()],
-        });
+        clearRestartTimers();
+        await ch.send({ embeds: [new EmbedBuilder()
+          .setTitle('🔴 Server startet jetzt neu')
+          .setColor(0xED4245)
+          .setDescription('Das Netzwerk fährt **jetzt** herunter und ist gleich wieder online. ⏳')
+          .setFooter({ text: 'Pink Horizon • Automatisch' })
+          .setTimestamp(),
+        ]});
+
+      } else if (row.event_type === 'RESTART_CANCELLED') {
+        clearRestartTimers();
+        await ch.send({ embeds: [new EmbedBuilder()
+          .setTitle('✅ Neustart abgebrochen')
+          .setColor(0x57F287)
+          .setDescription('Der geplante Netzwerk-Neustart wurde **abgebrochen**.')
+          .setFooter({ text: 'Pink Horizon • Automatisch' })
+          .setTimestamp(),
+        ]});
       }
     }
-    await pool.query('DELETE FROM network_events');
+
+    // Alte Events aufräumen (älter als 24h)
+    await pool.query('DELETE FROM network_events WHERE created_at < ?',
+      [Date.now() - 24 * 60 * 60 * 1000]).catch(() => {});
+
   } catch (e) { /* Tabelle existiert noch nicht */ }
 }
 
