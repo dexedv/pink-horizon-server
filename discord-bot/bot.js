@@ -890,7 +890,7 @@ client.on('messageCreate', async message => {
     );
 
     // igv-Rolle vergeben
-    const igvRole = message.guild.roles.cache.find(r => r.name === 'igv');
+    const igvRole = message.guild.roles.cache.get('1497219596414095561');
     if (igvRole) await message.member.roles.add(igvRole).catch(() => {});
 
     // Bestätigung
