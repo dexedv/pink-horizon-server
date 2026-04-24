@@ -3,9 +3,7 @@
 
 # Voting-Links (angezeigt bei /vote)
 voting-links:
-  - "https://minecraft-server-list.de"
-  - "https://topg.org"
-  - "https://minecraft-mp.com"
+  - "https://minecraft-server.eu/vote/index/238C9"
 
 # Belohnungen pro Vote
 vote-reward:
