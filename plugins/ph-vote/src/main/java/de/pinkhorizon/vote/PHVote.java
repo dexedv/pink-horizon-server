@@ -21,7 +21,7 @@ public class PHVote extends JavaPlugin {
         getServer().getPluginManager().registerEvents(voteShopGUI, this);
 
         // NuVotifier optional einbinden
-        if (getServer().getPluginManager().getPlugin("NuVotifier") != null) {
+        if (getServer().getPluginManager().getPlugin("Votifier") != null) {
             getServer().getPluginManager().registerEvents(new VoteListener(this), this);
             getLogger().info("NuVotifier gefunden – Vote-Listener aktiv.");
         } else {
