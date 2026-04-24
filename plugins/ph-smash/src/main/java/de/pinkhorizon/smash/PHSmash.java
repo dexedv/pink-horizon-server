@@ -64,6 +64,7 @@ public class PHSmash extends JavaPlugin {
     private ForgeGui               forgeGui;
     private BestiaryGui            bestiaryGui;
     private SmashCombatListener    combatListener;
+    private CombatLogManager       combatLogManager;
 
     @Override
     public void onEnable() {
@@ -123,8 +124,9 @@ public class PHSmash extends JavaPlugin {
         bestiaryGui         = new BestiaryGui(this);
 
         // NPC-Manager + Holograms
-        npcManager      = new NpcManager(this);
-        hologramManager = new HologramManager(this);
+        npcManager       = new NpcManager(this);
+        hologramManager  = new HologramManager(this);
+        combatLogManager = new CombatLogManager(this);
 
         // Listener
         combatListener = new SmashCombatListener(this);
@@ -204,4 +206,5 @@ public class PHSmash extends JavaPlugin {
     public ForgeGui               getForgeGui()             { return forgeGui; }
     public BestiaryGui            getBestiaryGui()          { return bestiaryGui; }
     public SmashCombatListener    getCombatListener()       { return combatListener; }
+    public CombatLogManager       getCombatLogManager()     { return combatLogManager; }
 }

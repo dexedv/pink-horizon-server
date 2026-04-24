@@ -2,21 +2,17 @@ package de.pinkhorizon.smash.listeners;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.arena.ArenaInstance;
-import org.bukkit.Bukkit;
 import de.pinkhorizon.smash.managers.BossModifierManager.BossModifier;
+import de.pinkhorizon.smash.managers.CombatLogManager;
 import de.pinkhorizon.smash.managers.DailyChallengeManager;
 import de.pinkhorizon.smash.managers.ForgeManager.ForgeEnchant;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.SmallFireball;
-import de.pinkhorizon.smash.arena.ArenaManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
@@ -31,32 +27,47 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import de.pinkhorizon.smash.arena.ArenaManager;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class SmashCombatListener implements Listener {
 
-    private static final LegacyComponentSerializer LEGACY             = LegacyComponentSerializer.legacySection();
-    private static final double                    FIREBALL_BASE_DMG  = 20.0;
-    private static final long                      FIREBALL_CD_MS     = 2000L;
+    private static final LegacyComponentSerializer LEGACY            = LegacyComponentSerializer.legacySection();
+    private static final double                    FIREBALL_BASE_DMG = 20.0;
+    private static final long                      FIREBALL_CD_MS    = 2000L;
 
-    private final PHSmash          plugin;
-    private final Map<UUID, Long>  fireballCooldowns = new HashMap<>();
+    private final PHSmash         plugin;
+    private final Map<UUID, Long> fireballCooldowns = new HashMap<>();
 
     public SmashCombatListener(PHSmash plugin) {
         this.plugin = plugin;
     }
 
-    /** Entfernt den Feuerball-Cooldown eines Spielers (z. B. beim Disconnect). */
     public void clearCooldown(UUID uuid) {
         fireballCooldowns.remove(uuid);
     }
 
+    // ── Effektiver Gesamt-Multiplikator (wie in applyDamage) ────────────────
+
+    private double effectiveMulti(UUID uuid, ArenaInstance arena) {
+        double gepanzert = arena.getModifiers().contains(BossModifier.GEPANZERT) ? 0.70 : 1.0;
+        return gepanzert
+            * plugin.getUpgradeManager().getAttackMultiplier(uuid)
+            * plugin.getPrestigeManager().getPrestigeMultiplier(uuid)
+            * plugin.getStreakManager().getStreakMultiplier(uuid)
+            * plugin.getRuneManager().getWarRuneMultiplier(uuid)
+            * plugin.getComboManager().getMultiplier(uuid);
+    }
+
     /**
-     * Spieler trifft Boss (Schwert oder Bogen).
-     * Echter Schaden wird abgefangen; virtuelles HP-System übernimmt.
+     * Spieler trifft Boss – Schaden & alle Fähigkeits-Procs.
+     * Echter Bukkit-Schaden wird abgefangen; virtuelles HP-System übernimmt.
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerHitBoss(EntityDamageByEntityEvent event) {
-        // Spieler ermitteln – direkt (Schwert/Axt), Feuerball oder Projektil (Bogen)
         Player  player;
         boolean isBow           = false;
         boolean isAxe           = false;
@@ -65,9 +76,9 @@ public class SmashCombatListener implements Listener {
 
         if (event.getDamager() instanceof Player p) {
             player = p;
-            org.bukkit.inventory.ItemStack held = p.getInventory().getItemInMainHand();
+            ItemStack held = p.getInventory().getItemInMainHand();
             if (held.getType() == Material.STICK && held.hasItemMeta()) {
-                net.kyori.adventure.text.Component nm = held.getItemMeta().displayName();
+                Component nm = held.getItemMeta().displayName();
                 if (nm != null && LEGACY.serialize(nm).contains(ArenaManager.FIREBALL_STICK_NAME)) {
                     isFireballStick = true;
                 }
@@ -91,10 +102,12 @@ public class SmashCombatListener implements Listener {
         if (arena == null || arena.getBossEntity() == null) return;
         if (!event.getEntity().getUniqueId().equals(arena.getBossEntity().getUniqueId())) return;
 
-        double raw = event.getDamage();
+        double raw  = event.getDamage();
         event.setCancelled(true);
 
-        UUID uuid = player.getUniqueId();
+        UUID              uuid = player.getUniqueId();
+        CombatLogManager  log  = plugin.getCombatLogManager();
+        double            multi = effectiveMulti(uuid, arena);
 
         // ── Feuerball-Handler ──────────────────────────────────────────────
         if (isFireball) {
@@ -102,7 +115,6 @@ public class SmashCombatListener implements Listener {
                 * plugin.getAbilityManager().getFireballPowerMultiplier(uuid)
                 * plugin.getForgeManager().getPowerMultiplier(uuid);
 
-            // Berserker-Bonus auch für Feuerball
             double fbBerserker = plugin.getAbilityManager().getBerserkerBonus(uuid);
             if (fbBerserker > 0) {
                 var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
@@ -112,16 +124,16 @@ public class SmashCombatListener implements Listener {
             }
 
             plugin.getArenaManager().applyDamage(player, raw);
-
-            // Feuerball-Treffer-Challenge tracken
             plugin.getDailyChallengeManager().addProgress(uuid,
                 DailyChallengeManager.ChallengeType.FIREBALL_HITS, 1);
 
             // Doppelfeuer: zweiter Feuerball (80% Schaden)
             double doppelChance = plugin.getAbilityManager().getDoppelfeuerChance(uuid);
             if (doppelChance > 0 && Math.random() < doppelChance) {
-                plugin.getArenaManager().applyDamage(player, raw * 0.80);
-                player.sendMessage("§e🔥 §fDoppelfeuer!");
+                double echoDmg = raw * 0.80;
+                plugin.getArenaManager().applyDamage(player, echoDmg);
+                log.proc(player, "🔥", "§6", "Doppelfeuer",
+                    "×80%", echoDmg * multi);
                 player.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.8f, 1.3f);
             }
 
@@ -133,15 +145,16 @@ public class SmashCombatListener implements Listener {
                 final Player        pPlayer = player;
                 for (int tick = 1; tick <= 3; tick++) {
                     final long delay = tick * 20L;
-                    org.bukkit.scheduler.BukkitTask dotTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    pArena.addDotTask(Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (pArena.getBossEntity() != null && pArena.getBossEntity().isValid())
                             plugin.getArenaManager().applyDamage(pPlayer, tickDmg);
-                    }, delay);
-                    pArena.addDotTask(dotTask);
+                    }, delay));
                 }
-                player.sendMessage("§c🔥 §fVerbrennung!");
+                log.dot(player, "🔥", "§c", "Verbrennung", tickDmg * multi, 3);
                 player.playSound(player.getLocation(), Sound.ENTITY_BLAZE_HURT, 0.5f, 1.5f);
             }
+
+            log.updateActionBar(player);
             return;
         }
 
@@ -151,7 +164,8 @@ public class SmashCombatListener implements Listener {
             Long last = fireballCooldowns.get(uuid);
             if (last != null && now - last < FIREBALL_CD_MS) {
                 long remMs = FIREBALL_CD_MS - (now - last);
-                player.sendActionBar(LEGACY.deserialize("§c⏳ §7Feuerball in §c" + String.format("%.1f", remMs / 1000.0) + "s"));
+                player.sendActionBar(LEGACY.deserialize(
+                    "§c⏳ §7Feuerball bereit in §c" + String.format("%.1f", remMs / 1000.0) + "s"));
                 return;
             }
             fireballCooldowns.put(uuid, now);
@@ -167,125 +181,139 @@ public class SmashCombatListener implements Listener {
             return;
         }
 
+        // ── Bogen ─────────────────────────────────────────────────────────
         if (isBow) {
-            // ── Explosivpfeil ──
+            // Explosivpfeil: ×2 Schaden
             double expChance = plugin.getAbilityManager().getExplosiveChance(uuid);
             if (expChance > 0 && Math.random() < expChance) {
+                double rawBefore = raw;
                 raw *= 2.0;
-                player.sendMessage("§6✦ §eExplosivpfeil!");
+                log.proc(player, "✦", "§e", "Explosivpfeil",
+                    "×2.0", (raw - rawBefore) * multi);
                 player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.5f);
             }
-            // Forge: POWER
             raw *= plugin.getForgeManager().getPowerMultiplier(uuid);
-            // ── Bogenstärke ──
             raw *= plugin.getAbilityManager().getBowPowerMultiplier(uuid);
         } else {
-            // Forge: SHARPNESS (gilt für Schwert + Axt)
+            // Forge: Schärfe
             raw *= plugin.getForgeManager().getSharpnessMultiplier(uuid);
+
             if (!isAxe) {
-                // ── Kritischer Treffer (Schwert) ──
+                // Kritischer Treffer (Schwert): ×2.5
                 double critChance = plugin.getAbilityManager().getCritChance(uuid);
                 if (critChance > 0 && Math.random() < critChance) {
+                    double rawBefore = raw;
                     raw *= 2.5;
-                    player.sendMessage("§c✦ §fKritischer Treffer!");
+                    log.proc(player, "✦", "§c", "Kritischer Treffer",
+                        "×2.5  §8(§7Crit-Chance §c" + (int)(critChance * 100) + "%§8)",
+                        (raw - rawBefore) * multi);
                     player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1.2f);
                 }
-                // ── Hinrichtung (Boss < 25% HP, Schwert) ──
+
+                // Hinrichtung (Boss < 25% HP)
                 double exeBonus = plugin.getAbilityManager().getExecuteBonus(uuid);
                 if (exeBonus > 0 && arena.getHpPercent() < 0.25) {
+                    double rawBefore = raw;
                     raw *= (1.0 + exeBonus);
-                    player.sendMessage("§4⚔ §fHinrichtung!");
+                    int bossPct = (int)(arena.getHpPercent() * 100);
+                    log.proc(player, "⚔", "§4", "Hinrichtung",
+                        "+" + (int)(exeBonus * 100) + "%  §8(§7Boss bei §c" + bossPct + "%§8)",
+                        (raw - rawBefore) * multi);
                 }
             }
         }
 
-        // ── Berserker-Bonus (Schwert + Bogen) ──
+        // Berserker (Schwert + Bogen): eigener Multiplikator bei <35% HP
         double berserker = plugin.getAbilityManager().getBerserkerBonus(uuid);
         if (berserker > 0) {
             var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
             if (hpAttr != null && player.getHealth() < hpAttr.getValue() * 0.35) {
                 raw *= (1.0 + berserker);
+                // Berserker ist ein dauerhafter Bonus → kein eigenes proc-Log, zeigt im HUD
             }
         }
 
         plugin.getArenaManager().applyDamage(player, raw);
 
-        // ── Wirbelwind: Doppel-Treffer (nur Schwert) ──
+        // Wirbelwind: Doppel-Treffer (nur Schwert, 50% Schaden)
         if (!isBow && !isAxe) {
             double wwChance = plugin.getAbilityManager().getWhirlwindChance(uuid);
             if (wwChance > 0 && Math.random() < wwChance) {
-                plugin.getArenaManager().applyDamage(player, raw * 0.5);
-                player.sendMessage("§6⚡ §fWirbelwind!");
+                double echoDmg = raw * 0.5;
+                plugin.getArenaManager().applyDamage(player, echoDmg);
+                log.proc(player, "⚡", "§6", "Wirbelwind",
+                    "×50%", echoDmg * multi);
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.4f);
             }
         }
 
-        // ── Mehrfachschuss + Giftpfeil (Bogen) ──
+        // Mehrfachschuss + Giftpfeil (Bogen)
         if (isBow) {
             double msChance = plugin.getAbilityManager().getMultishotChance(uuid);
             if (msChance > 0 && Math.random() < msChance) {
-                plugin.getArenaManager().applyDamage(player, raw * 0.8);
-                player.sendMessage("§e🏹 §fMehrfachschuss!");
+                double echoDmg = raw * 0.8;
+                plugin.getArenaManager().applyDamage(player, echoDmg);
+                log.proc(player, "🏹", "§e", "Mehrfachschuss",
+                    "×80%", echoDmg * multi);
                 player.playSound(player.getLocation(), Sound.ENTITY_ARROW_HIT, 1f, 1.5f);
             }
+
             double poisonChance = plugin.getAbilityManager().getPoisonChance(uuid);
             if (poisonChance > 0 && Math.random() < poisonChance) {
-                final double    tickDmg     = raw * 0.05;
+                final double        tickDmg = raw * 0.05;
                 final ArenaInstance pArena  = arena;
                 final Player        pPlayer = player;
                 for (int tick = 1; tick <= 3; tick++) {
                     final long delay = tick * 20L;
-                    org.bukkit.scheduler.BukkitTask dotTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    pArena.addDotTask(Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (pArena.getBossEntity() != null && pArena.getBossEntity().isValid())
                             plugin.getArenaManager().applyDamage(pPlayer, tickDmg);
-                    }, delay);
-                    pArena.addDotTask(dotTask);
+                    }, delay));
                 }
-                player.sendMessage("§2☠ §aGiftpfeil!");
+                log.dot(player, "☠", "§2", "Giftpfeil", tickDmg * multi, 3);
                 player.playSound(player.getLocation(), Sound.ENTITY_CREEPER_HURT, 0.5f, 1.5f);
             }
         }
 
-        // ── Blutungs-DOT (Axt) ──
+        // Blutungs-DOT (Axt)
         if (isAxe) {
             double blutungChance = plugin.getAbilityManager().getBlutungChance(uuid);
             if (blutungChance > 0 && Math.random() < blutungChance) {
-                int    ticks     = plugin.getAbilityManager().getBlutungTicks(uuid);
-                double klafFact  = plugin.getAbilityManager().getKlaffendeWundeFactor(uuid);
+                int    ticks    = plugin.getAbilityManager().getBlutungTicks(uuid);
+                double klafFact = plugin.getAbilityManager().getKlaffendeWundeFactor(uuid);
                 final double    tickDmg = raw * 0.06 * klafFact;
                 final ArenaInstance pArena  = arena;
                 final Player        pPlayer = player;
                 for (int tick = 1; tick <= ticks; tick++) {
                     final long delay = tick * 20L;
-                    org.bukkit.scheduler.BukkitTask dotTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    pArena.addDotTask(Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (pArena.getBossEntity() != null && pArena.getBossEntity().isValid())
                             plugin.getArenaManager().applyDamage(pPlayer, tickDmg);
-                    }, delay);
-                    pArena.addDotTask(dotTask);
+                    }, delay));
                 }
-                player.sendMessage("§c🩸 §fBlutung! §8(" + ticks + " Ticks)");
+                log.dot(player, "🩸", "§c", "Blutung", tickDmg * multi, ticks);
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, 0.6f, 0.4f);
-                // Blutungs-Challenge tracken
                 plugin.getDailyChallengeManager().addProgress(uuid,
                     DailyChallengeManager.ChallengeType.AXE_BLEED, 1);
             }
         }
 
-        // ── Forge: FIRE_ASPECT – set boss on fire ──
+        // Forge: Feueraspekt
         if (plugin.getForgeManager().hasFireAspect(uuid) && arena.getBossEntity() != null) {
             arena.getBossEntity().setFireTicks(60);
         }
 
-        // ── Forge: KNOCKBACK – small velocity push ──
+        // Forge: Rückstoß
         if (plugin.getForgeManager().hasKnockback(uuid) && arena.getBossEntity() != null) {
             var dir = arena.getBossEntity().getLocation().subtract(player.getLocation()).toVector().normalize();
             arena.getBossEntity().setVelocity(dir.multiply(0.4).setY(0.2));
         }
+
+        log.updateActionBar(player);
     }
 
     /**
-     * Boss trifft Spieler – Dodge + Defense-Multiplikator.
-     * Funktioniert auch für Boss-Projektile (z.B. Skeleton-Pfeile).
+     * Boss trifft Spieler – Dodge, Defense-Multiplikator, Modifier-Effekte.
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBossHitPlayer(EntityDamageByEntityEvent event) {
@@ -294,54 +322,55 @@ public class SmashCombatListener implements Listener {
         ArenaInstance arena = plugin.getArenaManager().getArena(player.getUniqueId());
         if (arena == null || arena.getBossEntity() == null) return;
 
-        // Direkt oder als Projektil vom Boss?
-        Entity damager = event.getDamager();
-        Entity boss    = arena.getBossEntity();
+        Entity  damager  = event.getDamager();
+        Entity  boss     = arena.getBossEntity();
         boolean fromBoss = damager.getUniqueId().equals(boss.getUniqueId())
             || (damager instanceof Projectile proj
                 && proj.getShooter() instanceof Entity shooter
                 && shooter.getUniqueId().equals(boss.getUniqueId()));
         if (!fromBoss) return;
 
+        CombatLogManager log = plugin.getCombatLogManager();
+
         // Dodge-Check
         double dodge = plugin.getAbilityManager().getDodgeChance(player.getUniqueId());
         if (dodge > 0 && Math.random() < dodge) {
             event.setCancelled(true);
-            player.sendMessage("§b⚡ §7Ausgewichen!");
+            log.dodge(player, dodge);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.5f);
             plugin.getDailyChallengeManager().addProgress(player.getUniqueId(),
                 DailyChallengeManager.ChallengeType.DODGE_HITS, 1);
             return;
         }
 
-        // Boss-Schaden aus BossConfig (skaliert mit Level), dann Defense + Rage-Multiplikator anwenden
+        // Schaden skalieren
         double baseDamage = arena.getConfig().damage();
         if (arena.isRageActive()) baseDamage *= 1.5;
         double defMulti = plugin.getUpgradeManager().getDefenseMultiplier(player.getUniqueId())
             * plugin.getRuneManager().getShieldRuneMultiplier(player.getUniqueId());
         event.setDamage(baseDamage * defMulti);
 
-        // Immunität-Fähigkeit: einmaliger Check pro Treffer für alle Effekte
+        // Immun-Chance
         double resistChance = plugin.getAbilityManager().getEffectResistChance(player.getUniqueId());
-        boolean resisted = resistChance > 0 && Math.random() < resistChance;
+        boolean resisted    = resistChance > 0 && Math.random() < resistChance;
         if (resisted) {
-            player.sendMessage("§d🛡 §7Effekt resistiert!");
+            log.resist(player, resistChance);
         } else {
-            // VERGIFTET modifier: Poison II für 3s
             if (arena.getModifiers().contains(BossModifier.VERGIFTET)) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 1, false, true));
+                log.modifierPoison(player);
             }
-            // BRENNEND modifier: Spieler brennt 4s
             if (arena.getModifiers().contains(BossModifier.BRENNEND)) {
                 player.setFireTicks(80);
+                log.modifierBurn(player);
             }
-            // VERDORREND modifier: Wither I für 4s
             if (arena.getModifiers().contains(BossModifier.VERDORREND)) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 0, false, true));
+                log.modifierWither(player);
             }
-            // VERLANGSAMEND modifier: Slowness III für 2s
             if (arena.getModifiers().contains(BossModifier.VERLANGSAMEND)) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2, false, true));
+                log.modifierSlow(player);
             }
         }
     }
@@ -360,7 +389,7 @@ public class SmashCombatListener implements Listener {
         }
     }
 
-    /** Linksklick in die Luft mit Feuerball-Stab → SmallFireball in Richtung Boss schießen */
+    /** Linksklick mit Feuerball-Stab → SmallFireball in Richtung Boss */
     @EventHandler
     public void onFireballStickClick(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
@@ -373,24 +402,23 @@ public class SmashCombatListener implements Listener {
 
         Component name = item.getItemMeta().displayName();
         if (name == null) return;
-        if (!LegacyComponentSerializer.legacySection().serialize(name).contains(ArenaManager.FIREBALL_STICK_NAME)) return;
+        if (!LEGACY.serialize(name).contains(ArenaManager.FIREBALL_STICK_NAME)) return;
 
         event.setCancelled(true);
 
         ArenaInstance arena = plugin.getArenaManager().getArena(player.getUniqueId());
         if (arena == null || arena.getBossEntity() == null) return;
 
-        // Cooldown-Check
         long now  = System.currentTimeMillis();
         Long last = fireballCooldowns.get(player.getUniqueId());
         if (last != null && now - last < FIREBALL_CD_MS) {
             long remMs = FIREBALL_CD_MS - (now - last);
-            player.sendActionBar(LEGACY.deserialize("§c⏳ §7Feuerball in §c" + String.format("%.1f", remMs / 1000.0) + "s"));
+            player.sendActionBar(LEGACY.deserialize(
+                "§c⏳ §7Feuerball bereit in §c" + String.format("%.1f", remMs / 1000.0) + "s"));
             return;
         }
         fireballCooldowns.put(player.getUniqueId(), now);
 
-        // SmallFireball in Richtung Boss spawnen
         org.bukkit.Location from = player.getEyeLocation();
         org.bukkit.util.Vector dir = arena.getBossEntity().getLocation().add(0, 1, 0)
             .toVector().subtract(from.toVector()).normalize();
@@ -400,11 +428,10 @@ public class SmashCombatListener implements Listener {
         fb.setDirection(dir);
         fb.setYield(0f);
         fb.setIsIncendiary(false);
-
         player.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
     }
 
-    /** Rechtsklick auf den Boss-Ruf-Kristall → Boss starten */
+    /** Rechtsklick auf Boss-Ruf-Kristall → Boss starten */
     @EventHandler
     public void onSummonItemClick(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
@@ -417,7 +444,7 @@ public class SmashCombatListener implements Listener {
 
         Component name = item.getItemMeta().displayName();
         if (name == null) return;
-        if (!LegacyComponentSerializer.legacySection().serialize(name).contains(ArenaManager.SUMMON_ITEM_NAME)) return;
+        if (!LEGACY.serialize(name).contains(ArenaManager.SUMMON_ITEM_NAME)) return;
 
         event.setCancelled(true);
         plugin.getArenaManager().triggerBossSpawn(player);

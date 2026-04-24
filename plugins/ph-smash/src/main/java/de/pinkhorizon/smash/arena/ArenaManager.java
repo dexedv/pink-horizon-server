@@ -167,6 +167,7 @@ public class ArenaManager {
             double reflected = real * 0.10;
             double newHp = Math.max(0.5, player.getHealth() - reflected);
             player.setHealth(newHp);
+            plugin.getCombatLogManager().reflect(player, reflected);
         }
 
         // Lifesteal (base + forge lifedrain bonus)
@@ -188,6 +189,7 @@ public class ArenaManager {
         player.setExp((float) Math.max(0f, Math.min(1f, arena.getHpPercent())));
 
         plugin.getScoreboardManager().update(player);
+        plugin.getCombatLogManager().updateActionBar(player);
 
         if (arena.isDead()) {
             onBossDefeated(player, arena);
@@ -349,7 +351,7 @@ public class ArenaManager {
                 p.getWorld().strikeLightningEffect(p.getLocation());
                 double newHp = Math.max(0.5, p.getHealth() - explosionDmg);
                 p.setHealth(newHp);
-                p.sendMessage("§c💥 §7Explosion! §c-" + String.format("%.1f", explosionDmg) + " ❤");
+                plugin.getCombatLogManager().bossExplosion(p, explosionDmg);
             }, 160L, 160L);
             arena.setExplosivTask(explosivTask);
         }
@@ -376,21 +378,18 @@ public class ArenaManager {
             int attackType = (int) (Math.random() * 3);
             switch (attackType) {
                 case 0 -> { // Erdbeben-Slam: direkte HP-Reduzierung
-                    p.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                        .legacySection().deserialize("§c⚡ §7Boss-Slam!"));
-                    world.strikeLightningEffect(p.getLocation());
                     double slamDmg = Math.min(2.0 + cfg.level() * 0.03, 8.0);
                     p.setHealth(Math.max(0.5, p.getHealth() - slamDmg));
+                    world.strikeLightningEffect(p.getLocation());
+                    plugin.getCombatLogManager().bossSlam(p, slamDmg);
                 }
                 case 1 -> { // Giftstoß
-                    p.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                        .legacySection().deserialize("§2☠ §7Boss vergiftet dich!"));
                     p.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 60, 0, false, true));
+                    plugin.getCombatLogManager().bossPoison(p);
                 }
                 case 2 -> { // Verlangsamung
-                    p.sendActionBar(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                        .legacySection().deserialize("§9❄ §7Boss verlangsamt dich!"));
                     p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 1, false, true));
+                    plugin.getCombatLogManager().bossSlow(p);
                 }
             }
         }, 20L * attackInterval, 20L * attackInterval);
@@ -463,10 +462,7 @@ public class ArenaManager {
 
         // Streak
         int newStreak = plugin.getStreakManager().incrementStreak(uuid);
-        if (newStreak >= 2) {
-            int bonusPct = (int) ((plugin.getStreakManager().getStreakMultiplier(uuid) - 1.0) * 100);
-            player.sendMessage("§6🔥 Streak: §e" + newStreak + "x §8(+" + bonusPct + "% Schaden)");
-        }
+        double streakMulti = plugin.getStreakManager().getStreakMultiplier(uuid);
 
         // Milestone check
         plugin.getMilestoneManager().checkAndReward(player, nextLevel, plugin);
@@ -519,12 +515,17 @@ public class ArenaManager {
             plugin.getDailyChallengeManager().addProgress(uuid, DailyChallengeManager.ChallengeType.FAST_KILL, 1);
         }
 
+        // Zusammenfassung im Chat
+        plugin.getCombatLogManager().bossDefeated(
+            player, defeatedLevel, nextLevel,
+            arena.getSessionDamage(), coins,
+            newStreak, streakMulti, fightMs);
+
         // Titel
         player.showTitle(Title.title(
             Component.text("BOSS BESIEGT!", TextColor.color(0xFF5555), TextDecoration.BOLD),
             Component.text("Level " + defeatedLevel + " → " + nextLevel, NamedTextColor.GRAY),
             Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(3), Duration.ofMillis(500))));
-        player.sendMessage("§c§l⚡ §7Boss Level §c" + defeatedLevel + " §7besiegt! Nächster: §cLevel " + nextLevel);
         player.sendMessage("§a▶ §7Rechtsklick §8» §7Boss-Ruf-Kristall §7um den nächsten Boss zu starten!");
 
         spawnFireworks(player.getLocation());
@@ -555,7 +556,7 @@ public class ArenaManager {
         // Phase 1: 75% – Warnung + Sound
         if (pct <= 0.75 && !arena.isPhaseTriggered(0.75)) {
             arena.triggerPhase(0.75);
-            player.sendMessage("§e⚡ §7Der Boss wird wütend! §e75% HP");
+            plugin.getCombatLogManager().phase75(player);
             player.playSound(player.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.8f, 0.7f);
         }
 
@@ -563,7 +564,7 @@ public class ArenaManager {
         if (pct <= 0.50 && !arena.isPhaseTriggered(0.50)) {
             arena.triggerPhase(0.50);
             arena.activateRage(30_000L);
-            player.sendMessage("§c§l☠ RAGE! §7Der Boss rast! §c+50% Schaden §7für 30s!");
+            plugin.getCombatLogManager().phase50(player);
             player.playSound(player.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 1f, 0.5f);
             if (arena.getBossEntity() != null && arena.getWorld() != null)
                 arena.getWorld().strikeLightningEffect(arena.getBossEntity().getLocation());
@@ -575,7 +576,7 @@ public class ArenaManager {
             double healAmt = arena.getConfig().maxHp() * 0.10;
             arena.heal(healAmt);
             updateBossBar(arena);
-            player.sendMessage("§c☠ §7Der Boss heilt sich! §c+10% HP §7– Meteorregen!");
+            plugin.getCombatLogManager().phase25(player, healAmt);
             player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1f, 1.2f);
             spawnMeteorShower(arena);
         }
