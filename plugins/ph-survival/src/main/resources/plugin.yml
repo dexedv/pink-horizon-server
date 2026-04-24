@@ -172,6 +172,10 @@ commands:
   chunkborder:
     description: Chunk-Grenzen ein-/ausblenden
     usage: /chunkborder
+  claimadd:
+    description: Extra Claim-Slots für einen Spieler hinzufügen (Admin)
+    usage: /claimadd <Spieler> <Anzahl>
+    permission: survival.admin
 
 permissions:
   survival.admin:

@@ -103,6 +103,10 @@ public class PHSurvival extends JavaPlugin {
         getCommand("eco").setExecutor(new EcoCommand(this));
         getCommand("sell").setExecutor(new SellCommand(this));
 
+        ClaimAddCommand claimAddCmd = new ClaimAddCommand(this);
+        getCommand("claimadd").setExecutor(claimAddCmd);
+        getCommand("claimadd").setTabCompleter(claimAddCmd);
+
         getCommand("sethome").setExecutor(homeCmd);
         getCommand("sethome").setTabCompleter(homeCmd);
         getCommand("home").setExecutor(homeCmd);
