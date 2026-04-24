@@ -81,6 +81,31 @@ public class PrestigeManager {
                 st.executeUpdate();
             }
 
+            // 5. Delete all talents
+            try (PreparedStatement st = c.prepareStatement(
+                    "DELETE FROM smash_talents WHERE uuid = ?")) {
+                st.setString(1, uuid.toString());
+                st.executeUpdate();
+            }
+
+            // 6. Delete all forge charges
+            try (PreparedStatement st = c.prepareStatement(
+                    "DELETE FROM smash_forge WHERE uuid = ?")) {
+                st.setString(1, uuid.toString());
+                st.executeUpdate();
+            }
+
+            // 7. Reset coins to 0
+            try (PreparedStatement st = c.prepareStatement(
+                    "INSERT INTO smash_coins (uuid, coins) VALUES (?, 0) " +
+                    "ON DUPLICATE KEY UPDATE coins = 0")) {
+                st.setString(1, uuid.toString());
+                st.executeUpdate();
+            }
+
+            // 8. Reset streak
+            plugin.getStreakManager().resetStreak(uuid);
+
         } catch (SQLException e) {
             plugin.getLogger().warning("PrestigeManager.doPrestige: " + e.getMessage());
             player.sendMessage("§c✗ Prestige fehlgeschlagen (Datenbankfehler).");
