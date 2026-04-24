@@ -758,8 +758,8 @@ public class ArenaManager {
         sm.lore(java.util.List.of(leg.deserialize("§7Schaden durch Upgrades & Fähigkeiten")));
         sm.setUnbreakable(true);
         sm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
+        sm.addEnchant(Enchantment.SHARPNESS, 10, true);
         sword.setItemMeta(sm);
-        sword.addUnsafeEnchantment(Enchantment.SHARPNESS, 10);
         player.getInventory().setItem(0, sword);
 
         // Slot 1 – Bogen (Infinity + Power V)
@@ -771,9 +771,9 @@ public class ArenaManager {
             leg.deserialize("§7Upgrades & Fähigkeiten verstärkt")));
         bm.setUnbreakable(true);
         bm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
+        bm.addEnchant(Enchantment.INFINITY, 1, true);
+        bm.addEnchant(Enchantment.POWER, 5, true);
         bow.setItemMeta(bm);
-        bow.addUnsafeEnchantment(Enchantment.INFINITY, 1);
-        bow.addUnsafeEnchantment(Enchantment.POWER, 5);
         player.getInventory().setItem(1, bow);
 
         // Slot 2 – 1 Pfeil (für Infinity benötigt)
@@ -788,8 +788,8 @@ public class ArenaManager {
             leg.deserialize("§7Verursacht §cBlutungs-DOT §7durch Fähigkeiten")));
         am.setUnbreakable(true);
         am.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
+        am.addEnchant(Enchantment.SHARPNESS, 10, true);
         axe.setItemMeta(am);
-        axe.addUnsafeEnchantment(Enchantment.SHARPNESS, 10);
         player.getInventory().setItem(3, axe);
 
         // Slot 4 – Feuerball-Stab
@@ -917,7 +917,12 @@ public class ArenaManager {
             EnchOption chosen = options.get((int) (Math.random() * options.size()));
             int level = chosen.minLvl() + (int) (Math.random() * (chosen.maxLvl() - chosen.minLvl() + 1));
 
-            item.addUnsafeEnchantment(chosen.ench(), level);
+            ItemMeta rewardMeta = item.getItemMeta();
+            if (rewardMeta != null) {
+                rewardMeta.addEnchant(chosen.ench(), level, true);
+                rewardMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                item.setItemMeta(rewardMeta);
+            }
             player.getInventory().setItem(slot, item);
 
             String slotName = switch (slot) {
