@@ -101,6 +101,16 @@ public class SmashCombatListener implements Listener {
             raw = FIREBALL_BASE_DMG
                 * plugin.getAbilityManager().getFireballPowerMultiplier(uuid)
                 * plugin.getForgeManager().getPowerMultiplier(uuid);
+
+            // Berserker-Bonus auch für Feuerball
+            double fbBerserker = plugin.getAbilityManager().getBerserkerBonus(uuid);
+            if (fbBerserker > 0) {
+                var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
+                if (hpAttr != null && player.getHealth() < hpAttr.getValue() * 0.35) {
+                    raw *= (1.0 + fbBerserker);
+                }
+            }
+
             plugin.getArenaManager().applyDamage(player, raw);
 
             // Feuerball-Treffer-Challenge tracken
