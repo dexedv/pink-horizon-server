@@ -124,6 +124,10 @@ public class UpgradeManager {
     public void applyStats(Player player) {
         UUID uuid = player.getUniqueId();
 
+        // ─ Herzen-Anzeige skalieren (immer 10 Herzen = volle Gesundheit) ──
+        player.setHealthScaled(true);
+        player.setHealthScale(20.0);
+
         // ─ Max-HP ──────────────────────────────────────────────────────────
         var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
         if (hpAttr != null) {

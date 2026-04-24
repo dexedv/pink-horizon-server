@@ -5,6 +5,7 @@ import de.pinkhorizon.smash.arena.ArenaInstance;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.*;
@@ -123,7 +124,23 @@ public class SmashScoreboardManager {
             ? "§d✦ §f" + prestige + " Prestige  " + streak
             : "§7Streak: " + streak;
 
-        setLine(board, 14, " ");
+        // Spieler-HP-Leiste
+        String hpLine;
+        var hpAttr = player.getAttribute(Attribute.MAX_HEALTH);
+        if (arena != null && hpAttr != null) {
+            double maxHp  = hpAttr.getValue();
+            double curHp  = Math.max(0, player.getHealth());
+            int    filled = (int) Math.round((curHp / maxHp) * 10);
+            filled = Math.max(0, Math.min(10, filled));
+            String bar    = "§a" + "█".repeat(filled) + "§8" + "░".repeat(10 - filled);
+            int curHearts = (int) Math.round(curHp / 2);
+            int maxHearts = (int) Math.round(maxHp / 2);
+            hpLine = "§c❤ §8[" + bar + "§8] §f" + curHearts + "§8/§f" + maxHearts + "§7♥";
+        } else {
+            hpLine = " ";
+        }
+
+        setLine(board, 14, hpLine);
         setLine(board, 13, "§7Dein Boss:  §c§l" + bossLevel);
         setLine(board, 12, "§7Boss-HP:");
         setLine(board, 11, bossHpLine);
