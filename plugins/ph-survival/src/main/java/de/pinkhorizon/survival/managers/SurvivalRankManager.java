@@ -3,8 +3,11 @@ package de.pinkhorizon.survival.managers;
 import de.pinkhorizon.core.PHCore;
 import de.pinkhorizon.core.database.RankRepository;
 import de.pinkhorizon.survival.PHSurvival;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 
 import java.util.LinkedHashMap;
@@ -76,9 +79,26 @@ public class SurvivalRankManager {
         return getRank(uuid).maxHomes + plugin.getUpgradeManager().getExtraHomes(uuid);
     }
 
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+
     public void applyTabName(Player player) {
-        Rank rank = getRank(player.getUniqueId());
-        player.playerListName(net.kyori.adventure.text.Component.text(rank.chatPrefix + player.getName()));
+        Rank rank   = getRank(player.getUniqueId());
+        boolean afk = plugin.getAfkManager().isAfk(player.getUniqueId());
+
+        Component badge = rank.chatPrefix.isBlank()
+            ? Component.empty()
+            : LEGACY.deserialize(rank.chatPrefix.trim())
+                .decoration(TextDecoration.ITALIC, false)
+                .append(Component.text(" "));
+
+        Component afkTag = afk
+            ? Component.text("[AFK] ", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)
+            : Component.empty();
+
+        Component name = Component.text(player.getName(), rank.nameColor)
+            .decoration(TextDecoration.ITALIC, false);
+
+        player.playerListName(badge.append(afkTag).append(name));
         plugin.getScoreboardManager().updateTabSort(player);
     }
 }
