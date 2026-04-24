@@ -176,12 +176,12 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
             case "setupholos" -> {
                 if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
                 if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
-                double radius = 4.0;
+                double lateralDist = 3.0;
                 if (args.length >= 2) {
-                    try { radius = Double.parseDouble(args[1]); }
-                    catch (NumberFormatException e) { p.sendMessage("§cUngültiger Radius. Beispiel: /stb setupholos 4"); return true; }
+                    try { lateralDist = Double.parseDouble(args[1]); }
+                    catch (NumberFormatException e) { p.sendMessage("§cUngültiger Abstand. Beispiel: /stb setupholos 3"); return true; }
                 }
-                plugin.getHologramManager().setupHolosAroundCenter(p, radius);
+                plugin.getHologramManager().setupHolosAroundCenter(p, lateralDist);
             }
 
             default -> sender.sendMessage("§c§lSmash the Boss §8– §7/stb <join|leave|upgrades|stats|setarena|setnpc|sethologram|setupholos|forceboss>");

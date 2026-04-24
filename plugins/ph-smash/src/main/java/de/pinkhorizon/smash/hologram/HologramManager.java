@@ -73,66 +73,59 @@ public class HologramManager {
     }
 
     /**
-     * Platziert alle 7 Hologramme symmetrisch um die aktuelle Position des Admins:
-     * - COMMANDS  in der Mitte
-     * - 6 weitere im Kreis (Radius = radius Blöcke), ausgerichtet an der Blickrichtung
+     * Platziert alle 7 Hologramme in einem kaskadenförmigen Layout um den Mittelpunkt.
      *
-     * Anordnung (im Uhrzeigersinn, vorwärts = Blickrichtung):
-     *   vorne:        KILLS
-     *   rechts-vorne: LEVEL
-     *   rechts-hinten:DAMAGE
-     *   hinten:       COINS
-     *   links-hinten: PRESTIGE
-     *   links-vorne:  WEEKLY
+     * Layout (Blickrichtung = vorne, Y nach oben):
+     *
+     *   [KILLS]        [LEVEL]     ← 1 Block vorne,  ±lateralDist seitlich, gleiche Höhe
+     *   [DAMAGE] [CMD] [COINS]     ← Mitte,           ±lateralDist seitlich, gleiche Höhe
+     *   [PRESTIGE]    [WEEKLY]     ← 1 Block hinten,  ±lateralDist seitlich, 1 Block tiefer
+     *
+     * @param admin       Admin-Spieler (Position = Mittelpunkt)
+     * @param lateralDist Seitlicher Abstand in Blöcken (Standard: 3)
      */
-    public void setupHolosAroundCenter(Player admin, double radius) {
+    public void setupHolosAroundCenter(Player admin, double lateralDist) {
         Location center = admin.getLocation().clone();
 
-        // COMMANDS in der Mitte (leicht über Kopfhöhe)
-        Location cmdLoc = center.clone().add(0, 0.3, 0);
-        saveLocation(HologramType.COMMANDS, cmdLoc);
-        spawnEntity(HologramType.COMMANDS, cmdLoc);
+        // Richtungsvektoren aus Blickrichtung (Minecraft-Yaw: 0=Süd, 90=West, 180=Nord)
+        double yawRad = Math.toRadians(admin.getLocation().getYaw());
+        double fwdX   = -Math.sin(yawRad);   // vorwärts X
+        double fwdZ   =  Math.cos(yawRad);   // vorwärts Z
+        // Rechtsvektor = vorwärts um 90° im Uhrzeigersinn gedreht
+        double rigX   = -Math.cos(yawRad);   // rechts X
+        double rigZ   = -Math.sin(yawRad);   // rechts Z
 
-        // 6 äußere Hologramme – Winkel relativ zur Blickrichtung des Admins
-        // Minecraft-Yaw: 0° = Süd, 90° = West, 180° = Nord, -90°/270° = Ost
-        // Umrechnung: Winkel_von_Nord = yaw + 180°
-        double yaw = admin.getLocation().getYaw();
-        double forwardAngleFromNorth = yaw + 180.0;
-
-        record RingEntry(HologramType type, double relAngle) {}
-        List<RingEntry> ring = List.of(
-            new RingEntry(HologramType.KILLS,     0),    // vorne
-            new RingEntry(HologramType.LEVEL,    60),    // rechts-vorne
-            new RingEntry(HologramType.DAMAGE,  120),    // rechts-hinten
-            new RingEntry(HologramType.COINS,   180),    // hinten
-            new RingEntry(HologramType.PRESTIGE,240),    // links-hinten
-            new RingEntry(HologramType.WEEKLY,  300)     // links-vorne
+        // Layout-Einträge: (Typ, rechts-Blöcke, vorwärts-Blöcke, Y-Offset)
+        record HoloLayout(HologramType type, double right, double fwd, double yOff) {}
+        List<HoloLayout> layout = List.of(
+            new HoloLayout(HologramType.KILLS,    -lateralDist,  1.0,  0.0),   // vorne-links
+            new HoloLayout(HologramType.LEVEL,    +lateralDist,  1.0,  0.0),   // vorne-rechts
+            new HoloLayout(HologramType.DAMAGE,   -lateralDist,  0.0,  0.0),   // mitte-links
+            new HoloLayout(HologramType.COMMANDS,  0.0,          0.0,  0.0),   // MITTE (Hilfe)
+            new HoloLayout(HologramType.COINS,    +lateralDist,  0.0,  0.0),   // mitte-rechts
+            new HoloLayout(HologramType.PRESTIGE, -lateralDist, -1.0, -1.0),   // hinten-links, tiefer
+            new HoloLayout(HologramType.WEEKLY,   +lateralDist, -1.0, -1.0)    // hinten-rechts, tiefer
         );
 
-        for (RingEntry entry : ring) {
-            double finalAngleDeg = forwardAngleFromNorth + entry.relAngle();
-            double rad = Math.toRadians(finalAngleDeg);
-            double dx  =  Math.sin(rad) * radius;
-            double dz  = -Math.cos(rad) * radius;
-            Location loc = center.clone().add(dx, 0.3, dz);
-            saveLocation(entry.type(), loc);
-            spawnEntity(entry.type(), loc);
+        for (HoloLayout hl : layout) {
+            double dx  = hl.right() * rigX + hl.fwd() * fwdX;
+            double dz  = hl.right() * rigZ + hl.fwd() * fwdZ;
+            Location loc = center.clone().add(dx, hl.yOff() + 0.3, dz);
+            saveLocation(hl.type(), loc);
+            spawnEntity(hl.type(), loc);
         }
 
-        admin.sendMessage("§8§m──────────────────────────────");
+        double yawDisplay = ((admin.getLocation().getYaw() % 360) + 360) % 360;
+        admin.sendMessage("§8§m──────────────────────────────────");
         admin.sendMessage("§a§l✔ §7Alle §f7 §7Hologramme gesetzt!");
-        admin.sendMessage("§8§m──────────────────────────────");
-        admin.sendMessage("  §7Radius§8:        §f" + radius + " §7Blöcke");
-        admin.sendMessage("  §7Blickrichtung§8: §f" + String.format("%.0f°", ((yaw % 360) + 360) % 360));
-        admin.sendMessage("  §7Mitte§8:         §fCOMMANDS §8(Hilfe-Holo)");
-        admin.sendMessage("  §7Ring§8:");
-        admin.sendMessage("   §8vorne§8:         §c⚔ §7KILLS");
-        admin.sendMessage("   §8rechts-vorne§8:  §a★ §7LEVEL");
-        admin.sendMessage("   §8rechts-hinten§8: §e✦ §7DAMAGE");
-        admin.sendMessage("   §8hinten§8:        §6✦ §7COINS");
-        admin.sendMessage("   §8links-hinten§8:  §d★ §7PRESTIGE");
-        admin.sendMessage("   §8links-vorne§8:   §b⏳ §7WEEKLY");
-        admin.sendMessage("§8§m──────────────────────────────");
+        admin.sendMessage("§8§m──────────────────────────────────");
+        admin.sendMessage("§7Seitlicher Abstand§8: §f" + (int) lateralDist + " §7Blöcke");
+        admin.sendMessage("§7Blickrichtung§8:      §f" + String.format("%.0f", yawDisplay) + "°");
+        admin.sendMessage("§8§m──────────────────────────────────");
+        admin.sendMessage("§e         [KILLS]        [LEVEL]");
+        admin.sendMessage("§e         [DAMAGE] §bCMD §e[COINS]");
+        admin.sendMessage("§e         [PRESTIGE]    [WEEKLY]");
+        admin.sendMessage("§8§m──────────────────────────────────");
     }
 
     /** Beim Plugin-Disable alle Holograms entfernen */
