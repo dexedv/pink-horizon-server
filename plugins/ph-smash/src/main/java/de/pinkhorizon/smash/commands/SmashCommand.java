@@ -2,12 +2,20 @@ package de.pinkhorizon.smash.commands;
 
 import de.pinkhorizon.smash.PHSmash;
 import de.pinkhorizon.smash.hologram.HologramManager.HologramType;
+import de.pinkhorizon.smash.managers.AbilityManager.AbilityType;
+import de.pinkhorizon.smash.managers.ForgeManager.ForgeEnchant;
+import de.pinkhorizon.smash.managers.TalentManager.TalentType;
+import de.pinkhorizon.smash.managers.UpgradeManager.UpgradeType;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
 
 public class SmashCommand implements CommandExecutor, TabCompleter {
@@ -184,7 +192,24 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
                 plugin.getHologramManager().setupHolosAroundCenter(p, lateralDist);
             }
 
-            default -> sender.sendMessage("§c§lSmash the Boss §8– §7/stb <join|leave|upgrades|stats|setarena|setnpc|sethologram|setupholos|forceboss>");
+            case "maxout" -> {
+                if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
+                Player target;
+                if (args.length >= 2) {
+                    target = Bukkit.getPlayer(args[1]);
+                    if (target == null) { sender.sendMessage("§cSpieler §f" + args[1] + " §cnicht online!"); return true; }
+                } else if (sender instanceof Player p) {
+                    target = p;
+                } else {
+                    sender.sendMessage("§c/stb maxout [Spieler]"); return true;
+                }
+                maxOutPlayer(target);
+                sender.sendMessage("§a✔ §f" + target.getName() + " §7wurde auf §6MAX §7gesetzt.");
+                if (!target.equals(sender))
+                    target.sendMessage("§a✔ §7Admin hat alle deine Stats auf §6MAX §7gesetzt!");
+            }
+
+            default -> sender.sendMessage("§c§lSmash the Boss §8– §7/stb <join|leave|upgrades|stats|setarena|setnpc|sethologram|setupholos|forceboss|maxout>");
         }
         return true;
     }
@@ -193,7 +218,7 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
             List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "abilities", "coins", "prestige", "stats", "forge", "bestiary", "weekly", "bounty"));
-            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("sethub"); base.add("setnpc"); base.add("sethologram"); base.add("setupholos"); base.add("forceboss"); }
+            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("sethub"); base.add("setnpc"); base.add("sethologram"); base.add("setupholos"); base.add("forceboss"); base.add("maxout"); }
             return base.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("setarena"))
@@ -202,6 +227,80 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
             return List.of("leveldown", "upgrade", "join", "leave").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
         if (args.length == 2 && (args[0].equalsIgnoreCase("sethologram") || args[0].equalsIgnoreCase("setholo")))
             return List.of("kills", "level", "damage", "coins", "prestige", "weekly", "commands").stream().filter(s -> s.startsWith(args[1].toLowerCase())).toList();
+        if (args.length == 2 && args[0].equalsIgnoreCase("maxout"))
+            return Bukkit.getOnlinePlayers().stream().map(Player::getName)
+                .filter(n -> n.toLowerCase().startsWith(args[1].toLowerCase())).toList();
         return List.of();
+    }
+
+    // ── Hilfsmethode: alles auf Maximum setzen ────────────────────────────────
+
+    private void maxOutPlayer(Player target) {
+        java.util.UUID uuid = target.getUniqueId();
+        String uuidStr = uuid.toString();
+
+        try (Connection c = plugin.getDb().getConnection()) {
+
+            // ── Upgrades ──────────────────────────────────────────────────────
+            for (UpgradeType u : UpgradeType.values()) {
+                try (PreparedStatement st = c.prepareStatement(
+                        "INSERT INTO smash_upgrades (uuid, upgrade_id, level) VALUES (?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE level = VALUES(level)")) {
+                    st.setString(1, uuidStr);
+                    st.setString(2, u.id);
+                    st.setInt(3, u.maxLevel);
+                    st.executeUpdate();
+                }
+            }
+
+            // ── Abilities ─────────────────────────────────────────────────────
+            for (AbilityType a : AbilityType.values()) {
+                try (PreparedStatement st = c.prepareStatement(
+                        "INSERT INTO smash_abilities (uuid, ability_id, level) VALUES (?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE level = VALUES(level)")) {
+                    st.setString(1, uuidStr);
+                    st.setString(2, a.name());
+                    st.setInt(3, a.maxLevel);
+                    st.executeUpdate();
+                }
+            }
+
+            // ── Talente ───────────────────────────────────────────────────────
+            for (TalentType t : TalentType.values()) {
+                try (PreparedStatement st = c.prepareStatement(
+                        "INSERT INTO smash_talents (uuid, talent_id, level) VALUES (?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE level = VALUES(level)")) {
+                    st.setString(1, uuidStr);
+                    st.setString(2, t.id);
+                    st.setInt(3, t.maxLevel);
+                    st.executeUpdate();
+                }
+            }
+
+            // ── Forge-Ladungen (999 pro Verzauberung) ─────────────────────────
+            for (ForgeEnchant f : ForgeEnchant.values()) {
+                try (PreparedStatement st = c.prepareStatement(
+                        "INSERT INTO smash_forge (uuid, forge_id, charges) VALUES (?, ?, 999) " +
+                        "ON DUPLICATE KEY UPDATE charges = 999")) {
+                    st.setString(1, uuidStr);
+                    st.setString(2, f.id);
+                    st.executeUpdate();
+                }
+            }
+
+            // ── Coins: auf 10 Mio setzen ──────────────────────────────────────
+            try (PreparedStatement st = c.prepareStatement(
+                    "INSERT INTO smash_coins (uuid, coins) VALUES (?, 10000000) " +
+                    "ON DUPLICATE KEY UPDATE coins = GREATEST(coins, 10000000)")) {
+                st.setString(1, uuidStr);
+                st.executeUpdate();
+            }
+
+        } catch (SQLException e) {
+            plugin.getLogger().warning("maxOutPlayer: " + e.getMessage());
+        }
+
+        // Upgrade-Stats (HP, Speed) sofort auf den Spieler anwenden
+        plugin.getUpgradeManager().applyStats(target);
     }
 }
