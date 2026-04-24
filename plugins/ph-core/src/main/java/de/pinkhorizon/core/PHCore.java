@@ -24,6 +24,8 @@ public class PHCore extends JavaPlugin {
         instance = this;
 
         saveDefaultConfig();
+        getConfig().options().copyDefaults(true);
+        saveConfig();
 
         // LuckPerms-Integration initialisieren
         LuckPermsHook.init();

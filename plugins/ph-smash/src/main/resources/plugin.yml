@@ -13,6 +13,12 @@ commands:
     usage: /stb <join|leave|upgrades|stats|setarena|forceboss>
     aliases: [ smash ]
     permission: smash.play
+  voteshop:
+    description: VoteShop öffnen
+    usage: /voteshop
+  votecoins:
+    description: VoteCoins-Guthaben anzeigen
+    usage: /votecoins
 
 permissions:
   smash.play:

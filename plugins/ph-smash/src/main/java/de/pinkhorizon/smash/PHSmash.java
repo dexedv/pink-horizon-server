@@ -101,6 +101,22 @@ public class PHSmash extends JavaPlugin {
         getCommand("stb").setExecutor(smashCmd);
         getCommand("stb").setTabCompleter(smashCmd);
 
+        // VoteShop – ohne ph-vote.jar, direkt über ph-core
+        de.pinkhorizon.core.vote.SharedVoteShopGUI voteShopGui =
+            new de.pinkhorizon.core.vote.SharedVoteShopGUI();
+        getServer().getPluginManager().registerEvents(voteShopGui, this);
+        getCommand("voteshop").setExecutor((sender, cmd, label, args) -> {
+            if (!(sender instanceof org.bukkit.entity.Player p)) { sender.sendMessage("§cNur für Spieler."); return true; }
+            voteShopGui.open(p);
+            return true;
+        });
+        getCommand("votecoins").setExecutor((sender, cmd, label, args) -> {
+            if (!(sender instanceof org.bukkit.entity.Player p)) { sender.sendMessage("§cNur für Spieler."); return true; }
+            int coins = de.pinkhorizon.core.vote.SharedVoteCoinManager.getInstance().getCoins(p.getUniqueId());
+            p.sendMessage("§d§l[VoteShop] §7Du hast §d" + coins + " VoteCoin(s)§7. Öffne mit §f/voteshop§7.");
+            return true;
+        });
+
         // New managers (v2)
         prestigeManager       = new PrestigeManager(this);
         streakManager         = new StreakManager(this);
