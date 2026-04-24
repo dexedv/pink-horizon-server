@@ -85,6 +85,8 @@ public class PHSurvival extends JavaPlugin {
         furnaceUpgradeManager = new FurnaceUpgradeManager(this);
         hopperUpgradeManager  = new de.pinkhorizon.survival.managers.HopperUpgradeManager(this);
         miningStatsManager    = new de.pinkhorizon.survival.managers.MiningStatsManager(this);
+        furnaceUpgradeManager.cleanupOrphaned();
+        hopperUpgradeManager.cleanupOrphaned();
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);

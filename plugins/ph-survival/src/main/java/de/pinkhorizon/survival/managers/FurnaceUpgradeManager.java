@@ -109,6 +109,47 @@ public class FurnaceUpgradeManager {
         }
     }
 
+    /** Entfernt verwaiste Einträge – Öfen die in der DB stehen aber nicht mehr in der Welt existieren. */
+    public void cleanupOrphaned() {
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            java.util.List<String[]> toCheck = new java.util.ArrayList<>();
+            try (Connection c = con();
+                 PreparedStatement ps = c.prepareStatement(
+                     "SELECT furnace_id, world, x, y, z FROM sv_furnace_upgrades WHERE world IS NOT NULL");
+                 java.sql.ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    toCheck.add(new String[]{
+                        rs.getString("furnace_id"), rs.getString("world"),
+                        String.valueOf(rs.getInt("x")), String.valueOf(rs.getInt("y")), String.valueOf(rs.getInt("z"))
+                    });
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().warning("[FurnaceUpgrade] Cleanup-Query: " + e.getMessage());
+                return;
+            }
+
+            int removed = 0;
+            for (String[] row : toCheck) {
+                String id = row[0]; String worldName = row[1];
+                int x = Integer.parseInt(row[2]), y = Integer.parseInt(row[3]), z = Integer.parseInt(row[4]);
+                org.bukkit.World world = org.bukkit.Bukkit.getWorld(worldName);
+                if (world == null) continue;
+                org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+                boolean isFurnace = block.getType() == org.bukkit.Material.FURNACE
+                    || block.getType() == org.bukkit.Material.BLAST_FURNACE
+                    || block.getType() == org.bukkit.Material.SMOKER;
+                if (!isFurnace) {
+                    String key = worldName + ";" + x + ";" + y + ";" + z;
+                    locToId.remove(key);
+                    db("UPDATE sv_furnace_upgrades SET world=NULL,x=NULL,y=NULL,z=NULL WHERE furnace_id=?", id);
+                    removed++;
+                }
+            }
+            if (removed > 0)
+                plugin.getLogger().info("[FurnaceUpgrade] " + removed + " verwaiste Einträge bereinigt.");
+        }, 40L); // 2s nach Start, Welten sind dann geladen
+    }
+
     // ── Öffentliche API ───────────────────────────────────────────────────
 
     public int getLevel(Block block) {

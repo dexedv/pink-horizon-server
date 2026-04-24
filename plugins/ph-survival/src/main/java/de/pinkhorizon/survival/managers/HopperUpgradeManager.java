@@ -95,6 +95,43 @@ public class HopperUpgradeManager {
         }
     }
 
+    /** Entfernt verwaiste Einträge – Trichter die in der DB stehen aber nicht mehr in der Welt existieren. */
+    public void cleanupOrphaned() {
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            java.util.List<String[]> toCheck = new java.util.ArrayList<>();
+            try (Connection c = con();
+                 PreparedStatement ps = c.prepareStatement(
+                     "SELECT hopper_id, world, x, y, z FROM sv_hopper_upgrades WHERE world IS NOT NULL");
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    toCheck.add(new String[]{
+                        rs.getString("hopper_id"), rs.getString("world"),
+                        String.valueOf(rs.getInt("x")), String.valueOf(rs.getInt("y")), String.valueOf(rs.getInt("z"))
+                    });
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().warning("[HopperUpgrade] Cleanup-Query: " + e.getMessage());
+                return;
+            }
+
+            int removed = 0;
+            for (String[] row : toCheck) {
+                String id = row[0]; String worldName = row[1];
+                int x = Integer.parseInt(row[2]), y = Integer.parseInt(row[3]), z = Integer.parseInt(row[4]);
+                org.bukkit.World world = org.bukkit.Bukkit.getWorld(worldName);
+                if (world == null) continue;
+                if (world.getBlockAt(x, y, z).getType() != org.bukkit.Material.HOPPER) {
+                    String key = worldName + ";" + x + ";" + y + ";" + z;
+                    locToId.remove(key);
+                    db("UPDATE sv_hopper_upgrades SET world=NULL,x=NULL,y=NULL,z=NULL WHERE hopper_id=?", id);
+                    removed++;
+                }
+            }
+            if (removed > 0)
+                plugin.getLogger().info("[HopperUpgrade] " + removed + " verwaiste Einträge bereinigt.");
+        }, 40L);
+    }
+
     // ── Öffentliche API ───────────────────────────────────────────────────
 
     public int getLevel(Block block) {
