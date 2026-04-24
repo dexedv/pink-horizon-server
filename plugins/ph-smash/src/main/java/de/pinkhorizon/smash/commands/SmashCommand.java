@@ -129,6 +129,17 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
                 plugin.getArenaManager().forceBoss(p, level);
             }
 
+            case "setlevel" -> {
+                if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
+                if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
+                if (args.length < 2) { p.sendMessage("§c/stb setlevel <1-999>"); return true; }
+                int lvl;
+                try { lvl = Math.min(999, Math.max(1, Integer.parseInt(args[1]))); }
+                catch (NumberFormatException e) { p.sendMessage("§cUngültige Zahl!"); return true; }
+                plugin.getPlayerDataManager().setPersonalBossLevel(p.getUniqueId(), lvl);
+                p.sendMessage("§a✔ §7Dein Boss-Level wurde auf §c" + lvl + " §7gesetzt.");
+            }
+
             case "setnpc" -> {
                 if (!sender.hasPermission("smash.admin")) { sender.sendMessage("§cKein Zugriff!"); return true; }
                 if (!(sender instanceof Player p)) { sender.sendMessage("§cNur für Spieler!"); return true; }
@@ -218,7 +229,7 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
             List<String> base = new java.util.ArrayList<>(List.of("join", "leave", "upgrades", "abilities", "coins", "prestige", "stats", "forge", "bestiary", "weekly", "bounty"));
-            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("sethub"); base.add("setnpc"); base.add("sethologram"); base.add("setupholos"); base.add("forceboss"); base.add("maxout"); }
+            if (sender.hasPermission("smash.admin")) { base.add("setarena"); base.add("sethub"); base.add("setnpc"); base.add("sethologram"); base.add("setupholos"); base.add("forceboss"); base.add("setlevel"); base.add("maxout"); }
             return base.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("setarena"))
@@ -299,6 +310,9 @@ public class SmashCommand implements CommandExecutor, TabCompleter {
         } catch (SQLException e) {
             plugin.getLogger().warning("maxOutPlayer: " + e.getMessage());
         }
+
+        // Boss-Level auf 999
+        plugin.getPlayerDataManager().setPersonalBossLevel(uuid, 999);
 
         // Upgrade-Stats (HP, Speed) sofort auf den Spieler anwenden
         plugin.getUpgradeManager().applyStats(target);
