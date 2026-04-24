@@ -25,12 +25,54 @@ public class VoteAdminCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (args.length == 0) {
+            sender.sendMessage(c("&eVerwendung: /voteadmin <give|take|set|check|addlink|removelink|listlinks> ..."));
+            return true;
+        }
+
+        String sub = args[0].toLowerCase();
+
+        // ── Link-Verwaltung ──────────────────────────────────────────────
+        if (sub.equals("listlinks")) {
+            List<String> links = plugin.getConfig().getStringList("voting-links");
+            sender.sendMessage(c("&d&lVoting-Links (" + links.size() + "):"));
+            for (int i = 0; i < links.size(); i++)
+                sender.sendMessage(c("  &7" + (i + 1) + ". &f" + links.get(i)));
+            return true;
+        }
+
+        if (sub.equals("addlink")) {
+            if (args.length < 2) { sender.sendMessage(c("&eVerwendung: /voteadmin addlink <URL>")); return true; }
+            String url = args[1];
+            List<String> links = new java.util.ArrayList<>(plugin.getConfig().getStringList("voting-links"));
+            links.add(url);
+            plugin.getConfig().set("voting-links", links);
+            plugin.saveConfig();
+            sender.sendMessage(c("&aLink hinzugefügt: &f" + url));
+            return true;
+        }
+
+        if (sub.equals("removelink")) {
+            if (args.length < 2) { sender.sendMessage(c("&eVerwendung: /voteadmin removelink <Nummer>")); return true; }
+            List<String> links = new java.util.ArrayList<>(plugin.getConfig().getStringList("voting-links"));
+            int idx;
+            try { idx = Integer.parseInt(args[1]) - 1; } catch (NumberFormatException e) {
+                sender.sendMessage(c("&cUngültige Nummer.")); return true;
+            }
+            if (idx < 0 || idx >= links.size()) { sender.sendMessage(c("&cNummer außerhalb des Bereichs (1–" + links.size() + ").")); return true; }
+            String removed = links.remove(idx);
+            plugin.getConfig().set("voting-links", links);
+            plugin.saveConfig();
+            sender.sendMessage(c("&cLink entfernt: &f" + removed));
+            return true;
+        }
+
+        // ── Spieler-Verwaltung ───────────────────────────────────────────
         if (args.length < 2) {
             sender.sendMessage(c("&eVerwendung: /voteadmin <give|take|set|check> <Spieler> [Menge]"));
             return true;
         }
 
-        String sub    = args[0].toLowerCase();
         String target = args[1];
 
         // Spieler online suchen
@@ -88,7 +130,7 @@ public class VoteAdminCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length == 1) return List.of("give", "take", "set", "check");
+        if (args.length == 1) return List.of("give", "take", "set", "check", "addlink", "removelink", "listlinks");
         if (args.length == 2) return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
         return List.of();
     }
