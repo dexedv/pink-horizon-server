@@ -65,6 +65,7 @@ services:
     ports:
       - "25575:25575"             # RCON
       - "25566:25566"             # Minecraft (intern für Velocity)
+      - "8192:8192"               # NuVotifier
     volumes:
       - ./servers/lobby:/data
     networks:
