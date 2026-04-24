@@ -190,7 +190,7 @@ public class FurnaceUpgradeGui implements Listener {
 
     private static String cookSeconds(int level) {
         int ticks = FurnaceUpgradeManager.MAX_LEVEL >= level
-            ? new int[]{ 0, 200, 150, 100, 60, 30 }[level] : 200;
+            ? new int[]{ 0, 200, 150, 100, 60, 30, 21 }[level] : 200;
         return String.valueOf(ticks / 20);
     }
 

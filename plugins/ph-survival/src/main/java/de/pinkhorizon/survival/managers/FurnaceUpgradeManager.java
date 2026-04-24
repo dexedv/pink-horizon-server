@@ -26,12 +26,12 @@ import java.util.Map;
  */
 public class FurnaceUpgradeManager {
 
-    public static final int MAX_LEVEL = 5;
+    public static final int MAX_LEVEL = 6;
 
-    private static final int[] COOK_TICKS = { 0, 200, 150, 100, 60, 30 };
-    public  static final long[] COSTS     = { 0, 0, 500, 1_500, 4_000, 10_000 };
-    public  static final String[] NAMES   = { "", "Normal", "Verbessert", "Schnell", "Blitz", "Quantumfusion" };
-    public  static final int[] SPEED_PCT  = { 0, 0, 25, 50, 70, 85 };
+    private static final int[] COOK_TICKS = { 0, 200, 150, 100, 60, 30, 21 };
+    public  static final long[] COSTS     = { 0, 0, 500, 1_500, 4_000, 10_000, 25_000 };
+    public  static final String[] NAMES   = { "", "Normal", "Verbessert", "Schnell", "Blitz", "Quantumfusion", "Plasmaschmelze" };
+    public  static final int[] SPEED_PCT  = { 0, 0, 25, 50, 70, 85, 90 };
 
     private final PHSurvival plugin;
     private final NamespacedKey itemKey;   // PDC-Key für Item-Transfers
