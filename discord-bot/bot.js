@@ -96,6 +96,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.MessageContent,
   ],
 });
@@ -826,6 +827,57 @@ async function verifyMember(interaction) {
     ephemeral: true,
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Temp Voice Channels
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TEMP_VOICE_CREATOR_ID = '1497219253449916507'; // "➕ Channel erstellen"
+const tempVoiceChannels = new Set(); // IDs der erstellten Temp-Kanäle
+
+client.on('voiceStateUpdate', async (oldState, newState) => {
+  // ── Nutzer betritt den Creator-Channel ──────────────────────────────────
+  if (newState.channelId === TEMP_VOICE_CREATOR_ID) {
+    const member   = newState.member;
+    const category = newState.channel.parent;
+
+    try {
+      const tempCh = await newState.guild.channels.create({
+        name: `🔊 ${member.displayName}`,
+        type: ChannelType.GuildVoice,
+        parent: category?.id,
+        userLimit: 0, // unbegrenzt, Nutzer kann selbst limitieren
+        permissionOverwrites: [
+          // Ersteller: Kanal verwalten (umbenennen, Limit setzen, Nutzer kicken)
+          {
+            id: member.id,
+            allow: [
+              PermissionFlagsBits.ManageChannels,
+              PermissionFlagsBits.MoveMembers,
+              PermissionFlagsBits.MuteMembers,
+            ],
+          },
+        ],
+      });
+
+      tempVoiceChannels.add(tempCh.id);
+      await member.voice.setChannel(tempCh).catch(() => {});
+    } catch (e) {
+      console.error('[TempVoice] Erstellen fehlgeschlagen:', e.message);
+    }
+  }
+
+  // ── Nutzer verlässt einen Temp-Channel ──────────────────────────────────
+  if (oldState.channelId && tempVoiceChannels.has(oldState.channelId)) {
+    const ch = oldState.channel;
+    if (!ch) { tempVoiceChannels.delete(oldState.channelId); return; }
+
+    if (ch.members.size === 0) {
+      tempVoiceChannels.delete(ch.id);
+      await ch.delete('Temp Voice leer').catch(() => {});
+    }
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ingame Verifikation (Code-Check)
