@@ -28,11 +28,19 @@ public class NetworkRestartCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (args.length >= 1 && args[0].equalsIgnoreCase("cancel")) {
+            boolean cancelled = plugin.getNetworkRestartManager().cancelRestart();
+            sender.sendMessage(cancelled
+                ? "§a✔ Netzwerk-Neustart wurde abgebrochen."
+                : "§eKein aktiver Neustart-Countdown gefunden.");
+            return true;
+        }
+
         int minutes = 5;
         if (args.length >= 1) {
             try { minutes = Integer.parseInt(args[0]); }
             catch (NumberFormatException e) {
-                sender.sendMessage("§cVerwendung: /networkrestart <minuten>");
+                sender.sendMessage("§cVerwendung: /networkrestart <minuten|cancel>");
                 return true;
             }
         }
@@ -50,7 +58,7 @@ public class NetworkRestartCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return List.of("1", "2", "3", "5", "10");
+        if (args.length == 1) return List.of("1", "2", "3", "5", "10", "cancel");
         return List.of();
     }
 }

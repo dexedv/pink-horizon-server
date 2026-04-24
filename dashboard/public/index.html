@@ -529,6 +529,7 @@ async function renderDash() {
   setHdr('📊 Dashboard', `
     <button class="btn" onclick="renderDash()">↺ Aktualisieren</button>
     <button class="btn" onclick="openDiscordModal()">💬 Discord</button>
+    <button class="btn" onclick="doCancelRestart()" style="border-color:rgba(243,156,18,.5);color:var(--yellow)">⛔ Neustart abbrechen</button>
     <button class="btn btn-d" onclick="openRestartModal()">🔄 Netzwerk-Neustart</button>
   `);
   const c = document.getElementById('page-content');
@@ -751,6 +752,16 @@ async function doNetworkRestart() {
   el?.remove();
   if (d?.ok) showToast(`🔄 Netzwerk-Neustart in ${minutes} Minute${minutes > 1 ? 'n' : ''} angesetzt!`);
   else       showToast('✗ Neustart fehlgeschlagen', false);
+}
+
+async function doCancelRestart() {
+  showModal('⛔ Neustart abbrechen',
+    '<p style="color:var(--muted);font-size:.88rem">Laufenden Countdown auf allen Servern abbrechen und Bossbar entfernen?</p>',
+    'Abbrechen', async () => {
+    const r = await apiFetch('/api/network/cancel', { method: 'POST' });
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? '⛔ Neustart abgebrochen!' : `✗ ${d?.error||'Fehler'}`, d?.ok);
+  });
 }
 
 async function loadResStats() {
@@ -1913,7 +1924,7 @@ const CMD_DATA = [
       {n:'/helpholo',    u:'/helpholo [place|remove]',                      d:'Hilfe-Hologramm',                      admin:true},
       {n:'/phinfo',      u:'/phinfo <Spieler>',                             d:'Spielerdaten (Dashboard-API)',          admin:true},
       {n:'/itemclear',   u:'/itemclear',                                    d:'Alle Boden-Items entfernen',            admin:true},
-      {n:'/networkrestart',u:'/networkrestart <Minuten>',                   d:'Netzwerk-Neustart mit Bossbar-Countdown',admin:true},
+      {n:'/networkrestart',u:'/networkrestart <Minuten|cancel>',            d:'Netzwerk-Neustart starten oder abbrechen',admin:true},
     ]},
   ]},
   { server:'Discord & Vote', sections:[

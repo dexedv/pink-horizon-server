@@ -353,6 +353,18 @@ app.post('/api/network/restart', auth, async (req, res) => {
   res.json({ ok: true, minutes, results });
 });
 
+app.post('/api/network/cancel', auth, async (req, res) => {
+  const cmd = 'networkrestart cancel';
+  const results = {};
+  for (const [key, cfg] of Object.entries(SERVERS)) {
+    if (!cfg.rcon) { results[key] = 'kein RCON'; continue; }
+    try { results[key] = await rconSend(cfg.rcon, cmd); }
+    catch (e) { results[key] = `Fehler: ${e.message}`; }
+  }
+  addAudit('restart-cancel', 'network', '');
+  res.json({ ok: true, results });
+});
+
 // ── REST-API: Spieler ─────────────────────────────────────────────────────
 
 app.get('/api/players/online', auth, async (req, res) => {

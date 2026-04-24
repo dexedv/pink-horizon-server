@@ -123,6 +123,19 @@ public class NetworkRestartManager {
         Bukkit.getScheduler().runTask(plugin, () -> startCountdown(Math.max(10, seconds)));
     }
 
+    /**
+     * Bricht einen laufenden Countdown ab (z.B. aus dem Dashboard).
+     * Hat keinen Effekt wenn kein Countdown aktiv ist.
+     */
+    public boolean cancelRestart() {
+        if (countdownTask == null) return false;
+        countdownTask.cancel(); countdownTask = null;
+        if (bossBar != null) { bossBar.removeAll(); bossBar = null; }
+        Bukkit.broadcastMessage("§a§l[✔] §aServer-Neustart wurde abgebrochen.");
+        writeEvent("RESTART_CANCELLED", 0);
+        return true;
+    }
+
     private void writeEvent(String type, int secondsUntil) {
         String serverName = plugin.getServer().getName();
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
