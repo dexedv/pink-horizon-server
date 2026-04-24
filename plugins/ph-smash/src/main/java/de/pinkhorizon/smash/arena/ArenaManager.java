@@ -15,11 +15,14 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.enchantments.Enchantment;
@@ -153,6 +156,11 @@ public class ArenaManager {
             * plugin.getComboManager().getMultiplier(uuid);
         double real = rawDamage * multiplier;
         arena.applyDamage(real);
+
+        // Schadenszahl über dem Boss anzeigen
+        if (arena.getBossEntity() != null && arena.getBossEntity().isValid()) {
+            spawnDamageIndicator(arena.getBossEntity().getLocation().add(0, 2.5, 0), real);
+        }
 
         // GESPIEGELT modifier: 10% damage reflected to player
         if (arena.getModifiers().contains(BossModifier.GESPIEGELT)) {
@@ -925,6 +933,55 @@ public class ArenaManager {
             player.sendMessage("§d✦ §7Verzauberungsbonus! " + String.join("§7, ", enchantedNames));
             player.playSound(player.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.2f);
         }
+    }
+
+    /** Zeigt eine animierte Schadenszahl (TextDisplay) über der angegebenen Position. */
+    private void spawnDamageIndicator(Location loc, double damage) {
+        World world = loc.getWorld();
+        if (world == null) return;
+
+        // Leichter zufälliger Versatz damit mehrere Treffer nicht exakt übereinander liegen
+        double offX = (Math.random() - 0.5) * 1.2;
+        double offZ = (Math.random() - 0.5) * 1.2;
+        Location spawnLoc = loc.clone().add(offX, 0, offZ);
+
+        // Farbe + Text je nach Schadenshöhe
+        String dmgText;
+        if (damage >= 1_000_000) dmgText = String.format("%.1fM", damage / 1_000_000.0);
+        else if (damage >= 1_000) dmgText = String.format("%.1fK", damage / 1_000.0);
+        else if (damage >= 10)   dmgText = String.valueOf((int) Math.round(damage));
+        else                     dmgText = String.format("%.1f", damage);
+
+        String color = damage >= 50_000 ? "§5§l"   // lila (mega)
+                     : damage >= 10_000 ? "§c§l"   // rot (huge)
+                     : damage >= 1_000  ? "§6§l"   // orange (groß)
+                     : damage >= 100    ? "§e"      // gelb (mittel)
+                     :                    "§f";     // weiß (klein)
+
+        Component text = LegacyComponentSerializer.legacySection()
+            .deserialize(color + "⚔ " + dmgText);
+
+        TextDisplay td = world.spawn(spawnLoc, TextDisplay.class, display -> {
+            display.text(text);
+            display.setBillboard(Display.Billboard.CENTER);
+            display.setPersistent(false);
+            display.setDefaultBackground(false);
+            display.setShadowed(true);
+            display.setViewRange(0.6f);
+        });
+
+        // 25 Ticks nach oben driften, dann entfernen
+        BukkitTask[] ref = new BukkitTask[1];
+        int[] ticks = {0};
+        ref[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            ticks[0]++;
+            if (!td.isValid() || ticks[0] > 25) {
+                if (td.isValid()) td.remove();
+                ref[0].cancel();
+                return;
+            }
+            td.teleport(td.getLocation().add(0, 0.07, 0));
+        }, 0L, 1L);
     }
 
     private void spawnFireworks(Location loc) {
