@@ -769,6 +769,25 @@ client.once('ready', async () => {
     // Creator-Channel umbenennen
     const creatorCh = guild.channels.cache.get(TEMP_VOICE_CREATOR_ID);
     if (creatorCh) await creatorCh.setName('➕ Channel erstellen').catch(() => {});
+
+    // MC-IP Voice-Channel in Kategorie anzeigen (einmalig erstellen falls nicht vorhanden)
+    const IP_CATEGORY_ID = '1497212115055018094';
+    const ipChName = '📌 play.pinkhorizon.fun';
+    const ipCat = guild.channels.cache.get(IP_CATEGORY_ID);
+    if (ipCat) {
+      const existing = guild.channels.cache.find(c => c.parentId === IP_CATEGORY_ID && c.name === ipChName);
+      if (!existing) {
+        await guild.channels.create({
+          name: ipChName,
+          type: ChannelType.GuildVoice,
+          parent: IP_CATEGORY_ID,
+          userLimit: 0,
+          permissionOverwrites: [
+            { id: guild.roles.everyone, deny: [PermissionFlagsBits.Connect] },
+          ],
+        }).catch(() => {});
+      }
+    }
   }
 });
 
