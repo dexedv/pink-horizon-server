@@ -790,11 +790,27 @@ async function verifyMember(interaction) {
   const welcomeCh = guild.channels.cache.get('1497213734555226182');
   const regelnCh  = guild.channels.cache.find(c => c.name === 'regeln' && c.type === ChannelType.GuildText);
   if (welcomeCh) {
-    const rulesHint = regelnCh ? `` : '';
     await welcomeCh.send({
       embeds: [new EmbedBuilder()
-        .setColor(0x57F287)
-        .setDescription(`🎉 **Willkommen auf Pink Horizon, ${member}!**\nDu hast die Regeln akzeptiert und hast jetzt Zugriff auf alle Kanäle.\n\n🎮 Tritt dem Server bei: \`${MC_ADDRESS}\``)
+        .setColor(0xFF5555)
+        .setTitle(`🎉 Willkommen auf Pink Horizon!`)
+        .setDescription([
+          `Hey ${member}, schön dass du da bist! 👋`,
+          '',
+          '> 🎮 **Spiel mit uns auf** `play.pinkhorizon.fun`',
+          '> ⚔️ **Smash the Boss** – Besiege Bosse, steige auf, werde Legende',
+          '> ⛏️ **Survival** – Baue, erkunde, überlebe',
+          '',
+          'Viel Spaß und gutes Spiel!',
+        ].join('\n'))
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 128 }))
+        .addFields(
+          { name: '👤 Spieler',   value: `${member}`,                              inline: true },
+          { name: '🌐 Server',    value: `\`${MC_ADDRESS}\``,                       inline: true },
+          { name: '👥 Mitglieder', value: `Du bist Mitglied #${member.guild.memberCount}!`, inline: true },
+        )
+        .setImage('https://i.imgur.com/xSXaIWj.png')
+        .setFooter({ text: 'Pink Horizon Network · play.pinkhorizon.fun' })
         .setTimestamp()],
     }).catch(() => {});
   }
