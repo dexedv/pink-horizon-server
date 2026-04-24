@@ -87,10 +87,10 @@ public class StreakManager {
     }
 
     /**
-     * Returns a damage multiplier based on streak, capped at +50% (5 streaks).
+     * Returns a damage multiplier based on streak: +0.5% per streak level, no cap.
      */
     public double getStreakMultiplier(UUID uuid) {
-        return 1.0 + 0.10 * Math.min(getStreak(uuid), 5);
+        return 1.0 + 0.005 * getStreak(uuid);
     }
 
     /**
