@@ -56,6 +56,7 @@ const SERVERS = [
 const PROXY_HOST        = process.env.PROXY_HOST || 'velocity';
 const PROXY_PORT        = parseInt(process.env.PROXY_PORT || '25565');
 const NOTIFY_CHANNEL_ID = '1497212053377781851';
+const ALERT_ROLE_ID     = '1497212801637155022';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Database
@@ -222,6 +223,25 @@ async function checkContainersOnline(guild) {
           .setDescription(`**${srv.name}** ist wieder erreichbar!`)
           .setTimestamp()],
       }).catch(() => {});
+    }
+    // Unerwarteter Absturz: war online, ist jetzt offline
+    if (wasUp === true && running === false) {
+      await ch.send({
+        embeds: [new EmbedBuilder()
+          .setTitle('🚨 Server ausgefallen!')
+          .setColor(0xED4245)
+          .setDescription(`**${srv.name}** ist unerwartet offline gegangen!`)
+          .setTimestamp()],
+      }).catch(() => {});
+      // DM an alle mit Alert-Rolle
+      const alertRole = guild.roles.cache.get(ALERT_ROLE_ID);
+      if (alertRole) {
+        for (const [, member] of alertRole.members) {
+          await member.send(
+            `🚨 **Pink Horizon Alert**\n**${srv.name}** ist unerwartet offline gegangen! Bitte sofort prüfen.`
+          ).catch(() => {});
+        }
+      }
     }
     containerWasUp[srv.container] = running;
   }
