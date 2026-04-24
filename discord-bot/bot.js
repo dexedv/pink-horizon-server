@@ -448,8 +448,9 @@ const ROLE_DEFS = [
   { name: 'Moderator',      color: 0xFF6600, hoist: true,  mentionable: false },
   { name: 'Supporter',      color: 0xFFAA00, hoist: true,  mentionable: true  },
   { name: 'Booster',        color: 0xFF73FA, hoist: false, mentionable: false },
+  { name: 'Verifiziert',    color: 0x57F287, hoist: false, mentionable: false },
   { name: 'Server-Updates', color: 0x5865F2, hoist: false, mentionable: true  },
-  { name: 'Neuigkeiten',    color: 0x57F287, hoist: false, mentionable: true  },
+  { name: 'Neuigkeiten',    color: 0x2ECC71, hoist: false, mentionable: true  },
   { name: 'Spieler',        color: 0xAAAAAA, hoist: false, mentionable: false },
 ];
 
@@ -472,10 +473,10 @@ function buildChannelDefs() {
     {
       name: '📌 INFORMATION', teamOnly: false,
       children: [
-        { name: 'regeln',        readonly: true          },
-        { name: 'ankündigungen', readonly: true          },
-        { name: 'changelog',     readonly: true          },
-        { name: 'server-status', readonly: true, tag: 'status' },
+        { name: 'regeln',        readonly: true, public: true   }, // sichtbar ohne Verifizierung
+        { name: 'ankündigungen', readonly: true                 },
+        { name: 'changelog',     readonly: true                 },
+        { name: 'server-status', readonly: true, tag: 'status'  },
       ],
     },
     {
@@ -528,19 +529,33 @@ function buildChannelDefs() {
 }
 
 async function ensureChannels(guild, roles) {
-  const everyone  = guild.roles.everyone;
-  const adminRole = roles['Admin'];
-  const modRole   = roles['Moderator'];
-  const created   = {};
+  const everyone     = guild.roles.everyone;
+  const adminRole    = roles['Admin'];
+  const modRole      = roles['Moderator'];
+  const suppRole     = roles['Supporter'];
+  const verifRole    = roles['Verifiziert'];
+  const created      = {};
 
   for (const catDef of buildChannelDefs()) {
-    const catPerms = catDef.teamOnly
-      ? [
-          { id: everyone.id,  deny:  [PermissionFlagsBits.ViewChannel] },
-          { id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel] },
-          { id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel] },
-        ]
-      : [];
+    // Kategorie-Permissions:
+    // teamOnly  → nur Admin/Mod sehen
+    // sonst     → @everyone geblockt, Verifiziert + Staff sehen
+    let catPerms;
+    if (catDef.teamOnly) {
+      catPerms = [
+        { id: everyone.id,  deny:  [PermissionFlagsBits.ViewChannel] },
+        { id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel] },
+        { id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel] },
+      ];
+    } else {
+      catPerms = [
+        { id: everyone.id,  deny:  [PermissionFlagsBits.ViewChannel] },
+        { id: verifRole.id, allow: [PermissionFlagsBits.ViewChannel] },
+        { id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel] },
+        { id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel] },
+        { id: suppRole.id,  allow: [PermissionFlagsBits.ViewChannel] },
+      ];
+    }
 
     let category = guild.channels.cache.find(c => c.name === catDef.name && c.type === ChannelType.GuildCategory);
     if (!category) { category = await guild.channels.create({ name: catDef.name, type: ChannelType.GuildCategory, permissionOverwrites: catPerms }); await sleep(400); }
@@ -551,7 +566,13 @@ async function ensureChannels(guild, roles) {
         if (exists) { if (chDef.tag) created[chDef.tag] = exists.id; continue; }
 
         const perms = [];
-        if (chDef.readonly) {
+        if (chDef.public) {
+          // #regeln: für alle sichtbar (überschreibt Kategorie-Deny), aber kein Schreiben
+          perms.push({ id: everyone.id,  allow: [PermissionFlagsBits.ViewChannel] });
+          perms.push({ id: everyone.id,  deny:  [PermissionFlagsBits.SendMessages] });
+          perms.push({ id: adminRole.id, allow: [PermissionFlagsBits.SendMessages] });
+          perms.push({ id: modRole.id,   allow: [PermissionFlagsBits.SendMessages] });
+        } else if (chDef.readonly) {
           perms.push({ id: everyone.id,  deny:  [PermissionFlagsBits.SendMessages] });
           perms.push({ id: adminRole.id, allow: [PermissionFlagsBits.SendMessages] });
           perms.push({ id: modRole.id,   allow: [PermissionFlagsBits.SendMessages] });
@@ -576,7 +597,7 @@ async function ensureChannels(guild, roles) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function postDefaultContent(guild, createdChannels) {
-  // #regeln
+  // #regeln + Verifikations-Button
   const regelnCh = guild.channels.cache.find(c => c.name === 'regeln' && c.type === ChannelType.GuildText);
   if (regelnCh) {
     const msgs = await regelnCh.messages.fetch({ limit: 5 }).catch(() => null);
@@ -595,6 +616,19 @@ async function postDefaultContent(guild, createdChannels) {
           '*Bei Regelverstößen drohen Verwarnungen, Mutes oder Bans.*',
         ].join('\n'))
         .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' })] });
+
+      // Verifikations-Button direkt nach den Regeln
+      await regelnCh.send({
+        embeds: [new EmbedBuilder()
+          .setColor(0x57F287)
+          .setDescription('✅ **Mit dem Klick auf den Button bestätigst du, dass du die Regeln gelesen hast und ihnen zustimmst.**\nDanach erhältst du Zugriff auf alle Kanäle.')],
+        components: [new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('verify')
+            .setLabel('✅ Regeln akzeptieren & Verifizieren')
+            .setStyle(ButtonStyle.Success),
+        )],
+      });
     }
   }
 
@@ -729,16 +763,59 @@ client.once('ready', async () => {
   }
 });
 
-// Auto-assign @Spieler + welcome
-client.on('guildMemberAdd', async member => {
-  const spielerRole = member.guild.roles.cache.find(r => r.name === 'Spieler');
+// ─────────────────────────────────────────────────────────────────────────────
+// Verifikation
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function verifyMember(interaction) {
+  const member    = interaction.member;
+  const guild     = interaction.guild;
+  const verifRole = guild.roles.cache.find(r => r.name === 'Verifiziert');
+
+  if (!verifRole) {
+    return interaction.reply({ content: '❌ Verifizierungs-Rolle nicht gefunden. Bitte kontaktiere einen Admin.', ephemeral: true });
+  }
+
+  if (member.roles.cache.has(verifRole.id)) {
+    return interaction.reply({ content: '✅ Du bist bereits verifiziert!', ephemeral: true });
+  }
+
+  await member.roles.add(verifRole).catch(() => {});
+
+  // Spieler-Rolle ebenfalls vergeben
+  const spielerRole = guild.roles.cache.find(r => r.name === 'Spieler');
   if (spielerRole) await member.roles.add(spielerRole).catch(() => {});
 
-  const welcomeCh = member.guild.channels.cache.get('1497213734555226182');
-  const regelnCh  = member.guild.channels.cache.find(c => c.name === 'regeln' && c.type === ChannelType.GuildText);
+  // Willkommensnachricht
+  const welcomeCh = guild.channels.cache.get('1497213734555226182');
+  const regelnCh  = guild.channels.cache.find(c => c.name === 'regeln' && c.type === ChannelType.GuildText);
   if (welcomeCh) {
-    const rulesHint = regelnCh ? ` Bitte lies dir die <#${regelnCh.id}> durch.` : '';
-    await welcomeCh.send(`🎉 Willkommen auf dem **Pink Horizon** Discord, ${member}!${rulesHint}\nTritt dem Server bei: \`${MC_ADDRESS}\``).catch(() => {});
+    const rulesHint = regelnCh ? `` : '';
+    await welcomeCh.send({
+      embeds: [new EmbedBuilder()
+        .setColor(0x57F287)
+        .setDescription(`🎉 **Willkommen auf Pink Horizon, ${member}!**\nDu hast die Regeln akzeptiert und hast jetzt Zugriff auf alle Kanäle.\n\n🎮 Tritt dem Server bei: \`${MC_ADDRESS}\``)
+        .setTimestamp()],
+    }).catch(() => {});
+  }
+
+  await interaction.reply({
+    embeds: [new EmbedBuilder()
+      .setColor(0x57F287)
+      .setDescription('✅ **Verifiziert!** Du hast jetzt Zugriff auf alle Kanäle.\nViel Spaß auf Pink Horizon! 🎮')],
+    ephemeral: true,
+  });
+}
+
+// Beim Join: nur Hinweis im #regeln (kein Auto-Zugriff)
+client.on('guildMemberAdd', async member => {
+  const regelnCh = member.guild.channels.cache.find(c => c.name === 'regeln' && c.type === ChannelType.GuildText);
+  if (regelnCh) {
+    await regelnCh.send({
+      embeds: [new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setDescription(`👋 ${member} ist dem Server beigetreten! Bitte lies die Regeln und klicke auf **Verifizieren** um Zugriff zu erhalten.`)],
+    }).catch(() => {});
   }
 });
 
@@ -796,7 +873,10 @@ client.on('interactionCreate', async interaction => {
   } else if (interaction.isButton()) {
     const id = interaction.customId;
 
-    if (id === 'ticket_open') {
+    if (id === 'verify') {
+      await verifyMember(interaction);
+
+    } else if (id === 'ticket_open') {
       await openTicketCategory(interaction);
 
     } else if (id === 'ticket_claim') {
