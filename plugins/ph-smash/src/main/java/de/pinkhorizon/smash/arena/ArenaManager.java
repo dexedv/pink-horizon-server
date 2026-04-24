@@ -788,6 +788,7 @@ public class ArenaManager {
         am.setUnbreakable(true);
         am.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
         axe.setItemMeta(am);
+        axe.addUnsafeEnchantment(Enchantment.SHARPNESS, 10);
         player.getInventory().setItem(3, axe);
 
         // Slot 4 – Feuerball-Stab

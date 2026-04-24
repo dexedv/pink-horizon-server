@@ -51,9 +51,9 @@ public class AbilityManager {
             new long[]{250, 600, 1200, 2200, 3700, 6000, 9700, 15500, 24500, 38500}),
 
         // ── Axt-Fähigkeiten ───────────────────────────────────────────────
-        BLUTUNG        ("§c🩸 Blutung",         "5% Chance/Lv: Blutungs-DOT (N Ticks × 6% Schaden)", 15,
+        BLUTUNG        ("§c🩸 Blutung",         "7% Chance/Lv: Blutungs-DOT (N Ticks × 6% Schaden)", 15,
             new long[]{300, 450, 650, 950, 1400, 2000, 2900, 4200, 6100, 8800, 12700, 18400, 26600, 38500, 55700}),
-        KLAFFENDE_WUNDE("§4🗡 Klaffende Wunde", "+10% Blut-DOT-Schaden/Lv (Multiplikator)",           10,
+        KLAFFENDE_WUNDE("§4🗡 Klaffende Wunde", "+15% Blut-DOT-Schaden/Lv (Multiplikator)",           10,
             new long[]{400, 900, 1700, 3000, 5000, 8200, 13000, 20000, 31000, 47000}),
         TIEFE_HIEBE    ("§8⏱ Tiefe Hiebe",      "+1 Tick/Lv Blutungsdauer (Base 3 Ticks)",             10,
             new long[]{300, 700, 1400, 2500, 4200, 6800, 11000, 17500, 27500, 43000}),
@@ -61,9 +61,9 @@ public class AbilityManager {
         // ── Feuerball-Fähigkeiten ─────────────────────────────────────────────
         FEUERKRAFT    ("§6🔥 Feuerkraft",    "+11% Feuerball-Schaden/Lv",                            15,
             new long[]{300, 450, 650, 950, 1400, 2000, 2900, 4200, 6100, 8800, 12700, 18400, 26600, 38500, 55700}),
-        VERBRENNUNG   ("§c🔥 Verbrennung",   "7% Chance/Lv: Brand-DOT (3 Ticks × 8% des Treffers)", 10,
+        VERBRENNUNG   ("§c🔥 Verbrennung",   "9% Chance/Lv: Brand-DOT (3 Ticks × 8% des Treffers)", 10,
             new long[]{250, 600, 1200, 2200, 3700, 6000, 9700, 15500, 24500, 38500}),
-        DOPPELFEUER   ("§e🔥 Doppelfeuer",   "5% Chance/Lv: 2. Feuerball (80% Schaden)",             10,
+        DOPPELFEUER   ("§e🔥 Doppelfeuer",   "7% Chance/Lv: 2. Feuerball (80% Schaden)",             10,
             new long[]{350, 800, 1600, 2800, 4600, 7500, 12000, 19000, 30000, 46000});
 
         public final String displayName;
@@ -218,14 +218,14 @@ public class AbilityManager {
 
     // ── Axt-Fähigkeiten ────────────────────────────────────────────────────
 
-    /** Blutungs-Chance (max 75% bei Lv 15). */
+    /** Blutungs-Chance (max 75% bei Lv 11+). */
     public double getBlutungChance(UUID uuid) {
-        return Math.min(getLevel(uuid, AbilityType.BLUTUNG) * 0.05, 0.75);
+        return Math.min(getLevel(uuid, AbilityType.BLUTUNG) * 0.07, 0.75);
     }
 
-    /** Blut-DOT-Schaden-Multiplikator (1.0 = kein Bonus). Lv10 = 2.0× */
+    /** Blut-DOT-Schaden-Multiplikator (1.0 = kein Bonus). Lv10 = 2.5× */
     public double getKlaffendeWundeFactor(UUID uuid) {
-        return 1.0 + getLevel(uuid, AbilityType.KLAFFENDE_WUNDE) * 0.10;
+        return 1.0 + getLevel(uuid, AbilityType.KLAFFENDE_WUNDE) * 0.15;
     }
 
     /** Anzahl Blutungs-Ticks (Base 3 + Level, max 13 bei Lv 10). */
@@ -240,14 +240,14 @@ public class AbilityManager {
         return 1.0 + getLevel(uuid, AbilityType.FEUERKRAFT) * 0.11;
     }
 
-    /** Chance auf Brand-DOT (3 Ticks à 8% des Treffers, max 70% bei Lv 10). */
+    /** Chance auf Brand-DOT (3 Ticks à 8% des Treffers, max 90% bei Lv 10). */
     public double getVerbrennungChance(UUID uuid) {
-        return Math.min(getLevel(uuid, AbilityType.VERBRENNUNG) * 0.07, 0.70);
+        return Math.min(getLevel(uuid, AbilityType.VERBRENNUNG) * 0.09, 0.90);
     }
 
-    /** Chance auf zweiten Feuerball (80% Schaden, max 50% bei Lv 10). */
+    /** Chance auf zweiten Feuerball (80% Schaden, max 70% bei Lv 10). */
     public double getDoppelfeuerChance(UUID uuid) {
-        return Math.min(getLevel(uuid, AbilityType.DOPPELFEUER) * 0.05, 0.50);
+        return Math.min(getLevel(uuid, AbilityType.DOPPELFEUER) * 0.07, 0.70);
     }
 
     // ── Regen-Task ─────────────────────────────────────────────────────────

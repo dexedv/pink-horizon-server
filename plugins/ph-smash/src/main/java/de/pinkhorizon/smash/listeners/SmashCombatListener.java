@@ -35,7 +35,7 @@ import org.bukkit.potion.PotionEffectType;
 public class SmashCombatListener implements Listener {
 
     private static final LegacyComponentSerializer LEGACY             = LegacyComponentSerializer.legacySection();
-    private static final double                    FIREBALL_BASE_DMG  = 7.0;
+    private static final double                    FIREBALL_BASE_DMG  = 20.0;
     private static final long                      FIREBALL_CD_MS     = 2000L;
 
     private final PHSmash          plugin;

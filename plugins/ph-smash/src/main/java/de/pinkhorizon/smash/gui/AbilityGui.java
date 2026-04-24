@@ -196,12 +196,12 @@ public class AbilityGui implements Listener {
             case BOGENSTAERKE   -> "§a+" + (level * 7) + "% §7Bogen-Schaden";
             case MEHRFACHSCHUSS -> "§e" + (level * 4) + "% §7Chance: 2. Pfeil §8(80% Schaden)";
             case GIFTPFEIL      -> "§2" + (level * 5) + "% §7Chance: Gift-DOT §8(3× 5% des Treffers)";
-            case BLUTUNG         -> "§c" + (level * 5) + "% §7Blutungs-Chance §8(" + (3 + AbilityType.TIEFE_HIEBE.maxLevel) + " Ticks max × 6%)";
-            case KLAFFENDE_WUNDE -> "§4+" + (level * 10) + "% §7Blut-DOT-Schaden §8(Multiplikator)";
+            case BLUTUNG         -> "§c" + Math.min(level * 7, 75) + "% §7Blutungs-Chance §8(" + (3 + AbilityType.TIEFE_HIEBE.maxLevel) + " Ticks max × 6%)";
+            case KLAFFENDE_WUNDE -> "§4+" + (level * 15) + "% §7Blut-DOT-Schaden §8(Multiplikator)";
             case TIEFE_HIEBE     -> "§7+" + level + " §7Tick(s) §8(Gesamt: " + (3 + level) + " Ticks)";
             case FEUERKRAFT      -> "§6+" + (level * 11) + "% §7Feuerball-Schaden";
-            case VERBRENNUNG     -> "§c" + (level * 7) + "% §7Chance: Brand-DOT §8(3× 8% des Treffers)";
-            case DOPPELFEUER     -> "§e" + (level * 5) + "% §7Chance: 2. Feuerball §8(80% Schaden)";
+            case VERBRENNUNG     -> "§c" + Math.min(level * 9, 90) + "% §7Chance: Brand-DOT §8(3× 8% des Treffers)";
+            case DOPPELFEUER     -> "§e" + Math.min(level * 7, 70) + "% §7Chance: 2. Feuerball §8(80% Schaden)";
         };
     }
 
