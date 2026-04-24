@@ -109,6 +109,10 @@ public class PHSurvival extends JavaPlugin {
         getCommand("claimadd").setExecutor(claimAddCmd);
         getCommand("claimadd").setTabCompleter(claimAddCmd);
 
+        HomeAddCommand homeAddCmd = new HomeAddCommand(this);
+        getCommand("homeadd").setExecutor(homeAddCmd);
+        getCommand("homeadd").setTabCompleter(homeAddCmd);
+
         getCommand("sethome").setExecutor(homeCmd);
         getCommand("sethome").setTabCompleter(homeCmd);
         getCommand("home").setExecutor(homeCmd);
@@ -266,7 +270,7 @@ public class PHSurvival extends JavaPlugin {
 
         // VoteShop – ohne ph-vote.jar, direkt über ph-core
         de.pinkhorizon.core.vote.SharedVoteShopGUI voteShopGui =
-            new de.pinkhorizon.core.vote.SharedVoteShopGUI();
+            new de.pinkhorizon.core.vote.SharedVoteShopGUI(this);
         getServer().getPluginManager().registerEvents(voteShopGui, this);
         getCommand("voteshop").setExecutor((sender, cmd, label, args) -> {
             if (!(sender instanceof org.bukkit.entity.Player p)) { sender.sendMessage("§cNur für Spieler."); return true; }

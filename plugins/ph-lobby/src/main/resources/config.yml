@@ -21,6 +21,12 @@ signs:
   skyblock: 'SkyBlock'
   minigames: 'Minigames'
 
+# VoteShop (nur in der Lobby)
+vote-shop:
+  title: "&5&lVoteShop &8| &7Deine Coins: %coins%"
+  rows: 3
+  items: {}
+
 # Server-Status BossBar: Adressen der Sub-Server zum Anpingen
 # Für Docker: host = Container-Name (z.B. "survival"), port = 25565
 # Für lokal:  host = localhost, port = individueller Server-Port

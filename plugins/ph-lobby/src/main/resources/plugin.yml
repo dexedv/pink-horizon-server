@@ -38,6 +38,12 @@ commands:
   sync:
     description: Discord-Account mit Minecraft verknüpfen
     usage: /sync discord
+  voteshop:
+    description: VoteShop öffnen
+    usage: /voteshop
+  votecoins:
+    description: VoteCoins-Guthaben anzeigen
+    usage: /votecoins
 
 permissions:
   lobby.admin:

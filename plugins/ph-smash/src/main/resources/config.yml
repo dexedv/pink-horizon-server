@@ -7,6 +7,12 @@ database:
   user: ph_user
   password: ""   # wird aus Env-Variable überschrieben wenn leer
 
+# VoteShop (Smash-spezifische Items)
+vote-shop:
+  title: "&5&lVoteShop &8| &7Deine Coins: %coins%"
+  rows: 3
+  items: {}
+
 arena:
   # Spawn-Position für Spieler (wird per /stb setarena spawn gesetzt)
   spawn:

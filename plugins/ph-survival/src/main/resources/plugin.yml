@@ -176,6 +176,10 @@ commands:
     description: Extra Claim-Slots für einen Spieler hinzufügen (Admin)
     usage: /claimadd <Spieler> <Anzahl>
     permission: survival.admin
+  homeadd:
+    description: Extra Home-Slots für einen Spieler hinzufügen (Admin)
+    usage: /homeadd <Spieler> <Anzahl>
+    permission: survival.admin
   voteshop:
     description: VoteShop öffnen
     usage: /voteshop

@@ -1,6 +1,5 @@
 package de.pinkhorizon.core.vote;
 
-import de.pinkhorizon.core.PHCore;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -12,6 +11,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,7 +20,7 @@ import java.util.Map;
 
 /**
  * Gemeinsame VoteShop-GUI für alle Server.
- * Liest die Shop-Items aus PHCore's config.yml (Abschnitt "vote-shop").
+ * Liest die Shop-Items aus der config.yml des jeweiligen Server-Plugins (Abschnitt "vote-shop").
  * Als Listener bei jedem Server-Plugin registrieren, das /voteshop anbietet.
  */
 public class SharedVoteShopGUI implements Listener {
@@ -29,22 +29,23 @@ public class SharedVoteShopGUI implements Listener {
                             int cost, List<String> lore, List<String> commands) {}
 
     private final Map<Integer, ShopItem> items = new HashMap<>();
+    private final JavaPlugin plugin;
     private String title;
     private int    rows;
 
-    public SharedVoteShopGUI() {
+    public SharedVoteShopGUI(JavaPlugin plugin) {
+        this.plugin = plugin;
         reload();
     }
 
-    /** Items aus PHCore config.yml (re)laden. */
+    /** Items aus der Plugin-eigenen config.yml (re)laden. */
     public void reload() {
         items.clear();
-        PHCore core = PHCore.getInstance();
-        title = color(core.getConfig().getString("vote-shop.title",
+        title = color(plugin.getConfig().getString("vote-shop.title",
             "&5&lVoteShop &8| &7Deine Coins: %coins%"));
-        rows  = core.getConfig().getInt("vote-shop.rows", 3);
+        rows  = plugin.getConfig().getInt("vote-shop.rows", 3);
 
-        ConfigurationSection sec = core.getConfig().getConfigurationSection("vote-shop.items");
+        ConfigurationSection sec = plugin.getConfig().getConfigurationSection("vote-shop.items");
         if (sec == null) return;
         for (String key : sec.getKeys(false)) {
             ConfigurationSection it = sec.getConfigurationSection(key);

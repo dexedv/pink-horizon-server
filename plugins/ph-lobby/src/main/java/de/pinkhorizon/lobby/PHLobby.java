@@ -91,6 +91,22 @@ public class PHLobby extends JavaPlugin {
         getCommand("sync").setExecutor(syncCommand);
         getCommand("sync").setTabCompleter(syncCommand);
 
+        // VoteShop
+        de.pinkhorizon.core.vote.SharedVoteShopGUI voteShopGui =
+            new de.pinkhorizon.core.vote.SharedVoteShopGUI(this);
+        getServer().getPluginManager().registerEvents(voteShopGui, this);
+        getCommand("voteshop").setExecutor((sender, cmd, label, args) -> {
+            if (!(sender instanceof org.bukkit.entity.Player p)) { sender.sendMessage("§cNur für Spieler."); return true; }
+            voteShopGui.open(p);
+            return true;
+        });
+        getCommand("votecoins").setExecutor((sender, cmd, label, args) -> {
+            if (!(sender instanceof org.bukkit.entity.Player p)) { sender.sendMessage("§cNur für Spieler."); return true; }
+            int coins = de.pinkhorizon.core.vote.SharedVoteCoinManager.getInstance().getCoins(p.getUniqueId());
+            p.sendMessage("§d§l[VoteShop] §7Du hast §d" + coins + " VoteCoin(s)§7. Öffne mit §f/voteshop§7.");
+            return true;
+        });
+
         // Listeners
         getServer().getPluginManager().registerEvents(new JoinTitleListener(this, scoreboardManager, tabManager), this);
         getServer().getPluginManager().registerEvents(new LobbyListener(this), this);

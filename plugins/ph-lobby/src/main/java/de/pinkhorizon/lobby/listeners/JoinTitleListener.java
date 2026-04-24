@@ -110,6 +110,32 @@ public class JoinTitleListener implements Listener {
                 plugin.getServer().getScheduler().runTask(plugin, () -> sendDiscordHint(player));
             }
         }, 60L); // 3 Sekunden
+
+        // Vote-Hinweis (5 s verzögert)
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) sendVoteHint(player);
+        }, 100L);
+    }
+
+    private static void sendVoteHint(Player player) {
+        if (!player.isOnline()) return;
+        Component line = Component.text("─────────────────────────────────", TextColor.color(0xFFD700));
+
+        Component link = Component.text("minecraft-server.eu", TextColor.color(0xFFD700), TextDecoration.UNDERLINED)
+            .clickEvent(ClickEvent.openUrl("https://minecraft-server.eu/vote/index/238C9"))
+            .hoverEvent(HoverEvent.showText(Component.text("Klicken zum Voten!", NamedTextColor.GRAY)));
+
+        player.sendMessage(line);
+        player.sendMessage(Component.text(" \u2B50 ", NamedTextColor.WHITE)
+            .append(Component.text("Unterstütze Pink Horizon!", TextColor.color(0xFFD700), TextDecoration.BOLD)));
+        player.sendMessage(Component.text("   Vote für uns auf ", NamedTextColor.GRAY)
+            .append(link)
+            .append(Component.text(" und erhalte", NamedTextColor.GRAY)));
+        player.sendMessage(Component.text("   VoteCoins für den ", NamedTextColor.GRAY)
+            .append(Component.text("/voteshop", TextColor.color(0xFF69B4), TextDecoration.BOLD))
+            .append(Component.text("!", NamedTextColor.GRAY)));
+        player.sendMessage(line);
+        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.4f);
     }
 
     private static void sendDiscordHint(Player player) {

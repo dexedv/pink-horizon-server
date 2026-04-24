@@ -4,6 +4,9 @@
 # Voting-Links (angezeigt bei /vote)
 voting-links:
   - "https://minecraft-server.eu/vote/index/238C9"
+  # Weitere Voting-Seiten hier eintragen:
+  # - "https://minecraftservers.org/vote/DEINE-ID"
+  # - "https://minecraft-mp.com/server/DEINE-ID/vote"
 
 # Belohnungen pro Vote
 vote-reward:
