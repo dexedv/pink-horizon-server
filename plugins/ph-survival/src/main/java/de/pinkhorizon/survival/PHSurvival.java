@@ -45,6 +45,7 @@ public class PHSurvival extends JavaPlugin {
     private JobBonusManager jobBonusManager;
     private FurnaceUpgradeManager furnaceUpgradeManager;
     private de.pinkhorizon.survival.managers.HopperUpgradeManager hopperUpgradeManager;
+    private de.pinkhorizon.survival.managers.MiningStatsManager miningStatsManager;
 
     @Override
     public void onEnable() {
@@ -83,6 +84,7 @@ public class PHSurvival extends JavaPlugin {
         jobBonusManager       = new JobBonusManager(this);
         furnaceUpgradeManager = new FurnaceUpgradeManager(this);
         hopperUpgradeManager  = new de.pinkhorizon.survival.managers.HopperUpgradeManager(this);
+        miningStatsManager    = new de.pinkhorizon.survival.managers.MiningStatsManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -254,6 +256,7 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.NpcListener(this), this);
         getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.JobBonusListener(this), this);
         getServer().getPluginManager().registerEvents(new ClaimMapListener(this), this);
+        getServer().getPluginManager().registerEvents(new de.pinkhorizon.survival.listeners.MiningStatsListener(this), this);
 
         de.pinkhorizon.survival.gui.FurnaceUpgradeGui furnaceGui =
             new de.pinkhorizon.survival.gui.FurnaceUpgradeGui(this);
@@ -288,6 +291,7 @@ public class PHSurvival extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (miningStatsManager != null) miningStatsManager.flushAll();
         if (jobBonusManager != null) jobBonusManager.stop();
         if (itemClearManager != null) itemClearManager.cancel();
         if (survivalDb != null) survivalDb.close();
@@ -328,4 +332,5 @@ public class PHSurvival extends JavaPlugin {
     public ClaimBorderVisualizer getClaimBorderVisualizer() { return claimBorderVisualizer; }
     public FurnaceUpgradeManager getFurnaceUpgradeManager() { return furnaceUpgradeManager; }
     public de.pinkhorizon.survival.managers.HopperUpgradeManager getHopperUpgradeManager() { return hopperUpgradeManager; }
+    public de.pinkhorizon.survival.managers.MiningStatsManager getMiningStatsManager() { return miningStatsManager; }
 }

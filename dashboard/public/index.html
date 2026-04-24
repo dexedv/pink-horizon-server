@@ -951,14 +951,15 @@ async function loadPl(name) {
   if (r.status===404) { el.innerHTML='<div class="empty" style="color:var(--red)">Spieler nicht gefunden</div>'; return; }
   if (!r.ok) { const e=await r.json(); el.innerHTML=`<div class="empty" style="color:var(--red)">${escH(e.error||'Fehler')}</div>`; return; }
   curPlayer = await r.json();
-  const [br, clr, ivr, tlr, vtr, dcr, ugr] = await Promise.all([
+  const [br, clr, ivr, tlr, vtr, dcr, ugr, xrr] = await Promise.all([
     apiFetch(`/api/bank/player?name=${encodeURIComponent(name)}`),
     apiFetch(`/api/survival/claims?player=${encodeURIComponent(name)}`),
     apiFetch(`/api/survival/inventory?player=${encodeURIComponent(name)}`),
     apiFetch(`/api/players/timeline?name=${encodeURIComponent(name)}`),
     apiFetch(`/api/vote/player?name=${encodeURIComponent(name)}`),
     apiFetch(`/api/discord/player?name=${encodeURIComponent(name)}`),
-    apiFetch(`/api/survival/upgrades?player=${encodeURIComponent(name)}`)
+    apiFetch(`/api/survival/upgrades?player=${encodeURIComponent(name)}`),
+    apiFetch(`/api/survival/xray?player=${encodeURIComponent(name)}`)
   ]);
   if (br?.ok)  { const bd = await br.json();  curPlayer.bankBalance = bd.balance; curPlayer.bankInterest = bd.lastInterest; }
   if (clr?.ok) { const cd = await clr.json(); curPlayer.claims = cd.claims; }
@@ -967,6 +968,7 @@ async function loadPl(name) {
   if (vtr?.ok) { const vd = await vtr.json(); curPlayer.voteCoins = vd.coins; curPlayer.totalVotes = vd.totalVotes || vd.total_votes; }
   if (dcr?.ok) { const dd = await dcr.json(); curPlayer.discordId = dd.discord_id; curPlayer.discordVerified = !!dd.discord_id; }
   if (ugr?.ok) { const ud = await ugr.json(); curPlayer.upgrades = ud; }
+  if (xrr?.ok) { const xd = await xrr.json(); curPlayer.xray = xd; }
   renderPlCard(curPlayer);
 }
 
@@ -1058,6 +1060,7 @@ function renderPlCard(p) {
     </div>
     ${renderTimelineCard(p)}
     ${renderUpgradesCard(p)}
+    ${renderXrayCard(p)}
     ${renderClaimsCard(p)}
     ${renderInventoryCard(p)}`;
 }
@@ -1132,6 +1135,68 @@ function slotLabel(s) {
   if (s===39) return 'Helm';
   if (s===40) return 'Nebenhand';
   return `Slot ${s}`;
+}
+
+function renderXrayCard(p) {
+  const x = p.xray;
+  if (!x) return '';
+
+  const score = x.score ?? 0;
+  const scoreColor = score >= 70 ? 'var(--red)' : score >= 40 ? '#f39c12' : 'var(--green)';
+  const scoreLbl   = score >= 70 ? '⚠️ Verdächtig' : score >= 40 ? '🔶 Auffällig' : '✅ Unauffällig';
+
+  const ORE_NAMES = {
+    diamond: '💎 Diamant', ancient_debris: '🔥 Ancient Debris',
+    emerald: '💚 Smaragd', gold: '🟡 Gold', iron: '🔘 Eisen',
+    coal: '⬛ Kohle', lapis: '🔵 Lapislazuli', redstone: '🔴 Redstone', copper: '🟠 Kupfer'
+  };
+  const ores = x.ores || {};
+
+  const oreRows = Object.entries(ORE_NAMES)
+    .filter(([k]) => ores[k] > 0)
+    .map(([k, label]) => {
+      const cnt  = ores[k] || 0;
+      const rate = x.totalBlocks >= 300 ? (cnt / x.totalBlocks * 1000).toFixed(2) : '—';
+      return `<tr><td>${label}</td><td style="text-align:right;font-family:var(--mono)">${cnt}</td><td style="text-align:right;font-family:var(--mono);color:var(--muted)">${rate}</td></tr>`;
+    }).join('');
+
+  const findRows = (x.recentFinds || []).map(f => {
+    const dt = new Date(f.at).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const label = f.type === 'diamond' ? '💎' : '🔥';
+    return `<tr><td>${label} ${f.type === 'diamond' ? 'Diamant' : 'Ancient Debris'}</td>
+      <td style="font-family:var(--mono);font-size:.78rem">${f.x}, ${f.y}, ${f.z}</td>
+      <td style="font-size:.75rem;color:var(--muted)">${dt}</td></tr>`;
+  }).join('');
+
+  return `<div class="card" style="margin-top:12px">
+    <div class="card-title">🔍 XRay-Erkennung</div>
+    ${x.insufficientData
+      ? `<div class="empty" style="color:var(--muted)">Zu wenig Daten (mind. 300 Blöcke nötig, aktuell ${x.totalBlocks})</div>`
+      : `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+          <div style="flex:1;background:var(--bg);border-radius:8px;height:18px;overflow:hidden">
+            <div style="height:100%;width:${score}%;background:${scoreColor};border-radius:8px;transition:width .4s"></div>
+          </div>
+          <span style="font-weight:700;color:${scoreColor};min-width:120px">${scoreLbl} (${score}/100)</span>
+        </div>
+        ${x.reasons?.length ? `<div style="margin-bottom:10px;display:flex;flex-direction:column;gap:3px">
+          ${x.reasons.map(r=>`<div style="font-size:.8rem;color:${scoreColor};background:${scoreColor}22;padding:3px 8px;border-radius:5px">⚠ ${escH(r)}</div>`).join('')}
+        </div>` : ''}
+        <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
+          <div class="stat-mini"><span class="stat-mini-lbl">Blöcke abgebaut</span><span class="stat-mini-val">${x.totalBlocks.toLocaleString('de-DE')}</span></div>
+          <div class="stat-mini"><span class="stat-mini-lbl">💎 /1000 Blöcke</span><span class="stat-mini-val" style="color:${Number(x.diamondRate)>4?'var(--red)':Number(x.diamondRate)>2?'#f39c12':'var(--green)'}">${x.diamondRate ?? '—'}</span></div>
+          <div class="stat-mini"><span class="stat-mini-lbl">🔥 /1000 Blöcke</span><span class="stat-mini-val" style="color:${Number(x.debrisRate)>2?'var(--red)':Number(x.debrisRate)>1?'#f39c12':'var(--green)'}">${x.debrisRate ?? '—'}</span></div>
+        </div>`}
+    ${oreRows ? `<table class="upg-tbl" style="margin-bottom:10px">
+      <thead><tr><th>Erz</th><th style="text-align:right">Gefunden</th><th style="text-align:right">/1000 Blöcke</th></tr></thead>
+      <tbody>${oreRows}</tbody>
+    </table>` : ''}
+    ${findRows ? `<div style="font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:4px">Letzte Diamant-/Debris-Funde</div>
+    <table class="upg-tbl">
+      <thead><tr><th>Erz</th><th>Koordinaten</th><th>Zeitpunkt</th></tr></thead>
+      <tbody>${findRows}</tbody>
+    </table>` : ''}
+    <div style="font-size:.72rem;color:var(--muted);margin-top:8px">Hinweis: Diese Werte sind Hinweise, kein Beweis. Gute Miner können ebenfalls hohe Raten erreichen.</div>
+  </div>`;
 }
 
 function renderClaimsCard(p) {

@@ -1016,6 +1016,82 @@ app.get('/api/survival/upgrades', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Survival – XRay-Erkennung ────────────────────────────────────────────
+
+app.get('/api/survival/xray', auth, async (req, res) => {
+  const { player } = req.query;
+  if (!player) return res.status(400).json({ error: 'Kein Spielername' });
+  try {
+    const [[uuidRow]] = await poolCore.execute('SELECT uuid FROM players WHERE name = ?', [player]);
+    if (!uuidRow) return res.status(404).json({ error: 'Spieler nicht gefunden' });
+    const uuid = uuidRow.uuid;
+
+    const [[blocks]] = await poolSv.execute(
+      'SELECT total_blocks, ores_found FROM sv_mining_blocks WHERE player_uuid = ?', [uuid]
+    );
+    const [oreCounts] = await poolSv.execute(
+      'SELECT ore_type, COUNT(*) AS cnt FROM sv_mining_log WHERE player_uuid = ? GROUP BY ore_type', [uuid]
+    );
+    const [recentFinds] = await poolSv.execute(
+      `SELECT ore_type, x, y, z, mined_at FROM sv_mining_log
+       WHERE player_uuid = ? AND ore_type IN ('diamond','ancient_debris')
+       ORDER BY mined_at DESC LIMIT 20`, [uuid]
+    );
+    const [diamondYs] = await poolSv.execute(
+      `SELECT y FROM sv_mining_log WHERE player_uuid = ? AND ore_type = 'diamond'
+       ORDER BY mined_at DESC LIMIT 100`, [uuid]
+    );
+
+    const totalBlocks = Number(blocks?.total_blocks || 0);
+    const oreMap = {};
+    for (const r of oreCounts) oreMap[r.ore_type] = Number(r.cnt);
+
+    const diamonds = oreMap.diamond || 0;
+    const debris   = oreMap.ancient_debris || 0;
+
+    let score = 0;
+    const reasons = [];
+
+    if (totalBlocks >= 300) {
+      const dRate = diamonds / totalBlocks * 1000;
+      const aRate = debris   / totalBlocks * 1000;
+
+      if      (dRate > 15) { score += 50; reasons.push(`Diamant-Rate sehr hoch: ${dRate.toFixed(1)}/1000 Blöcke`); }
+      else if (dRate > 8)  { score += 35; reasons.push(`Diamant-Rate hoch: ${dRate.toFixed(1)}/1000 Blöcke`); }
+      else if (dRate > 4)  { score += 20; reasons.push(`Diamant-Rate erhöht: ${dRate.toFixed(1)}/1000 Blöcke`); }
+
+      if      (aRate > 5)  { score += 30; reasons.push(`Ancient-Debris-Rate sehr hoch: ${aRate.toFixed(1)}/1000 Blöcke`); }
+      else if (aRate > 2)  { score += 20; reasons.push(`Ancient-Debris-Rate hoch: ${aRate.toFixed(1)}/1000 Blöcke`); }
+      else if (aRate > 1)  { score += 10; reasons.push(`Ancient-Debris-Rate erhöht: ${aRate.toFixed(1)}/1000 Blöcke`); }
+
+      // Y-Level-Konsistenz bei Diamantfunden
+      if (diamondYs.length >= 5) {
+        const ys   = diamondYs.map(r => r.y);
+        const mean = ys.reduce((a, b) => a + b, 0) / ys.length;
+        const std  = Math.sqrt(ys.reduce((a, b) => a + (b - mean) ** 2, 0) / ys.length);
+        if      (std < 2 && ys.length >= 10) { score += 20; reasons.push(`Y-Level extrem konsistent (σ=${std.toFixed(1)})`); }
+        else if (std < 4 && ys.length >=  5) { score += 10; reasons.push(`Y-Level konsistent (σ=${std.toFixed(1)})`); }
+      }
+    }
+
+    score = Math.min(score, 100);
+    const diamondRate = totalBlocks >= 300 ? (diamonds / totalBlocks * 1000).toFixed(2) : null;
+    const debrisRate  = totalBlocks >= 300 ? (debris   / totalBlocks * 1000).toFixed(2) : null;
+
+    res.json({
+      ok: true,
+      totalBlocks,
+      ores: oreMap,
+      score,
+      reasons,
+      diamondRate,
+      debrisRate,
+      recentFinds: recentFinds.map(r => ({ type: r.ore_type, x: r.x, y: r.y, z: r.z, at: Number(r.mined_at) })),
+      insufficientData: totalBlocks < 300
+    });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── Survival – Claims & Inventar ─────────────────────────────────────────
 
 app.get('/api/survival/claims', auth, async (req, res) => {
