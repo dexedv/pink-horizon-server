@@ -108,6 +108,7 @@ services:
 
   # ── Minigames ─────────────────────────────────────────────────────────
   minigames:
+    profiles: ["disabled"]
     image: itzg/minecraft-server:latest
     container_name: ph-minigames
     mem_limit: 6g
