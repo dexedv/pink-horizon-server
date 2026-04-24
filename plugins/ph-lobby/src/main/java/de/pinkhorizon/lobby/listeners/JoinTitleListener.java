@@ -58,8 +58,9 @@ public class JoinTitleListener implements Listener {
         // Hotbar-Items
         HotbarManager.giveHotbar(player, plugin);
 
-        // Scoreboard
+        // Scoreboard + Discord-Status async laden
         scoreboardManager.giveScoreboard(player);
+        scoreboardManager.loadDiscordStatus(player.getUniqueId());
 
         // Tab
         tabManager.update(player);
@@ -112,6 +113,7 @@ public class JoinTitleListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         scoreboardManager.removeScoreboard(player);
+        scoreboardManager.removeDiscordStatus(player.getUniqueId());
         plugin.getCosmeticsManager().removePlayer(player.getUniqueId());
 
         event.quitMessage(

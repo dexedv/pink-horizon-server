@@ -1,5 +1,6 @@
 package de.pinkhorizon.lobby.managers;
 
+import de.pinkhorizon.core.PHCore;
 import de.pinkhorizon.lobby.PHLobby;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -11,6 +12,9 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -21,7 +25,8 @@ import java.util.UUID;
 public class ScoreboardManager {
 
     private final PHLobby plugin;
-    private final Map<UUID, Scoreboard> playerBoards = new HashMap<>();
+    private final Map<UUID, Scoreboard> playerBoards    = new HashMap<>();
+    private final Map<UUID, Boolean>    discordVerified = new HashMap<>();
     private BukkitTask updateTask;
 
     private static final String[] TITLE_FRAMES = {
@@ -46,12 +51,35 @@ public class ScoreboardManager {
         startUpdateTask();
     }
 
-    // Fixed header + footer slots: blank, title, blank, online, date, separator → 6 lines
-    // + one line per server + website line at score 0 → total = 7 + servers.size()
+    // Header: blank, title, blank, online, date, discord, separator → 7 lines
+    // + one line per server + website line at score 0 → total = 8 + servers.size()
     private int lineCount() {
         ServerStatusManager ssm = plugin.getServerStatusManager();
-        if (ssm == null) return 10; // fallback
-        return 7 + ssm.getServers().size();
+        if (ssm == null) return 11; // fallback
+        return 8 + ssm.getServers().size();
+    }
+
+    /** Async laden des Discord-Verifizierungsstatus – beim Join aufrufen. */
+    public void loadDiscordStatus(UUID uuid) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            boolean verified = false;
+            try (Connection c = PHCore.getInstance().getDatabaseManager().getConnection();
+                 PreparedStatement st = c.prepareStatement(
+                     "SELECT 1 FROM discord_sync WHERE uuid = ? AND verified_at IS NOT NULL LIMIT 1")) {
+                st.setString(1, uuid.toString());
+                try (ResultSet rs = st.executeQuery()) {
+                    verified = rs.next();
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("ScoreboardManager.loadDiscordStatus: " + e.getMessage());
+            }
+            discordVerified.put(uuid, verified);
+        });
+    }
+
+    /** Beim Quit aufräumen. */
+    public void removeDiscordStatus(UUID uuid) {
+        discordVerified.remove(uuid);
     }
 
     public void giveScoreboard(Player player) {
@@ -107,25 +135,30 @@ public class ScoreboardManager {
         ServerStatusManager ssm = plugin.getServerStatusManager();
         List<ServerStatusManager.ServerEntry> servers = (ssm != null) ? ssm.getServers() : List.of();
 
-        String date   = LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-        int    online = Bukkit.getOnlinePlayers().size();
+        String date    = LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        int    online  = Bukkit.getOnlinePlayers().size();
+        boolean dcVerified = discordVerified.getOrDefault(player.getUniqueId(), false);
+        String dcLine  = dcVerified
+            ? "\u00a75Discord: \u00a7a\u2714 Verifiziert"
+            : "\u00a75Discord: \u00a7c\u2718 /sync discord";
 
         // top = highest score (topmost visible line)
-        int top = servers.size() + 6;
+        int top = servers.size() + 7;
 
         setLine(board, top,     " ");
         setLine(board, top - 1, "\u00a7d\u00a7l\u00bb \u00a7fServer-Hub");
         setLine(board, top - 2, "  ");
         setLine(board, top - 3, "\u00a77Online: \u00a7d\u00a7l" + online);
         setLine(board, top - 4, "\u00a77Datum:  \u00a7f" + date);
-        setLine(board, top - 5, "   ");
+        setLine(board, top - 5, dcLine);
+        setLine(board, top - 6, "   ");
 
         // Server-Status-Zeilen
         for (int i = 0; i < servers.size(); i++) {
             ServerStatusManager.ServerEntry srv = servers.get(i);
             ServerStatusManager.Status status = (ssm != null) ? ssm.getStatus(srv.id()) : ServerStatusManager.Status.OFFLINE;
             int players = (ssm != null) ? ssm.getPlayerCount(srv.id()) : 0;
-            setLine(board, top - 6 - i, buildServerLine(srv.display(), status, players));
+            setLine(board, top - 7 - i, buildServerLine(srv.display(), status, players));
         }
 
         setLine(board, 0, "\u00a7dplay.pinkhorizon.de");
