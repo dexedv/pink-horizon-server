@@ -18,12 +18,12 @@ echo ""
 
 # ── 2. Berechtigungen fixieren (Docker uid=1000) ─────────────────────────
 echo "▶ [2/4] Berechtigungen setzen..."
-chown -R 1000:1000 servers/lobby/ servers/survival/ servers/minigames/ servers/smash/ 2>/dev/null || true
+chown -R 1000:1000 servers/lobby/ servers/survival/ servers/smash/ 2>/dev/null || true
 echo ""
 
 # ── 3. Spielserver + Proxy neu starten (neue JARs aus Volume) ────────────
 echo "▶ [3/4] Server-Container neu starten..."
-docker compose restart lobby survival minigames smash velocity
+docker compose restart lobby survival smash velocity
 echo ""
 
 # ── 4. Dashboard neu bauen (damit server.js-Änderungen aktiv werden) ─────
