@@ -961,13 +961,25 @@ public class ArenaManager {
         Component text = LegacyComponentSerializer.legacySection()
             .deserialize(color + "⚔ " + dmgText);
 
+        float scale = damage >= 50_000 ? 3.5f
+                    : damage >= 10_000 ? 3.0f
+                    : damage >= 1_000  ? 2.5f
+                    : damage >= 100    ? 2.0f
+                    :                    1.5f;
+
         TextDisplay td = world.spawn(spawnLoc, TextDisplay.class, display -> {
             display.text(text);
             display.setBillboard(Display.Billboard.CENTER);
             display.setPersistent(false);
             display.setDefaultBackground(false);
             display.setShadowed(true);
-            display.setViewRange(0.6f);
+            display.setViewRange(1.2f);
+            display.setTransformation(new org.bukkit.util.Transformation(
+                new org.joml.Vector3f(0, 0, 0),
+                new org.joml.AxisAngle4f(0, 0, 0, 1),
+                new org.joml.Vector3f(scale, scale, scale),
+                new org.joml.AxisAngle4f(0, 0, 0, 1)
+            ));
         });
 
         // 25 Ticks nach oben driften, dann entfernen
