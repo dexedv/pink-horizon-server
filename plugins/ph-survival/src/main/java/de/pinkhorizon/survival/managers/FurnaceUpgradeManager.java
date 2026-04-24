@@ -62,6 +62,13 @@ public class FurnaceUpgradeManager {
 
     private void createTable() {
         try (Connection c = con(); Statement s = c.createStatement()) {
+            // Migration: alte Koordinaten-Tabelle (ohne furnace_id) erkennen und droppen
+            try (ResultSet rs = c.getMetaData().getColumns(null, null, "sv_furnace_upgrades", "furnace_id")) {
+                if (!rs.next()) {
+                    s.execute("DROP TABLE IF EXISTS sv_furnace_upgrades");
+                    plugin.getLogger().info("[FurnaceUpgrade] Alte Tabelle entfernt (Schema-Migration).");
+                }
+            }
             s.execute(
                 "CREATE TABLE IF NOT EXISTS sv_furnace_upgrades (" +
                 "  furnace_id CHAR(36) NOT NULL PRIMARY KEY," +
@@ -122,7 +129,7 @@ public class FurnaceUpgradeManager {
             id = UUID.randomUUID().toString();
             locToId.put(coordKey(block), id);
             idToLevel.put(id, level);
-            insertAsync(id, level, block);
+            insertOrUpdate(id, level, block);
         } else {
             idToLevel.put(id, level);
             updateLevelAsync(id, level);
@@ -173,62 +180,35 @@ public class FurnaceUpgradeManager {
 
     // ── Async DB-Operationen ──────────────────────────────────────────────
 
-    private void insertAsync(String id, int level, Block block) {
-        final String world = block.getWorld().getName();
-        final int bx = block.getX(), by = block.getY(), bz = block.getZ();
+    private void db(String sql, Object... params) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = con();
-                 PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO sv_furnace_upgrades (furnace_id,level,world,x,y,z) VALUES(?,?,?,?,?,?)")) {
-                ps.setString(1, id); ps.setInt(2, level);
-                ps.setString(3, world); ps.setInt(4, bx); ps.setInt(5, by); ps.setInt(6, bz);
+            try (Connection c = con(); PreparedStatement ps = c.prepareStatement(sql)) {
+                for (int i = 0; i < params.length; i++)
+                    ps.setObject(i + 1, params[i]);
                 ps.executeUpdate();
             } catch (SQLException e) {
-                plugin.getLogger().warning("[FurnaceUpgrade] Insert: " + e.getMessage());
+                plugin.getLogger().warning("[FurnaceUpgrade] DB: " + e.getMessage());
             }
         });
+    }
+
+    private void insertOrUpdate(String id, int level, Block block) {
+        db("INSERT INTO sv_furnace_upgrades (furnace_id,level,world,x,y,z) VALUES(?,?,?,?,?,?) " +
+           "ON DUPLICATE KEY UPDATE level=VALUES(level),world=VALUES(world),x=VALUES(x),y=VALUES(y),z=VALUES(z)",
+           id, level, block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
     }
 
     private void updateLevelAsync(String id, int level) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = con();
-                 PreparedStatement ps = c.prepareStatement(
-                     "UPDATE sv_furnace_upgrades SET level=? WHERE furnace_id=?")) {
-                ps.setInt(1, level); ps.setString(2, id);
-                ps.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().warning("[FurnaceUpgrade] UpdateLevel: " + e.getMessage());
-            }
-        });
+        db("UPDATE sv_furnace_upgrades SET level=? WHERE furnace_id=?", level, id);
     }
 
     private void clearCoordinatesAsync(String id) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = con();
-                 PreparedStatement ps = c.prepareStatement(
-                     "UPDATE sv_furnace_upgrades SET world=NULL,x=NULL,y=NULL,z=NULL WHERE furnace_id=?")) {
-                ps.setString(1, id);
-                ps.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().warning("[FurnaceUpgrade] ClearCoords: " + e.getMessage());
-            }
-        });
+        db("UPDATE sv_furnace_upgrades SET world=NULL,x=NULL,y=NULL,z=NULL WHERE furnace_id=?", id);
     }
 
     private void updateCoordinatesAsync(String id, Block block) {
-        final String world = block.getWorld().getName();
-        final int bx = block.getX(), by = block.getY(), bz = block.getZ();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = con();
-                 PreparedStatement ps = c.prepareStatement(
-                     "UPDATE sv_furnace_upgrades SET world=?,x=?,y=?,z=? WHERE furnace_id=?")) {
-                ps.setString(1, world); ps.setInt(2, bx); ps.setInt(3, by); ps.setInt(4, bz);
-                ps.setString(5, id);
-                ps.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().warning("[FurnaceUpgrade] UpdateCoords: " + e.getMessage());
-            }
-        });
+        db("UPDATE sv_furnace_upgrades SET world=?,x=?,y=?,z=? WHERE furnace_id=?",
+           block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), id);
     }
 
     private static String friendlyName(Material mat) {
