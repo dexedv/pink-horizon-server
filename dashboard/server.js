@@ -615,7 +615,7 @@ const STATS_CONTAINERS = {
 
 const STATS_LABELS = {
   velocity: 'Velocity Proxy', lobby: 'Lobby', survival: 'Survival',
-  minigames: 'Minigames', mysql: 'MySQL', dashboard: 'Dashboard'
+  minigames: 'Minigames', smash: 'Smash the Boss', mysql: 'MySQL', dashboard: 'Dashboard'
 };
 
 async function fetchAllStats() {

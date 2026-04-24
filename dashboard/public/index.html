@@ -2662,8 +2662,13 @@ function showToast(msg, ok=true) {
 }
 
 // ── System-Monitor ────────────────────────────────────────────────────────
-const SYSMON_ORDER = ['velocity','lobby','survival','minigames','mysql','dashboard'];
-const SYSMON_LABELS = { velocity:'Velocity Proxy', lobby:'Lobby', survival:'Survival', minigames:'Minigames', mysql:'MySQL', dashboard:'Dashboard' };
+const SYSMON_ORDER  = ['velocity','lobby','survival','minigames','smash','mysql','dashboard'];
+const SYSMON_LABELS = { velocity:'Velocity Proxy', lobby:'Lobby', survival:'Survival', minigames:'Minigames', smash:'Smash the Boss', mysql:'MySQL', dashboard:'Dashboard' };
+const SYSMON_SECTIONS = [
+  { label: '🖥️ SERVER',    keys: ['velocity','lobby','survival','minigames','smash'] },
+  { label: '🗄️ MYSQL',     keys: ['mysql'] },
+  { label: '📊 DASHBOARD', keys: ['dashboard'] },
+];
 
 function renderSysmon() {
   setHdr('📡 System-Monitor', '');
@@ -2673,13 +2678,15 @@ function renderSysmon() {
       <div class="card-title">⚡ Gesamtverbrauch aller Container (Server: 32 GB)</div>
       <div class="empty" style="padding:8px 0;font-size:.8rem">Verbinde…</div>
     </div>
-    <div class="g3" id="sm-grid">
-      ${SYSMON_ORDER.map(k=>`
-        <div class="card res-card" id="sm-${k}">
-          <div style="font-weight:700;font-size:.95rem;margin-bottom:6px">${SYSMON_LABELS[k]||k}</div>
-          <div class="empty" style="padding:8px 0;font-size:.8rem">Verbinde…</div>
-        </div>`).join('')}
-    </div>
+    ${SYSMON_SECTIONS.map(sect=>`
+      <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;padding:6px 2px 2px">${sect.label}</div>
+      <div class="g3">
+        ${sect.keys.map(k=>`
+          <div class="card res-card" id="sm-${k}">
+            <div style="font-weight:700;font-size:.95rem;margin-bottom:6px">${SYSMON_LABELS[k]||k}</div>
+            <div class="empty" style="padding:8px 0;font-size:.8rem">Verbinde…</div>
+          </div>`).join('')}
+      </div>`).join('')}
     <div style="text-align:right;font-size:.73rem;color:var(--muted);padding:0 2px" id="sm-ts"></div>
     <div class="card" id="sm-worldsize">
       <div class="card-title">🌍 Weltgröße</div>
