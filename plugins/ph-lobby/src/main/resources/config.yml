@@ -37,3 +37,7 @@ servers:
     display: "Minigames"
     host: "minigames"
     port: 25569
+  smash:
+    display: "Smash the Boss"
+    host: "smash"
+    port: 25570

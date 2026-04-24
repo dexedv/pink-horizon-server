@@ -30,6 +30,18 @@ servers:
     display: "Survival"
     host: survival
     port: 25567
+  skyblock:
+    display: "SkyBlock"
+    host: skyblock
+    port: 25568
+  minigames:
+    display: "Minigames"
+    host: minigames
+    port: 25569
+  smash:
+    display: "Smash the Boss"
+    host: smash
+    port: 25570
 
 portals:
   survival:
