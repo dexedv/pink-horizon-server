@@ -765,6 +765,10 @@ client.once('ready', async () => {
     if (ingameCh)  state.ingameCountChannelId  = ingameCh.id;
 
     startMonitor(guild);
+
+    // Creator-Channel umbenennen
+    const creatorCh = guild.channels.cache.get(TEMP_VOICE_CREATOR_ID);
+    if (creatorCh) await creatorCh.setName('➕ Channel erstellen').catch(() => {});
   }
 });
 
@@ -832,7 +836,7 @@ async function verifyMember(interaction) {
 // Temp Voice Channels
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TEMP_VOICE_CREATOR_ID = '1497219253449916507'; // "➕ Channel erstellen"
+const TEMP_VOICE_CREATOR_ID = '1497220634223050884'; // "➕ Channel erstellen"
 const tempVoiceChannels = new Set(); // IDs der erstellten Temp-Kanäle
 
 client.on('voiceStateUpdate', async (oldState, newState) => {
