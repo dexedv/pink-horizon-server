@@ -132,7 +132,7 @@ async function buildStatusEmbed() {
   const [serverResults, proxyRunning, proxy] = await Promise.all([
     Promise.all(SERVERS.map(async s => ({ ...s, running: await isContainerRunning(s.container) }))),
     isContainerRunning('ph-velocity'),
-    ping(PROXY_HOST, PROXY_PORT),
+    ping(MC_ADDRESS, PROXY_PORT),
   ]);
 
   const timeStr   = new Date().toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin' });
@@ -194,13 +194,13 @@ async function runMonitor(guild) {
       if (ch) { await ch.setName(`👥 Mitglieder: ${guild.memberCount}`).catch(() => {}); lastVoiceUpdate.members = now; }
     }
     if (state.ingameCountChannelId && now - lastVoiceUpdate.ingame > VOICE_COOLDOWN) {
-      const proxyPing = await ping(PROXY_HOST, PROXY_PORT);
+      const proxyPing = await ping(MC_ADDRESS, PROXY_PORT);
       const ch = guild.channels.cache.get(state.ingameCountChannelId);
       if (ch) { await ch.setName(`🎮 Ingame: ${proxyPing.players}`).catch(() => {}); lastVoiceUpdate.ingame = now; }
     }
 
     // Bot presence
-    const proxy = await ping(PROXY_HOST, PROXY_PORT);
+    const proxy = await ping(MC_ADDRESS, PROXY_PORT);
     client.user.setActivity(
       proxy.online ? `${proxy.players} Spieler · ${MC_ADDRESS}` : 'Server offline',
       { type: proxy.online ? ActivityType.Watching : ActivityType.Listening },
