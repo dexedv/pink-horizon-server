@@ -723,6 +723,11 @@ const COMMANDS = [
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
+    .setName('post-rules')
+    .setDescription('Postet Regeln + Verifikations-Button in diesen Kanal (Admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
     .setName('status')
     .setDescription('Zeigt den aktuellen Minecraft-Serverstatus'),
 
@@ -848,7 +853,36 @@ client.on('interactionCreate', async interaction => {
 
     } else if (commandName === 'ticket-panel') {
       await interaction.channel.send({ embeds: [ticketPanelEmbed()], components: [ticketPanelRow()] });
-      await interaction.editReply({ content: '✅ Ticket-Panel gepostet.', ephemeral: true });
+      await interaction.editReply('✅ Ticket-Panel gepostet.');
+
+    } else if (commandName === 'post-rules') {
+      await interaction.channel.send({ embeds: [new EmbedBuilder()
+        .setTitle('📜 Serverregeln · Pink Horizon').setColor(0xFF3333)
+        .setDescription([
+          '**1.** Behandle alle Mitglieder respektvoll.',
+          '**2.** Kein Spam, keine beleidigenden oder anstößigen Inhalte.',
+          '**3.** Keine unaufgeforderte Werbung.',
+          '**4.** Halte dich an die Discord-Nutzungsbedingungen.',
+          '**5.** Cheaten, Exploiten oder Hacking auf dem Server ist verboten.',
+          '**6.** Staff-Entscheidungen sind zu respektieren.',
+          '**7.** Beleidigungen gegenüber dem Team werden nicht toleriert.',
+          '',
+          '*Bei Regelverstößen drohen Verwarnungen, Mutes oder Bans.*',
+        ].join('\n'))
+        .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' })] });
+
+      await interaction.channel.send({
+        embeds: [new EmbedBuilder()
+          .setColor(0x57F287)
+          .setDescription('✅ **Mit dem Klick auf den Button bestätigst du, dass du die Regeln gelesen hast und ihnen zustimmst.**\nDanach erhältst du Zugriff auf alle Kanäle.')],
+        components: [new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('verify')
+            .setLabel('✅ Regeln akzeptieren & Verifizieren')
+            .setStyle(ButtonStyle.Success),
+        )],
+      });
+      await interaction.editReply('✅ Regeln + Verifikations-Button gepostet.');
 
     } else if (commandName === 'status') {
       await interaction.editReply({ embeds: [await buildStatusEmbed()] });
