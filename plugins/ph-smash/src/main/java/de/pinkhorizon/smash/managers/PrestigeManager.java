@@ -112,6 +112,9 @@ public class PrestigeManager {
             return false;
         }
 
+        // Attribute (Speed, HP) sofort auf Basis-Werte zurücksetzen
+        plugin.getUpgradeManager().applyStats(player);
+
         int newPrestige = getPrestige(uuid);
         player.sendMessage("§d✦ §7PRESTIGE §d" + newPrestige + "§7! Upgrades zurückgesetzt. +5% permanenter Schaden.");
         return true;
