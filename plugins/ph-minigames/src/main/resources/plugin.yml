@@ -4,7 +4,7 @@ main: de.pinkhorizon.minigames.PHMinigames
 api-version: '1.21'
 description: Minigames-Plugin fuer Pink Horizon (BedWars)
 authors: [ PinkHorizon ]
-depend: [ PH-Core ]
+soft-depend: [ PH-Core ]
 
 commands:
   bw:
