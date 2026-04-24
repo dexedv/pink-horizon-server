@@ -34,7 +34,10 @@ const {
 } = require('discord.js');
 
 const { pingJava } = require('minecraft-server-util');
-const mysql = require('mysql2/promise');
+const Dockerode   = require('dockerode');
+const mysql       = require('mysql2/promise');
+
+const docker = new Dockerode({ socketPath: '/var/run/docker.sock' });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config
@@ -46,9 +49,9 @@ const GUILD_ID   = process.env.DISCORD_GUILD_ID;
 const MC_ADDRESS = process.env.MC_ADDRESS || 'play.pinkhorizon.fun';
 
 const SERVERS = [
-  { label: '🎮 Smash the Boss', host: process.env.SMASH_HOST    || 'smash',    port: parseInt(process.env.SMASH_PORT    || '25570') },
-  { label: '⛏️ Survival',       host: process.env.SURVIVAL_HOST || 'survival', port: parseInt(process.env.SURVIVAL_PORT || '25565') },
-  { label: '🏠 Lobby',          host: process.env.LOBBY_HOST    || 'lobby',    port: parseInt(process.env.LOBBY_PORT    || '25565') },
+  { label: '🎮 Smash the Boss', container: 'ph-smash'    },
+  { label: '⛏️ Survival',       container: 'ph-survival' },
+  { label: '🏠 Lobby',          container: 'ph-lobby'    },
 ];
 const PROXY_HOST = process.env.PROXY_HOST || 'velocity';
 const PROXY_PORT = parseInt(process.env.PROXY_PORT || '25565');
@@ -98,12 +101,21 @@ const client = new Client({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Minecraft Ping
+// Docker + Minecraft Status
 // ─────────────────────────────────────────────────────────────────────────────
+
+async function isContainerRunning(name) {
+  try {
+    const info = await docker.getContainer(name).inspect();
+    return info.State.Running === true;
+  } catch {
+    return false;
+  }
+}
 
 async function ping(host, port) {
   try {
-    const r = await pingJava(host, port, { timeout: 3000 });
+    const r = await pingJava(host, port, { timeout: 4000 });
     return { online: true, players: r.players?.online ?? 0, max: r.players?.max ?? 0 };
   } catch {
     return { online: false, players: 0, max: 0 };
@@ -115,12 +127,19 @@ async function ping(host, port) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function buildStatusEmbed() {
-  const proxy   = await ping(PROXY_HOST, PROXY_PORT);
-  const results = await Promise.all(SERVERS.map(s => ping(s.host, s.port).then(r => ({ ...s, ...r }))));
-  const timeStr = new Date().toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin' });
-  const color   = proxy.online ? 0x57F287 : (results.some(r => r.online) ? 0xFEE75C : 0xED4245);
-  const serverField = results
-    .map(s => `**${s.label}**\n${s.online ? `🟢 Online · \`${s.players}\` Spieler` : '🔴 Offline'}`)
+  // Container-Status via Docker Socket (zuverlässig)
+  const serverResults = await Promise.all(
+    SERVERS.map(async s => ({ ...s, running: await isContainerRunning(s.container) }))
+  );
+  // Spielerzahl via Proxy-Ping
+  const proxy = await ping(PROXY_HOST, PROXY_PORT);
+
+  const timeStr   = new Date().toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin' });
+  const anyOnline = serverResults.some(r => r.running);
+  const color     = anyOnline ? 0x57F287 : 0xED4245;
+
+  const serverField = serverResults
+    .map(s => `**${s.label}**\n${s.running ? '🟢 Online' : '🔴 Offline'}`)
     .join('\n\n');
 
   return new EmbedBuilder()
@@ -128,8 +147,14 @@ async function buildStatusEmbed() {
     .setColor(color)
     .setDescription(`**\`${MC_ADDRESS}\`**`)
     .addFields(
-      { name: '📡 Netzwerk', value: proxy.online ? `🟢 Online · **${proxy.players}** Spieler verbunden` : '🔴 Offline', inline: false },
-      { name: '🖥️ Server',  value: serverField || '–', inline: false },
+      {
+        name: '📡 Netzwerk',
+        value: proxy.online
+          ? `🟢 Online · **${proxy.players}** Spieler verbunden`
+          : (anyOnline ? '🟡 Proxy startet...' : '🔴 Offline'),
+        inline: false,
+      },
+      { name: '🖥️ Server', value: serverField || '–', inline: false },
     )
     .setFooter({ text: `Zuletzt geprüft: ${timeStr} Uhr · Aktualisierung alle 60s` })
     .setTimestamp();
@@ -170,9 +195,9 @@ async function runMonitor(guild) {
       if (ch) { await ch.setName(`👥 Mitglieder: ${guild.memberCount}`).catch(() => {}); lastVoiceUpdate.members = now; }
     }
     if (state.ingameCountChannelId && now - lastVoiceUpdate.ingame > VOICE_COOLDOWN) {
-      const proxy = await ping(PROXY_HOST, PROXY_PORT);
+      const proxyPing = await ping(PROXY_HOST, PROXY_PORT);
       const ch = guild.channels.cache.get(state.ingameCountChannelId);
-      if (ch) { await ch.setName(`🎮 Ingame: ${proxy.players}`).catch(() => {}); lastVoiceUpdate.ingame = now; }
+      if (ch) { await ch.setName(`🎮 Ingame: ${proxyPing.players}`).catch(() => {}); lastVoiceUpdate.ingame = now; }
     }
 
     // Bot presence

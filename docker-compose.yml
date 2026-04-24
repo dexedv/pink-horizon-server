@@ -205,6 +205,8 @@ services:
     build: ./discord-bot
     container_name: ph-discord-bot
     mem_limit: 256m
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DISCORD_TOKEN:     "${DISCORD_TOKEN}"
       DISCORD_CLIENT_ID: "${DISCORD_CLIENT_ID}"
