@@ -102,6 +102,13 @@ public class HopperUpgradeManager {
         return id == null ? 1 : idToLevel.getOrDefault(id, 1);
     }
 
+    /** Setzt owner_uuid falls noch nicht gesetzt (NULL) – kostenlos, beim GUI-Öffnen. */
+    public void claimOwnership(Block block, String ownerUuid) {
+        String id = locToId.get(coordKey(block));
+        if (id == null || ownerUuid == null) return;
+        db("UPDATE sv_hopper_upgrades SET owner_uuid=? WHERE hopper_id=? AND owner_uuid IS NULL", ownerUuid, id);
+    }
+
     public boolean tryUpgrade(Block block, org.bukkit.entity.Player player) {
         int current = getLevel(block);
         if (current >= MAX_LEVEL) return false;
