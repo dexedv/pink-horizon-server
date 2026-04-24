@@ -120,6 +120,30 @@ public class NpcManager {
         return -1;
     }
 
+    public boolean moveNpc(int id, Location loc) {
+        String sql = "UPDATE sv_npcs SET world=?, x=?, y=?, z=?, yaw=? WHERE id=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, loc.getWorld().getName());
+            stmt.setDouble(2, loc.getX());
+            stmt.setDouble(3, loc.getY());
+            stmt.setDouble(4, loc.getZ());
+            stmt.setFloat(5, loc.getYaw());
+            stmt.setInt(6, id);
+            if (stmt.executeUpdate() == 0) return false;
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[NpcManager] moveNpc: " + e.getMessage());
+            return false;
+        }
+        // Vorhandene Entity entfernen und neu spawnen
+        UUID uid = spawnedEntities.remove(id);
+        if (uid != null) { var e = Bukkit.getEntity(uid); if (e != null) e.remove(); }
+        NpcInfo info = getNpcInfo(id);
+        if (info != null)
+            spawnNpc(id, info.name(), loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), loc.getYaw());
+        return true;
+    }
+
     public boolean renameNpc(int id, String name) {
         String sql = "UPDATE sv_npcs SET name=? WHERE id=?";
         try (Connection con = db.getConnection();

@@ -122,6 +122,17 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
                 } catch (NumberFormatException e) { player.sendMessage(Component.text("§cUngültige ID!")); }
             }
 
+            case "move" -> {
+                if (args.length < 2) { player.sendMessage(Component.text("§cNutzung: /npc move <ID>")); return true; }
+                try {
+                    int id = Integer.parseInt(args[1]);
+                    if (nm.moveNpc(id, player.getLocation()))
+                        player.sendMessage(Component.text("§aNPC §e#" + id + " §abewegt!"));
+                    else
+                        player.sendMessage(Component.text("§cNPC §e#" + id + " §cnicht gefunden."));
+                } catch (NumberFormatException e) { player.sendMessage(Component.text("§cUngültige ID!")); }
+            }
+
             case "list" -> {
                 var infos = nm.getAllInfo();
                 if (infos.isEmpty()) { player.sendMessage(Component.text("§7Keine NPCs vorhanden.")); return true; }
@@ -146,6 +157,7 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(Component.text("§e/npc removecmd <ID> <Index>      §7- Befehl entfernen"));
         player.sendMessage(Component.text("§e/npc info <ID>                   §7- Details anzeigen"));
         player.sendMessage(Component.text("§e/npc rename <ID> <Name>          §7- NPC umbenennen (MiniMessage)"));
+        player.sendMessage(Component.text("§e/npc move <ID>                   §7- NPC an deine Position bewegen"));
         player.sendMessage(Component.text("§e/npc list                        §7- Alle NPCs auflisten"));
         player.sendMessage(Component.text("§8Präfix §e[console] §8für Server-Befehle, §e{player} §8als Spieler-Name"));
     }
@@ -156,7 +168,7 @@ public class NpcCommand implements CommandExecutor, TabCompleter {
             return List.of("create", "delete", "addcmd", "removecmd", "rename", "info", "list");
         if (args.length == 3 && args[0].equalsIgnoreCase("create"))
             return Arrays.stream(Villager.Profession.values()).map(p -> p.name()).collect(Collectors.toList());
-        if (args.length == 2 && List.of("delete", "addcmd", "removecmd", "rename", "info").contains(args[0].toLowerCase()))
+        if (args.length == 2 && List.of("delete", "addcmd", "removecmd", "rename", "info", "move").contains(args[0].toLowerCase()))
             return new java.util.ArrayList<>(plugin.getNpcManager().getAllIds());
         return List.of();
     }
