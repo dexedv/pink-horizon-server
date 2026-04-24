@@ -45,6 +45,7 @@ public class PHSurvival extends JavaPlugin {
     private ItemClearManager itemClearManager;
     private JobBonusManager jobBonusManager;
     private FurnaceUpgradeManager furnaceUpgradeManager;
+    private de.pinkhorizon.survival.managers.HopperUpgradeManager hopperUpgradeManager;
 
     @Override
     public void onEnable() {
@@ -83,6 +84,7 @@ public class PHSurvival extends JavaPlugin {
         itemClearManager      = new ItemClearManager(this);
         jobBonusManager       = new JobBonusManager(this);
         furnaceUpgradeManager = new FurnaceUpgradeManager(this);
+        hopperUpgradeManager  = new de.pinkhorizon.survival.managers.HopperUpgradeManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -258,6 +260,12 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
             new de.pinkhorizon.survival.listeners.FurnaceUpgradeListener(this, furnaceGui), this);
 
+        de.pinkhorizon.survival.gui.HopperUpgradeGui hopperGui =
+            new de.pinkhorizon.survival.gui.HopperUpgradeGui(this);
+        getServer().getPluginManager().registerEvents(hopperGui, this);
+        getServer().getPluginManager().registerEvents(
+            new de.pinkhorizon.survival.listeners.HopperUpgradeListener(this, hopperGui), this);
+
         // Inventar-Snapshots für Dashboard
         de.pinkhorizon.survival.listeners.InventorySnapshotListener invSnap =
             new de.pinkhorizon.survival.listeners.InventorySnapshotListener(this);
@@ -318,4 +326,5 @@ public class PHSurvival extends JavaPlugin {
     public JobBonusManager getJobBonusManager()            { return jobBonusManager; }
     public ClaimBorderVisualizer getClaimBorderVisualizer() { return claimBorderVisualizer; }
     public FurnaceUpgradeManager getFurnaceUpgradeManager() { return furnaceUpgradeManager; }
+    public de.pinkhorizon.survival.managers.HopperUpgradeManager getHopperUpgradeManager() { return hopperUpgradeManager; }
 }
