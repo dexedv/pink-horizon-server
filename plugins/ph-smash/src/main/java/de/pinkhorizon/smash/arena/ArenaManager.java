@@ -961,11 +961,11 @@ public class ArenaManager {
         Component text = LegacyComponentSerializer.legacySection()
             .deserialize(color + "⚔ " + dmgText);
 
-        float scale = damage >= 50_000 ? 3.5f
-                    : damage >= 10_000 ? 3.0f
-                    : damage >= 1_000  ? 2.5f
-                    : damage >= 100    ? 2.0f
-                    :                    1.5f;
+        float scale = damage >= 50_000 ? 5.0f
+                    : damage >= 10_000 ? 4.0f
+                    : damage >= 1_000  ? 3.0f
+                    : damage >= 100    ? 2.5f
+                    :                    2.5f;
 
         TextDisplay td = world.spawn(spawnLoc, TextDisplay.class, display -> {
             display.text(text);
