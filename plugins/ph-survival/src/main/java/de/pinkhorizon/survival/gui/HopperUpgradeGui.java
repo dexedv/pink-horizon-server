@@ -47,7 +47,12 @@ public class HopperUpgradeGui implements Listener {
         int currentLevel = mgr.getLevel(hopperBlock);
         long balance     = plugin.getEconomyManager().getBalance(player.getUniqueId());
 
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE);
+        // 36 Slots (4 Reihen): Lv1-9 → Slots 18-26, Lv10 → Slot 27, Close → Slot 35
+        Inventory inv = Bukkit.createInventory(null, 36, TITLE);
+
+        // Füller
+        ItemStack glass = make(Material.GRAY_STAINED_GLASS_PANE, txt(" ", NamedTextColor.GRAY), List.of());
+        for (int i = 0; i < 36; i++) inv.setItem(i, glass);
 
         // Slot 4: aktueller Level
         inv.setItem(4, make(Material.HOPPER,
@@ -75,13 +80,12 @@ public class HopperUpgradeGui implements Listener {
             ));
         }
 
-        // Slots 18–23: Level-Übersicht
+        // Level-Übersicht: Lv1-9 → Slots 18-26, Lv10 → Slot 27
         for (int lvl = 1; lvl <= HopperUpgradeManager.MAX_LEVEL; lvl++) {
-            int slot = 18 + (lvl - 1);
+            int slot = lvl <= 9 ? 18 + (lvl - 1) : 27;
             boolean done    = lvl <= currentLevel;
             boolean current = lvl == currentLevel;
-            Material mat = done ? Material.LIME_DYE : Material.GRAY_DYE;
-            if (current) mat = Material.YELLOW_DYE;
+            Material mat = current ? Material.YELLOW_DYE : done ? Material.LIME_DYE : Material.GRAY_DYE;
 
             List<Component> lore = new ArrayList<>();
             lore.add(txt("Transfer: " + HopperUpgradeManager.ITEMS_PER_TRANSFER[lvl] + " Items/Tick", NamedTextColor.WHITE));
@@ -99,8 +103,8 @@ public class HopperUpgradeGui implements Listener {
                 lore));
         }
 
-        // Slot 26: Schließen
-        inv.setItem(26, make(Material.BARRIER,
+        // Slot 35: Schließen
+        inv.setItem(35, make(Material.BARRIER,
             txt("Schließen", NamedTextColor.RED),
             List.of(txt("GUI schließen", NamedTextColor.GRAY))));
 
@@ -120,7 +124,7 @@ public class HopperUpgradeGui implements Listener {
         Block hopperBlock = openBlocks.get(player.getUniqueId());
         int slot = event.getRawSlot();
 
-        if (slot == 26) { player.closeInventory(); return; }
+        if (slot == 35) { player.closeInventory(); return; }
 
         if (slot == 13) {
             HopperUpgradeManager mgr = plugin.getHopperUpgradeManager();
