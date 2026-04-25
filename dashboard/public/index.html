@@ -3339,8 +3339,11 @@ async function loadDbTableContent() {
 
   const r = await apiFetch(`/api/db/table?${params}`);
   const wrap = document.getElementById('db-tbl-wrap');
-  if (!r?.ok) {
-    if (wrap) wrap.innerHTML = '<div class="empty" style="color:var(--red)">Fehler beim Laden der Tabelle</div>';
+  if (!r) { if (wrap) wrap.innerHTML = '<div class="empty" style="color:var(--red)">Netzwerkfehler</div>'; return; }
+  if (!r.ok) {
+    let errMsg = `HTTP ${r.status}`;
+    try { const e = await r.json(); errMsg = e.error || errMsg; } catch {}
+    if (wrap) wrap.innerHTML = `<div class="empty" style="color:var(--red)">Fehler: ${escH(errMsg)}</div>`;
     return;
   }
   const data = await r.json();
