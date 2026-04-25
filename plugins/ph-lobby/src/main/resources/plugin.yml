@@ -38,6 +38,9 @@ commands:
   sync:
     description: Discord-Account mit Minecraft verknüpfen
     usage: /sync discord
+  vote:
+    description: Vote-Links anzeigen
+    usage: /vote
   voteshop:
     description: VoteShop öffnen
     usage: /voteshop

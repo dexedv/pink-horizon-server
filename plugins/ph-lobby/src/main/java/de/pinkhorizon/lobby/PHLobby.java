@@ -91,6 +91,26 @@ public class PHLobby extends JavaPlugin {
         getCommand("sync").setExecutor(syncCommand);
         getCommand("sync").setTabCompleter(syncCommand);
 
+        // Vote
+        getCommand("vote").setExecutor((sender, cmd, label, args) -> {
+            if (!(sender instanceof org.bukkit.entity.Player p)) { sender.sendMessage("§cNur für Spieler."); return true; }
+            net.kyori.adventure.text.Component voteLine = net.kyori.adventure.text.Component.text("─────────────────────────────────", net.kyori.adventure.text.format.TextColor.color(0xFFD700));
+            net.kyori.adventure.text.Component voteLink = net.kyori.adventure.text.Component.text("minecraft-server.eu", net.kyori.adventure.text.format.TextColor.color(0xFFD700), net.kyori.adventure.text.format.TextDecoration.UNDERLINED)
+                .clickEvent(net.kyori.adventure.text.event.ClickEvent.openUrl("https://minecraft-server.eu/vote/index/238C9"))
+                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text("Klicken zum Voten!", net.kyori.adventure.text.format.NamedTextColor.GRAY)));
+            p.sendMessage(voteLine);
+            p.sendMessage(net.kyori.adventure.text.Component.text(" \u2B50 ", net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                .append(net.kyori.adventure.text.Component.text("Unterstütze Pink Horizon!", net.kyori.adventure.text.format.TextColor.color(0xFFD700), net.kyori.adventure.text.format.TextDecoration.BOLD)));
+            p.sendMessage(net.kyori.adventure.text.Component.text("   Vote auf ", net.kyori.adventure.text.format.NamedTextColor.GRAY)
+                .append(voteLink)
+                .append(net.kyori.adventure.text.Component.text(" und erhalte VoteCoins!", net.kyori.adventure.text.format.NamedTextColor.GRAY)));
+            p.sendMessage(net.kyori.adventure.text.Component.text("   Gib deine Coins im ", net.kyori.adventure.text.format.NamedTextColor.GRAY)
+                .append(net.kyori.adventure.text.Component.text("/voteshop", net.kyori.adventure.text.format.TextColor.color(0xFF69B4), net.kyori.adventure.text.format.TextDecoration.BOLD))
+                .append(net.kyori.adventure.text.Component.text(" aus!", net.kyori.adventure.text.format.NamedTextColor.GRAY)));
+            p.sendMessage(voteLine);
+            return true;
+        });
+
         // VoteShop
         de.pinkhorizon.core.vote.SharedVoteShopGUI voteShopGui =
             new de.pinkhorizon.core.vote.SharedVoteShopGUI(this);

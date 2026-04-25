@@ -121,19 +121,19 @@ public class JoinTitleListener implements Listener {
         if (!player.isOnline()) return;
         Component line = Component.text("─────────────────────────────────", TextColor.color(0xFFD700));
 
-        Component link = Component.text("minecraft-server.eu", TextColor.color(0xFFD700), TextDecoration.UNDERLINED)
-            .clickEvent(ClickEvent.openUrl("https://minecraft-server.eu/vote/index/238C9"))
+        Component voteCmd = Component.text("/vote", TextColor.color(0xFFD700), TextDecoration.BOLD)
+            .clickEvent(ClickEvent.runCommand("/vote"))
             .hoverEvent(HoverEvent.showText(Component.text("Klicken zum Voten!", NamedTextColor.GRAY)));
 
         player.sendMessage(line);
         player.sendMessage(Component.text(" \u2B50 ", NamedTextColor.WHITE)
             .append(Component.text("Unterstütze Pink Horizon!", TextColor.color(0xFFD700), TextDecoration.BOLD)));
-        player.sendMessage(Component.text("   Vote für uns auf ", NamedTextColor.GRAY)
-            .append(link)
-            .append(Component.text(" und erhalte", NamedTextColor.GRAY)));
-        player.sendMessage(Component.text("   VoteCoins für den ", NamedTextColor.GRAY)
+        player.sendMessage(Component.text("   Nutze ", NamedTextColor.GRAY)
+            .append(voteCmd)
+            .append(Component.text(" und erhalte VoteCoins!", NamedTextColor.GRAY)));
+        player.sendMessage(Component.text("   Gib deine Coins im ", NamedTextColor.GRAY)
             .append(Component.text("/voteshop", TextColor.color(0xFF69B4), TextDecoration.BOLD))
-            .append(Component.text("!", NamedTextColor.GRAY)));
+            .append(Component.text(" aus!", NamedTextColor.GRAY)));
         player.sendMessage(line);
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.4f);
     }
