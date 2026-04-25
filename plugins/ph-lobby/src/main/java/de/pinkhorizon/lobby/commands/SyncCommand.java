@@ -105,7 +105,7 @@ public class SyncCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(Component.empty());
         player.sendMessage(Component.text("Gehe auf unseren Discord und poste diesen", NamedTextColor.GRAY));
         player.sendMessage(Component.text("Code im Kanal ", NamedTextColor.GRAY)
-            .append(Component.text("#verify-ingame", TextColor.color(0x55FFFF))));
+            .append(Component.text("#ingame-verification", TextColor.color(0x55FFFF))));
         player.sendMessage(Component.empty());
         player.sendMessage(Component.text("⏰ Der Code ist 15 Minuten gültig.", NamedTextColor.YELLOW));
         player.sendMessage(Component.text("━━━━━━━━━━━━━━━━━━━━━━━━━━", TextColor.color(0xFF55FF), TextDecoration.BOLD));
