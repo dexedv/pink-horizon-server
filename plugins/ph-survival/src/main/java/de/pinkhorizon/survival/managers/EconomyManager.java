@@ -53,14 +53,31 @@ public class EconomyManager {
     }
 
     public boolean withdraw(UUID uuid, long amount) {
-        long balance = getBalance(uuid);
-        if (balance < amount) return false;
-        setBalance(uuid, balance - amount);
-        return true;
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "UPDATE sv_economy SET coins = coins - ? WHERE uuid = ? AND coins >= ?")) {
+            st.setLong(1, amount);
+            st.setString(2, uuid.toString());
+            st.setLong(3, amount);
+            return st.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().warning("EconomyManager.withdraw: " + e.getMessage());
+            return false;
+        }
     }
 
     public void deposit(UUID uuid, long amount) {
-        setBalance(uuid, getBalance(uuid) + amount);
+        try (Connection c = con();
+             PreparedStatement st = c.prepareStatement(
+                 "INSERT INTO sv_economy (uuid, coins) VALUES (?, ?) " +
+                 "ON DUPLICATE KEY UPDATE coins = coins + ?")) {
+            st.setString(1, uuid.toString());
+            st.setLong(2, amount);
+            st.setLong(3, amount);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().warning("EconomyManager.deposit: " + e.getMessage());
+        }
         if (plugin.getAchievementManager() != null) {
             org.bukkit.entity.Player player = org.bukkit.Bukkit.getPlayer(uuid);
             if (player != null) plugin.getAchievementManager().checkCoins(player);

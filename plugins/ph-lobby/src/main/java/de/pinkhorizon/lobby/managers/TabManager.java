@@ -37,7 +37,7 @@ public class TabManager {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.sendPlayerListHeaderAndFooter(header, footer);
             }
-        }, 0L, 20L);
+        }, 20L, 20L);
     }
 
     public void update(Player player) {

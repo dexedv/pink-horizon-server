@@ -120,7 +120,12 @@ public class AuctionManager {
                     ItemStack item     = ItemStack.deserializeBytes(bytes);
                     listings.add(new AuctionListing(id, seller, name, item, price, listedAt));
                 } catch (Exception e) {
-                    plugin.getLogger().warning("AuctionManager.load entry: " + e.getMessage());
+                    String badId = rs.getString("id");
+                    plugin.getLogger().warning("AuctionManager.load entry (korrupt, wird gelöscht): " + badId + " – " + e.getMessage());
+                    try (PreparedStatement del = c.prepareStatement("DELETE FROM sv_auction WHERE id=?")) {
+                        del.setString(1, badId);
+                        del.executeUpdate();
+                    } catch (Exception ignored) {}
                 }
             }
         } catch (SQLException e) {

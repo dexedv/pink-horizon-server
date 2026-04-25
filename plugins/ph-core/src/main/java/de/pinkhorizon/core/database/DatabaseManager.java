@@ -51,6 +51,7 @@ public class DatabaseManager {
             plugin.getLogger().info("Datenbank verbunden (" + dbType + ")");
         } catch (Exception e) {
             plugin.getLogger().severe("Datenbankfehler: " + e.getMessage());
+            plugin.getLogger().severe("Plugin wird ohne Datenbankverbindung betrieben – viele Features deaktiviert!");
         }
     }
 
@@ -118,6 +119,9 @@ public class DatabaseManager {
     public String getDbType() { return dbType; }
 
     public Connection getConnection() throws SQLException {
+        if (dataSource == null || dataSource.isClosed()) {
+            throw new SQLException("Datenbankverbindung nicht verfügbar (Pool nicht initialisiert).");
+        }
         return dataSource.getConnection();
     }
 

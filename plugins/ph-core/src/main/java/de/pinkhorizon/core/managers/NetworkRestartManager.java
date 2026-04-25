@@ -33,7 +33,26 @@ public class NetworkRestartManager {
 
     public NetworkRestartManager(PHCore plugin) {
         this.plugin = plugin;
+        initTable();
         scheduleNext();
+    }
+
+    private void initTable() {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (java.sql.Connection con = plugin.getDatabaseManager().getConnection();
+                 java.sql.PreparedStatement ps = con.prepareStatement(
+                     "CREATE TABLE IF NOT EXISTS network_events (" +
+                     "  id INT AUTO_INCREMENT PRIMARY KEY," +
+                     "  server_name VARCHAR(64) NOT NULL," +
+                     "  event_type VARCHAR(32) NOT NULL," +
+                     "  seconds_until INT DEFAULT 0," +
+                     "  created_at BIGINT NOT NULL" +
+                     ")")) {
+                ps.execute();
+            } catch (Exception e) {
+                plugin.getLogger().warning("[NetworkRestart] Tabellen-Init fehlgeschlagen: " + e.getMessage());
+            }
+        });
     }
 
     // ── Planung ───────────────────────────────────────────────────────────
@@ -139,17 +158,6 @@ public class NetworkRestartManager {
     private void writeEvent(String type, int secondsUntil) {
         String serverName = plugin.getServer().getName();
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection con = plugin.getDatabaseManager().getConnection();
-                 PreparedStatement ps = con.prepareStatement(
-                     "CREATE TABLE IF NOT EXISTS network_events (" +
-                     "  id INT AUTO_INCREMENT PRIMARY KEY," +
-                     "  server_name VARCHAR(64) NOT NULL," +
-                     "  event_type VARCHAR(32) NOT NULL," +
-                     "  seconds_until INT DEFAULT 0," +
-                     "  created_at BIGINT NOT NULL" +
-                     ")")) {
-                ps.execute();
-            } catch (Exception ignored) {}
             try (Connection con = plugin.getDatabaseManager().getConnection();
                  PreparedStatement ps = con.prepareStatement(
                      "INSERT INTO network_events (server_name, event_type, seconds_until, created_at) VALUES (?, ?, ?, ?)")) {

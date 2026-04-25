@@ -70,6 +70,7 @@ public class MiningStatsManager {
      * Einen Erzfund asynchron loggen und den ores_found-Zähler erhöhen.
      */
     public void logOre(UUID uuid, String oreType, int x, int y, int z) {
+        if (uuid == null || oreType == null) return;
         long now = System.currentTimeMillis();
         // Pending-Blöcke sofort drainieren, damit total_blocks beim Erz-Log aktuell ist
         AtomicLong counter = pendingBlocks.get(uuid);
