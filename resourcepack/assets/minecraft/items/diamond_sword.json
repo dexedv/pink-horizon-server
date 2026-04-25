@@ -8,7 +8,20 @@
       "model": "item/diamond_sword"
     },
     "entries": [
-      {"threshold": 1001.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_reaper"}}
+      {"threshold": 1001.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_reaper"}},
+      {"threshold": 1002.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_diamond"}},
+      {"threshold": 1003.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_diamond2"}},
+      {"threshold": 1004.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_wooden"}},
+      {"threshold": 1005.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_wood_long"}},
+      {"threshold": 1006.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_fire"}},
+      {"threshold": 1007.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_katana_gold"}},
+      {"threshold": 1008.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_levin"}},
+      {"threshold": 1009.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_genji"}},
+      {"threshold": 1010.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_master"}},
+      {"threshold": 1011.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_trollhunter"}},
+      {"threshold": 1012.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_zabuza"}},
+      {"threshold": 1013.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_zoro"}},
+      {"threshold": 1014.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_olympus"}}
     ]
   }
 }
