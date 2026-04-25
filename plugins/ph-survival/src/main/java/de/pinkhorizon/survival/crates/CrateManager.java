@@ -1,18 +1,23 @@
 package de.pinkhorizon.survival.crates;
 
 import de.pinkhorizon.survival.PHSurvival;
+import de.pinkhorizon.survival.managers.SurvivalHologramManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -106,6 +111,12 @@ public class CrateManager {
 
     private static final Random RNG = new Random();
 
+    // ── Effects ────────────────────────────────────────────────────────────
+
+    private SurvivalHologramManager holoManager;
+    private BukkitTask particleTask;
+    private int        particleTick = 0;
+
     // ── Constructor ────────────────────────────────────────────────────────
 
     public CrateManager(PHSurvival plugin) {
@@ -162,6 +173,7 @@ public class CrateManager {
             cratesCfg.set("locations." + type, list);
             saveCrates();
         }
+        if (holoManager != null) spawnHologram(key, type);
     }
 
     public boolean removeCrateLocation(Location loc) {
@@ -172,6 +184,7 @@ public class CrateManager {
         list.remove(key);
         cratesCfg.set("locations." + type, list);
         saveCrates();
+        if (holoManager != null) holoManager.remove("crate_" + key);
         return true;
     }
 
@@ -237,6 +250,156 @@ public class CrateManager {
 
     public CrateAnimation getActiveAnimation(UUID uuid) {
         return activeAnimations.get(uuid);
+    }
+
+    // ── Effects: Holograms + Particles ────────────────────────────────────
+
+    /** Called once after worlds are loaded (from PHSurvival delayed startup task). */
+    public void spawnAllEffects(SurvivalHologramManager holoManager) {
+        this.holoManager = holoManager;
+        // Spawn hologram for every registered crate
+        for (Map.Entry<String, String> e : locationMap.entrySet()) {
+            spawnHologram(e.getKey(), e.getValue());
+        }
+        startParticleTask();
+    }
+
+    /** Stop particle task and remove all crate holograms. */
+    public void stopEffects() {
+        if (particleTask != null) {
+            particleTask.cancel();
+            particleTask = null;
+        }
+        if (holoManager != null) {
+            for (String key : locationMap.keySet()) {
+                holoManager.remove("crate_" + key);
+            }
+        }
+    }
+
+    // ── Private effect helpers ─────────────────────────────────────────────
+
+    private void spawnHologram(String locKey, String type) {
+        Location loc = parseLocation(locKey);
+        if (loc == null) return;
+        // Base = center top of chest block + 1.5 above
+        Location base = loc.clone().add(0.5, 1.8, 0.5);
+        holoManager.createTemporary("crate_" + locKey, base, holoLines(type), 0.9f);
+    }
+
+    private List<String> holoLines(String type) {
+        return switch (type) {
+            case "eco" -> List.of(
+                "<gradient:#FFD700:#FF8C00><bold>✦ Eco-Truhe ✦</bold></gradient>",
+                "<gray>Gewinne <gold><bold>10k – 150k Coins</bold></gold></gray>",
+                "<yellow>⚷ Eco-Schlüssel benötigt</yellow>"
+            );
+            case "claims" -> List.of(
+                "<gradient:#55FF55:#00AA00><bold>✦ Claims-Truhe ✦</bold></gradient>",
+                "<gray>Gewinne <green><bold>+1 bis +3 Claim-Slots</bold></green></gray>",
+                "<green>⚷ Claims-Schlüssel benötigt</green>"
+            );
+            case "spawner" -> List.of(
+                "<gradient:#FF55FF:#AA00AA><bold>✦ Spawner-Truhe ✦</bold></gradient>",
+                "<gray>Gewinne einen <light_purple><bold>zufälligen Spawner</bold></light_purple></gray>",
+                "<light_purple>⚷ Spawner-Schlüssel benötigt</light_purple>"
+            );
+            default -> List.of("<gray>Unbekannte Truhe</gray>");
+        };
+    }
+
+    private void startParticleTask() {
+        if (particleTask != null) particleTask.cancel();
+        particleTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            particleTick++;
+            double angle = particleTick * 0.13; // ~one rotation per 48 runs (≈3.8 s)
+            for (Map.Entry<String, String> e : locationMap.entrySet()) {
+                spawnParticles(e.getKey(), e.getValue(), angle);
+            }
+        }, 10L, 4L);
+    }
+
+    private void spawnParticles(String locKey, String type, double angle) {
+        Location loc = parseLocation(locKey);
+        if (loc == null) return;
+        World world = loc.getWorld();
+
+        double cx = loc.getBlockX() + 0.5;
+        double cy = loc.getBlockY() + 0.7;
+        double cz = loc.getBlockZ() + 0.5;
+
+        Color dustColor = switch (type) {
+            case "eco"     -> Color.fromRGB(255, 200, 0);
+            case "claims"  -> Color.fromRGB(80, 255, 80);
+            case "spawner" -> Color.fromRGB(200, 50, 255);
+            default        -> Color.WHITE;
+        };
+        Particle.DustOptions dust      = new Particle.DustOptions(dustColor,      1.0f);
+        Particle.DustOptions dustInner = new Particle.DustOptions(dustColor.mixColors(Color.WHITE), 0.7f);
+
+        // Outer ring (r=0.85) – 8 particles rotating clockwise
+        for (int i = 0; i < 8; i++) {
+            double a = angle + (2 * Math.PI / 8) * i;
+            world.spawnParticle(Particle.DUST,
+                cx + 0.85 * Math.cos(a), cy, cz + 0.85 * Math.sin(a),
+                1, 0, 0, 0, 0, dust);
+        }
+
+        // Inner ring (r=0.45) – 4 particles counter-rotating, slightly higher
+        for (int i = 0; i < 4; i++) {
+            double a = -angle * 0.8 + (Math.PI / 2) * i;
+            world.spawnParticle(Particle.DUST,
+                cx + 0.45 * Math.cos(a), cy + 0.35, cz + 0.45 * Math.sin(a),
+                1, 0, 0, 0, 0, dustInner);
+        }
+
+        // Type-specific secondary effect
+        switch (type) {
+            case "eco" -> {
+                // Golden CRIT sparks shooting upward every 5 ticks
+                if (particleTick % 5 == 0) {
+                    world.spawnParticle(Particle.CRIT, cx, cy + 0.2, cz,
+                        3, 0.25, 0.1, 0.25, 0.04);
+                }
+            }
+            case "claims" -> {
+                // White END_ROD rising from center every 4 ticks
+                if (particleTick % 4 == 0) {
+                    world.spawnParticle(Particle.END_ROD, cx, cy, cz,
+                        1, 0.15, 0.02, 0.15, 0.01);
+                }
+            }
+            case "spawner" -> {
+                // Purple PORTAL swirling in from the outer ring
+                double pa = angle * 1.3;
+                world.spawnParticle(Particle.PORTAL,
+                    cx + 0.9 * Math.cos(pa), cy + 0.15, cz + 0.9 * Math.sin(pa),
+                    4, 0.05, 0.25, 0.05, 0.08);
+                // WITCH sparkles scattered around
+                if (particleTick % 7 == 0) {
+                    world.spawnParticle(Particle.WITCH, cx, cy + 0.4, cz,
+                        2, 0.4, 0.2, 0.4, 0);
+                }
+            }
+        }
+    }
+
+    /** Parse a "world,x,y,z" location key safely (world name may contain commas). */
+    private Location parseLocation(String key) {
+        int last   = key.lastIndexOf(',');
+        int second = last   > 0 ? key.lastIndexOf(',', last - 1)   : -1;
+        int third  = second > 0 ? key.lastIndexOf(',', second - 1) : -1;
+        if (last < 0 || second < 0 || third < 0) return null;
+        try {
+            String worldName = key.substring(0, third);
+            int x = Integer.parseInt(key.substring(third  + 1, second));
+            int y = Integer.parseInt(key.substring(second + 1, last));
+            int z = Integer.parseInt(key.substring(last   + 1));
+            World world = plugin.getServer().getWorld(worldName);
+            return world != null ? new Location(world, x, y, z) : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     // ── Persistence ────────────────────────────────────────────────────────

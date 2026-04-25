@@ -319,11 +319,12 @@ public class PHSurvival extends JavaPlugin {
             getServer().getOnlinePlayers().forEach(invSnap::saveSnapshot),
         6000L, 6000L);
 
-        // Holograms + NPCs + ChestShops nach Weltlade spawnen
+        // Holograms + NPCs + ChestShops + Crate-Effekte nach Weltlade spawnen
         getServer().getScheduler().runTaskLater(this, () -> {
             hologramManager.spawnAll();
             npcManager.spawnAll();
             chestShopListener.loadAll();
+            crateManager.spawnAllEffects(hologramManager);
         }, 60L);
 
         getLogger().info("PH-Survival gestartet!");
@@ -331,6 +332,7 @@ public class PHSurvival extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (crateManager      != null) crateManager.stopEffects();
         if (miningStatsManager != null) miningStatsManager.flushAll();
         if (jobBonusManager != null) jobBonusManager.stop();
         if (itemClearManager != null) itemClearManager.cancel();
