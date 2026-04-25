@@ -1,65 +1,130 @@
-# VoteShop-Konfiguration fuer Survival
-# Aenderungen: Datei bearbeiten, per Git deployen, Server neu starten
-title: "&5&lVoteShop &8| &7Deine Coins: %coins%"
-rows: 3
+# VoteShop – Survival
+# Änderungen: Datei bearbeiten, per Git deployen, Server neu starten.
+title: "&5&l✦ VoteShop &8| &7%coins% VoteCoins &5✦"
+rows: 5
+fill-material: GRAY_STAINED_GLASS_PANE
+
+# ── Rahmen & Dekoration ─────────────────────────────────────────────────────
+# Schlüssel = Slot-Nummer (als String), Wert = Material-Name
+border-slots:
+  # Obere Reihe (Magenta-Rahmen)
+  "0": MAGENTA_STAINED_GLASS_PANE
+  "1": MAGENTA_STAINED_GLASS_PANE
+  "2": MAGENTA_STAINED_GLASS_PANE
+  "3": MAGENTA_STAINED_GLASS_PANE
+  "5": MAGENTA_STAINED_GLASS_PANE
+  "6": MAGENTA_STAINED_GLASS_PANE
+  "7": MAGENTA_STAINED_GLASS_PANE
+  "8": MAGENTA_STAINED_GLASS_PANE
+  # Seiten Reihe 1
+  "9": PURPLE_STAINED_GLASS_PANE
+  "17": PURPLE_STAINED_GLASS_PANE
+  # Trennreihe (Magenta, außer Slot 22)
+  "18": MAGENTA_STAINED_GLASS_PANE
+  "19": MAGENTA_STAINED_GLASS_PANE
+  "20": MAGENTA_STAINED_GLASS_PANE
+  "21": MAGENTA_STAINED_GLASS_PANE
+  "23": MAGENTA_STAINED_GLASS_PANE
+  "24": MAGENTA_STAINED_GLASS_PANE
+  "25": MAGENTA_STAINED_GLASS_PANE
+  "26": MAGENTA_STAINED_GLASS_PANE
+  # Seiten Reihe 3
+  "27": PURPLE_STAINED_GLASS_PANE
+  "35": PURPLE_STAINED_GLASS_PANE
+  # Untere Reihe (Magenta-Rahmen)
+  "36": MAGENTA_STAINED_GLASS_PANE
+  "37": MAGENTA_STAINED_GLASS_PANE
+  "38": MAGENTA_STAINED_GLASS_PANE
+  "39": MAGENTA_STAINED_GLASS_PANE
+  "40": MAGENTA_STAINED_GLASS_PANE
+  "41": MAGENTA_STAINED_GLASS_PANE
+  "42": MAGENTA_STAINED_GLASS_PANE
+  "43": MAGENTA_STAINED_GLASS_PANE
+  "44": MAGENTA_STAINED_GLASS_PANE
+
+# Benannte Deko-Items (kein Kauf, reine Anzeige)
+decorations:
+  header:
+    slot: 4
+    material: NETHER_STAR
+    name: "&5&l✦ VoteShop ✦"
+    lore:
+      - "&7Kaufe tolle Belohnungen"
+      - "&7mit deinen &dVoteCoins&7!"
+  crate_header:
+    slot: 22
+    material: ENDER_CHEST
+    name: "&d&l✦ Kisten-Schlüssel ✦"
+    lore:
+      - "&7Öffne exklusive Crate-Truhen"
+      - "&7und gewinne seltene Belohnungen!"
+
+# ── Shop-Items ───────────────────────────────────────────────────────────────
 items:
+  # ── Reihe 1: Grundlegende Items ─────────────────────────────────────────
   claim_slot:
-    slot: 11
+    slot: 10
     material: GRASS_BLOCK
-    name: "&a+1 Claim-Slot"
+    name: "&a&l★ +1 Claim-Slot"
     cost: 1
     lore:
-      - "&7Einen extra Chunk-Claim"
-      - "&7dauerhaft freischalten"
+      - "&7Schalte einen extra Chunk-Claim"
+      - "&7dauerhaft frei."
     commands:
       - "claimadd [player] 1"
+
   extra_home:
     slot: 13
     material: RED_BED
-    name: "&a+1 Home-Slot"
+    name: "&e&l★ +1 Home-Slot"
     cost: 1
     lore:
-      - "&7Einen extra Home-Slot"
-      - "&7dauerhaft freischalten"
+      - "&7Schalte einen extra Home-Slot"
+      - "&7dauerhaft frei."
     commands:
       - "homeadd [player] 1"
+
   villager_egg:
-    slot: 15
+    slot: 16
     material: VILLAGER_SPAWN_EGG
-    name: "&eVillager-Ei"
+    name: "&b&l★ Villager-Ei"
     cost: 2
     lore:
       - "&7Fange einen Dorfbewohner ein"
       - "&7und bringe ihn in deine Base!"
     commands:
       - "give [player] villager_spawn_egg 1"
+
+  # ── Reihe 3: Crate-Schlüssel ─────────────────────────────────────────────
   eco_crate:
-    slot: 20
+    slot: 28
     material: TRIPWIRE_HOOK
-    name: "&6&lEco-Schlüssel"
+    name: "&6&l✦ Eco-Schlüssel"
     cost: 10
     lore:
-      - "&7Öffnet die &6Eco-Truhe"
+      - "&7Öffnet die &6Eco-Truhe&7."
       - "&7Gewinne &f10k – 150k &7Coins!"
     commands:
       - "crate give [player] eco 1"
+
   claims_crate:
-    slot: 22
+    slot: 31
     material: TRIPWIRE_HOOK
-    name: "&a&lClaims-Schlüssel"
+    name: "&a&l✦ Claims-Schlüssel"
     cost: 15
     lore:
-      - "&7Öffnet die &aClaims-Truhe"
+      - "&7Öffnet die &aClaims-Truhe&7."
       - "&7Gewinne &f1 – 3 &7extra Claim-Slots!"
     commands:
       - "crate give [player] claims 1"
+
   spawner_crate:
-    slot: 24
+    slot: 34
     material: TRIPWIRE_HOOK
-    name: "&d&lSpawner-Schlüssel"
+    name: "&d&l✦ Spawner-Schlüssel"
     cost: 20
     lore:
-      - "&7Öffnet die &dSpawner-Truhe"
+      - "&7Öffnet die &dSpawner-Truhe&7."
       - "&7Gewinne einen &fzufälligen Spawner&7!"
     commands:
       - "crate give [player] spawner 1"
