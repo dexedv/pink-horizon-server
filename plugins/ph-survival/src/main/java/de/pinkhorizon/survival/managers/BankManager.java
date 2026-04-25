@@ -11,8 +11,6 @@ import java.util.UUID;
 
 public class BankManager {
 
-    private static final double INTEREST_RATE     = 0.02;
-    private static final long   MAX_INTEREST_BASE = 100_000L;
 
     private final PHSurvival plugin;
 
@@ -89,7 +87,8 @@ public class BankManager {
                     LocalDate last    = rs.getDate("last_interest").toLocalDate();
                     if (!today.isAfter(last)) continue;
 
-                    long interest = Math.round(Math.min(balance, MAX_INTEREST_BASE) * INTEREST_RATE);
+                    SurvivalRankManager.Rank rank = plugin.getRankManager().getRank(uuid);
+                    long interest = Math.round(Math.min(balance, rank.maxInterestBase) * rank.interestRate);
                     if (interest < 1) continue;
 
                     try (PreparedStatement upd = c.prepareStatement(
@@ -103,8 +102,11 @@ public class BankManager {
                     final long fi = interest;
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         Player p = Bukkit.getPlayer(uuid);
-                        if (p != null)
-                            p.sendMessage(Component.text("§6§lBank §8| §7Zinsen: §6+" + fi + " Coins §8(2%)"));
+                        if (p != null) {
+                            SurvivalRankManager.Rank r = plugin.getRankManager().getRank(uuid);
+                            int pct = (int) Math.round(r.interestRate * 100);
+                            p.sendMessage(Component.text("§6§lBank §8| §7Zinsen: §6+" + fi + " Coins §8(" + pct + "%)"));
+                        }
                     });
                 } catch (Exception ignored) {}
             }

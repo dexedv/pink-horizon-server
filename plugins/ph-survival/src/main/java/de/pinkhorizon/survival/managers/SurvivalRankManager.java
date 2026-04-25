@@ -24,34 +24,38 @@ public class SurvivalRankManager {
         public final int maxClaims;
         public final int maxHomes;
         public final int maxAuctions;
+        public final double interestRate;
+        public final long maxInterestBase;
         public final int priority;
 
-        public Rank(String id, String chatPrefix, TextColor nameColor, int maxClaims, int maxHomes, int maxAuctions, int priority) {
-            this.id          = id;
-            this.chatPrefix  = chatPrefix;
-            this.nameColor   = nameColor;
-            this.maxClaims   = maxClaims;
-            this.maxHomes    = maxHomes;
-            this.maxAuctions = maxAuctions;
-            this.priority    = priority;
+        public Rank(String id, String chatPrefix, TextColor nameColor, int maxClaims, int maxHomes, int maxAuctions, double interestRate, long maxInterestBase, int priority) {
+            this.id              = id;
+            this.chatPrefix      = chatPrefix;
+            this.nameColor       = nameColor;
+            this.maxClaims       = maxClaims;
+            this.maxHomes        = maxHomes;
+            this.maxAuctions     = maxAuctions;
+            this.interestRate    = interestRate;
+            this.maxInterestBase = maxInterestBase;
+            this.priority        = priority;
         }
     }
 
     public static final LinkedHashMap<String, Rank> RANKS = new LinkedHashMap<>();
 
     static {
-        //                                                                              Claims Homes Aukt Prio
-        RANKS.put("owner",     new Rank("owner",     "\u00a74\u00a7l[Owner] ",   TextColor.color(0xCC0000),  9999, 20, 99, 1));
-        RANKS.put("admin",     new Rank("admin",     "\u00a7c\u00a7l[Admin] ",   NamedTextColor.RED,         9999, 15, 99, 2));
-        RANKS.put("dev",       new Rank("dev",       "\u00a7b\u00a7l[DEV] ",     TextColor.color(0x00CCCC),  9999, 15, 99, 3));
-        RANKS.put("moderator", new Rank("moderator", "\u00a79\u00a7l[Mod] ",     NamedTextColor.BLUE,         100,  8, 20, 4));
-        RANKS.put("supporter", new Rank("supporter", "\u00a73\u00a7l[Support] ", TextColor.color(0x00AAAA),    50,  6, 15, 5));
-        RANKS.put("vip",       new Rank("vip",       "\u00a76[VIP] ",            NamedTextColor.GOLD,           20,  3, 10, 6));
+        //                                                                              Claims Homes Aukt  Zins   MaxBasis  Prio
+        RANKS.put("owner",     new Rank("owner",     "\u00a74\u00a7l[Owner] ",   TextColor.color(0xCC0000),  9999, 20, 99, 0.08, 1_000_000L, 1));
+        RANKS.put("admin",     new Rank("admin",     "\u00a7c\u00a7l[Admin] ",   NamedTextColor.RED,         9999, 15, 99, 0.08, 1_000_000L, 2));
+        RANKS.put("dev",       new Rank("dev",       "\u00a7b\u00a7l[DEV] ",     TextColor.color(0x00CCCC),  9999, 15, 99, 0.08, 1_000_000L, 3));
+        RANKS.put("moderator", new Rank("moderator", "\u00a79\u00a7l[Mod] ",     NamedTextColor.BLUE,         100,  8, 20, 0.04,   200_000L, 4));
+        RANKS.put("supporter", new Rank("supporter", "\u00a73\u00a7l[Support] ", TextColor.color(0x00AAAA),    50,  6, 15, 0.04,   200_000L, 5));
+        RANKS.put("vip",       new Rank("vip",       "\u00a76[VIP] ",            NamedTextColor.GOLD,           20,  3, 10, 0.04,   200_000L, 6));
         // Shop-Ränge
-        RANKS.put("legende",   new Rank("legende",   "\u00a7d[\u00a75\u2756 Legende\u00a7d] ", TextColor.color(0xFF69B4), 40, 4, 15, 7));
-        RANKS.put("krieger",   new Rank("krieger",   "\u00a76[Krieger] ",         NamedTextColor.GOLD,           30,  3, 10, 8));
-        RANKS.put("siedler",   new Rank("siedler",   "\u00a7a[Siedler] ",         NamedTextColor.GREEN,          20,  2,  7, 9));
-        RANKS.put("spieler",   new Rank("spieler",   "",                         NamedTextColor.WHITE,           10,  2,  5, 10));
+        RANKS.put("legende",   new Rank("legende",   "\u00a7d[\u00a75\u2756 Legende\u00a7d] ", TextColor.color(0xFF69B4), 40, 4, 15, 0.08, 300_000L, 7));
+        RANKS.put("krieger",   new Rank("krieger",   "\u00a76[Krieger] ",         NamedTextColor.GOLD,           30,  3, 10, 0.06, 200_000L, 8));
+        RANKS.put("siedler",   new Rank("siedler",   "\u00a7a[Siedler] ",         NamedTextColor.GREEN,          20,  2,  7, 0.04, 150_000L, 9));
+        RANKS.put("spieler",   new Rank("spieler",   "",                         NamedTextColor.WHITE,           10,  2,  5, 0.02, 100_000L, 10));
     }
 
     private final PHSurvival plugin;
