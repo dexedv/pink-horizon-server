@@ -854,14 +854,16 @@ app.get('/api/permissions/players', auth, async (req, res) => {
 /** LuckPerms-Gruppenrechte aus MySQL */
 app.get('/api/permissions/groups', auth, async (req, res) => {
   try {
-    const [rows] = await poolCore.execute(
+    const [groupRows] = await poolCore.execute(`SELECT name FROM luckperms_groups ORDER BY name`);
+    const [permRows]  = await poolCore.execute(
       `SELECT name, permission, server, \`value\`
        FROM luckperms_group_permissions
        WHERE expiry = 0
        ORDER BY name, permission`
     );
     const groups = {};
-    for (const row of rows) {
+    for (const g of groupRows) groups[g.name] = [];
+    for (const row of permRows) {
       if (!groups[row.name]) groups[row.name] = [];
       groups[row.name].push({ permission: row.permission, server: row.server, value: row.value === 1 });
     }
