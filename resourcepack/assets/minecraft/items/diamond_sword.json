@@ -18,7 +18,8 @@
       {"threshold": 1008.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_kristall"}},
       {"threshold": 1009.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_schatten"}},
       {"threshold": 1010.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_legende"}},
-      {"threshold": 1011.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_galaxie"}}
+      {"threshold": 1011.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_galaxie"}},
+      {"threshold": 1012.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_reaper"}}
     ]
   }
 }

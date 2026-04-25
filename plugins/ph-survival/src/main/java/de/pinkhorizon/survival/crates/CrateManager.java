@@ -57,7 +57,9 @@ public class CrateManager {
         CrateReward.cosmetic("Schatten-Klinge",1009, 7),
         // Legendary (weight 2)
         CrateReward.cosmetic("Legendäre Klinge",1010, 2),
-        CrateReward.cosmetic("Galaxie-Klinge", 1011, 2)
+        CrateReward.cosmetic("Galaxie-Klinge", 1011, 2),
+        // Ultra-Rare (weight 1)
+        CrateReward.cosmetic("Reaper-Klinge",  1012, 1)
     );
 
     private static final List<CrateReward> SPAWNER_REWARDS = List.of(
