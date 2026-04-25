@@ -1105,17 +1105,31 @@ app.get('/api/survival/upgrades', auth, async (req, res) => {
     if (!uuidRow) return res.status(404).json({ error: 'Spieler nicht gefunden' });
     const uuid = uuidRow.uuid;
 
-    // Kumulierte Kosten bis zum jeweiligen Level
-    const COSTS = [0, 0, 500, 2000, 6000, 16000, 41000];
-    const paid  = lvl => COSTS[Math.min(lvl, 6)] || 0;
+    // Kumulierte Speed-Kosten (Lv0-10): Upgrade-Preis TO level summiert
+    const SPEED_CUM = [0, 0, 1000, 3500, 8500, 18500, 38500, 78500, 148500, 258500, 408500];
+    // Kumulierte Fortune-Kosten (Lv0-10)
+    const FORT_CUM  = [0, 1000, 4000, 10000, 22000, 44000, 82000, 142000, 232000, 352000, 502000];
+    const speedPaid   = lvl => SPEED_CUM[Math.min(Math.max(lvl, 0), 10)];
+    const fortunePaid = lvl => FORT_CUM[Math.min(Math.max(lvl, 0), 10)];
 
     const [furnaces] = await poolSv.execute(
-      'SELECT level, world, x, y, z FROM sv_furnace_upgrades WHERE owner_uuid = ? AND world IS NOT NULL', [uuid]);
+      'SELECT level, fortune_level, world, x, y, z FROM sv_furnace_upgrades WHERE owner_uuid = ? AND world IS NOT NULL', [uuid]);
     const [hoppers]  = await poolSv.execute(
-      'SELECT level, world, x, y, z FROM sv_hopper_upgrades  WHERE owner_uuid = ? AND world IS NOT NULL', [uuid]);
+      'SELECT level, world, x, y, z FROM sv_hopper_upgrades WHERE owner_uuid = ? AND world IS NOT NULL', [uuid]);
 
-    const fList = furnaces.map(r => ({ level: r.level, world: r.world, x: r.x, y: r.y, z: r.z, paid: paid(r.level) }));
-    const hList = hoppers .map(r => ({ level: r.level, world: r.world, x: r.x, y: r.y, z: r.z, paid: paid(r.level) }));
+    const fList = furnaces.map(r => ({
+      level:        r.level,
+      fortuneLevel: r.fortune_level || 0,
+      world: r.world, x: r.x, y: r.y, z: r.z,
+      paidSpeed:   speedPaid(r.level),
+      paidFortune: fortunePaid(r.fortune_level || 0),
+      paid:        speedPaid(r.level) + fortunePaid(r.fortune_level || 0)
+    }));
+    const hList = hoppers.map(r => ({
+      level: r.level,
+      world: r.world, x: r.x, y: r.y, z: r.z,
+      paid: speedPaid(r.level)
+    }));
 
     res.json({
       furnaces:  fList,

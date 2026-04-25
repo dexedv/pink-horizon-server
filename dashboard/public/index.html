@@ -1129,20 +1129,41 @@ function renderTimelineCard(p) {
 function renderUpgradesCard(p) {
   const ud = p.upgrades;
   if (!ud) return '';
-  const F_NAMES = ['','Normal','Verbessert','Schnell','Blitz','Quantumfusion','Plasmaschmelze'];
-  const H_NAMES = ['','Normal','Verbessert','Schnell','Blitz','Quantumflow','Plasmaflow'];
-  function upgradeRows(list, names) {
-    if (!list.length) return '<tr><td colspan="6" style="text-align:center;color:var(--muted);font-size:.82rem">Keine Einträge</td></tr>';
+  const NAMES         = ['','Normal','Verbessert','Schnell','Präzise','Blitz','Turbo','Ultra','Hyper','Quantum','Plasma'];
+  const FORTUNE_NAMES = ['–','Glücklich','Ertragreich','Üppig','Gesegnet','Prosper','Fruchtbar','Goldgriff','Schicksalhaft','Legendär','Goldener Touch'];
+  const FORTUNE_PCT   = [0,5,10,15,20,25,30,35,40,45,50];
+
+  function furnaceRows(list) {
+    if (!list.length) return '<tr><td colspan="7" style="text-align:center;color:var(--muted);font-size:.82rem">Keine Einträge</td></tr>';
     return list.map(r => {
-      const loc = r.world ? `${escH(r.world)} ${r.x} / ${r.y} / ${r.z}` : '<span style="color:var(--muted)">Im Inventar</span>';
+      const loc  = r.world ? `${escH(r.world)} ${r.x}/${r.y}/${r.z}` : '<span style="color:var(--muted)">Im Inventar</span>';
+      const fl   = r.fortuneLevel || 0;
+      const fort = fl > 0
+        ? `<span style="color:#4ade80">Lv${fl} ${FORTUNE_NAMES[fl]} (${FORTUNE_PCT[fl]}%)</span>`
+        : `<span style="color:var(--muted)">–</span>`;
       return `<tr>
-        <td>${r.level}</td>
-        <td>${escH(names[r.level] || '?')}</td>
+        <td>Lv ${r.level} <span style="color:var(--muted);font-size:.78rem">${NAMES[r.level]||'?'}</span></td>
+        <td>${fort}</td>
+        <td style="font-family:var(--mono);font-size:.78rem">${loc}</td>
+        <td style="color:var(--yellow)">${r.paidSpeed.toLocaleString('de-DE')} 💰</td>
+        <td style="color:#4ade80">${r.paidFortune.toLocaleString('de-DE')} 💰</td>
+        <td style="color:var(--yellow);font-weight:600">${r.paid.toLocaleString('de-DE')} 💰</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function hopperRows(list) {
+    if (!list.length) return '<tr><td colspan="3" style="text-align:center;color:var(--muted);font-size:.82rem">Keine Einträge</td></tr>';
+    return list.map(r => {
+      const loc = r.world ? `${escH(r.world)} ${r.x}/${r.y}/${r.z}` : '<span style="color:var(--muted)">Im Inventar</span>';
+      return `<tr>
+        <td>Lv ${r.level} <span style="color:var(--muted);font-size:.78rem">${NAMES[r.level]||'?'}</span></td>
         <td style="font-family:var(--mono);font-size:.78rem">${loc}</td>
         <td style="color:var(--yellow);font-weight:600">${r.paid.toLocaleString('de-DE')} 💰</td>
       </tr>`;
     }).join('');
   }
+
   const hasFurnaces = ud.furnaces?.length > 0;
   const hasHoppers  = ud.hoppers?.length  > 0;
   if (!hasFurnaces && !hasHoppers) return '';
@@ -1152,20 +1173,20 @@ function renderUpgradesCard(p) {
     <div style="font-size:.82rem;font-weight:600;color:var(--gold,#f0a030);margin:8px 0 4px">🔥 Öfen (${ud.furnaces.length})</div>
     <div style="overflow-x:auto">
       <table class="sql-tbl" style="width:100%">
-        <thead><tr><th>Lv.</th><th>Name</th><th>Koordinaten</th><th>Bezahlt</th></tr></thead>
-        <tbody>${upgradeRows(ud.furnaces, F_NAMES)}</tbody>
+        <thead><tr><th>⚡ Speed</th><th>🍀 Glück</th><th>Koordinaten</th><th>Speed 💰</th><th>Glück 💰</th><th>Gesamt 💰</th></tr></thead>
+        <tbody>${furnaceRows(ud.furnaces)}</tbody>
       </table>
     </div>` : ''}
     ${hasHoppers ? `
     <div style="font-size:.82rem;font-weight:600;color:var(--blue);margin:8px 0 4px">📦 Trichter (${ud.hoppers.length})</div>
     <div style="overflow-x:auto">
       <table class="sql-tbl" style="width:100%">
-        <thead><tr><th>Lv.</th><th>Name</th><th>Koordinaten</th><th>Bezahlt</th></tr></thead>
-        <tbody>${upgradeRows(ud.hoppers, H_NAMES)}</tbody>
+        <thead><tr><th>⚡ Speed</th><th>Koordinaten</th><th>Bezahlt 💰</th></tr></thead>
+        <tbody>${hopperRows(ud.hoppers)}</tbody>
       </table>
     </div>` : ''}
     <div style="margin-top:10px;text-align:right;font-size:.88rem;color:var(--muted)">
-      Gesamt bezahlt: <strong style="color:var(--yellow)">${(ud.totalPaid||0).toLocaleString('de-DE')} 💰</strong>
+      Gesamt investiert: <strong style="color:var(--yellow)">${(ud.totalPaid||0).toLocaleString('de-DE')} 💰</strong>
     </div>
   </div>`;
 }
