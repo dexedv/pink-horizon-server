@@ -1567,9 +1567,12 @@ app.get('/api/db/table', auth, async (req, res) => {
     let where = '';
     const params = [];
     if (search) {
-      const conditions = columns.slice(0, 5).map(c => `\`${c.name}\` LIKE ?`);
-      where = 'WHERE ' + conditions.join(' OR ');
-      columns.slice(0, 5).forEach(() => params.push(`%${search}%`));
+      // LIKE nur auf String/Text-Spalten anwenden (nicht auf INT, BIGINT, etc.)
+      const strCols = columns.filter(c => /char|text|varchar|enum|set/i.test(c.type)).slice(0, 5);
+      if (strCols.length) {
+        where = 'WHERE ' + strCols.map(c => `\`${c.name}\` LIKE ?`).join(' OR ');
+        strCols.forEach(() => params.push(`%${search}%`));
+      }
     }
     const orderBy = sort && columns.find(c => c.name === sort) ? `ORDER BY \`${sort}\` ${safeDir}` : '';
     const offset = parseInt(page) * parseInt(limit);
