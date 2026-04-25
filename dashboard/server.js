@@ -1,4 +1,5 @@
 const express    = require('express');
+const yaml       = require('js-yaml');
 const rateLimit  = require('express-rate-limit');
 const { WebSocketServer } = require('ws');
 const http       = require('http');
@@ -850,33 +851,49 @@ app.get('/api/permissions/players', auth, async (req, res) => {
   }
 });
 
-/** LuckPerms-Gruppenrechte – sucht automatisch die richtige DB/Tabelle */
+/** LuckPerms-Gruppenrechte aus YAML-Dateien lesen */
 app.get('/api/permissions/groups', auth, async (req, res) => {
+  // LuckPerms speichert Gruppen unter plugins/LuckPerms/groups/*.yml
+  // Das Dashboard-Container hat survival + lobby als Read-only-Volume gemountet
+  const candidates = [
+    '/data/survival/plugins/LuckPerms/groups',
+    '/data/lobby/plugins/LuckPerms/groups',
+  ];
+  let groupsDir = null;
+  for (const dir of candidates) {
+    try { await fs.access(dir); groupsDir = dir; break; } catch {}
+  }
+  if (!groupsDir) {
+    return res.status(404).json({
+      error: 'LuckPerms-Gruppen-Ordner nicht gefunden. Pfade geprüft: ' + candidates.join(', '),
+      groups: {}
+    });
+  }
   try {
-    // Tabelle in information_schema finden (beliebige DB, beliebiger Prefix)
-    const [found] = await poolCore.execute(
-      `SELECT table_schema, table_name
-       FROM information_schema.tables
-       WHERE table_name LIKE '%group_permissions'
-         AND table_schema NOT IN ('information_schema','mysql','performance_schema','sys')
-       LIMIT 1`
-    );
-    if (!found.length) {
-      return res.status(404).json({ error: 'Keine LuckPerms-Tabelle gefunden. Wird vielleicht YAML/JSON-Storage verwendet?', groups: {} });
-    }
-    const { table_schema, table_name } = found[0];
-    const [rows] = await poolCore.execute(
-      `SELECT name, permission, server, \`value\`
-       FROM \`${table_schema}\`.\`${table_name}\`
-       WHERE expiry = 0
-       ORDER BY name, permission`
-    );
+    const files = (await fs.readdir(groupsDir)).filter(f => f.endsWith('.yml'));
     const groups = {};
-    for (const row of rows) {
-      if (!groups[row.name]) groups[row.name] = [];
-      groups[row.name].push({ permission: row.permission, server: row.server, value: row.value === 1 });
+    for (const file of files) {
+      const raw  = await fs.readFile(path.join(groupsDir, file), 'utf8');
+      const data = yaml.load(raw);
+      const name = data.name || file.replace('.yml', '');
+      const perms = [];
+      for (const entry of (data.nodes || [])) {
+        // LuckPerms v5 nodes: { type, key, value, ... }
+        // oder ältere Version: einfach ein String
+        if (typeof entry === 'string') {
+          perms.push({ permission: entry, server: 'global', value: true });
+        } else if (entry.type === 'permission' || !entry.type) {
+          perms.push({
+            permission: entry.key || entry.permission || '',
+            server:     entry.context?.server || entry.server || 'global',
+            value:      entry.value !== false
+          });
+        }
+      }
+      perms.sort((a, b) => a.permission.localeCompare(b.permission));
+      groups[name] = perms;
     }
-    res.json({ groups, _source: `${table_schema}.${table_name}` });
+    res.json({ groups, _source: groupsDir });
   } catch (e) {
     res.status(500).json({ error: e.message, groups: {} });
   }
