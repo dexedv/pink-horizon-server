@@ -3275,7 +3275,13 @@ async function dbSetDb(db) {
 async function loadDbTables() {
   const el = document.getElementById('db-tbl-list'); if (!el) return;
   const r = await apiFetch(`/api/db/tables?database=${encodeURIComponent(dbState.database)}`);
-  if (!r?.ok) { el.innerHTML='<div class="empty" style="color:var(--red);padding:8px;font-size:.8rem">Fehler beim Laden</div>'; return; }
+  if (!r) { el.innerHTML='<div class="empty" style="color:var(--red);padding:8px;font-size:.8rem">Netzwerkfehler</div>'; return; }
+  if (!r.ok) {
+    let errMsg = `HTTP ${r.status}`;
+    try { const e = await r.json(); errMsg = e.error || errMsg; } catch {}
+    el.innerHTML=`<div class="empty" style="color:var(--red);padding:8px;font-size:.8rem">Fehler: ${escH(errMsg)}</div>`;
+    return;
+  }
   const { tables } = await r.json();
   if (!tables?.length) { el.innerHTML='<div class="empty" style="padding:8px;font-size:.8rem">Keine Tabellen</div>'; return; }
   el.innerHTML = tables.map(t => `
