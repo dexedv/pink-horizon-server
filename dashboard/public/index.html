@@ -440,7 +440,7 @@ const RANK_DEFS = [
   { id:'spieler',   label:'Spieler',   color:'#888888', bg:'rgba(136,136,136,.1)',border:'rgba(136,136,136,.3)',icon:'🎮', desc:'Standard-Rang'    },
 ];
 
-function rankDef(id) { return RANK_DEFS.find(r=>r.id===id) || RANK_DEFS[6]; }
+function rankDef(id) { return RANK_DEFS.find(r=>r.id===id) || RANK_DEFS.find(r=>r.id==='spieler'); }
 
 function rankBadge(rankId) {
   const rd = rankDef(rankId);
