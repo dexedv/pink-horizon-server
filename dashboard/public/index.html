@@ -194,6 +194,8 @@
   .rank-count { margin-left: auto; font-size: .82rem; font-family: var(--mono); }
 
   .perm-player-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+  .rights-pill { font-family: var(--mono); font-size: .72rem; padding: 2px 8px; border-radius: 4px; background: rgba(46,204,113,.1); border: 1px solid rgba(46,204,113,.25); color: var(--green); white-space: nowrap; }
+  .rights-pill.neg { background: rgba(231,76,60,.1); border-color: rgba(231,76,60,.25); color: var(--red); }
   .perm-row { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
   .perm-name { flex: 1; font-family: var(--mono); font-size: .88rem; cursor: pointer; }
   .perm-name:hover { color: var(--pink); }
@@ -1424,6 +1426,7 @@ async function renderPermissions() {
   c.innerHTML = `<div class="page">
     <div style="display:flex;gap:4px;border-bottom:1px solid var(--border);padding-bottom:0;margin-bottom:-4px">
       <button class="rtab ${permTab==='ranks'?'active':''}"    onclick="switchPermTab('ranks')">Rang-Übersicht</button>
+      <button class="rtab ${permTab==='rights'?'active':''}"   onclick="switchPermTab('rights')">Rechte</button>
       <button class="rtab ${permTab==='players'?'active':''}"  onclick="switchPermTab('players')">Spieler</button>
       <button class="rtab ${permTab==='banlist'?'active':''}"  onclick="switchPermTab('banlist')">Banliste</button>
       <button class="rtab ${permTab==='ipbanlist'?'active':''}" onclick="switchPermTab('ipbanlist')">IP-Bans</button>
@@ -1436,7 +1439,7 @@ async function renderPermissions() {
 function switchPermTab(t) {
   permTab = t;
   document.querySelectorAll('.rtab').forEach(b => {
-    const labels = { ranks:'Rang-Übersicht', players:'Spieler', banlist:'Banliste', ipbanlist:'IP-Bans' };
+    const labels = { ranks:'Rang-Übersicht', rights:'Rechte', players:'Spieler', banlist:'Banliste', ipbanlist:'IP-Bans' };
     b.classList.toggle('active', b.textContent === labels[t]);
   });
   loadPermTab(t);
@@ -1445,6 +1448,7 @@ function switchPermTab(t) {
 async function loadPermTab(t) {
   const el = document.getElementById('perm-body'); if (!el) return;
   if (t === 'ranks')     return renderPermRanks(el);
+  if (t === 'rights')    return renderPermRights(el);
   if (t === 'players')   return renderPermPlayers(el);
   if (t === 'banlist')   return renderPermBanlist(el);
   if (t === 'ipbanlist') return renderPermIpBanlist(el);
@@ -1484,6 +1488,68 @@ function renderPermRanks(el) {
         </div>
       </div>
     </div>`;
+}
+
+async function renderPermRights(el) {
+  el.innerHTML = `<div class="empty" style="margin-top:12px">Lade Rechte…</div>`;
+  const r = await apiFetch('/api/permissions/groups');
+  if (!r?.ok) {
+    let msg = `HTTP ${r?.status||'?'}`;
+    try { const e = await r.json(); msg = e.error || msg; } catch {}
+    el.innerHTML = `<div class="empty" style="color:var(--red);margin-top:12px">Fehler: ${escH(msg)}</div>`;
+    return;
+  }
+  const { groups } = await r.json();
+
+  // Suchfeld + Filter-State
+  let rightsFilter = '';
+  const KNOWN_RANKS = RANK_DEFS.map(r => r.id);
+
+  function buildRightsHtml() {
+    const q = rightsFilter.toLowerCase();
+    let html = '';
+    // Zuerst bekannte Ränge in Reihenfolge, dann Rest
+    const allGroups = [
+      ...KNOWN_RANKS.filter(k => groups[k]),
+      ...Object.keys(groups).filter(k => !KNOWN_RANKS.includes(k)).sort()
+    ];
+    for (const gname of allGroups) {
+      const perms = groups[gname] || [];
+      const filtered = q ? perms.filter(p => p.permission.toLowerCase().includes(q)) : perms;
+      if (!filtered.length && q) continue;
+      const rd = rankDef(gname);
+      const granted  = filtered.filter(p => p.value);
+      const negated  = filtered.filter(p => !p.value);
+      html += `<div class="card" style="border-color:${rd.border};margin-top:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:1.1rem">${rd.icon}</span>
+          <span style="font-weight:700;color:${rd.color}">${escH(rd.label || gname)}</span>
+          <span style="color:var(--muted);font-size:.78rem;margin-left:4px">${granted.length} Rechte${negated.length ? ` · ${negated.length} negiert` : ''}</span>
+        </div>
+        ${granted.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px">
+          ${granted.map(p => `<span class="rights-pill" title="${escH(p.server)}">${escH(p.permission)}</span>`).join('')}
+        </div>` : '<span style="color:var(--muted);font-size:.82rem">Keine Rechte</span>'}
+        ${negated.length ? `<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+          ${negated.map(p => `<span class="rights-pill neg" title="${escH(p.server)}">- ${escH(p.permission)}</span>`).join('')}
+        </div>` : ''}
+      </div>`;
+    }
+    return html || '<div class="empty">Keine Gruppen gefunden</div>';
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px;margin-bottom:12px;flex-wrap:wrap">
+      <input class="field fsm" id="rights-search" placeholder="Permission filtern…" style="width:260px"
+        oninput="document.getElementById('rights-q').textContent='';window._rightsFilter=this.value;document.getElementById('rights-grid').innerHTML=window._buildRightsHtml()">
+      <span style="color:var(--muted);font-size:.82rem">${Object.values(groups).reduce((s,a)=>s+a.length,0)} Einträge in ${Object.keys(groups).length} Gruppen</span>
+    </div>
+    <div id="rights-grid" style="display:flex;flex-direction:column;gap:10px">${buildRightsHtml()}</div>`;
+
+  // Live-Filter ohne Re-Fetch
+  window._buildRightsHtml = () => {
+    rightsFilter = document.getElementById('rights-search')?.value || '';
+    return buildRightsHtml();
+  };
 }
 
 async function doPermRank() {

@@ -850,6 +850,26 @@ app.get('/api/permissions/players', auth, async (req, res) => {
   }
 });
 
+/** LuckPerms-Gruppenrechte aus der DB */
+app.get('/api/permissions/groups', auth, async (req, res) => {
+  try {
+    const [rows] = await poolCore.execute(
+      `SELECT name, permission, server, value
+       FROM luckperms_group_permissions
+       WHERE expiry = 0
+       ORDER BY name, permission`
+    );
+    const groups = {};
+    for (const row of rows) {
+      if (!groups[row.name]) groups[row.name] = [];
+      groups[row.name].push({ permission: row.permission, server: row.server, value: row.value === 1 });
+    }
+    res.json({ groups });
+  } catch (e) {
+    res.status(500).json({ error: e.message, groups: {} });
+  }
+});
+
 // ── REST-API: Rechteverwaltung ────────────────────────────────────────────
 
 const MANAGED_SERVERS = ['lobby', 'survival', 'smash'];
