@@ -194,6 +194,14 @@ public class FurnaceUpgradeManager {
         int next = current + 1;
         if (!plugin.getEconomyManager().withdraw(player.getUniqueId(), COSTS[next])) return false;
         setLevel(block, next, player.getUniqueId().toString());
+        // Aktuelle Schmelzung sofort beschleunigen (muss auf Main-Thread)
+        int ticks = COOK_TICKS[next];
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (block.getState() instanceof org.bukkit.block.Furnace furnaceState && furnaceState.getCookTime() > 0) {
+                furnaceState.setCookTimeTotal(ticks);
+                furnaceState.update();
+            }
+        });
         return true;
     }
 

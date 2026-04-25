@@ -49,9 +49,18 @@ public class FurnaceUpgradeListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onSmeltStart(FurnaceStartSmeltEvent event) {
-        int level = plugin.getFurnaceUpgradeManager().getLevel(event.getBlock());
+        Block block = event.getBlock();
+        int level = plugin.getFurnaceUpgradeManager().getLevel(block);
         if (level <= 1) return;
-        event.setTotalCookTime(plugin.getFurnaceUpgradeManager().getCookTicks(event.getBlock()));
+        int ticks = plugin.getFurnaceUpgradeManager().getCookTicks(block);
+        event.setTotalCookTime(ticks);
+        // Direkt per BlockState setzen (1 Tick später) – Fallback falls Paper den Event-Wert intern zurücksetzt
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (block.getState() instanceof org.bukkit.block.Furnace furnaceState) {
+                furnaceState.setCookTimeTotal(ticks);
+                furnaceState.update();
+            }
+        }, 1L);
     }
 
     // ── Doppel-Output (Fortune-Upgrade) ──────────────────────────────────
