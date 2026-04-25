@@ -25,7 +25,10 @@ public class AuctionManager {
     // ── API ───────────────────────────────────────────────────────────────
 
     public static int getMaxSlots(org.bukkit.entity.Player player) {
-        return player.hasPermission("survival.ah.vip") ? 10 : 5;
+        SurvivalRankManager rm = de.pinkhorizon.survival.PHSurvival.getInstance().getRankManager();
+        SurvivalRankManager.Rank rank = rm.getRank(player.getUniqueId());
+        // vip (priority 6) und höher (kleinere Zahl = höherer Rang) → 10 Slots
+        return rank.priority <= 6 ? 10 : 5;
     }
 
     public String addListing(UUID sellerUuid, String sellerName, ItemStack item, long price, int maxSlots) {

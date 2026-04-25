@@ -136,11 +136,12 @@ async function checkDb(pool) {
 }
 
 // ── Audit-Log ─────────────────────────────────────────────────────────────
-const AUDIT_FILE = '/data/audit.json';
+const AUDIT_FILE = '/data/dashboard/audit.json';
 const auditEntries = [];
 const MAX_AUDIT = 500;
 (async () => {
   try {
+    await fs.mkdir('/data/dashboard', { recursive: true });
     const raw = await fs.readFile(AUDIT_FILE, 'utf8');
     const d = JSON.parse(raw);
     if (Array.isArray(d)) auditEntries.push(...d.slice(-MAX_AUDIT));

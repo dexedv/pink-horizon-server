@@ -184,6 +184,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./servers/lobby:/data/lobby:ro
       - ./servers/survival:/data/survival:ro
+      - ./data/dashboard:/data/dashboard
     environment:
       DASHBOARD_PASSWORD: "${DASHBOARD_PASSWORD}"
       LOBBY_RCON_HOST:    "lobby"
