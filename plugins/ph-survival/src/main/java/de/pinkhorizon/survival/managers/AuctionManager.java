@@ -25,7 +25,7 @@ public class AuctionManager {
     // ── API ───────────────────────────────────────────────────────────────
 
     public static int getMaxSlots(org.bukkit.entity.Player player) {
-        return player.hasPermission("survival.ah.vip") ? 10 : 3;
+        return player.hasPermission("survival.ah.vip") ? 10 : 5;
     }
 
     public String addListing(UUID sellerUuid, String sellerName, ItemStack item, long price, int maxSlots) {
