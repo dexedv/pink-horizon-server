@@ -1575,9 +1575,13 @@ app.get('/api/db/table', auth, async (req, res) => {
       }
     }
     const orderBy = sort && columns.find(c => c.name === sort) ? `ORDER BY \`${sort}\` ${safeDir}` : '';
-    const offset = parseInt(page) * parseInt(limit);
-    const [rows] = await pool.execute(`SELECT * FROM \`${table}\` ${where} ${orderBy} LIMIT ? OFFSET ?`, [...params, parseInt(limit), offset]);
-    const [[{total}]] = await pool.execute(`SELECT COUNT(*) as total FROM \`${table}\` ${where}`, params);
+    const lim    = Math.max(1, Math.min(500, parseInt(limit) || 50));
+    const offset = Math.max(0, parseInt(page) || 0) * lim;
+    // LIMIT/OFFSET direkt interpolieren (sichere Integers) – vermeidet Prepared-Statement-Probleme
+    const rowSql   = `SELECT * FROM \`${table}\` ${where} ${orderBy} LIMIT ${lim} OFFSET ${offset}`;
+    const totalSql = `SELECT COUNT(*) as total FROM \`${table}\` ${where}`;
+    const [rows]       = params.length ? await pool.execute(rowSql, params) : await pool.query(rowSql);
+    const [[{total}]]  = params.length ? await pool.execute(totalSql, params) : await pool.query(totalSql);
     const safeVal = v => {
       if (v === null || v === undefined) return null;
       if (typeof v === 'bigint') return v.toString();
