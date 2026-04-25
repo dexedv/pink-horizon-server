@@ -33,3 +33,33 @@ items:
       - "&7und bringe ihn in deine Base!"
     commands:
       - "give [player] villager_spawn_egg 1"
+  eco_crate:
+    slot: 20
+    material: TRIPWIRE_HOOK
+    name: "&6&lEco-Schlüssel"
+    cost: 10
+    lore:
+      - "&7Öffnet die &6Eco-Truhe"
+      - "&7Gewinne &f10k – 150k &7Coins!"
+    commands:
+      - "crate give [player] eco 1"
+  claims_crate:
+    slot: 22
+    material: TRIPWIRE_HOOK
+    name: "&a&lClaims-Schlüssel"
+    cost: 15
+    lore:
+      - "&7Öffnet die &aClaims-Truhe"
+      - "&7Gewinne &f1 – 3 &7extra Claim-Slots!"
+    commands:
+      - "crate give [player] claims 1"
+  spawner_crate:
+    slot: 24
+    material: TRIPWIRE_HOOK
+    name: "&d&lSpawner-Schlüssel"
+    cost: 20
+    lore:
+      - "&7Öffnet die &dSpawner-Truhe"
+      - "&7Gewinne einen &fzufälligen Spawner&7!"
+    commands:
+      - "crate give [player] spawner 1"

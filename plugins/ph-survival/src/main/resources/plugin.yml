@@ -195,6 +195,10 @@ commands:
   votecoins:
     description: VoteCoins-Guthaben anzeigen
     usage: /votecoins
+  crate:
+    description: Crate-Truhen verwalten und Schlüssel vergeben (Admin)
+    usage: /crate <set|remove|give>
+    permission: survival.admin
 
 permissions:
   survival.admin:

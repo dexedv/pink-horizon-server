@@ -1,0 +1,8 @@
+# Crate-Truhen Konfiguration
+# Standorte werden über /crate set <eco|claims|spawner> registriert
+# Format: "world,x,y,z"
+
+locations:
+  eco: []
+  claims: []
+  spawner: []

@@ -46,6 +46,7 @@ public class PHSurvival extends JavaPlugin {
     private FurnaceUpgradeManager furnaceUpgradeManager;
     private de.pinkhorizon.survival.managers.HopperUpgradeManager hopperUpgradeManager;
     private de.pinkhorizon.survival.managers.MiningStatsManager miningStatsManager;
+    private de.pinkhorizon.survival.crates.CrateManager crateManager;
 
     @Override
     public void onEnable() {
@@ -87,6 +88,7 @@ public class PHSurvival extends JavaPlugin {
         miningStatsManager    = new de.pinkhorizon.survival.managers.MiningStatsManager(this);
         furnaceUpgradeManager.cleanupOrphaned();
         hopperUpgradeManager.cleanupOrphaned();
+        crateManager = new de.pinkhorizon.survival.crates.CrateManager(this);
 
         // Commands
         ClaimCommand claimCmd = new ClaimCommand(this);
@@ -294,6 +296,14 @@ public class PHSurvival extends JavaPlugin {
             return true;
         });
 
+        // Crate system
+        de.pinkhorizon.survival.crates.CrateCommand crateCmd =
+            new de.pinkhorizon.survival.crates.CrateCommand(this, crateManager);
+        getCommand("crate").setExecutor(crateCmd);
+        getCommand("crate").setTabCompleter(crateCmd);
+        getServer().getPluginManager().registerEvents(
+            new de.pinkhorizon.survival.crates.CrateListener(this, crateManager), this);
+
         de.pinkhorizon.survival.gui.HopperUpgradeGui hopperGui =
             new de.pinkhorizon.survival.gui.HopperUpgradeGui(this);
         getServer().getPluginManager().registerEvents(hopperGui, this);
@@ -363,4 +373,5 @@ public class PHSurvival extends JavaPlugin {
     public FurnaceUpgradeManager getFurnaceUpgradeManager() { return furnaceUpgradeManager; }
     public de.pinkhorizon.survival.managers.HopperUpgradeManager getHopperUpgradeManager() { return hopperUpgradeManager; }
     public de.pinkhorizon.survival.managers.MiningStatsManager getMiningStatsManager() { return miningStatsManager; }
+    public de.pinkhorizon.survival.crates.CrateManager getCrateManager() { return crateManager; }
 }
