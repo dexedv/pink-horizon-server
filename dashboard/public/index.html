@@ -330,6 +330,36 @@
   .eco-bar-lbl  { display: flex; justify-content: space-between; font-size: .78rem; color: var(--muted); }
   .eco-bar      { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
   .eco-bar-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+
+  /* DB Editor */
+  .db-editor { display: flex; gap: 14px; flex: 1; min-height: 0; overflow: hidden; }
+  .db-sidebar { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+  .db-main { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+  .db-tabs { display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
+  .db-tab { padding: 5px 13px; border-radius: 6px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; font-size: .82rem; transition: all .15s; }
+  .db-tab.active { background: var(--pink); border-color: var(--pink); color: #fff; }
+  .dbt-list { display: flex; flex-direction: column; gap: 3px; overflow-y: auto; flex: 1; }
+  .dbt-pill { display: flex; align-items: center; gap: 6px; padding: 7px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; cursor: pointer; font-size: .83rem; transition: all .12s; }
+  .dbt-pill:hover, .dbt-pill.active { border-color: var(--pink); background: rgba(255,105,180,.07); }
+  .dbt-name { flex: 1; font-family: var(--mono); font-size: .8rem; }
+  .dbt-cnt { font-size: .74rem; color: var(--muted); font-family: var(--mono); }
+  .dbt-size { font-size: .7rem; color: var(--muted); }
+  .db-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
+  .db-tbl-wrap { flex: 1; overflow: auto; border: 1px solid var(--border); border-radius: 8px; min-height: 0; }
+  .db-edit-tbl { width: 100%; border-collapse: collapse; font-size: .81rem; font-family: var(--mono); }
+  .db-edit-tbl th { text-align: left; padding: 6px 10px; background: var(--surface); border-bottom: 1px solid var(--border); color: var(--muted); font-size: .72rem; text-transform: uppercase; position: sticky; top: 0; z-index: 1; cursor: pointer; user-select: none; white-space: nowrap; }
+  .db-edit-tbl th:hover { color: var(--pink); }
+  .db-edit-tbl td { padding: 5px 10px; border-bottom: 1px solid rgba(255,255,255,.04); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+  .db-edit-tbl tr:last-child td { border-bottom: none; }
+  .db-edit-tbl tr:hover td { background: rgba(255,255,255,.025); }
+  .db-pg { display: flex; align-items: center; gap: 6px; font-size: .82rem; }
+  .db-pg button { padding: 3px 10px; border-radius: 5px; border: 1px solid var(--border); background: none; color: var(--text); cursor: pointer; font-size: .8rem; }
+  .db-pg button:hover:not(:disabled) { border-color: var(--pink); color: var(--pink); }
+  .db-pg button:disabled { opacity: .35; cursor: default; }
+
+  /* Skeleton */
+  .skl { background: linear-gradient(90deg, var(--surface) 25%, rgba(255,255,255,.06) 50%, var(--surface) 75%); background-size: 200% 100%; animation: skl-anim 1.3s infinite; border-radius: 5px; display: inline-block; }
+  @keyframes skl-anim { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 </style>
 </head>
 <body>
@@ -416,7 +446,8 @@ async function init() {
   connectWs();
   await loadSrv();
   setInterval(loadSrv, 10000);
-  nav('dashboard');
+  const initPage = location.hash.slice(1) || 'dashboard';
+  nav(initPage);
   if (Notification.permission === 'default') Notification.requestPermission();
 }
 
@@ -452,6 +483,7 @@ const NAV_DEF = [
   { id:'discord_sync', icon:'💬', label:'Discord Sync'    },
   { id:'net_events',   icon:'🔔', label:'Netzwerk-Events' },
   { sec: 'Tools' },
+  { id:'database',     icon:'🗄️', label:'Datenbank'      },
   { id:'commands',     icon:'📋', label:'Befehlsreferenz' },
   { id:'sqlconsole',   icon:'🖥️', label:'SQL-Konsole'    },
   { sec: 'System' },
@@ -488,10 +520,17 @@ function nav(p) {
   const isStats  = p   === 'sysmon' || p   === 'dashboard';
   if (wasStats && !isStats && ws?.readyState === 1)
     ws.send(JSON.stringify({ type: 'unsubscribe_stats' }));
-  PAGE = p; buildNav(); renderPage();
+  PAGE = p;
+  if (location.hash.slice(1) !== p) history.replaceState(null, '', '#' + p);
+  buildNav(); renderPage();
   if (!wasStats && isStats && ws?.readyState === 1)
     ws.send(JSON.stringify({ type: 'subscribe_stats' }));
 }
+
+window.addEventListener('hashchange', () => {
+  const h = location.hash.slice(1);
+  if (h && h !== PAGE) nav(h);
+});
 
 function setHdr(title, html) {
   document.getElementById('page-title').textContent = title;
@@ -522,6 +561,7 @@ function renderPage() {
   if (PAGE === 'net_events')   return renderNetEvents();
   if (PAGE === 'sysmon')       return renderSysmon();
   if (PAGE === 'audit')        return renderAudit();
+  if (PAGE === 'database')     return renderDatabase();
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -3190,6 +3230,217 @@ function escH(s) {
 async function apiFetch(url,opts={}) {
   try { return await fetch(url,{...opts,headers:{'Content-Type':'application/json','x-dashboard-token':TOKEN,...(opts.headers||{})}}); }
   catch { return null; }
+}
+
+// ── Datenbank-Editor ──────────────────────────────────────────────────────
+let dbState = { database: 'pinkhorizon', table: null, page: 1, sort: null, dir: 'ASC', search: '', cols: [], pk: null };
+
+async function renderDatabase() {
+  setHdr('🗄️ Datenbank-Editor', `<button class="btn" onclick="loadDbTables()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
+  const DB_LABELS = { pinkhorizon: 'Core / Vote', ph_survival: 'Survival', ph_smash: 'Smash' };
+  c.innerHTML = `<div class="page" style="display:flex;flex-direction:column;flex:1;min-height:0;padding-bottom:0">
+    <div class="db-editor">
+      <div class="db-sidebar">
+        <div class="db-tabs">
+          ${Object.entries(DB_LABELS).map(([k,v])=>`<button class="db-tab ${dbState.database===k?'active':''}" onclick="dbSetDb('${k}')">${v}</button>`).join('')}
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);padding:2px 2px">Tabellen</div>
+        <div class="dbt-list" id="db-tbl-list"><div class="empty" style="padding:8px;font-size:.8rem">Lade…</div></div>
+      </div>
+      <div class="db-main" id="db-main">
+        <div class="empty" style="flex:1;color:var(--muted)">← Tabelle auswählen</div>
+      </div>
+    </div>
+  </div>`;
+  loadDbTables();
+}
+
+async function dbSetDb(db) {
+  dbState.database = db;
+  dbState.table = null;
+  dbState.page = 1;
+  document.querySelectorAll('.db-tab').forEach(b => {
+    const map = { 'Core / Vote': 'pinkhorizon', 'Survival': 'ph_survival', 'Smash': 'ph_smash' };
+    b.classList.toggle('active', map[b.textContent.trim()] === db);
+  });
+  const tl = document.getElementById('db-tbl-list');
+  if (tl) tl.innerHTML = '<div class="empty" style="padding:8px;font-size:.8rem">Lade…</div>';
+  const dm = document.getElementById('db-main');
+  if (dm) dm.innerHTML = '<div class="empty" style="flex:1;color:var(--muted)">← Tabelle auswählen</div>';
+  loadDbTables();
+}
+
+async function loadDbTables() {
+  const el = document.getElementById('db-tbl-list'); if (!el) return;
+  const r = await apiFetch(`/api/db/tables?database=${encodeURIComponent(dbState.database)}`);
+  if (!r?.ok) { el.innerHTML='<div class="empty" style="color:var(--red);padding:8px;font-size:.8rem">Fehler beim Laden</div>'; return; }
+  const { tables } = await r.json();
+  if (!tables?.length) { el.innerHTML='<div class="empty" style="padding:8px;font-size:.8rem">Keine Tabellen</div>'; return; }
+  el.innerHTML = tables.map(t => `
+    <div class="dbt-pill ${dbState.table===t.name?'active':''}" onclick="dbSelectTable('${escH(t.name)}')">
+      <span class="dbt-name">${escH(t.name)}</span>
+      <span class="dbt-cnt">${Number(t.approx_rows||0).toLocaleString('de-DE')}</span>
+      <span class="dbt-size">${t.size_kb||0} KB</span>
+    </div>`).join('');
+  if (dbState.table) {
+    // Re-select if already selected
+    const active = el.querySelector(`.dbt-pill`);
+    if (active) active.classList.toggle('active', active.querySelector('.dbt-name')?.textContent === dbState.table);
+  }
+}
+
+async function dbSelectTable(name) {
+  dbState.table = name;
+  dbState.page = 1;
+  dbState.sort = null;
+  dbState.dir = 'ASC';
+  dbState.search = '';
+  document.querySelectorAll('.dbt-pill').forEach(p => {
+    p.classList.toggle('active', p.querySelector('.dbt-name')?.textContent === name);
+  });
+  loadDbTableContent();
+}
+
+async function loadDbTableContent() {
+  const main = document.getElementById('db-main'); if (!main || !dbState.table) return;
+  main.innerHTML = `
+    <div class="db-toolbar">
+      <input class="field" id="db-search" placeholder="Suchen…" value="${escH(dbState.search)}" style="width:190px"
+        oninput="dbState.search=this.value"
+        onkeydown="if(event.key==='Enter'){dbState.page=1;loadDbTableContent()}">
+      <button class="btn" onclick="dbState.page=1;loadDbTableContent()">🔍</button>
+      <button class="btn" onclick="dbState.search='';dbState.page=1;loadDbTableContent()" title="Zurücksetzen">✕</button>
+      <span style="font-size:.8rem;color:var(--muted);font-family:var(--mono)">${escH(dbState.database)} › ${escH(dbState.table)}</span>
+      <span style="flex:1"></span>
+      <div class="db-pg" id="db-pg"><div class="skl" style="width:160px;height:20px"></div></div>
+    </div>
+    <div class="db-tbl-wrap" id="db-tbl-wrap">
+      ${[...Array(8)].map(()=>`<div style="display:flex;gap:8px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04)">
+        ${[...Array(4)].map(()=>`<div class="skl" style="height:14px;flex:1;min-width:40px"></div>`).join('')}
+      </div>`).join('')}
+    </div>`;
+
+  const params = new URLSearchParams({
+    database: dbState.database,
+    table: dbState.table,
+    page: dbState.page - 1,
+    limit: 50,
+    search: dbState.search,
+  });
+  if (dbState.sort) { params.set('sort', dbState.sort); params.set('dir', dbState.dir); }
+
+  const r = await apiFetch(`/api/db/table?${params}`);
+  const wrap = document.getElementById('db-tbl-wrap');
+  if (!r?.ok) {
+    if (wrap) wrap.innerHTML = '<div class="empty" style="color:var(--red)">Fehler beim Laden der Tabelle</div>';
+    return;
+  }
+  const data = await r.json();
+  dbState.cols = (data.columns || []).map(c => typeof c === 'object' ? c.name : c);
+  dbState.pk   = data.pk || dbState.cols[0];
+  const rows   = data.rows || [];
+  const total  = data.total || 0;
+  const pages  = Math.max(1, Math.ceil(total / 50));
+
+  const pg = document.getElementById('db-pg');
+  if (pg) pg.innerHTML = `
+    <button onclick="dbState.page=Math.max(1,dbState.page-1);loadDbTableContent()" ${dbState.page<=1?'disabled':''}>‹</button>
+    <span style="color:var(--muted)">${dbState.page}/${pages} · <b style="color:var(--text)">${total.toLocaleString('de-DE')}</b> Zeilen</span>
+    <button onclick="dbState.page=Math.min(${pages},dbState.page+1);loadDbTableContent()" ${dbState.page>=pages?'disabled':''}>›</button>`;
+
+  if (!rows.length) {
+    if (wrap) wrap.innerHTML = '<div class="empty">Keine Daten gefunden</div>';
+    return;
+  }
+
+  const cols = dbState.cols;
+  const thHtml = cols.map(col => {
+    const sorted = dbState.sort === col;
+    const arrow  = sorted ? (dbState.dir === 'ASC' ? ' ↑' : ' ↓') : '';
+    return `<th onclick="dbSort('${escH(col)}')" style="${sorted?'color:var(--pink)':''}">${escH(col)}${arrow}</th>`;
+  }).join('') + '<th style="width:72px;text-align:right;cursor:default">Aktion</th>';
+
+  window._dbRows = rows;
+  const tdHtml = rows.map((row, rowIdx) => {
+    const pkVal  = row[dbState.pk];
+    const pkStr  = String(pkVal ?? '');
+    const cells  = cols.map(col => {
+      const v = row[col];
+      const display = v === null
+        ? `<span style="color:var(--muted);font-style:italic">NULL</span>`
+        : escH(String(v));
+      return `<td title="${escH(String(v ?? ''))}">${display}</td>`;
+    }).join('');
+    return `<tr>${cells}
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn-xs" onclick="dbEditRow(${rowIdx})" title="Bearbeiten">✏</button>
+        <button class="btn-xs" style="color:var(--red);border-color:rgba(231,76,60,.35)" onclick="dbDeleteRow('${escH(pkStr)}')" title="Löschen">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  if (wrap) wrap.innerHTML = `
+    <table class="db-edit-tbl">
+      <thead><tr>${thHtml}</tr></thead>
+      <tbody>${tdHtml}</tbody>
+    </table>`;
+}
+
+function dbSort(col) {
+  if (dbState.sort === col) dbState.dir = dbState.dir === 'ASC' ? 'DESC' : 'ASC';
+  else { dbState.sort = col; dbState.dir = 'ASC'; }
+  dbState.page = 1;
+  loadDbTableContent();
+}
+
+function dbEditRow(rowIdx) {
+  const row = (window._dbRows || [])[rowIdx];
+  if (!row) return;
+  const cols = dbState.cols;
+  const fieldHtml = cols.map(col => {
+    const val = row[col] === null ? '' : String(row[col] ?? '');
+    const isPk = col === dbState.pk;
+    return `<div style="display:flex;flex-direction:column;gap:2px;margin-bottom:8px">
+      <label style="font-size:.74rem;color:${isPk?'var(--pink)':'var(--muted)'};font-family:var(--mono)">${escH(col)}${isPk?' 🔑':''}</label>
+      <input class="field" id="dbedit-${escH(col)}" value="${escH(val)}" ${isPk?'readonly style="opacity:.55;cursor:not-allowed"':''}/>
+    </div>`;
+  }).join('');
+
+  showModal('✏ Zeile bearbeiten',
+    `<div style="max-height:62vh;overflow-y:auto;padding-right:4px">${fieldHtml}</div>`,
+    'Speichern', async () => {
+    const updates = {};
+    for (const col of cols) {
+      if (col === dbState.pk) continue;
+      const el = document.getElementById(`dbedit-${col}`);
+      if (el) updates[col] = el.value === '' ? null : el.value;
+    }
+    const r = await apiFetch('/api/db/row', {
+      method: 'PUT',
+      body: JSON.stringify({ database: dbState.database, table: dbState.table, pk: dbState.pk, pkValue: row[dbState.pk], updates })
+    });
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? '✓ Zeile gespeichert' : `✗ ${d?.error||'Fehler'}`, d?.ok);
+    if (d?.ok) loadDbTableContent();
+    return d?.ok !== false;
+  });
+}
+
+function dbDeleteRow(pkValue) {
+  showModal('✕ Zeile löschen',
+    `<p style="color:var(--muted);font-size:.88rem">Zeile mit <code style="font-family:var(--mono);color:var(--pink)">${escH(dbState.pk)} = "${escH(pkValue)}"</code> dauerhaft löschen?</p>`,
+    'Löschen', async () => {
+    const r = await apiFetch('/api/db/row', {
+      method: 'DELETE',
+      body: JSON.stringify({ database: dbState.database, table: dbState.table, pk: dbState.pk, pkValue })
+    });
+    const d = r ? await r.json() : null;
+    showToast(d?.ok ? '✓ Zeile gelöscht' : `✗ ${d?.error||'Fehler'}`, d?.ok);
+    if (d?.ok) { loadDbTableContent(); loadDbTables(); }
+    return d?.ok !== false;
+  });
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────
