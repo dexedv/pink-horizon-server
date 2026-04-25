@@ -585,8 +585,6 @@ async function renderDash() {
     <div class="g4" id="stat-row"></div>
     <div id="online-section"></div>
     <div id="sparkline-section"></div>
-    <div id="res-section"></div>
-    <div class="g3" id="db-section"><div class="empty">Lade Datenbankstatus…</div></div>
   </div>`;
 
   let totalOn = 0; let totalRun = 0;
@@ -639,8 +637,6 @@ async function renderDash() {
 
   loadOnlinePanel();
   loadSparkline();
-  loadDbStatus();
-  loadResStats();
 }
 
 async function loadOnlinePanel() {
