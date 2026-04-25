@@ -213,6 +213,84 @@ async function checkAlerts() {
   }
 }
 setInterval(checkAlerts, 20000);
+
+// ── XRay-Alert-Scanner ────────────────────────────────────────────────────
+const xrayAlertCache = new Map(); // uuid → { score, alertedAt }
+
+function calcXrayScore(dRate, aRate) {
+  let score = 0;
+  if (dRate > 15) score += 50; else if (dRate > 8) score += 35; else if (dRate > 4) score += 20;
+  if (aRate > 5)  score += 30; else if (aRate > 2) score += 20; else if (aRate > 1) score += 10;
+  return Math.min(score, 100);
+}
+
+async function checkXrayAlerts() {
+  try {
+    const [rows] = await poolSv.query(
+      `SELECT p.name, mb.player_uuid, mb.total_blocks,
+         COALESCE(d.cnt,0) as diamonds, COALESCE(a.cnt,0) as debris
+       FROM sv_mining_blocks mb
+       JOIN pinkhorizon.players p ON mb.player_uuid = p.uuid
+       LEFT JOIN (SELECT player_uuid, COUNT(*) as cnt FROM sv_mining_log WHERE ore_type='diamond' GROUP BY player_uuid) d ON d.player_uuid = mb.player_uuid
+       LEFT JOIN (SELECT player_uuid, COUNT(*) as cnt FROM sv_mining_log WHERE ore_type='ancient_debris' GROUP BY player_uuid) a ON a.player_uuid = mb.player_uuid
+       WHERE mb.total_blocks >= 300`
+    );
+    const now = Date.now();
+    for (const row of rows) {
+      const total  = Number(row.total_blocks);
+      const dRate  = Number(row.diamonds) / total * 1000;
+      const aRate  = Number(row.debris)   / total * 1000;
+      const score  = calcXrayScore(dRate, aRate);
+      if (score < 35) continue;
+
+      const cached = xrayAlertCache.get(row.player_uuid);
+      // Nur neu melden wenn noch nicht gemeldet oder Score gestiegen oder 1h vergangen
+      if (cached && cached.score >= score && now - cached.alertedAt < 3600000) continue;
+
+      xrayAlertCache.set(row.player_uuid, { score, alertedAt: now });
+      const payload = JSON.stringify({
+        type:        'xray_alert',
+        player:      row.name,
+        uuid:        row.player_uuid,
+        score,
+        dRate:       dRate.toFixed(1),
+        aRate:       aRate.toFixed(1),
+        totalBlocks: total,
+        ts:          now
+      });
+      for (const ws of [...alertSubscribers]) {
+        if (ws.readyState === 1) ws.send(payload);
+        else alertSubscribers.delete(ws);
+      }
+    }
+  } catch {}
+}
+setInterval(checkXrayAlerts, 5 * 60 * 1000);
+setTimeout(checkXrayAlerts, 10000); // Einmal kurz nach Start
+
+app.get('/api/survival/xray/alerts', auth, async (req, res) => {
+  try {
+    const [rows] = await poolSv.query(
+      `SELECT p.name, mb.player_uuid, mb.total_blocks,
+         COALESCE(d.cnt,0) as diamonds, COALESCE(a.cnt,0) as debris
+       FROM sv_mining_blocks mb
+       JOIN pinkhorizon.players p ON mb.player_uuid = p.uuid
+       LEFT JOIN (SELECT player_uuid, COUNT(*) as cnt FROM sv_mining_log WHERE ore_type='diamond' GROUP BY player_uuid) d ON d.player_uuid = mb.player_uuid
+       LEFT JOIN (SELECT player_uuid, COUNT(*) as cnt FROM sv_mining_log WHERE ore_type='ancient_debris' GROUP BY player_uuid) a ON a.player_uuid = mb.player_uuid
+       WHERE mb.total_blocks >= 300`
+    );
+    const alerts = [];
+    for (const row of rows) {
+      const total = Number(row.total_blocks);
+      const dRate = Number(row.diamonds) / total * 1000;
+      const aRate = Number(row.debris)   / total * 1000;
+      const score = calcXrayScore(dRate, aRate);
+      if (score >= 35) alerts.push({ player: row.name, uuid: row.player_uuid, score, dRate: dRate.toFixed(1), aRate: aRate.toFixed(1), totalBlocks: total });
+    }
+    alerts.sort((a, b) => b.score - a.score);
+    res.json({ alerts });
+  } catch (e) { res.status(500).json({ error: e.message, alerts: [] }); }
+});
 setTimeout(checkAlerts, 6000);
 
 // ── RCON-Client ───────────────────────────────────────────────────────────
