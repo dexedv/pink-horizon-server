@@ -33,6 +33,11 @@ public class SurvivalJoinListener implements Listener {
                 .append(Component.text(player.getName(), TextColor.color(0x55FF55)))
         );
 
+        // Admins aus Schlaf-Berechnung ausschließen
+        if (player.hasPermission("survival.admin")) {
+            player.setSleepingIgnored(true);
+        }
+
         // Spielmodus
         if (player.hasPermission("survival.admin")) {
             player.setGameMode(GameMode.CREATIVE);
