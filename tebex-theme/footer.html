@@ -1,0 +1,184 @@
+<!-- PINK HORIZON – Custom Footer -->
+<style>
+  .ph-footer {
+    margin-top: 80px;
+    border-top: 1px solid rgba(255,105,180,.15);
+    background: rgba(7,7,13,.97);
+    padding: 48px 40px 24px;
+    font-family: 'Inter', system-ui, sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+  .ph-footer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 400px; height: 1px;
+    background: linear-gradient(90deg, transparent, #ff69b4, #9b2fc9, transparent);
+  }
+  .ph-footer::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 300px; height: 300px;
+    background: radial-gradient(ellipse, rgba(155,47,201,.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .ph-footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 48px;
+    max-width: 1100px;
+    margin: 0 auto 40px;
+  }
+  .ph-footer-brand {}
+  .ph-footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    text-decoration: none !important;
+  }
+  .ph-footer-logo-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ff69b4, #9b2fc9);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 0 15px rgba(255,105,180,.3);
+    flex-shrink: 0;
+  }
+  .ph-footer-logo-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ff69b4, #cc55ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .ph-footer-desc {
+    color: #5a4a6a;
+    font-size: .85rem;
+    line-height: 1.65;
+    margin-bottom: 20px;
+  }
+  .ph-footer-ip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,105,180,.07);
+    border: 1px solid rgba(255,105,180,.2);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: Consolas, monospace;
+    font-size: .85rem;
+    color: #ff69b4;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .ph-footer-ip:hover {
+    background: rgba(255,105,180,.14);
+    box-shadow: 0 0 15px rgba(255,105,180,.2);
+  }
+  .ph-footer-ip::before { content: '⚡'; }
+
+  .ph-footer-col h4 {
+    font-family: 'Rajdhani', sans-serif !important;
+    font-size: .7rem !important;
+    text-transform: uppercase;
+    letter-spacing: .15em;
+    color: #5a4a6a !important;
+    margin-bottom: 14px;
+  }
+  .ph-footer-col ul {
+    list-style: none;
+    padding: 0; margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ph-footer-col ul li a {
+    color: #8a7a9a !important;
+    text-decoration: none !important;
+    font-size: .85rem;
+    transition: color .2s;
+  }
+  .ph-footer-col ul li a:hover { color: #ff69b4 !important; }
+
+  .ph-footer-bottom {
+    border-top: 1px solid rgba(255,105,180,.1);
+    padding-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1100px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .ph-footer-copy {
+    color: #3a2a4a;
+    font-size: .8rem;
+  }
+  .ph-footer-copy span {
+    background: linear-gradient(135deg, #ff69b4, #9b2fc9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+  }
+  .ph-footer-powered {
+    color: #3a2a4a;
+    font-size: .78rem;
+  }
+
+  @media (max-width: 768px) {
+    .ph-footer-grid { grid-template-columns: 1fr; gap: 32px; }
+    .ph-footer-bottom { flex-direction: column; text-align: center; }
+  }
+</style>
+
+<footer class="ph-footer">
+  <div class="ph-footer-grid">
+    <div class="ph-footer-brand">
+      <a href="/" class="ph-footer-logo">
+        <div class="ph-footer-logo-icon">🌸</div>
+        <span class="ph-footer-logo-name">Pink Horizon</span>
+      </a>
+      <p class="ph-footer-desc">
+        Deutsches Minecraft-Netzwerk mit Survival, Smash the Boss und mehr.<br>
+        Unterstütze den Server und sichere dir exklusive Vorteile!
+      </p>
+      <div class="ph-footer-ip"
+        onclick="navigator.clipboard.writeText('play.pinkhorizon.de').then(()=>this.textContent='✓ Kopiert!').then(()=>setTimeout(()=>this.innerHTML='⚡ play.pinkhorizon.de',1500))">
+        play.pinkhorizon.de
+      </div>
+    </div>
+
+    <div class="ph-footer-col">
+      <h4>Shop</h4>
+      <ul>
+        <li><a href="/">🏠 Startseite</a></li>
+        <li><a href="/categories">📦 Alle Kategorien</a></li>
+        <li><a href="/checkout">🛒 Warenkorb</a></li>
+      </ul>
+    </div>
+
+    <div class="ph-footer-col">
+      <h4>Links</h4>
+      <ul>
+        <li><a href="#">💬 Discord</a></li>
+        <li><a href="#">📋 Regelwerk</a></li>
+        <li><a href="#">📄 Impressum</a></li>
+        <li><a href="#">🔒 Datenschutz</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ph-footer-bottom">
+    <span class="ph-footer-copy">© 2025 <span>Pink Horizon</span>. Alle Rechte vorbehalten.</span>
+    <span class="ph-footer-powered">Powered by Tebex</span>
+  </div>
+</footer>

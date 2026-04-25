@@ -1,0 +1,266 @@
+/* ═══════════════════════════════════════════════════
+   PINK HORIZON – Tebex Custom Theme
+   ═══════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ── Basis ─────────────────────────────────────────── */
+:root {
+  --pink:       #ff69b4;
+  --pink-dark:  #d94f96;
+  --purple:     #9b2fc9;
+  --purple-dark:#6a1f8a;
+  --bg:         #07070d;
+  --bg2:        #0e0e1a;
+  --bg3:        #151525;
+  --border:     rgba(255,105,180,.18);
+  --text:       #e8e0f0;
+  --muted:      #7a6a8a;
+  --glow-pink:  0 0 20px rgba(255,105,180,.35), 0 0 60px rgba(255,105,180,.1);
+  --glow-btn:   0 0 15px rgba(255,105,180,.5);
+  --grad:       linear-gradient(135deg, var(--pink), var(--purple));
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg) !important;
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(155,47,201,.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(255,105,180,.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(100,30,150,.06) 0%, transparent 70%);
+  color: var(--text) !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  min-height: 100vh;
+}
+
+/* Sterne-Hintergrund */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 25%, rgba(255,255,255,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 75% 80%, rgba(255,255,255,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,.5) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 20% 85%, rgba(255,105,180,.8) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 65% 10%, rgba(200,100,255,.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 45% 70%, rgba(255,255,255,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 55%, rgba(255,255,255,.3) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Navbar ────────────────────────────────────────── */
+.navbar, nav, header nav, .store-nav {
+  background: rgba(7,7,13,.85) !important;
+  backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: 0 1px 30px rgba(255,105,180,.08) !important;
+}
+
+.navbar-brand, .store-brand, .brand {
+  font-family: 'Rajdhani', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;
+  background: var(--grad) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.navbar-nav .nav-link, nav a, .nav-item a {
+  color: var(--text) !important;
+  font-weight: 500 !important;
+  transition: color .2s !important;
+}
+.navbar-nav .nav-link:hover, nav a:hover {
+  color: var(--pink) !important;
+}
+
+/* ── Buttons ───────────────────────────────────────── */
+.btn-primary, .btn-success, .btn-buy, .purchase-btn,
+button[class*="primary"], a[class*="primary"],
+.add-to-basket, .checkout-btn {
+  background: var(--grad) !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 10px 22px !important;
+  transition: all .2s !important;
+  box-shadow: var(--glow-btn) !important;
+  font-family: 'Inter', sans-serif !important;
+}
+.btn-primary:hover, .btn-success:hover, .btn-buy:hover,
+.add-to-basket:hover, .purchase-btn:hover {
+  opacity: .85 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 0 25px rgba(255,105,180,.7) !important;
+}
+
+.btn-secondary, .btn-outline, button[class*="secondary"] {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 8px !important;
+  transition: all .2s !important;
+}
+.btn-secondary:hover { border-color: var(--pink) !important; color: var(--pink) !important; }
+
+/* ── Karten / Pakete ───────────────────────────────── */
+.package, .card, .product-card, .package-card,
+.category-card, [class*="package"], [class*="product"] {
+  background: var(--bg2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  transition: all .25s !important;
+  overflow: hidden !important;
+}
+.package:hover, .card:hover, .product-card:hover,
+.package-card:hover, .category-card:hover {
+  border-color: rgba(255,105,180,.45) !important;
+  box-shadow: var(--glow-pink) !important;
+  transform: translateY(-3px) !important;
+}
+
+/* Paket-Titel */
+.package-name, .card-title, .product-name,
+[class*="package-name"], [class*="product-title"] {
+  color: var(--text) !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+}
+
+/* Preis */
+.package-price, .price, .product-price,
+[class*="price"] {
+  color: var(--pink) !important;
+  font-weight: 700 !important;
+  font-family: 'Rajdhani', sans-serif !important;
+  font-size: 1.2rem !important;
+}
+
+/* ── Kategorien ────────────────────────────────────── */
+.category, .category-item, .category-link,
+[class*="category"] a {
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  transition: all .2s !important;
+}
+.category:hover, .category-item:hover, .category-link:hover {
+  color: var(--pink) !important;
+  border-color: var(--pink) !important;
+}
+.category.active, .category-item.active {
+  background: rgba(255,105,180,.1) !important;
+  border-color: var(--pink) !important;
+  color: var(--pink) !important;
+}
+
+/* ── Warenkorb / Sidebar ───────────────────────────── */
+.basket, .cart, .sidebar, .cart-sidebar,
+[class*="basket"], [class*="cart"] {
+  background: var(--bg2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+}
+
+.basket-total, .cart-total, [class*="total"] {
+  color: var(--pink) !important;
+  font-weight: 700 !important;
+}
+
+/* ── Formularfelder ────────────────────────────────── */
+input, select, textarea, .form-control {
+  background: var(--bg3) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 8px !important;
+}
+input:focus, select:focus, textarea:focus, .form-control:focus {
+  border-color: var(--pink) !important;
+  box-shadow: 0 0 0 3px rgba(255,105,180,.15) !important;
+  outline: none !important;
+}
+
+/* ── Breadcrumb / Badges ───────────────────────────── */
+.breadcrumb { background: transparent !important; }
+.breadcrumb-item a { color: var(--pink) !important; }
+.breadcrumb-item.active { color: var(--muted) !important; }
+
+.badge, .tag { background: var(--grad) !important; border-radius: 20px !important; }
+
+/* ── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--purple-dark); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--pink-dark); }
+
+/* ── Trennlinien / Divider ─────────────────────────── */
+hr, .divider { border-color: var(--border) !important; }
+
+/* ── Text ──────────────────────────────────────────── */
+h1, h2, h3, h4, h5 { color: var(--text) !important; font-family: 'Rajdhani', sans-serif !important; font-weight: 700 !important; }
+p, span, li, td, th { color: var(--text) !important; }
+a { color: var(--pink) !important; }
+a:hover { color: var(--pink-dark) !important; }
+.text-muted, .muted { color: var(--muted) !important; }
+
+/* ── Tabellen ──────────────────────────────────────── */
+table { background: var(--bg2) !important; }
+thead th { background: var(--bg3) !important; border-color: var(--border) !important; color: var(--muted) !important; font-size: .78rem !important; text-transform: uppercase !important; letter-spacing: .08em !important; }
+tbody td { border-color: var(--border) !important; }
+tbody tr:hover td { background: rgba(255,105,180,.04) !important; }
+
+/* ── Alerts / Nachrichten ──────────────────────────── */
+.alert-success { background: rgba(46,204,113,.1) !important; border-color: rgba(46,204,113,.3) !important; color: #2ecc71 !important; }
+.alert-danger  { background: rgba(231,76,60,.1)  !important; border-color: rgba(231,76,60,.3)  !important; color: #e74c3c !important; }
+.alert-info    { background: rgba(255,105,180,.1) !important; border-color: var(--border)       !important; color: var(--pink) !important; }
+
+/* ── Footer ────────────────────────────────────────── */
+footer, .footer, .store-footer {
+  background: rgba(7,7,13,.95) !important;
+  border-top: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+  margin-top: 60px !important;
+}
+footer a, .footer a { color: var(--pink) !important; }
+
+/* ── Paket-Image Overlay ───────────────────────────── */
+.package-image, .product-image, [class*="package"] img {
+  border-radius: 10px 10px 0 0 !important;
+  filter: brightness(.95) saturate(1.1) !important;
+}
+
+/* ── Checkout-Schritte ─────────────────────────────── */
+.step, .checkout-step, [class*="step"] {
+  border-color: var(--border) !important;
+  color: var(--muted) !important;
+}
+.step.active, .checkout-step.active {
+  border-color: var(--pink) !important;
+  color: var(--pink) !important;
+  background: rgba(255,105,180,.1) !important;
+}
+
+/* ── Glow-Akzent für Featured-Pakete ──────────────── */
+.featured, .highlighted, [class*="featured"] {
+  border-color: var(--pink) !important;
+  box-shadow: var(--glow-pink) !important;
+  position: relative;
+}
+.featured::before {
+  content: '★ Featured';
+  position: absolute;
+  top: -1px; right: 16px;
+  background: var(--grad);
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 0 0 8px 8px;
+  letter-spacing: .05em;
+}

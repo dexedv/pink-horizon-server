@@ -1,0 +1,137 @@
+<!-- PINK HORIZON – Custom Header -->
+<style>
+  .ph-header {
+    width: 100%;
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(7,7,13,.9);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255,105,180,.18);
+    box-shadow: 0 2px 40px rgba(155,47,201,.12);
+    position: relative;
+    z-index: 100;
+  }
+  .ph-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none !important;
+  }
+  .ph-logo-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ff69b4, #9b2fc9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    box-shadow: 0 0 20px rgba(255,105,180,.4);
+    flex-shrink: 0;
+  }
+  .ph-logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+  .ph-logo-name {
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ff69b4, #cc55ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: .03em;
+  }
+  .ph-logo-sub {
+    font-size: .72rem;
+    color: #7a6a8a;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .ph-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ph-nav a {
+    color: #c8b8d8 !important;
+    text-decoration: none !important;
+    font-size: .88rem;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all .2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .ph-nav a:hover {
+    color: #ff69b4 !important;
+    background: rgba(255,105,180,.08);
+    border-color: rgba(255,105,180,.2);
+  }
+  .ph-ip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,105,180,.07);
+    border: 1px solid rgba(255,105,180,.2);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: .82rem;
+    color: #ff69b4;
+    font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none !important;
+  }
+  .ph-ip:hover {
+    background: rgba(255,105,180,.14);
+    box-shadow: 0 0 15px rgba(255,105,180,.2);
+    color: #ff69b4 !important;
+  }
+  .ph-ip::before { content: '⚡'; font-size: .9rem; }
+
+  /* Glow-Linie unter dem Header */
+  .ph-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #ff69b4, #9b2fc9, transparent);
+  }
+
+  @media (max-width: 768px) {
+    .ph-header { padding: 14px 20px; flex-wrap: wrap; gap: 12px; }
+    .ph-nav { display: none; }
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<header class="ph-header">
+  <a href="/" class="ph-logo">
+    <div class="ph-logo-icon">🌸</div>
+    <div class="ph-logo-text">
+      <span class="ph-logo-name">Pink Horizon</span>
+      <span class="ph-logo-sub">Minecraft Network</span>
+    </div>
+  </a>
+
+  <nav class="ph-nav">
+    <a href="/">🏠 Shop</a>
+    <a href="/categories">📦 Kategorien</a>
+  </nav>
+
+  <a class="ph-ip" onclick="navigator.clipboard.writeText('play.pinkhorizon.de').then(()=>this.textContent='✓ Kopiert!').then(()=>setTimeout(()=>this.innerHTML='⚡ play.pinkhorizon.de',1500))">
+    play.pinkhorizon.de
+  </a>
+</header>
