@@ -1,24 +1,24 @@
 {
   "model": {
-    "type": "minecraft:select",
+    "type": "minecraft:range_dispatch",
     "property": "minecraft:custom_model_data",
     "index": 0,
-    "cases": [
-      {"when": 1001.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_wald"}},
-      {"when": 1002.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_ozean"}},
-      {"when": 1003.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_wueste"}},
-      {"when": 1004.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_feuer"}},
-      {"when": 1005.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_eis"}},
-      {"when": 1006.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_nether"}},
-      {"when": 1007.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_drache"}},
-      {"when": 1008.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_kristall"}},
-      {"when": 1009.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_schatten"}},
-      {"when": 1010.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_legende"}},
-      {"when": 1011.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_galaxie"}}
-    ],
     "fallback": {
       "type": "minecraft:model",
       "model": "item/diamond_sword"
-    }
+    },
+    "entries": [
+      {"threshold": 1001.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_wald"}},
+      {"threshold": 1002.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_ozean"}},
+      {"threshold": 1003.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_wueste"}},
+      {"threshold": 1004.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_feuer"}},
+      {"threshold": 1005.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_eis"}},
+      {"threshold": 1006.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_nether"}},
+      {"threshold": 1007.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_drache"}},
+      {"threshold": 1008.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_kristall"}},
+      {"threshold": 1009.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_schatten"}},
+      {"threshold": 1010.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_legende"}},
+      {"threshold": 1011.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_galaxie"}}
+    ]
   }
 }
