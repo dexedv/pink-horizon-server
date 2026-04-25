@@ -66,7 +66,7 @@ public class HopperUpgradeListener implements Listener {
         return block;
     }
 
-    // ── Shift + Rechtsklick → GUI ─────────────────────────────────────────
+    // ── Rechtsklick mit Stock → GUI ───────────────────────────────────────
 
     @EventHandler(priority = EventPriority.LOW)
     public void onInteract(PlayerInteractEvent event) {
@@ -75,7 +75,7 @@ public class HopperUpgradeListener implements Listener {
         Block block = event.getClickedBlock();
         if (block == null || block.getType() != Material.HOPPER) return;
         Player player = event.getPlayer();
-        if (!player.isSneaking()) return;
+        if (player.getInventory().getItemInMainHand().getType() != Material.STICK) return;
         event.setCancelled(true);
         gui.open(player, block);
     }

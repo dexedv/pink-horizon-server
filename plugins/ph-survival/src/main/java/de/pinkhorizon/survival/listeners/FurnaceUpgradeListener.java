@@ -67,7 +67,7 @@ public class FurnaceUpgradeListener implements Listener {
         }
     }
 
-    // ── Shift + Rechtsklick → GUI ─────────────────────────────────────────
+    // ── Rechtsklick mit Stock → GUI ───────────────────────────────────────
 
     @EventHandler(priority = EventPriority.LOW)
     public void onInteract(PlayerInteractEvent event) {
@@ -76,7 +76,7 @@ public class FurnaceUpgradeListener implements Listener {
         Block block = event.getClickedBlock();
         if (block == null || !FURNACE_TYPES.contains(block.getType())) return;
         Player player = event.getPlayer();
-        if (!player.isSneaking()) return;
+        if (player.getInventory().getItemInMainHand().getType() != Material.STICK) return;
         event.setCancelled(true);
         gui.open(player, block);
     }
