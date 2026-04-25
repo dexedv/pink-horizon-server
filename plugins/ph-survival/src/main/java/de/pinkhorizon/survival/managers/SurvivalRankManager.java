@@ -52,9 +52,9 @@ public class SurvivalRankManager {
         RANKS.put("supporter", new Rank("supporter", "\u00a73\u00a7l[Support] ", TextColor.color(0x00AAAA),    50,  6, 15, 0.04,   200_000L, 5));
         RANKS.put("vip",       new Rank("vip",       "\u00a76[VIP] ",            NamedTextColor.GOLD,           20,  3, 10, 0.04,   200_000L, 6));
         // Shop-Ränge
-        RANKS.put("legende",   new Rank("legende",   "\u00a7d[\u00a75\u2756 Legende\u00a7d] ", TextColor.color(0xFF69B4), 40, 4, 15, 0.08, 300_000L, 7));
-        RANKS.put("krieger",   new Rank("krieger",   "\u00a76[Krieger] ",         NamedTextColor.GOLD,           30,  3, 10, 0.06, 200_000L, 8));
-        RANKS.put("siedler",   new Rank("siedler",   "\u00a7a[Siedler] ",         NamedTextColor.GREEN,          20,  2,  7, 0.04, 150_000L, 9));
+        RANKS.put("legende",   new Rank("legende",   "\u00a7d[\u00a75\u2756 Legende\u00a7d] ", TextColor.color(0xFF69B4), 40, 8, 15, 0.08, 300_000L, 7));
+        RANKS.put("krieger",   new Rank("krieger",   "\u00a76[Krieger] ",         NamedTextColor.GOLD,           30,  6, 10, 0.06, 200_000L, 8));
+        RANKS.put("siedler",   new Rank("siedler",   "\u00a7a[Siedler] ",         NamedTextColor.GREEN,          20,  4,  7, 0.04, 150_000L, 9));
         RANKS.put("spieler",   new Rank("spieler",   "",                         NamedTextColor.WHITE,           10,  2,  5, 0.02, 100_000L, 10));
     }
 
