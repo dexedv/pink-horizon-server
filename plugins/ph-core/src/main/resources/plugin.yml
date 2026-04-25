@@ -20,6 +20,10 @@ commands:
     description: Netzwerk-Neustart mit Countdown anstoßen
     usage: /networkrestart <minuten>
     permission: pinkhorizon.admin
+  phrank:
+    description: Rang eines Spielers setzen
+    usage: /phrank set <Spieler> <Rang>
+    permission: pinkhorizon.admin
 
 permissions:
   pinkhorizon.admin:

@@ -3,6 +3,7 @@ package de.pinkhorizon.core;
 import de.pinkhorizon.core.commands.HubCommand;
 import de.pinkhorizon.core.commands.MsgCommand;
 import de.pinkhorizon.core.commands.NetworkRestartCommand;
+import de.pinkhorizon.core.commands.RankCommand;
 import de.pinkhorizon.core.commands.ReportCommand;
 import de.pinkhorizon.core.database.DatabaseManager;
 import de.pinkhorizon.core.database.RankRepository;
@@ -41,6 +42,9 @@ public class PHCore extends JavaPlugin {
 
         // Commands registrieren
         getCommand("hub").setExecutor(new HubCommand(this));
+        RankCommand rankCmd = new RankCommand(this);
+        getCommand("phrank").setExecutor(rankCmd);
+        getCommand("phrank").setTabCompleter(rankCmd);
         getCommand("msg").setExecutor(new MsgCommand(this));
         getCommand("report").setExecutor(new ReportCommand(this));
         NetworkRestartCommand nrCmd = new NetworkRestartCommand(this);

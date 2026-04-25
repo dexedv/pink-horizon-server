@@ -22,8 +22,10 @@ public class ChatListener implements Listener {
         String message = PlainTextComponentSerializer.plainText().serialize(event.message());
 
         String rankId = plugin.getRankRepository().getRank(event.getPlayer().getUniqueId());
-        String rankDisplay = rankId == null || rankId.isBlank() ? "Spieler"
-            : rankId.substring(0, 1).toUpperCase() + rankId.substring(1);
+        String rankDisplay = plugin.getConfig().getString(
+            "ranks." + (rankId == null || rankId.isBlank() ? "spieler" : rankId) + ".display",
+            "&7[Spieler]"
+        );
 
         String formatted = format
                 .replace("{player}", playerName)

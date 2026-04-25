@@ -16,7 +16,29 @@ messages:
   player-not-found: '&cSpieler nicht gefunden!'
 
 chat:
-  format: '&7[{rank}] &f{player}: &7{message}'
+  format: '{rank} &f{player}&7: &f{message}'
+
+# Rang-Definitionen – display wird im Chat und bei /phrank angezeigt
+ranks:
+  spieler:
+    display: '&7[Spieler]'
+  vip:
+    display: '&a[VIP]'
+  vip_plus:
+    display: '&b[VIP&f+&b]'
+  mvp:
+    display: '&6[MVP]'
+  mvp_plus:
+    display: '&c[MVP&f+&c]'
+  legende:
+    display: '&d[&5✦ Legende&d]'
+  # Staff
+  mod:
+    display: '&2[Mod]'
+  admin:
+    display: '&4[Admin]'
+  owner:
+    display: '&4&l[Owner]'
 
 # VoteShop – wird auf allen Servern genutzt die ph-core als Dependency haben
 vote-shop:
