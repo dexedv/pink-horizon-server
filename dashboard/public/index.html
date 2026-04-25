@@ -428,16 +428,26 @@ const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-smash
 
 // ── Rang-Definitionen ─────────────────────────────────────────────────────
 const RANK_DEFS = [
-  { id:'owner',     label:'Owner',     color:'#ff4444', bg:'rgba(255,68,68,.1)',  border:'rgba(255,68,68,.3)',  icon:'👑', desc:'Serverbesitzer'  },
-  { id:'admin',     label:'Admin',     color:'#ff7722', bg:'rgba(255,119,34,.1)', border:'rgba(255,119,34,.3)', icon:'⚙️',  desc:'Administrator'   },
-  { id:'dev',       label:'DEV',       color:'#aa44ff', bg:'rgba(170,68,255,.1)', border:'rgba(170,68,255,.3)', icon:'💻', desc:'Entwickler'       },
-  { id:'moderator', label:'Moderator', color:'#3388ff', bg:'rgba(51,136,255,.1)', border:'rgba(51,136,255,.3)', icon:'🛡️', desc:'Moderator'        },
-  { id:'supporter', label:'Supporter', color:'#00ccaa', bg:'rgba(0,204,170,.1)',  border:'rgba(0,204,170,.3)',  icon:'🎧', desc:'Support-Team'     },
-  { id:'vip',       label:'VIP',       color:'#ffcc00', bg:'rgba(255,204,0,.1)',  border:'rgba(255,204,0,.3)',  icon:'⭐', desc:'VIP-Spieler'      },
-  { id:'legende',   label:'Legende',   color:'#ff69b4', bg:'rgba(255,105,180,.1)',border:'rgba(255,105,180,.3)',icon:'✦', desc:'Shop-Rang (30€)'  },
-  { id:'krieger',   label:'Krieger',   color:'#ffaa00', bg:'rgba(255,170,0,.1)',  border:'rgba(255,170,0,.3)',  icon:'⚔️', desc:'Shop-Rang (20€)'  },
-  { id:'siedler',   label:'Siedler',   color:'#55cc55', bg:'rgba(85,204,85,.1)',  border:'rgba(85,204,85,.3)',  icon:'🏡', desc:'Shop-Rang (10€)'  },
-  { id:'spieler',   label:'Spieler',   color:'#888888', bg:'rgba(136,136,136,.1)',border:'rgba(136,136,136,.3)',icon:'🎮', desc:'Standard-Rang'    },
+  { id:'owner',     label:'Owner',     color:'#ff4444', bg:'rgba(255,68,68,.1)',  border:'rgba(255,68,68,.3)',  icon:'👑', desc:'Serverbesitzer',
+    perks:['9999 Claims','20 Homes','99 AH-Slots','8% Zinsen (bis 1M)','Alle Admin-Commands','/nick · /ptime · /pweather'] },
+  { id:'admin',     label:'Admin',     color:'#ff7722', bg:'rgba(255,119,34,.1)', border:'rgba(255,119,34,.3)', icon:'⚙️',  desc:'Administrator',
+    perks:['9999 Claims','15 Homes','99 AH-Slots','8% Zinsen (bis 1M)','Alle Admin-Commands','/nick · /ptime · /pweather'] },
+  { id:'dev',       label:'DEV',       color:'#aa44ff', bg:'rgba(170,68,255,.1)', border:'rgba(170,68,255,.3)', icon:'💻', desc:'Entwickler',
+    perks:['9999 Claims','15 Homes','99 AH-Slots','8% Zinsen (bis 1M)','Alle Admin-Commands','/nick · /ptime · /pweather'] },
+  { id:'moderator', label:'Moderator', color:'#3388ff', bg:'rgba(51,136,255,.1)', border:'rgba(51,136,255,.3)', icon:'🛡️', desc:'Moderator',
+    perks:['100 Claims','8 Homes','20 AH-Slots','4% Zinsen (bis 200K)','Kick/Ban-Rechte'] },
+  { id:'supporter', label:'Supporter', color:'#00ccaa', bg:'rgba(0,204,170,.1)',  border:'rgba(0,204,170,.3)',  icon:'🎧', desc:'Support-Team',
+    perks:['50 Claims','6 Homes','15 AH-Slots','4% Zinsen (bis 200K)'] },
+  { id:'vip',       label:'VIP',       color:'#ffcc00', bg:'rgba(255,204,0,.1)',  border:'rgba(255,204,0,.3)',  icon:'⭐', desc:'VIP-Spieler',
+    perks:['20 Claims','3 Homes','10 AH-Slots','4% Zinsen (bis 200K)'] },
+  { id:'legende',   label:'Legende',   color:'#ff69b4', bg:'rgba(255,105,180,.1)',border:'rgba(255,105,180,.3)',icon:'✦', desc:'Shop-Rang · 30€',
+    perks:['40 Claims','4 Homes','15 AH-Slots','8% Zinsen (bis 300K)','/nick · /ptime · /pweather'] },
+  { id:'krieger',   label:'Krieger',   color:'#ffaa00', bg:'rgba(255,170,0,.1)',  border:'rgba(255,170,0,.3)',  icon:'⚔️', desc:'Shop-Rang · 20€',
+    perks:['30 Claims','3 Homes','10 AH-Slots','6% Zinsen (bis 200K)','/nick · /ptime · /pweather'] },
+  { id:'siedler',   label:'Siedler',   color:'#55cc55', bg:'rgba(85,204,85,.1)',  border:'rgba(85,204,85,.3)',  icon:'🏡', desc:'Shop-Rang · 10€',
+    perks:['20 Claims','2 Homes','7 AH-Slots','4% Zinsen (bis 150K)','/nick · /ptime · /pweather'] },
+  { id:'spieler',   label:'Spieler',   color:'#888888', bg:'rgba(136,136,136,.1)',border:'rgba(136,136,136,.3)',icon:'🎮', desc:'Standard-Rang',
+    perks:['10 Claims','2 Homes','5 AH-Slots','2% Zinsen (bis 100K)'] },
 ];
 
 function rankDef(id) { return RANK_DEFS.find(r=>r.id===id) || RANK_DEFS.find(r=>r.id==='spieler'); }
@@ -1504,11 +1514,16 @@ function renderPermRanks(el) {
           ${RANK_DEFS.map((r,i)=>`
             <div class="rank-card" style="border-color:${r.border};background:${r.bg}">
               <span class="rank-icon">${r.icon}</span>
-              <div>
-                <div class="rank-label" style="color:${r.color}">${r.label}</div>
-                <div class="rank-desc">${r.desc}</div>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="rank-label" style="color:${r.color}">${r.label}</div>
+                  <span style="color:var(--muted);font-size:.75rem">${r.desc}</span>
+                  <span style="color:var(--muted);font-size:.75rem;margin-left:auto">#${i+1}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
+                  ${(r.perks||[]).map(p=>`<span style="font-size:.72rem;padding:2px 7px;border-radius:5px;border:1px solid ${r.border};color:${r.color};background:${r.bg}">${p}</span>`).join('')}
+                </div>
               </div>
-              <span style="color:var(--muted);font-size:.78rem;margin-left:auto">#${i+1}</span>
             </div>`).join('')}
         </div>
       </div>
