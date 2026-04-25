@@ -167,32 +167,6 @@ public class PHLobby extends JavaPlugin {
             return true;
         });
 
-        // Stündlicher Vote-Broadcast (alle 72000 Ticks = 1 Stunde)
-        long delay = 72000L;
-        getServer().getScheduler().runTaskTimerAsynchronously(this, () -> {
-            net.kyori.adventure.text.format.TextColor PINK       = net.kyori.adventure.text.format.TextColor.color(0xFF69B4);
-            net.kyori.adventure.text.format.TextColor LIGHT_PINK = net.kyori.adventure.text.format.TextColor.color(0xFFB6C1);
-            net.kyori.adventure.text.Component line = net.kyori.adventure.text.Component.text("─────────────────────────────────", PINK);
-            net.kyori.adventure.text.Component voteCmd = net.kyori.adventure.text.Component.text("/vote", LIGHT_PINK, net.kyori.adventure.text.format.TextDecoration.BOLD)
-                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/vote"))
-                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text("Klicken zum Voten!", net.kyori.adventure.text.format.NamedTextColor.GRAY)));
-            net.kyori.adventure.text.Component hubCmd = net.kyori.adventure.text.Component.text("/hub", LIGHT_PINK, net.kyori.adventure.text.format.TextDecoration.BOLD)
-                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/hub"))
-                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text("Zur Lobby teleportieren!", net.kyori.adventure.text.format.NamedTextColor.GRAY)));
-            for (org.bukkit.entity.Player p : getServer().getOnlinePlayers()) {
-                p.sendMessage(line);
-                p.sendMessage(net.kyori.adventure.text.Component.text(" 💖 ", net.kyori.adventure.text.format.NamedTextColor.WHITE)
-                    .append(net.kyori.adventure.text.Component.text("Unterstütze Pink Horizon!", PINK, net.kyori.adventure.text.format.TextDecoration.BOLD)));
-                p.sendMessage(net.kyori.adventure.text.Component.text("   Nutze ", net.kyori.adventure.text.format.NamedTextColor.GRAY)
-                    .append(voteCmd)
-                    .append(net.kyori.adventure.text.Component.text(" und verdiene VoteCoins!", net.kyori.adventure.text.format.NamedTextColor.GRAY)));
-                p.sendMessage(net.kyori.adventure.text.Component.text("   Nicht in der Lobby? Komm mit ", net.kyori.adventure.text.format.NamedTextColor.GRAY)
-                    .append(hubCmd)
-                    .append(net.kyori.adventure.text.Component.text(" zurück!", net.kyori.adventure.text.format.NamedTextColor.GRAY)));
-                p.sendMessage(line);
-            }
-        }, delay, delay);
-
         getLogger().info("PH-Lobby gestartet!");
     }
 
