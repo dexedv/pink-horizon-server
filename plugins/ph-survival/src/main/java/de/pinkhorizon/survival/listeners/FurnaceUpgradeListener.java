@@ -11,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.FurnaceSmeltEvent;
 import org.bukkit.event.inventory.FurnaceStartSmeltEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -51,6 +52,19 @@ public class FurnaceUpgradeListener implements Listener {
         int level = plugin.getFurnaceUpgradeManager().getLevel(event.getBlock());
         if (level <= 1) return;
         event.setTotalCookTime(plugin.getFurnaceUpgradeManager().getCookTicks(event.getBlock()));
+    }
+
+    // ── Doppel-Output (Fortune-Upgrade) ──────────────────────────────────
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onSmelt(FurnaceSmeltEvent event) {
+        int chancePct = plugin.getFurnaceUpgradeManager().getFortuneChancePct(event.getBlock());
+        if (chancePct <= 0) return;
+        if (Math.random() * 100 < chancePct) {
+            ItemStack result = event.getResult().clone();
+            result.setAmount(Math.min(result.getAmount() * 2, result.getMaxStackSize()));
+            event.setResult(result);
+        }
     }
 
     // ── Shift + Rechtsklick → GUI ─────────────────────────────────────────

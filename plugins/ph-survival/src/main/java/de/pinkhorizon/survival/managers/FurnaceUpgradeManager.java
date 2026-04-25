@@ -32,18 +32,27 @@ public class FurnaceUpgradeManager {
 
     // Lv1=10%, Lv10=200% (linear: +~21.1% pro Stufe)
     // CookTicks = 200 / (1 + speed/100), gerundet
-    private static final int[] COOK_TICKS = { 0, 182, 153, 132, 116, 103, 93, 85, 78, 72, 67 };
+    public  static final int[] COOK_TICKS = { 0, 182, 153, 132, 116, 103, 93, 85, 78, 72, 67 };
     public  static final long[] COSTS     = { 0, 0, 1_000, 2_500, 5_000, 10_000, 20_000, 40_000, 70_000, 110_000, 150_000 };
     public  static final String[] NAMES   = { "", "Normal", "Verbessert", "Schnell", "Präzise", "Blitz", "Turbo", "Ultra", "Hyper", "Quantum", "Plasma" };
     public  static final int[] SPEED_PCT  = { 0, 10, 31, 52, 73, 94, 115, 136, 157, 178, 200 };
+
+    // ── Fortune-Upgrade (Doppel-Output-Chance) ────────────────────────────
+    public static final int MAX_FORTUNE_LEVEL = 10;
+    // 5% pro Stufe, linear: Lv1=5%, Lv10=50%
+    public static final int[]  FORTUNE_CHANCE_PCT = { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50 };
+    public static final long[] FORTUNE_COSTS      = { 0, 1_000, 3_000, 6_000, 12_000, 22_000, 38_000, 60_000, 90_000, 120_000, 150_000 };
+    public static final String[] FORTUNE_NAMES    = { "", "Glücklich", "Ertragreich", "Üppig", "Gesegnet", "Prosper", "Fruchtbar", "Goldgriff", "Schicksalhaft", "Legendär", "Goldener Touch" };
 
     private final PHSurvival plugin;
     private final NamespacedKey itemKey;  // UUID auf Item-PDC
 
     // coordinate key ("world;x;y;z") → furnace UUID
-    private final Map<String, String> locToId    = new HashMap<>();
-    // furnace UUID → level
-    private final Map<String, Integer> idToLevel = new HashMap<>();
+    private final Map<String, String>  locToId    = new HashMap<>();
+    // furnace UUID → speed level
+    private final Map<String, Integer> idToLevel  = new HashMap<>();
+    // furnace UUID → fortune level (0 = kein Upgrade)
+    private final Map<String, Integer> idToFortune = new HashMap<>();
 
     public FurnaceUpgradeManager(PHSurvival plugin) {
         this.plugin  = plugin;
@@ -87,6 +96,13 @@ public class FurnaceUpgradeManager {
                     plugin.getLogger().info("[FurnaceUpgrade] owner_uuid Spalte hinzugefügt.");
                 }
             }
+            // fortune_level nachträglich hinzufügen (Doppel-Output-Upgrade)
+            try (ResultSet rs = c.getMetaData().getColumns(null, null, "sv_furnace_upgrades", "fortune_level")) {
+                if (!rs.next()) {
+                    s.execute("ALTER TABLE sv_furnace_upgrades ADD COLUMN fortune_level TINYINT NOT NULL DEFAULT 0");
+                    plugin.getLogger().info("[FurnaceUpgrade] fortune_level Spalte hinzugefügt.");
+                }
+            }
         } catch (SQLException e) {
             plugin.getLogger().warning("[FurnaceUpgrade] Tabelle: " + e.getMessage());
         }
@@ -95,12 +111,13 @@ public class FurnaceUpgradeManager {
     private void loadAll() {
         try (Connection c = con();
              PreparedStatement ps = c.prepareStatement(
-                 "SELECT furnace_id, level, world, x, y, z FROM sv_furnace_upgrades");
+                 "SELECT furnace_id, level, fortune_level, world, x, y, z FROM sv_furnace_upgrades");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 String id    = rs.getString("furnace_id");
                 int    level = rs.getInt("level");
                 idToLevel.put(id, level);
+                idToFortune.put(id, rs.getInt("fortune_level"));
                 String world = rs.getString("world");
                 if (world != null) {
                     locToId.put(world + ";" + rs.getInt("x") + ";" + rs.getInt("y") + ";" + rs.getInt("z"), id);
@@ -178,6 +195,49 @@ public class FurnaceUpgradeManager {
         if (!plugin.getEconomyManager().withdraw(player.getUniqueId(), COSTS[next])) return false;
         setLevel(block, next, player.getUniqueId().toString());
         return true;
+    }
+
+    // ── Fortune-API ───────────────────────────────────────────────────────
+
+    public int getFortuneLevel(Block block) {
+        String id = locToId.get(coordKey(block));
+        if (id == null) return 0;
+        return idToFortune.getOrDefault(id, 0);
+    }
+
+    /** Gibt die Fortune-Chance in Prozent zurück (0 = kein Fortune-Upgrade). */
+    public int getFortuneChancePct(Block block) {
+        int level = getFortuneLevel(block);
+        return level > 0 ? FORTUNE_CHANCE_PCT[level] : 0;
+    }
+
+    public boolean tryUpgradeFortune(Block block, org.bukkit.entity.Player player) {
+        int current = getFortuneLevel(block);
+        if (current >= MAX_FORTUNE_LEVEL) return false;
+        int next = current + 1;
+        if (!plugin.getEconomyManager().withdraw(player.getUniqueId(), FORTUNE_COSTS[next])) return false;
+        setFortuneLevel(block, next, player.getUniqueId().toString());
+        return true;
+    }
+
+    private void setFortuneLevel(Block block, int fortuneLevel, String ownerUuid) {
+        String id = locToId.get(coordKey(block));
+        if (id == null) {
+            // Noch kein Speed-Upgrade vorhanden → neuen DB-Eintrag anlegen
+            id = UUID.randomUUID().toString();
+            locToId.put(coordKey(block), id);
+            idToLevel.put(id, 1);
+            idToFortune.put(id, fortuneLevel);
+            insertWithFortune(id, 1, fortuneLevel, block, ownerUuid);
+        } else {
+            idToFortune.put(id, fortuneLevel);
+            if (ownerUuid != null) {
+                db("UPDATE sv_furnace_upgrades SET fortune_level=?, owner_uuid=COALESCE(owner_uuid,?) WHERE furnace_id=?",
+                   fortuneLevel, ownerUuid, id);
+            } else {
+                db("UPDATE sv_furnace_upgrades SET fortune_level=? WHERE furnace_id=?", fortuneLevel, id);
+            }
+        }
     }
 
     /** Setzt Level – generiert beim ersten Mal eine neue UUID. */
@@ -259,9 +319,15 @@ public class FurnaceUpgradeManager {
     }
 
     private void insertOrUpdate(String id, int level, Block block, String ownerUuid) {
-        db("INSERT INTO sv_furnace_upgrades (furnace_id,level,owner_uuid,world,x,y,z) VALUES(?,?,?,?,?,?,?) " +
+        db("INSERT INTO sv_furnace_upgrades (furnace_id,level,owner_uuid,world,x,y,z,fortune_level) VALUES(?,?,?,?,?,?,?,0) " +
            "ON DUPLICATE KEY UPDATE level=VALUES(level),world=VALUES(world),x=VALUES(x),y=VALUES(y),z=VALUES(z)",
            id, level, ownerUuid, block.getWorld().getName(), block.getX(), block.getY(), block.getZ());
+    }
+
+    private void insertWithFortune(String id, int level, int fortuneLevel, Block block, String ownerUuid) {
+        db("INSERT INTO sv_furnace_upgrades (furnace_id,level,owner_uuid,world,x,y,z,fortune_level) VALUES(?,?,?,?,?,?,?,?) " +
+           "ON DUPLICATE KEY UPDATE fortune_level=VALUES(fortune_level),world=VALUES(world),x=VALUES(x),y=VALUES(y),z=VALUES(z)",
+           id, level, ownerUuid, block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), fortuneLevel);
     }
 
     private void updateLevelAsync(String id, int level) {
