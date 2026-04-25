@@ -43,7 +43,7 @@ public class SurvivalRankManager {
         RANKS.put("dev",       new Rank("dev",       "\u00a7b\u00a7l[DEV] ",     TextColor.color(0x00CCCC),  9999, 15, 3));
         RANKS.put("moderator", new Rank("moderator", "\u00a79\u00a7l[Mod] ",     NamedTextColor.BLUE,         100,  8, 4));
         RANKS.put("supporter", new Rank("supporter", "\u00a73\u00a7l[Support] ", TextColor.color(0x00AAAA),   50,   6, 5));
-        RANKS.put("vip",       new Rank("vip",       "\u00a76[VIP] ",            NamedTextColor.GOLD,          15,  3, 6));
+        RANKS.put("vip",       new Rank("vip",       "\u00a76[VIP] ",            NamedTextColor.GOLD,          20,  3, 6));
         RANKS.put("spieler",   new Rank("spieler",   "",                         NamedTextColor.WHITE,         10,  2, 7));
     }
 
