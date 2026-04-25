@@ -180,6 +180,11 @@ commands:
     description: Extra Home-Slots für einen Spieler hinzufügen (Admin)
     usage: /homeadd <Spieler> <Anzahl>
     permission: survival.admin
+  adminpanel:
+    description: Admin-Panel öffnen
+    usage: /adminpanel
+    aliases: [ap, admin]
+    permission: survival.admin
   spawnershop:
     description: Spawner-Shop öffnen
     usage: /spawnershop
