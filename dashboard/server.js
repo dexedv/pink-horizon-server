@@ -630,12 +630,19 @@ app.post('/api/broadcast', auth, async (req, res) => {
   const { message } = req.body;
   if (!message?.trim()) return res.status(400).json({ error: 'Keine Nachricht' });
   const results = {};
+  const tellraw = JSON.stringify([
+    { text: '[Dashboard] ', color: 'light_purple', bold: true },
+    { text: message.trim(), color: 'white' }
+  ]);
   for (const [key, cfg] of Object.entries(SERVERS)) {
     if (!cfg.rcon) continue;
-    try { await rconSend(cfg.rcon, `broadcast ${message}`); results[key] = true; }
-    catch { results[key] = false; }
+    try {
+      const out = await rconSend(cfg.rcon, `tellraw @a ${tellraw}`);
+      results[key] = !String(out).toLowerCase().includes('unknown command');
+    } catch { results[key] = false; }
   }
-  res.json({ ok: true, results });
+  const anyOk = Object.values(results).some(v => v);
+  res.json({ ok: anyOk, results });
 });
 
 // ── Container-Ressourcen ──────────────────────────────────────────────────

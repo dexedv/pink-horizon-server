@@ -468,6 +468,7 @@ const NAV_DEF = [
   { id:'con_survival', dot:true,  label:'Survival',       srv:'survival'  },
   { id:'con_smash',    dot:true,  label:'Smash the Boss', srv:'smash' },
   { sec: 'Survival' },
+  { id:'survival_dash',icon:'🌿', label:'Survival'        },
   { id:'players',      icon:'👥', label:'Spieler'         },
   { id:'permissions',  icon:'🎖️', label:'Permissions'    },
   { id:'economy',      icon:'💰', label:'Wirtschaft'      },
@@ -559,9 +560,10 @@ function renderPage() {
   if (PAGE === 'vote_lb')      return renderVoteLb();
   if (PAGE === 'discord_sync') return renderDiscordSync();
   if (PAGE === 'net_events')   return renderNetEvents();
-  if (PAGE === 'sysmon')       return renderSysmon();
-  if (PAGE === 'audit')        return renderAudit();
-  if (PAGE === 'database')     return renderDatabase();
+  if (PAGE === 'sysmon')        return renderSysmon();
+  if (PAGE === 'audit')         return renderAudit();
+  if (PAGE === 'database')      return renderDatabase();
+  if (PAGE === 'survival_dash') return renderSurvivalDash();
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -578,15 +580,6 @@ async function renderDash() {
       <span class="bcast-label">📡 Broadcast:</span>
       <input class="field bcast-input" id="bcast-msg" placeholder="Nachricht an alle Server…" onkeydown="if(event.key==='Enter')doBroadcast()">
       <button class="btn btn-p" onclick="doBroadcast()">Senden</button>
-    </div>
-    <div class="qa-bar">
-      <span class="qa-label">⚡ Quick-Actions (Survival):</span>
-      <button class="qa-btn" onclick="doQuickAction('survival','time_day')">☀️ Tag</button>
-      <button class="qa-btn" onclick="doQuickAction('survival','time_night')">🌙 Nacht</button>
-      <button class="qa-btn" onclick="doQuickAction('survival','weather_clear')">🌤 Klar</button>
-      <button class="qa-btn" onclick="doQuickAction('survival','weather_rain')">🌧 Regen</button>
-      <button class="qa-btn" onclick="doQuickAction('survival','itemclear')">🗑 Itemclear</button>
-      <button class="qa-btn" onclick="doQuickAction('survival','save_all')">💾 Save</button>
     </div>
     <div class="g3" id="srv-cards"><div class="empty">Lade…</div></div>
     <div class="g4" id="stat-row"></div>
@@ -839,8 +832,8 @@ function updateDashStats(data) {
   }
 }
 
-async function loadDbStatus() {
-  const el = document.getElementById('db-section');
+async function loadDbStatus(elementId = 'db-section') {
+  const el = document.getElementById(elementId);
   if (!el) return;
   const r = await apiFetch('/api/databases');
   if (!r?.ok) { el.innerHTML='<div class="empty">Datenbankstatus nicht verfügbar</div>'; return; }
@@ -3073,9 +3066,11 @@ function renderSysmon() {
       <div class="card-title">🌍 Weltgröße</div>
       <div class="empty" style="font-size:.8rem">Lade…</div>
     </div>
+    <div class="g3" id="sm-db-section"><div class="empty" style="padding:8px 0;font-size:.8rem">Lade Datenbankstatus…</div></div>
   </div>`;
   if (ws?.readyState === 1) ws.send(JSON.stringify({ type: 'subscribe_stats' }));
   loadWorldSize();
+  loadDbStatus('sm-db-section');
 }
 
 async function loadWorldSize() {
@@ -3450,6 +3445,92 @@ function dbDeleteRow(pkValue) {
     if (d?.ok) { loadDbTableContent(); loadDbTables(); }
     return d?.ok !== false;
   });
+}
+
+// ── Survival Dashboard ────────────────────────────────────────────────────
+async function renderSurvivalDash() {
+  setHdr('🌿 Survival', `<button class="btn" onclick="renderSurvivalDash()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="card">
+      <div class="card-title">⚡ Quick-Actions (Survival)</div>
+      <div class="qa-bar">
+        <span class="qa-label">Zeit:</span>
+        <button class="qa-btn" onclick="doQuickAction('survival','time_day')">☀️ Tag</button>
+        <button class="qa-btn" onclick="doQuickAction('survival','time_night')">🌙 Nacht</button>
+        <span class="qa-label" style="margin-left:8px">Wetter:</span>
+        <button class="qa-btn" onclick="doQuickAction('survival','weather_clear')">🌤 Klar</button>
+        <button class="qa-btn" onclick="doQuickAction('survival','weather_rain')">🌧 Regen</button>
+        <span class="qa-label" style="margin-left:8px">Server:</span>
+        <button class="qa-btn" onclick="doQuickAction('survival','itemclear')">🗑 Itemclear</button>
+        <button class="qa-btn" onclick="doQuickAction('survival','save_all')">💾 Save all</button>
+      </div>
+    </div>
+    <div class="g3" id="sv-stats"><div class="empty">Lade…</div></div>
+    <div class="card" id="sv-baltop">
+      <div class="card-title">💰 Baltop (Top 5)</div>
+      <div class="empty" style="font-size:.8rem">Lade…</div>
+    </div>
+    <div class="card" id="sv-auction">
+      <div class="card-title">🏷 Auktionshaus</div>
+      <div class="empty" style="font-size:.8rem">Lade…</div>
+    </div>
+  </div>`;
+
+  // Stats row
+  const [econR, auctionR, onR] = await Promise.all([
+    apiFetch('/api/economy/overview'),
+    apiFetch('/api/auction'),
+    apiFetch('/api/players/online?server=survival'),
+  ]);
+  const econ    = econR?.ok    ? await econR.json()    : null;
+  const auction = auctionR?.ok ? await auctionR.json() : null;
+  const online  = onR?.ok      ? await onR.json()      : null;
+
+  const statsEl = document.getElementById('sv-stats');
+  if (statsEl) {
+    const onCnt  = online?.players?.length ?? '—';
+    const ahCnt  = auction?.listings?.length ?? '—';
+    const coins  = econ ? Number(econ.totalCoins ?? 0).toLocaleString('de-DE') : '—';
+    statsEl.innerHTML = `
+      <div class="card stat-card"><span class="stat-icon">👥</span><div><div class="stat-lbl">Online (Survival)</div><div class="stat-val">${onCnt}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🏷</span><div><div class="stat-lbl">AH-Angebote</div><div class="stat-val">${ahCnt}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">💰</span><div><div class="stat-lbl">Coins im Umlauf</div><div class="stat-val" style="font-size:.95rem">${coins}</div></div></div>`;
+  }
+
+  // Baltop
+  const balEl = document.getElementById('sv-baltop');
+  if (balEl) {
+    const r = await apiFetch('/api/economy/baltop');
+    const d = r?.ok ? await r.json() : null;
+    if (d?.baltop?.length) {
+      balEl.innerHTML = `<div class="card-title">💰 Baltop (Top 5)</div>
+        <div class="stat-tbl">${d.baltop.slice(0,5).map(p =>
+          `<div class="stat-row">
+            <span class="sl">${p.rank}. ${escH(p.name)}</span>
+            <span class="sv" style="color:var(--yellow);font-family:var(--mono)">${Number(p.coins).toLocaleString('de-DE')} Coins</span>
+          </div>`).join('')}
+        </div>`;
+    } else {
+      balEl.innerHTML = `<div class="card-title">💰 Baltop (Top 5)</div><div class="empty">Keine Daten</div>`;
+    }
+  }
+
+  // AH listings
+  const ahEl = document.getElementById('sv-auction');
+  if (ahEl) {
+    if (auction?.listings?.length) {
+      ahEl.innerHTML = `<div class="card-title">🏷 Auktionshaus (${auction.listings.length} Angebote · ${Number(auction.totalValue).toLocaleString('de-DE')} Coins Gesamtwert)</div>
+        <div class="stat-tbl">${auction.listings.slice(0,8).map(l =>
+          `<div class="stat-row">
+            <span class="sl">Angebot von <b>${escH(l.seller)}</b></span>
+            <span class="sv" style="color:var(--yellow);font-family:var(--mono)">${Number(l.price).toLocaleString('de-DE')} C</span>
+          </div>`).join('')}
+        </div>`;
+    } else {
+      ahEl.innerHTML = `<div class="card-title">🏷 Auktionshaus</div><div class="empty">Keine Angebote</div>`;
+    }
+  }
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────
