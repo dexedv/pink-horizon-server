@@ -13,7 +13,7 @@ import java.util.List;
 public class RankCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> VALID_RANKS = List.of(
-        "spieler", "vip", "vip_plus", "mvp", "mvp_plus", "legende"
+        "spieler", "siedler", "krieger", "legende"
     );
 
     private final PHCore plugin;

@@ -22,14 +22,10 @@ chat:
 ranks:
   spieler:
     display: '&7[Spieler]'
-  vip:
-    display: '&a[VIP]'
-  vip_plus:
-    display: '&b[VIP&f+&b]'
-  mvp:
-    display: '&6[MVP]'
-  mvp_plus:
-    display: '&c[MVP&f+&c]'
+  siedler:
+    display: '&a[Siedler]'
+  krieger:
+    display: '&6[Krieger]'
   legende:
     display: '&d[&5✦ Legende&d]'
   # Staff
