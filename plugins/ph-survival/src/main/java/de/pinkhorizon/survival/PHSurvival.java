@@ -308,6 +308,17 @@ public class PHSurvival extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
             new de.pinkhorizon.survival.crates.CrateListener(this, crateManager), this);
 
+        NickCommand nickCmd = new NickCommand(this);
+        getCommand("nick").setExecutor(nickCmd);
+
+        PTimeCommand ptimeCmd = new PTimeCommand(this);
+        getCommand("ptime").setExecutor(ptimeCmd);
+        getCommand("ptime").setTabCompleter(ptimeCmd);
+
+        PWeatherCommand pweatherCmd = new PWeatherCommand(this);
+        getCommand("pweather").setExecutor(pweatherCmd);
+        getCommand("pweather").setTabCompleter(pweatherCmd);
+
         de.pinkhorizon.survival.gui.HopperUpgradeGui hopperGui =
             new de.pinkhorizon.survival.gui.HopperUpgradeGui(this);
         getServer().getPluginManager().registerEvents(hopperGui, this);

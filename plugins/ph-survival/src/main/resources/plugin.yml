@@ -203,6 +203,15 @@ commands:
     description: Crate-Truhen verwalten und Schlüssel vergeben (Admin)
     usage: /crate <set|remove|give>
     permission: survival.admin
+  nick:
+    description: Nickname setzen (Siedler+)
+    usage: /nick <Name> | /nick reset
+  ptime:
+    description: Persönliche Zeit setzen (Siedler+, nur im eigenen Claim)
+    usage: /ptime <day|night|dawn|dusk|reset>
+  pweather:
+    description: Persönliches Wetter setzen (Siedler+, nur im eigenen Claim)
+    usage: /pweather <clear|rain|reset>
 
 permissions:
   survival.admin:

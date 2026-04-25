@@ -1,0 +1,51 @@
+# Tebex v2.4.0 - https://tebex.io
+
+buy-command:
+  enabled: true
+  name: buy
+
+check-for-updates: true
+auto-report-enabled: true
+verbose: false
+
+gui:
+  menu:
+    home:
+      title: "Server Shop"
+      rows: 3
+    category:
+      title: "Viewing %category%"
+      rows: 3
+    sub-category:
+      title: "Viewing %sub_category% (%category%)"
+      rows: 1
+  item:
+    back:
+      name: "&cBack"
+      material: COMPASS
+      lore: []
+    category:
+      name: "&b%category%"
+      material: CHEST
+      lore:
+        - "&7Click to view packages!"
+    package-sale:
+      name: "&b%package_name%"
+      material: PAPER
+      lore:
+        - "&7Price: &f%package_currency%%package_sale_price% &7(&m%package_currency%%package_price%&r&7)"
+        - "&7"
+        - "&7Click to purchase!"
+    package:
+      name: "&b%package_name%"
+      material: PAPER
+      lore:
+        - "&7Price: &f%package_currency%%package_price%"
+        - "&7"
+        - "&7Click to purchase!"
+
+server:
+  proxy: false
+  secret-key: '68b929f92405a63119086d88c8d3ee5bfe5fcc02'
+
+config-version: 2

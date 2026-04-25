@@ -1,0 +1,9 @@
+# Tebex v2.4.0 - https://tebex.io
+
+check-for-updates: true
+verbose: false
+
+server:
+  secret-key: '8b22b63807a24796cb31ebada356208e00553ff0'
+
+config-version: 2
