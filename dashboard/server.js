@@ -79,7 +79,7 @@ const SERVERS = {
   }
 };
 
-const VALID_RANKS = ['spieler', 'vip', 'supporter', 'moderator', 'dev', 'admin', 'owner'];
+const VALID_RANKS = ['spieler', 'siedler', 'krieger', 'legende', 'vip', 'supporter', 'moderator', 'dev', 'admin', 'owner'];
 
 // ── Auth-Middleware ───────────────────────────────────────────────────────
 
@@ -922,7 +922,7 @@ app.post('/api/db/query', auth, async (req, res) => {
 app.get('/api/permissions/players', auth, async (req, res) => {
   try {
     const [rows] = await poolCore.execute(
-      "SELECT name, `rank` FROM players ORDER BY FIELD(`rank`,'owner','admin','dev','moderator','supporter','vip','spieler'), name"
+      "SELECT name, `rank` FROM players ORDER BY FIELD(`rank`,'owner','admin','dev','moderator','supporter','vip','legende','krieger','siedler','spieler'), name"
     );
     res.json({ players: rows });
   } catch (e) {
