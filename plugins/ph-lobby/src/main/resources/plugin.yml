@@ -38,6 +38,9 @@ commands:
   sync:
     description: Discord-Account mit Minecraft verknüpfen
     usage: /sync discord
+  hub:
+    description: Zur Lobby teleportieren
+    usage: /hub
   vote:
     description: Vote-Links anzeigen
     usage: /vote
