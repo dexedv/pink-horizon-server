@@ -1578,11 +1578,17 @@ app.get('/api/db/table', auth, async (req, res) => {
     const offset = parseInt(page) * parseInt(limit);
     const [rows] = await pool.execute(`SELECT * FROM \`${table}\` ${where} ${orderBy} LIMIT ? OFFSET ?`, [...params, parseInt(limit), offset]);
     const [[{total}]] = await pool.execute(`SELECT COUNT(*) as total FROM \`${table}\` ${where}`, params);
-    // BigInt → String (z.B. Discord-IDs als BIGINT)
-    const safeRows = rows.map(row => Object.fromEntries(
-      Object.entries(row).map(([k, v]) => [k, typeof v === 'bigint' ? v.toString() : v])
-    ));
-    res.json({ columns, rows: safeRows, total: Number(total), pk });
+    const safeVal = v => {
+      if (v === null || v === undefined) return null;
+      if (typeof v === 'bigint') return v.toString();
+      if (Buffer.isBuffer(v)) return v.toString('hex');
+      if (v instanceof Date) return isNaN(v.getTime()) ? null : v.toISOString();
+      return v;
+    };
+    const safeRows = rows.map(row => Object.fromEntries(Object.entries(row).map(([k, v]) => [k, safeVal(v)])));
+    const payload = JSON.stringify({ columns, rows: safeRows, total: Number(total), pk });
+    res.setHeader('Content-Type', 'application/json');
+    res.end(payload);
   } catch(e) { console.error('[DB/table]', e.message); res.status(500).json({ error: e.message }); }
 });
 
