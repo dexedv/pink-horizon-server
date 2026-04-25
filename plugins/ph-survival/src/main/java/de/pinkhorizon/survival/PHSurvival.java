@@ -234,6 +234,10 @@ public class PHSurvival extends JavaPlugin {
         getCommand("ah").setTabCompleter(ahCmd);
         getServer().getPluginManager().registerEvents(ahGui, this);
 
+        de.pinkhorizon.survival.gui.SpawnerShopGui spawnerShopGui = new de.pinkhorizon.survival.gui.SpawnerShopGui(this);
+        getCommand("spawnershop").setExecutor(new de.pinkhorizon.survival.commands.SpawnerShopCommand(spawnerShopGui));
+        getServer().getPluginManager().registerEvents(spawnerShopGui, this);
+
         HelpHoloCommand helpHoloCmd = new HelpHoloCommand(this);
         getCommand("helpholo").setExecutor(helpHoloCmd);
         getCommand("helpholo").setTabCompleter(helpHoloCmd);

@@ -180,6 +180,10 @@ commands:
     description: Extra Home-Slots für einen Spieler hinzufügen (Admin)
     usage: /homeadd <Spieler> <Anzahl>
     permission: survival.admin
+  spawnershop:
+    description: Spawner-Shop öffnen
+    usage: /spawnershop
+    aliases: [spawner, sspawn]
   voteshop:
     description: VoteShop öffnen
     usage: /voteshop
