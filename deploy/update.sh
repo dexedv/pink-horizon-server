@@ -51,15 +51,8 @@ else
   ok "Aktualisiert: $CHANGED geändert"
 fi
 
-# ── 2. Cleanup ────────────────────────────────────────────────────────────────
-step "Plugin-Cleanup" "[2/5]"
-for server in survival lobby smash; do
-  REMAP="servers/$server/plugins/.paper-remapped"
-  if [ -d "$REMAP" ]; then
-    rm -rf "$REMAP"
-    ok ".paper-remapped Cache geleert ($server)"
-  fi
-done
+# ── 2. Berechtigungen ────────────────────────────────────────────────────────
+step "Berechtigungen setzen" "[2/5]"
 chown -R 1000:1000 servers/lobby/ servers/survival/ servers/smash/ 2>/dev/null || true
 ok "Berechtigungen gesetzt (uid 1000)"
 
