@@ -113,6 +113,10 @@ public class PHSurvival extends JavaPlugin {
         getCommand("claimadd").setExecutor(claimAddCmd);
         getCommand("claimadd").setTabCompleter(claimAddCmd);
 
+        SurvivalRankSetCommand rankSetCmd = new SurvivalRankSetCommand(this);
+        getCommand("rankset").setExecutor(rankSetCmd);
+        getCommand("rankset").setTabCompleter(rankSetCmd);
+
         HomeAddCommand homeAddCmd = new HomeAddCommand(this);
         getCommand("homeadd").setExecutor(homeAddCmd);
         getCommand("homeadd").setTabCompleter(homeAddCmd);
