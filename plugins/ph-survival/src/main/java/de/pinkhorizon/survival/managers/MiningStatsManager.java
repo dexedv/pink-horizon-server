@@ -71,6 +71,9 @@ public class MiningStatsManager {
      */
     public void logOre(UUID uuid, String oreType, int x, int y, int z) {
         long now = System.currentTimeMillis();
+        // Pending-Blöcke sofort drainieren, damit total_blocks beim Erz-Log aktuell ist
+        AtomicLong counter = pendingBlocks.get(uuid);
+        long pending = counter != null ? counter.getAndSet(0) : 0;
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try (Connection c = con();
                  PreparedStatement ps = c.prepareStatement(
@@ -85,12 +88,14 @@ public class MiningStatsManager {
             } catch (SQLException e) {
                 plugin.getLogger().warning("[Mining] logOre: " + e.getMessage());
             }
-            // Aggregat-Tabelle: ores_found +1
+            // Aggregat-Tabelle: ores_found +1, ggf. pending blocks mitspeichern
             try (Connection c = con();
                  PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO sv_mining_blocks (player_uuid,ores_found) VALUES(?,1)" +
-                     " ON DUPLICATE KEY UPDATE ores_found = ores_found + 1")) {
+                     "INSERT INTO sv_mining_blocks (player_uuid,total_blocks,ores_found) VALUES(?,?,1)" +
+                     " ON DUPLICATE KEY UPDATE total_blocks = total_blocks + ?, ores_found = ores_found + 1")) {
                 ps.setString(1, uuid.toString());
+                ps.setLong(2, pending);
+                ps.setLong(3, pending);
                 ps.executeUpdate();
             } catch (SQLException e) {
                 plugin.getLogger().warning("[Mining] oreCount: " + e.getMessage());
