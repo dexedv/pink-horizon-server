@@ -28,12 +28,14 @@ import java.util.UUID;
  */
 public class FurnaceUpgradeManager {
 
-    public static final int MAX_LEVEL = 6;
+    public static final int MAX_LEVEL = 10;
 
-    private static final int[] COOK_TICKS = { 0, 200, 150, 100, 60, 30, 21 };
-    public  static final long[] COSTS     = { 0, 0, 500, 1_500, 4_000, 10_000, 25_000 };
-    public  static final String[] NAMES   = { "", "Normal", "Verbessert", "Schnell", "Blitz", "Quantumfusion", "Plasmaschmelze" };
-    public  static final int[] SPEED_PCT  = { 0, 0, 25, 50, 70, 85, 90 };
+    // Lv1=10%, Lv10=200% (linear: +~21.1% pro Stufe)
+    // CookTicks = 200 / (1 + speed/100), gerundet
+    private static final int[] COOK_TICKS = { 0, 182, 153, 132, 116, 103, 93, 85, 78, 72, 67 };
+    public  static final long[] COSTS     = { 0, 0, 1_000, 2_500, 5_000, 10_000, 20_000, 40_000, 70_000, 110_000, 150_000 };
+    public  static final String[] NAMES   = { "", "Normal", "Verbessert", "Schnell", "Präzise", "Blitz", "Turbo", "Ultra", "Hyper", "Quantum", "Plasma" };
+    public  static final int[] SPEED_PCT  = { 0, 10, 31, 52, 73, 94, 115, 136, 157, 178, 200 };
 
     private final PHSurvival plugin;
     private final NamespacedKey itemKey;  // UUID auf Item-PDC

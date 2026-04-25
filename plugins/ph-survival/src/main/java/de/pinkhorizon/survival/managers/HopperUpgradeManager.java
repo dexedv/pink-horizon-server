@@ -24,12 +24,12 @@ import java.util.UUID;
  */
 public class HopperUpgradeManager {
 
-    public static final int MAX_LEVEL = 6;
+    public static final int MAX_LEVEL = 10;
 
-    // Items die pro Transfer-Tick bewegt werden
-    public static final int[] ITEMS_PER_TRANSFER = { 0, 1, 2, 4, 8, 16, 32 };
-    public static final long[] COSTS             = { 0, 0, 500, 1_500, 4_000, 10_000, 25_000 };
-    public static final String[] NAMES           = { "", "Normal", "Verbessert", "Schnell", "Blitz", "Quantumflow", "Plasmaflow" };
+    // Items die pro Transfer-Tick bewegt werden (exponentiell bis 32 bei Lv10)
+    public static final int[] ITEMS_PER_TRANSFER = { 0, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32 };
+    public static final long[] COSTS             = { 0, 0, 1_000, 2_500, 5_000, 10_000, 20_000, 40_000, 70_000, 110_000, 150_000 };
+    public static final String[] NAMES           = { "", "Normal", "Verbessert", "Schnell", "Präzise", "Blitz", "Turbo", "Ultra", "Hyper", "Quantum", "Plasma" };
 
     private final PHSurvival plugin;
     private final NamespacedKey itemKey;
