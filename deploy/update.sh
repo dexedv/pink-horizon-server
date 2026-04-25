@@ -16,8 +16,14 @@ echo "▶ [1/4] Git Pull..."
 git pull
 echo ""
 
-# ── 2. Berechtigungen fixieren (Docker uid=1000) ─────────────────────────
-echo "▶ [2/4] Berechtigungen setzen..."
+# ── 2. Duplikate + remapped-Cache bereinigen ─────────────────────────────
+echo "▶ [2/4] Plugin-Cleanup..."
+rm -f  servers/survival/plugins/.paper-remapped/*.jar 2>/dev/null || true
+rmdir  servers/survival/plugins/.paper-remapped       2>/dev/null || true
+rm -f  servers/lobby/plugins/.paper-remapped/*.jar    2>/dev/null || true
+rmdir  servers/lobby/plugins/.paper-remapped          2>/dev/null || true
+rm -f  servers/smash/plugins/.paper-remapped/*.jar    2>/dev/null || true
+rmdir  servers/smash/plugins/.paper-remapped          2>/dev/null || true
 chown -R 1000:1000 servers/lobby/ servers/survival/ servers/smash/ 2>/dev/null || true
 echo ""
 
