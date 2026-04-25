@@ -9,8 +9,6 @@ import java.util.*;
 public class AuctionManager {
 
     private static final long EXPIRE_MS      = 7L * 24 * 60 * 60 * 1000; // 7 Tage
-    public  static final int  MAX_PER_PLAYER = 10;
-
     private final PHSurvival plugin;
     // In-memory list for fast GUI access
     private final List<AuctionListing> listings = new ArrayList<>();
@@ -26,10 +24,14 @@ public class AuctionManager {
 
     // ── API ───────────────────────────────────────────────────────────────
 
-    public String addListing(UUID sellerUuid, String sellerName, ItemStack item, long price) {
+    public static int getMaxSlots(org.bukkit.entity.Player player) {
+        return player.hasPermission("survival.ah.vip") ? 5 : 3;
+    }
+
+    public String addListing(UUID sellerUuid, String sellerName, ItemStack item, long price, int maxSlots) {
         long count = listings.stream().filter(l -> l.getSellerUuid().equals(sellerUuid)).count();
-        if (count >= MAX_PER_PLAYER)
-            return "Du hast bereits " + MAX_PER_PLAYER + " aktive Angebote!";
+        if (count >= maxSlots)
+            return "Du hast bereits " + maxSlots + " aktive Angebote! (Dein Limit)";
 
         UUID   id       = UUID.randomUUID();
         long   listedAt = System.currentTimeMillis();

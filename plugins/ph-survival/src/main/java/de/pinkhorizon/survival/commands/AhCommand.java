@@ -2,6 +2,7 @@ package de.pinkhorizon.survival.commands;
 
 import de.pinkhorizon.survival.PHSurvival;
 import de.pinkhorizon.survival.gui.AhGui;
+import de.pinkhorizon.survival.managers.AuctionManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -59,7 +60,7 @@ public class AhCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             String err = plugin.getAuctionManager().addListing(
-                    player.getUniqueId(), player.getName(), held.clone(), price);
+                    player.getUniqueId(), player.getName(), held.clone(), price, AuctionManager.getMaxSlots(player));
             if (err != null) {
                 player.sendMessage("§c" + err);
                 return true;

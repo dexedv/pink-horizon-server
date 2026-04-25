@@ -97,7 +97,7 @@ public class AhGui implements Listener {
                 .decoration(TextDecoration.ITALIC, false), List.of()));
         inv.setItem(49, ctrl(Material.BOOK, Component.text("Meine Angebote", NamedTextColor.YELLOW)
                 .decoration(TextDecoration.ITALIC, false),
-                List.of(Component.text(mine.size() + "/" + AuctionManager.MAX_PER_PLAYER + " Angebote", NamedTextColor.GRAY)
+                List.of(Component.text(mine.size() + "/" + AuctionManager.getMaxSlots(player) + " Angebote", NamedTextColor.GRAY)
                                 .decoration(TextDecoration.ITALIC, false))));
         fillGlass(inv, 45, 53, new int[]{45, 48, 49, 53});
 
