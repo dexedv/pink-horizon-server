@@ -8,18 +8,7 @@
       "model": "item/diamond_sword"
     },
     "entries": [
-      {"threshold": 1001.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_wald"}},
-      {"threshold": 1002.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_ozean"}},
-      {"threshold": 1003.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_wueste"}},
-      {"threshold": 1004.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_feuer"}},
-      {"threshold": 1005.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_eis"}},
-      {"threshold": 1006.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_nether"}},
-      {"threshold": 1007.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_drache"}},
-      {"threshold": 1008.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_kristall"}},
-      {"threshold": 1009.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_schatten"}},
-      {"threshold": 1010.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_legende"}},
-      {"threshold": 1011.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_galaxie"}},
-      {"threshold": 1012.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_reaper"}}
+      {"threshold": 1001.0, "model": {"type": "minecraft:model", "model": "item/custom/sword_reaper"}}
     ]
   }
 }

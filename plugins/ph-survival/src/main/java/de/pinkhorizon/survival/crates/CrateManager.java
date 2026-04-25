@@ -43,23 +43,8 @@ public class CrateManager {
     );
 
     private static final List<CrateReward> COSMETIC_REWARDS = List.of(
-        // Common (weight 30)
-        CrateReward.cosmetic("Wald-Klinge",    1001, 30),
-        CrateReward.cosmetic("Ozean-Klinge",   1002, 30),
-        CrateReward.cosmetic("Wüsten-Klinge",  1003, 30),
-        // Rare (weight 15)
-        CrateReward.cosmetic("Feuer-Klinge",   1004, 15),
-        CrateReward.cosmetic("Eis-Klinge",     1005, 15),
-        CrateReward.cosmetic("Nether-Klinge",  1006, 15),
-        // Epic (weight 7)
-        CrateReward.cosmetic("Drachen-Klinge", 1007, 7),
-        CrateReward.cosmetic("Kristall-Klinge",1008, 7),
-        CrateReward.cosmetic("Schatten-Klinge",1009, 7),
-        // Legendary (weight 2)
-        CrateReward.cosmetic("Legendäre Klinge",1010, 2),
-        CrateReward.cosmetic("Galaxie-Klinge", 1011, 2),
         // Ultra-Rare (weight 1)
-        CrateReward.cosmetic("Reaper-Klinge",  1012, 1)
+        CrateReward.cosmetic("Reaper-Klinge",  1001, 1)
     );
 
     private static final List<CrateReward> SPAWNER_REWARDS = List.of(
