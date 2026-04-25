@@ -119,20 +119,26 @@ public class JoinTitleListener implements Listener {
 
     private static void sendVoteHint(Player player) {
         if (!player.isOnline()) return;
-        Component line = Component.text("─────────────────────────────────", TextColor.color(0xFFD700));
+        TextColor PINK       = TextColor.color(0xFF69B4);
+        TextColor LIGHT_PINK = TextColor.color(0xFFB6C1);
+        Component line = Component.text("─────────────────────────────────", PINK);
 
-        Component voteCmd = Component.text("/vote", TextColor.color(0xFFD700), TextDecoration.BOLD)
+        Component voteCmd = Component.text("/vote", LIGHT_PINK, TextDecoration.BOLD)
             .clickEvent(ClickEvent.runCommand("/vote"))
             .hoverEvent(HoverEvent.showText(Component.text("Klicken zum Voten!", NamedTextColor.GRAY)));
 
+        Component shopCmd = Component.text("/voteshop", LIGHT_PINK, TextDecoration.BOLD)
+            .clickEvent(ClickEvent.runCommand("/voteshop"))
+            .hoverEvent(HoverEvent.showText(Component.text("VoteShop öffnen!", NamedTextColor.GRAY)));
+
         player.sendMessage(line);
-        player.sendMessage(Component.text(" \u2B50 ", NamedTextColor.WHITE)
-            .append(Component.text("Unterstütze Pink Horizon!", TextColor.color(0xFFD700), TextDecoration.BOLD)));
+        player.sendMessage(Component.text(" \uD83D\uDC96 ", NamedTextColor.WHITE)
+            .append(Component.text("Unterstütze Pink Horizon!", PINK, TextDecoration.BOLD)));
         player.sendMessage(Component.text("   Nutze ", NamedTextColor.GRAY)
             .append(voteCmd)
             .append(Component.text(" und erhalte VoteCoins!", NamedTextColor.GRAY)));
         player.sendMessage(Component.text("   Gib deine Coins im ", NamedTextColor.GRAY)
-            .append(Component.text("/voteshop", TextColor.color(0xFF69B4), TextDecoration.BOLD))
+            .append(shopCmd)
             .append(Component.text(" aus!", NamedTextColor.GRAY)));
         player.sendMessage(line);
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.4f);
