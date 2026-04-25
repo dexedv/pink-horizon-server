@@ -19,7 +19,7 @@ public class CrateCommand implements CommandExecutor, TabCompleter {
     private final PHSurvival   plugin;
     private final CrateManager manager;
 
-    private static final List<String> TYPES = List.of("eco", "claims", "spawner");
+    private static final List<String> TYPES = List.of("eco", "claims", "spawner", "cosmetic");
 
     public CrateCommand(PHSurvival plugin, CrateManager manager) {
         this.plugin  = plugin;
@@ -113,10 +113,11 @@ public class CrateCommand implements CommandExecutor, TabCompleter {
             online.getWorld().dropItemNaturally(online.getLocation(), item));
 
         String keyName = switch (type) {
-            case "eco"     -> "§6Eco-Schlüssel";
-            case "claims"  -> "§aClaims-Schlüssel";
-            case "spawner" -> "§dSpawner-Schlüssel";
-            default        -> "Schlüssel";
+            case "eco"      -> "§6Eco-Schlüssel";
+            case "claims"   -> "§aClaims-Schlüssel";
+            case "spawner"  -> "§dSpawner-Schlüssel";
+            case "cosmetic" -> "§dKosmetik-Schlüssel";
+            default         -> "Schlüssel";
         };
         sender.sendMessage("§a" + amount + "x " + keyName + "§a an §f" + online.getName() + "§a gegeben.");
         online.sendMessage("§d§l[Truhe] §7Du hast §d" + amount + "x " + keyName + " §7erhalten!");
