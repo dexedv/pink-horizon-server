@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -176,12 +177,19 @@ public class CrateAnimation {
                 leftover.values().forEach(item ->
                     player.getWorld().dropItemNaturally(player.getLocation(), item));
             }
+            case COSMETIC -> {
+                ItemStack skin = buildCosmeticItem(winner);
+                var leftover = player.getInventory().addItem(skin);
+                leftover.values().forEach(item ->
+                    player.getWorld().dropItemNaturally(player.getLocation(), item));
+            }
         }
 
         String rewardText = switch (winner.type()) {
-            case COINS   -> winner.coins() + " Coins";
-            case CLAIMS  -> "+" + winner.claims() + " Claim-Slot" + (winner.claims() == 1 ? "" : "s");
-            case SPAWNER -> winner.displayName();
+            case COINS    -> winner.coins() + " Coins";
+            case CLAIMS   -> "+" + winner.claims() + " Claim-Slot" + (winner.claims() == 1 ? "" : "s");
+            case SPAWNER  -> winner.displayName();
+            case COSMETIC -> winner.displayName();
         };
 
         player.sendMessage(Component.empty());
@@ -211,14 +219,16 @@ public class CrateAnimation {
 
     private ItemStack buildDisplayItem(CrateReward reward) {
         Material mat = switch (reward.type()) {
-            case COINS   -> Material.GOLD_INGOT;
-            case CLAIMS  -> Material.GRASS_BLOCK;
-            case SPAWNER -> Material.SPAWNER;
+            case COINS    -> Material.GOLD_INGOT;
+            case CLAIMS   -> Material.GRASS_BLOCK;
+            case SPAWNER  -> Material.SPAWNER;
+            case COSMETIC -> Material.DIAMOND_SWORD;
         };
         String colorCode = switch (reward.type()) {
-            case COINS   -> "§6";
-            case CLAIMS  -> "§a";
-            case SPAWNER -> "§d";
+            case COINS    -> "§6";
+            case CLAIMS   -> "§a";
+            case SPAWNER  -> "§d";
+            case COSMETIC -> "§d";
         };
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
@@ -233,19 +243,22 @@ public class CrateAnimation {
 
     private ItemStack buildWinnerItem(CrateReward reward) {
         Material mat = switch (reward.type()) {
-            case COINS   -> Material.GOLD_BLOCK;
-            case CLAIMS  -> Material.EMERALD_BLOCK;
-            case SPAWNER -> Material.SPAWNER;
+            case COINS    -> Material.GOLD_BLOCK;
+            case CLAIMS   -> Material.EMERALD_BLOCK;
+            case SPAWNER  -> Material.SPAWNER;
+            case COSMETIC -> Material.DIAMOND_SWORD;
         };
         String colorCode = switch (reward.type()) {
-            case COINS   -> "§6§l";
-            case CLAIMS  -> "§a§l";
-            case SPAWNER -> "§d§l";
+            case COINS    -> "§6§l";
+            case CLAIMS   -> "§a§l";
+            case SPAWNER  -> "§d§l";
+            case COSMETIC -> "§d§l";
         };
         String loreText = switch (reward.type()) {
-            case COINS   -> "§7" + reward.coins() + " Coins wurden deinem Konto gutgeschrieben";
-            case CLAIMS  -> "§7" + reward.claims() + " extra Claim-Slot(s) wurden hinzugefügt";
-            case SPAWNER -> "§7" + reward.displayName() + " wurde in dein Inventar gelegt";
+            case COINS    -> "§7" + reward.coins() + " Coins wurden deinem Konto gutgeschrieben";
+            case CLAIMS   -> "§7" + reward.claims() + " extra Claim-Slot(s) wurden hinzugefügt";
+            case SPAWNER  -> "§7" + reward.displayName() + " wurde in dein Inventar gelegt";
+            case COSMETIC -> "§7" + reward.displayName() + " wurde in dein Inventar gelegt";
         };
 
         ItemStack item = new ItemStack(mat);
@@ -283,12 +296,34 @@ public class CrateAnimation {
         return item;
     }
 
+    private ItemStack buildCosmeticItem(CrateReward reward) {
+        ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta meta = item.getItemMeta();
+        meta.setCustomModelData(reward.customModelData());
+        meta.displayName(Component.text("§d§l✦ " + reward.displayName() + " ✦")
+            .decoration(TextDecoration.ITALIC, false));
+        meta.lore(List.of(
+            Component.empty(),
+            Component.text("§7Kosmetischer Schwert-Skin", NamedTextColor.GRAY)
+                .decoration(TextDecoration.ITALIC, false),
+            Component.text("§8CustomModelData: " + reward.customModelData())
+                .decoration(TextDecoration.ITALIC, false)
+        ));
+        meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES,
+                          org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS,
+                          org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
+        item.setItemMeta(meta);
+        return item;
+    }
+
     private ItemStack makeCenterIcon(String type) {
         Material mat = switch (type) {
-            case "eco"     -> Material.GOLD_BLOCK;
-            case "claims"  -> Material.GRASS_BLOCK;
-            case "spawner" -> Material.SPAWNER;
-            default        -> Material.CHEST;
+            case "eco"      -> Material.GOLD_BLOCK;
+            case "claims"   -> Material.GRASS_BLOCK;
+            case "spawner"  -> Material.SPAWNER;
+            case "cosmetic" -> Material.DIAMOND_SWORD;
+            default         -> Material.CHEST;
         };
         TextColor color = CrateManager.CRATE_COLORS.getOrDefault(type, TextColor.color(0xFF55FF));
         String name = CrateManager.CRATE_NAMES.getOrDefault(type, "Truhe");

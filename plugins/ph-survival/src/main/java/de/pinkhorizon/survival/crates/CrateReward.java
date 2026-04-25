@@ -8,20 +8,25 @@ public record CrateReward(
     long coins,
     int claims,
     EntityType entityType,
+    int customModelData,
     int weight
 ) {
-    public enum RewardType { COINS, CLAIMS, SPAWNER }
+    public enum RewardType { COINS, CLAIMS, SPAWNER, COSMETIC }
 
     public static CrateReward coins(long amount, int weight) {
-        return new CrateReward(formatCoins(amount) + " Coins", RewardType.COINS, amount, 0, null, weight);
+        return new CrateReward(formatCoins(amount) + " Coins", RewardType.COINS, amount, 0, null, 0, weight);
     }
 
     public static CrateReward claims(int amount, int weight) {
-        return new CrateReward("+" + amount + " Claim-Slot" + (amount == 1 ? "" : "s"), RewardType.CLAIMS, 0, amount, null, weight);
+        return new CrateReward("+" + amount + " Claim-Slot" + (amount == 1 ? "" : "s"), RewardType.CLAIMS, 0, amount, null, 0, weight);
     }
 
     public static CrateReward spawner(EntityType type, String name, int weight) {
-        return new CrateReward(name, RewardType.SPAWNER, 0, 0, type, weight);
+        return new CrateReward(name, RewardType.SPAWNER, 0, 0, type, 0, weight);
+    }
+
+    public static CrateReward cosmetic(String name, int cmdData, int weight) {
+        return new CrateReward(name, RewardType.COSMETIC, 0, 0, null, cmdData, weight);
     }
 
     private static String formatCoins(long amount) {

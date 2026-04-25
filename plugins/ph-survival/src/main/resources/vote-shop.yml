@@ -108,7 +108,7 @@ items:
       - "crate give [player] eco 1"
 
   claims_crate:
-    slot: 31
+    slot: 30
     material: TRIPWIRE_HOOK
     name: "&a&l✦ Claims-Schlüssel"
     cost: 15
@@ -119,7 +119,7 @@ items:
       - "crate give [player] claims 1"
 
   spawner_crate:
-    slot: 34
+    slot: 32
     material: TRIPWIRE_HOOK
     name: "&d&l✦ Spawner-Schlüssel"
     cost: 20
@@ -128,3 +128,14 @@ items:
       - "&7Gewinne einen &fzufälligen Spawner&7!"
     commands:
       - "crate give [player] spawner 1"
+
+  cosmetic_crate:
+    slot: 34
+    material: DIAMOND_SWORD
+    name: "&d&l✦ Kosmetik-Schlüssel"
+    cost: 25
+    lore:
+      - "&7Öffnet die &dKosmetik-Truhe&7."
+      - "&7Gewinne einen &fSchwert-Skin&7!"
+    commands:
+      - "crate give [player] cosmetic 1"

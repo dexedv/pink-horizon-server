@@ -42,6 +42,24 @@ public class CrateManager {
         CrateReward.claims(3, 15)
     );
 
+    private static final List<CrateReward> COSMETIC_REWARDS = List.of(
+        // Common (weight 30)
+        CrateReward.cosmetic("Wald-Klinge",    1001, 30),
+        CrateReward.cosmetic("Ozean-Klinge",   1002, 30),
+        CrateReward.cosmetic("Wüsten-Klinge",  1003, 30),
+        // Rare (weight 15)
+        CrateReward.cosmetic("Feuer-Klinge",   1004, 15),
+        CrateReward.cosmetic("Eis-Klinge",     1005, 15),
+        CrateReward.cosmetic("Nether-Klinge",  1006, 15),
+        // Epic (weight 7)
+        CrateReward.cosmetic("Drachen-Klinge", 1007, 7),
+        CrateReward.cosmetic("Kristall-Klinge",1008, 7),
+        CrateReward.cosmetic("Schatten-Klinge",1009, 7),
+        // Legendary (weight 2)
+        CrateReward.cosmetic("Legendäre Klinge",1010, 2),
+        CrateReward.cosmetic("Galaxie-Klinge", 1011, 2)
+    );
+
     private static final List<CrateReward> SPAWNER_REWARDS = List.of(
         // Tier 1 – Häufig
         CrateReward.spawner(EntityType.CHICKEN,        "Huhn-Spawner",               15),
@@ -81,20 +99,22 @@ public class CrateManager {
     // ── Display names & colours ─────────────────────────────────────────────
 
     public static final Map<String, String> CRATE_NAMES = Map.of(
-        "eco",     "Eco-Truhe",
-        "claims",  "Claims-Truhe",
-        "spawner", "Spawner-Truhe"
+        "eco",      "Eco-Truhe",
+        "claims",   "Claims-Truhe",
+        "spawner",  "Spawner-Truhe",
+        "cosmetic", "Kosmetik-Truhe"
     );
 
     public static final Map<String, TextColor> CRATE_COLORS = Map.of(
-        "eco",     TextColor.color(0xFFD700),
-        "claims",  TextColor.color(0x55FF55),
-        "spawner", TextColor.color(0xFF55FF)
+        "eco",      TextColor.color(0xFFD700),
+        "claims",   TextColor.color(0x55FF55),
+        "spawner",  TextColor.color(0xFF55FF),
+        "cosmetic", TextColor.color(0xFF69B4)
     );
 
     // ── PDC ────────────────────────────────────────────────────────────────
 
-    public static final String VALID_TYPES_STR = "eco, claims, spawner";
+    public static final String VALID_TYPES_STR = "eco, claims, spawner, cosmetic";
     private final NamespacedKey pdcKey;
 
     // ── State ──────────────────────────────────────────────────────────────
@@ -131,10 +151,11 @@ public class CrateManager {
 
     public List<CrateReward> getAllRewards(String type) {
         return switch (type) {
-            case "eco"     -> ECO_REWARDS;
-            case "claims"  -> CLAIMS_REWARDS;
-            case "spawner" -> SPAWNER_REWARDS;
-            default        -> List.of();
+            case "eco"      -> ECO_REWARDS;
+            case "claims"   -> CLAIMS_REWARDS;
+            case "spawner"  -> SPAWNER_REWARDS;
+            case "cosmetic" -> COSMETIC_REWARDS;
+            default         -> List.of();
         };
     }
 
@@ -192,22 +213,25 @@ public class CrateManager {
 
     public ItemStack createKey(String type) {
         String name = switch (type) {
-            case "eco"     -> "§6§lEco-Schlüssel";
-            case "claims"  -> "§a§lClaims-Schlüssel";
-            case "spawner" -> "§d§lSpawner-Schlüssel";
-            default        -> "§7Unbekannter Schlüssel";
+            case "eco"      -> "§6§lEco-Schlüssel";
+            case "claims"   -> "§a§lClaims-Schlüssel";
+            case "spawner"  -> "§d§lSpawner-Schlüssel";
+            case "cosmetic" -> "§d§lKosmetik-Schlüssel";
+            default         -> "§7Unbekannter Schlüssel";
         };
         String lore1 = switch (type) {
-            case "eco"     -> "§7Öffnet die §6Eco-Truhe";
-            case "claims"  -> "§7Öffnet die §aClaims-Truhe";
-            case "spawner" -> "§7Öffnet die §dSpawner-Truhe";
-            default        -> "";
+            case "eco"      -> "§7Öffnet die §6Eco-Truhe";
+            case "claims"   -> "§7Öffnet die §aClaims-Truhe";
+            case "spawner"  -> "§7Öffnet die §dSpawner-Truhe";
+            case "cosmetic" -> "§7Öffnet die §dKosmetik-Truhe";
+            default         -> "";
         };
         String lore2 = switch (type) {
-            case "eco"     -> "§7Gewinne §f10k – 150k§7 Coins!";
-            case "claims"  -> "§7Gewinne §f1 – 3 §7extra Claim-Slots!";
-            case "spawner" -> "§7Gewinne einen §fzufälligen Spawner§7!";
-            default        -> "";
+            case "eco"      -> "§7Gewinne §f10k – 150k§7 Coins!";
+            case "claims"   -> "§7Gewinne §f1 – 3 §7extra Claim-Slots!";
+            case "spawner"  -> "§7Gewinne einen §fzufälligen Spawner§7!";
+            case "cosmetic" -> "§7Gewinne einen §fSchwert-Skin§7!";
+            default         -> "";
         };
 
         ItemStack item = new ItemStack(Material.TRIPWIRE_HOOK);
@@ -304,6 +328,11 @@ public class CrateManager {
                 "<gray>Gewinne einen <light_purple><bold>zufälligen Spawner</bold></light_purple></gray>",
                 "<light_purple>⚷ Spawner-Schlüssel benötigt</light_purple>"
             );
+            case "cosmetic" -> List.of(
+                "<gradient:#FF69B4:#FF1493><bold>✦ Kosmetik-Truhe ✦</bold></gradient>",
+                "<gray>Gewinne einen <color:#FF69B4><bold>Schwert-Skin</bold></color></gray>",
+                "<color:#FF69B4>⚷ Kosmetik-Schlüssel benötigt</color>"
+            );
             default -> List.of("<gray>Unbekannte Truhe</gray>");
         };
     }
@@ -329,10 +358,11 @@ public class CrateManager {
         double cz = loc.getBlockZ() + 0.5;
 
         Color dustColor = switch (type) {
-            case "eco"     -> Color.fromRGB(255, 200, 0);
-            case "claims"  -> Color.fromRGB(80, 255, 80);
-            case "spawner" -> Color.fromRGB(200, 50, 255);
-            default        -> Color.WHITE;
+            case "eco"      -> Color.fromRGB(255, 200, 0);
+            case "claims"   -> Color.fromRGB(80, 255, 80);
+            case "spawner"  -> Color.fromRGB(200, 50, 255);
+            case "cosmetic" -> Color.fromRGB(255, 105, 180);
+            default         -> Color.WHITE;
         };
         Particle.DustOptions dust      = new Particle.DustOptions(dustColor,      1.0f);
         Particle.DustOptions dustInner = new Particle.DustOptions(dustColor.mixColors(Color.WHITE), 0.7f);
@@ -381,6 +411,18 @@ public class CrateManager {
                         2, 0.4, 0.2, 0.4, 0);
                 }
             }
+            case "cosmetic" -> {
+                // Pink ENCHANT glitters floating upward
+                if (particleTick % 3 == 0) {
+                    world.spawnParticle(Particle.ENCHANT, cx, cy + 0.1, cz,
+                        3, 0.3, 0.3, 0.3, 0.5);
+                }
+                // Heart particles every 10 ticks
+                if (particleTick % 10 == 0) {
+                    world.spawnParticle(Particle.HEART, cx, cy + 0.6, cz,
+                        1, 0.2, 0.1, 0.2, 0);
+                }
+            }
         }
     }
 
@@ -407,7 +449,7 @@ public class CrateManager {
     private void loadCrates() {
         cratesCfg = YamlConfiguration.loadConfiguration(cratesFile);
         locationMap.clear();
-        for (String type : List.of("eco", "claims", "spawner")) {
+        for (String type : List.of("eco", "claims", "spawner", "cosmetic")) {
             for (String entry : cratesCfg.getStringList("locations." + type)) {
                 locationMap.put(entry, type);
             }
