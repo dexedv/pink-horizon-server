@@ -850,12 +850,24 @@ app.get('/api/permissions/players', auth, async (req, res) => {
   }
 });
 
-/** LuckPerms-Gruppenrechte aus der DB */
+/** LuckPerms-Gruppenrechte – sucht automatisch die richtige DB/Tabelle */
 app.get('/api/permissions/groups', auth, async (req, res) => {
   try {
+    // Tabelle in information_schema finden (beliebige DB, beliebiger Prefix)
+    const [found] = await poolCore.execute(
+      `SELECT table_schema, table_name
+       FROM information_schema.tables
+       WHERE table_name LIKE '%group_permissions'
+         AND table_schema NOT IN ('information_schema','mysql','performance_schema','sys')
+       LIMIT 1`
+    );
+    if (!found.length) {
+      return res.status(404).json({ error: 'Keine LuckPerms-Tabelle gefunden. Wird vielleicht YAML/JSON-Storage verwendet?', groups: {} });
+    }
+    const { table_schema, table_name } = found[0];
     const [rows] = await poolCore.execute(
-      `SELECT name, permission, server, value
-       FROM luckperms_group_permissions
+      `SELECT name, permission, server, \`value\`
+       FROM \`${table_schema}\`.\`${table_name}\`
        WHERE expiry = 0
        ORDER BY name, permission`
     );
@@ -864,7 +876,7 @@ app.get('/api/permissions/groups', auth, async (req, res) => {
       if (!groups[row.name]) groups[row.name] = [];
       groups[row.name].push({ permission: row.permission, server: row.server, value: row.value === 1 });
     }
-    res.json({ groups });
+    res.json({ groups, _source: `${table_schema}.${table_name}` });
   } catch (e) {
     res.status(500).json({ error: e.message, groups: {} });
   }
