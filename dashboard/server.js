@@ -1575,8 +1575,12 @@ app.get('/api/db/table', auth, async (req, res) => {
     const offset = parseInt(page) * parseInt(limit);
     const [rows] = await pool.execute(`SELECT * FROM \`${table}\` ${where} ${orderBy} LIMIT ? OFFSET ?`, [...params, parseInt(limit), offset]);
     const [[{total}]] = await pool.execute(`SELECT COUNT(*) as total FROM \`${table}\` ${where}`, params);
-    res.json({ columns, rows, total, pk });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+    // BigInt → String (z.B. Discord-IDs als BIGINT)
+    const safeRows = rows.map(row => Object.fromEntries(
+      Object.entries(row).map(([k, v]) => [k, typeof v === 'bigint' ? v.toString() : v])
+    ));
+    res.json({ columns, rows: safeRows, total: Number(total), pk });
+  } catch(e) { console.error('[DB/table]', e.message); res.status(500).json({ error: e.message }); }
 });
 
 // ── DB Editor – Zeile aktualisieren ──────────────────────────────────────
