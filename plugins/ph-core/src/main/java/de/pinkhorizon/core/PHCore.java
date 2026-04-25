@@ -8,6 +8,7 @@ import de.pinkhorizon.core.database.DatabaseManager;
 import de.pinkhorizon.core.database.RankRepository;
 import de.pinkhorizon.core.integration.LuckPermsHook;
 import de.pinkhorizon.core.listeners.ChatListener;
+import de.pinkhorizon.core.listeners.CommandBlockerListener;
 import de.pinkhorizon.core.listeners.JoinQuitListener;
 import de.pinkhorizon.core.managers.NetworkRestartManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -52,6 +53,7 @@ public class PHCore extends JavaPlugin {
         // Listener registrieren
         getServer().getPluginManager().registerEvents(new JoinQuitListener(this), this);
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
+        getServer().getPluginManager().registerEvents(new CommandBlockerListener(), this);
 
         getLogger().info("PH-Core gestartet!");
     }
