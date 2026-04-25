@@ -1530,6 +1530,87 @@ app.get('/api/network/events', auth, async (req, res) => {
   } catch (e) { res.json({ ok: true, rows: [] }); }
 });
 
+// ── DB Editor – Tabellen auflisten ────────────────────────────────────────
+
+app.get('/api/db/tables', auth, async (req, res) => {
+  const db = req.query.database;
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote'];
+  if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
+  try {
+    // ph_vote ist ein Alias auf pinkhorizon (vote_coins-Tabellen liegen dort)
+    const pool = db === 'ph_survival' ? poolSv : db === 'ph_smash' ? poolSmash : poolCore;
+    const schemaDb = db === 'ph_vote' ? 'pinkhorizon' : db;
+    const [rows] = await pool.execute(`
+      SELECT table_name AS name, table_rows AS approx_rows,
+             ROUND(data_length/1024,1) AS size_kb
+      FROM information_schema.tables
+      WHERE table_schema = ? ORDER BY table_name`, [schemaDb]);
+    res.json({ tables: rows });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── DB Editor – Tabellen-Inhalt mit Paginierung ───────────────────────────
+
+app.get('/api/db/table', auth, async (req, res) => {
+  const { database: db, table, page = 0, limit = 50, search = '', sort = '', dir = 'ASC' } = req.query;
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote'];
+  if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
+  if (!/^[a-zA-Z0-9_]+$/.test(table)) return res.status(400).json({ error: 'Invalid table' });
+  const safeDir = dir === 'DESC' ? 'DESC' : 'ASC';
+  try {
+    const pool = db === 'ph_survival' ? poolSv : db === 'ph_smash' ? poolSmash : poolCore;
+    // Spalten ermitteln
+    const [cols] = await pool.execute(`SHOW COLUMNS FROM \`${table}\``);
+    const columns = cols.map(c => ({ name: c.Field, type: c.Type, key: c.Key, nullable: c.Null === 'YES' }));
+    const pk = cols.find(c => c.Key === 'PRI')?.Field || columns[0]?.name;
+    // Abfrage aufbauen
+    let where = '';
+    const params = [];
+    if (search) {
+      const conditions = columns.slice(0, 5).map(c => `\`${c.name}\` LIKE ?`);
+      where = 'WHERE ' + conditions.join(' OR ');
+      columns.slice(0, 5).forEach(() => params.push(`%${search}%`));
+    }
+    const orderBy = sort && columns.find(c => c.name === sort) ? `ORDER BY \`${sort}\` ${safeDir}` : '';
+    const offset = parseInt(page) * parseInt(limit);
+    const [rows] = await pool.execute(`SELECT * FROM \`${table}\` ${where} ${orderBy} LIMIT ? OFFSET ?`, [...params, parseInt(limit), offset]);
+    const [[{total}]] = await pool.execute(`SELECT COUNT(*) as total FROM \`${table}\` ${where}`, params);
+    res.json({ columns, rows, total, pk });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── DB Editor – Zeile aktualisieren ──────────────────────────────────────
+
+app.put('/api/db/row', auth, async (req, res) => {
+  const { database: db, table, pk, pkValue, updates } = req.body;
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote'];
+  if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
+  if (!/^[a-zA-Z0-9_]+$/.test(table) || !/^[a-zA-Z0-9_]+$/.test(pk)) return res.status(400).json({ error: 'Invalid params' });
+  try {
+    const pool = db === 'ph_survival' ? poolSv : db === 'ph_smash' ? poolSmash : poolCore;
+    const setClauses = Object.keys(updates).map(k => `\`${k}\` = ?`).join(', ');
+    const values = [...Object.values(updates), pkValue];
+    await pool.execute(`UPDATE \`${table}\` SET ${setClauses} WHERE \`${pk}\` = ?`, values);
+    addAudit('db_update', table, `${pk}=${pkValue} SET ${JSON.stringify(updates)}`);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── DB Editor – Zeile löschen ─────────────────────────────────────────────
+
+app.delete('/api/db/row', auth, async (req, res) => {
+  const { database: db, table, pk, pkValue } = req.body;
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote'];
+  if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
+  if (!/^[a-zA-Z0-9_]+$/.test(table) || !/^[a-zA-Z0-9_]+$/.test(pk)) return res.status(400).json({ error: 'Invalid params' });
+  try {
+    const pool = db === 'ph_survival' ? poolSv : db === 'ph_smash' ? poolSmash : poolCore;
+    await pool.execute(`DELETE FROM \`${table}\` WHERE \`${pk}\` = ?`, [pkValue]);
+    addAudit('db_delete', table, `${pk}=${pkValue}`);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── Start ─────────────────────────────────────────────────────────────────
 
 server.listen(PORT, () => console.log(`Pink Horizon Dashboard läuft auf Port ${PORT}`));
