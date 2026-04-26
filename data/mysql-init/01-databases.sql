@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS gen_players (
     booster_mult      DOUBLE       DEFAULT 1.0,
     border_size       INT          DEFAULT 40,
     last_seen         BIGINT       DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS gen_generators (
     id     INT AUTO_INCREMENT PRIMARY KEY,
@@ -51,20 +51,20 @@ CREATE TABLE IF NOT EXISTS gen_generators (
     tier   VARCHAR(32) NOT NULL,
     level  INT         DEFAULT 1,
     UNIQUE KEY pos_key (world, x, y, z)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS gen_guilds (
     id           INT AUTO_INCREMENT PRIMARY KEY,
     name         VARCHAR(32) NOT NULL UNIQUE,
     leader_uuid  VARCHAR(36) NOT NULL,
     created_at   BIGINT      DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS gen_guild_members (
     guild_id   INT         NOT NULL,
     uuid       VARCHAR(36) NOT NULL,
     PRIMARY KEY (uuid)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS gen_quests (
     uuid        VARCHAR(36) NOT NULL,
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS gen_quests (
     completed   TINYINT     DEFAULT 0,
     reset_date  VARCHAR(10) NOT NULL,
     PRIMARY KEY (uuid, quest_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS gen_achievements (
     uuid           VARCHAR(36) NOT NULL,
@@ -81,10 +81,10 @@ CREATE TABLE IF NOT EXISTS gen_achievements (
     progress       BIGINT      DEFAULT 0,
     completed      TINYINT     DEFAULT 0,
     PRIMARY KEY (uuid, achievement_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS gen_afk (
     uuid          VARCHAR(36) PRIMARY KEY,
     afk_since     BIGINT DEFAULT 0,
     last_box_time BIGINT DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

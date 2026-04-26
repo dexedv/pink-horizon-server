@@ -90,7 +90,7 @@ public class GenDatabaseManager {
                         tier   VARCHAR(32) NOT NULL,
                         level  INT         DEFAULT 1,
                         UNIQUE KEY pos_key (world, x, y, z)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """;
             } else {
                 genTable = """
@@ -141,7 +141,7 @@ public class GenDatabaseManager {
                         name         VARCHAR(32) NOT NULL UNIQUE,
                         leader_uuid  VARCHAR(36) NOT NULL,
                         created_at   BIGINT DEFAULT 0
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """;
             } else {
                 guildTable = """
