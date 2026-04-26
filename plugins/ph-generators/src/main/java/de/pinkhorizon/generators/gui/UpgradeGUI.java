@@ -188,13 +188,10 @@ public class UpgradeGUI implements Listener {
                     }
                     case NO_NEXT_TIER -> player.sendMessage(MM.deserialize(
                             "<red>Maximales Tier erreicht! Kein weiteres Upgrade möglich."));
-                    case NO_MONEY -> {
-                        de.pinkhorizon.generators.GeneratorType nextTier = gen.getType().getNextTier();
-                        long cost = nextTier != null ? nextTier.getBuyPrice() : 0;
-                        player.sendMessage(MM.deserialize(
-                                "<red>Nicht genug Geld für Tier-Upgrade! Benötigt: $" + cost
-                                        + " | Du hast: $" + data.getMoney()));
-                    }
+                    case NO_MONEY -> player.sendMessage(MM.deserialize(
+                            "<red>Nicht genug Geld für Tier-Upgrade! Benötigt: $"
+                                    + gen.getType().getTierUpgradeCost()
+                                    + " | Du hast: $" + data.getMoney()));
                     default -> {}
                 }
             }
@@ -234,7 +231,7 @@ public class UpgradeGUI implements Listener {
                 lore.add(MM.deserialize("<aqua>Rechtsklick → Token verwenden (kostenlos)"));
             }
         } else if (nextTier != null) {
-            long tierCost = nextTier.getBuyPrice();
+            long tierCost = gen.getType().getTierUpgradeCost();
             boolean canAffordTier = data.getMoney() >= tierCost;
             lore.add(MM.deserialize("<green><bold>★ MAX LEVEL ★</bold></green>"));
             lore.add(MM.deserialize("<gray>Nächstes Tier: " + nextTier.getDisplayName()));

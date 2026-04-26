@@ -199,8 +199,8 @@ public class GeneratorManager {
         GeneratorType nextTier = gen.getType().getNextTier();
         if (nextTier == null) return TierUpgradeResult.NO_NEXT_TIER;
 
-        long cost = nextTier.getBuyPrice();
-        if (!data.takeMoney(cost)) return TierUpgradeResult.NO_MONEY;
+        long cost = gen.getType().getTierUpgradeCost();
+        if (cost < 0 || !data.takeMoney(cost)) return TierUpgradeResult.NO_MONEY;
 
         gen.setType(nextTier);
         gen.setLevel(1);

@@ -94,17 +94,53 @@ public enum GeneratorType {
     }
 
     /**
-     * Nächstes normales Tier (Cobblestone→Iron→…→Netherite).
+     * Nächstes Tier innerhalb derselben Fusionsstufe:
+     * Normal: Cobblestone→Iron→…→Netherite
+     * Mega:   Mega-Cobblestone→Mega-Iron→…→Mega-Netherite
+     * Ultra:  Ultra-Cobblestone→Ultra-Iron→…→Ultra-Netherite
      */
     public GeneratorType getNextTier() {
         return switch (this) {
-            case COBBLESTONE -> IRON;
-            case IRON        -> GOLD;
-            case GOLD        -> LAPIS;
-            case LAPIS       -> DIAMOND;
-            case DIAMOND     -> NETHERITE;
-            default          -> null;
+            // Normal
+            case COBBLESTONE      -> IRON;
+            case IRON             -> GOLD;
+            case GOLD             -> LAPIS;
+            case LAPIS            -> DIAMOND;
+            case DIAMOND          -> NETHERITE;
+            // Mega
+            case MEGA_COBBLESTONE -> MEGA_IRON;
+            case MEGA_IRON        -> MEGA_GOLD;
+            case MEGA_GOLD        -> MEGA_LAPIS;
+            case MEGA_LAPIS       -> MEGA_DIAMOND;
+            case MEGA_DIAMOND     -> MEGA_NETHERITE;
+            // Ultra
+            case ULTRA_COBBLESTONE -> ULTRA_IRON;
+            case ULTRA_IRON        -> ULTRA_GOLD;
+            case ULTRA_GOLD        -> ULTRA_LAPIS;
+            case ULTRA_LAPIS       -> ULTRA_DIAMOND;
+            case ULTRA_DIAMOND     -> ULTRA_NETHERITE;
+            default                -> null;
         };
+    }
+
+    /**
+     * Kosten für ein Tier-Upgrade (Max-Level → nächstes Tier).
+     * Normal:  = Kaufpreis des Ziel-Tiers
+     * Mega:    = 4× der entsprechenden Normal-Tier-Kosten
+     * Ultra:   = 16× der entsprechenden Normal-Tier-Kosten
+     * Gibt -1 zurück wenn kein nächstes Tier existiert.
+     */
+    public long getTierUpgradeCost() {
+        if (getNextTier() == null) return -1L;
+        if (!isMega()) {
+            // Normal → nächstes Normal: Kaufpreis des Ziel-Tiers
+            return getNextTier().getBuyPrice();
+        }
+        // Basis-Typ bestimmen (z.B. MEGA_IRON → IRON)
+        GeneratorType base = getBaseTier();
+        if (base == null) return -1L;
+        long normalCost = base.getTierUpgradeCost();
+        return isUltra() ? normalCost * 16L : normalCost * 4L;
     }
 
     public GeneratorType getBaseTier() {
