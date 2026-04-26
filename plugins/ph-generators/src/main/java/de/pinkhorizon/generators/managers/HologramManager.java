@@ -357,6 +357,8 @@ public class HologramManager {
         boolean hasGen      = !data.getGenerators().isEmpty();
         boolean hasUpgraded = data.getTotalUpgrades() > 0;
         boolean hasThreeGen = data.getGenerators().size() >= 3;
+        boolean hasMega     = data.getGenerators().stream()
+                .anyMatch(g -> g.getType().isMega());
         boolean hasPrestige = data.getPrestige() > 0;
 
         double totalIncome = 0;
@@ -417,15 +419,30 @@ public class HologramManager {
         sb.append("<dark_gray>───────────────────────\n");
 
         // Schritt 4
-        if (hasThreeGen && !hasPrestige) {
-            sb.append("<yellow><bold>➤ Schritt 4: Prestige machen</bold></yellow>\n");
+        if (hasThreeGen && !hasMega) {
+            sb.append("<yellow><bold>➤ Schritt 4: Mega-Generator fusionieren</bold></yellow>\n");
+            sb.append("<gray>  Lege <white>3 gleiche Generatoren\n");
+            sb.append("<gray>  nebeneinander ab → <gold>Mega-Generator!\n");
+            sb.append("<dark_gray>  ↳ Mega = 4× Ertrag des Basis-Typs\n");
+            sb.append("<gray>  Befehl: <yellow>/gen fuse\n");
+            sb.append("<dark_gray>  ↳ Normal→Mega→Ultra→God→Titan\n");
+        } else if (!hasThreeGen) {
+            sb.append("<dark_gray>○ Schritt 4: Fusion (3× gleicher Typ)\n");
+        } else {
+            sb.append("<green>✔ <white>Schritt 4: <green>Mega-Generator aktiv!\n");
+        }
+        sb.append("<dark_gray>───────────────────────\n");
+
+        // Schritt 5
+        if (hasMega && !hasPrestige) {
+            sb.append("<yellow><bold>➤ Schritt 5: Prestige machen</bold></yellow>\n");
             sb.append("<gray>  Kosten: <gold>$").append(MoneyManager.formatMoney(data.nextPrestigeCost())).append("\n");
             sb.append("<gray>  Befehl: <yellow>/gen prestige\n");
             sb.append("<dark_gray>  ↳ Höheres Max-Level + +5% Bonus\n");
-        } else if (!hasThreeGen) {
-            sb.append("<dark_gray>○ Schritt 4: Prestige (später)\n");
+        } else if (!hasMega) {
+            sb.append("<dark_gray>○ Schritt 5: Prestige (später)\n");
         } else {
-            sb.append("<green>✔ <white>Schritt 4: <green>Prestige ").append(data.getPrestige()).append(" erreicht!\n");
+            sb.append("<green>✔ <white>Schritt 5: <green>Prestige ").append(data.getPrestige()).append(" erreicht!\n");
         }
 
         sb.append("<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━\n");
