@@ -32,6 +32,9 @@ public class UpgradeGUI implements Listener {
     /** UUID → aktuell angezeigte Generatoren-Liste (für Click-Mapping) */
     private final ConcurrentHashMap<UUID, List<PlacedGenerator>> openInventories = new ConcurrentHashMap<>();
 
+    /** UUIDs die gerade im Single-View (Sneak-Rechtsklick) sind */
+    private final java.util.Set<UUID> singleView = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+
     public UpgradeGUI(PHGenerators plugin) {
         this.plugin = plugin;
     }
@@ -52,6 +55,7 @@ public class UpgradeGUI implements Listener {
         List<PlacedGenerator> list = new ArrayList<>();
         list.add(gen); // index 0
         openInventories.put(player.getUniqueId(), list);
+        singleView.add(player.getUniqueId());
         player.openInventory(inv);
     }
 
@@ -78,6 +82,7 @@ public class UpgradeGUI implements Listener {
         }
 
         openInventories.put(player.getUniqueId(), new ArrayList<>(gens));
+        singleView.remove(player.getUniqueId());
         player.openInventory(inv);
     }
 
@@ -117,7 +122,7 @@ public class UpgradeGUI implements Listener {
             plugin.getHologramManager().updateHologram(gen, data);
             plugin.getAchievementManager().track(data, "upgrade_100", 1);
             player.sendMessage(MM.deserialize("<aqua>✦ Token verwendet! Generator ist jetzt Level " + gen.getLevel()));
-            open(player);
+            refresh(player, gen);
             return;
         }
 
@@ -127,7 +132,7 @@ public class UpgradeGUI implements Listener {
             case SUCCESS -> {
                 player.sendMessage(MM.deserialize("<green>✔ " + gen.getType().getDisplayName()
                         + " <green>auf Level <white>" + gen.getLevel() + " <green>upgegraded!"));
-                open(player);
+                refresh(player, gen);
             }
             case MAX_LEVEL -> {
                 // Max-Level erreicht → Tier-Upgrade versuchen
@@ -136,7 +141,7 @@ public class UpgradeGUI implements Listener {
                     case SUCCESS -> {
                         player.sendMessage(MM.deserialize(
                                 "<green>✔ Generator aufgewertet zu " + gen.getType().getDisplayName() + "! <gray>(Level zurück auf 1)"));
-                        open(player);
+                        refresh(player, gen);
                     }
                     case NO_NEXT_TIER -> player.sendMessage(MM.deserialize(
                             "<red>Maximales Tier erreicht! Kein weiteres Upgrade möglich."));
@@ -229,7 +234,17 @@ public class UpgradeGUI implements Listener {
         return item;
     }
 
+    /** Aktualisiert das Menü nach einem Upgrade – bleibt im Single-View wenn dort geöffnet. */
+    private void refresh(Player player, PlacedGenerator gen) {
+        if (singleView.contains(player.getUniqueId())) {
+            openSingle(player, gen);
+        } else {
+            open(player);
+        }
+    }
+
     public void close(UUID uuid) {
         openInventories.remove(uuid);
+        singleView.remove(uuid);
     }
 }
