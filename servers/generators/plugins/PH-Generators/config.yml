@@ -12,9 +12,9 @@ database:
 # Island-Spawn: Koordinaten auf dem Skyblock-Template wo Spieler spawnen
 # Passe diese an deinen Map-Spawn an!
 island:
-  spawn-x: -61.425
-  spawn-y: 64.0
-  spawn-z: -63.295
+  spawn-x: -52.435
+  spawn-y: 76.37255
+  spawn-z: -53.507
   spawn-yaw: 0.0
   spawn-pitch: 0.0
 
