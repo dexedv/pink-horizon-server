@@ -200,6 +200,16 @@ public class IslandWorldManager {
 
         player.teleport(spawn);
         player.setGameMode(GameMode.SURVIVAL);
+
+        // Welt ist jetzt sicher geladen → Blöcke wiederherstellen + Hologramme spawnen
+        de.pinkhorizon.generators.data.PlayerData data =
+                plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data != null) {
+            // 3 Ticks warten damit der Client die Welt fertig empfangen hat
+            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin,
+                    () -> plugin.getGeneratorManager().loadHolograms(data), 3L);
+        }
+
         player.sendMessage(MM.deserialize(
                 "<green>✔ Willkommen auf deiner Insel! <gray>| <yellow>/gen shop"));
     }

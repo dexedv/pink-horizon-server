@@ -39,9 +39,26 @@ public class GeneratorManager {
         data.getGenerators().addAll(gens);
         for (PlacedGenerator g : gens) {
             byLocation.put(g.locationKey(), g);
-            // Hologramme erst spawnen wenn die Welt geladen ist (2 Ticks Verzögerung)
-            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin,
-                    () -> plugin.getHologramManager().spawnHologram(g), 10L);
+        }
+        // Hologramme + Block-Wiederherstellung erfolgen in loadHolograms(),
+        // das erst nach dem Laden der Inselwelt aufgerufen wird.
+    }
+
+    /**
+     * Stellt fehlende Generator-Blöcke wieder her und spawnt Hologramme.
+     * Muss aufgerufen werden NACHDEM die Inselwelt geladen ist.
+     */
+    public void loadHolograms(PlayerData data) {
+        for (PlacedGenerator g : data.getGenerators()) {
+            org.bukkit.World world = org.bukkit.Bukkit.getWorld(g.getWorld());
+            if (world != null) {
+                // Block wiederherstellen falls er fehlt
+                org.bukkit.block.Block block = world.getBlockAt(g.getX(), g.getY(), g.getZ());
+                if (block.getType() != g.getType().getBlock()) {
+                    block.setType(g.getType().getBlock());
+                }
+            }
+            plugin.getHologramManager().spawnHologram(g);
         }
     }
 
