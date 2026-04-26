@@ -925,6 +925,130 @@ async function postDefaultContent(guild, createdChannels) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Setup: nur neue Generators-Sachen
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function runSetupGenerators(guild, interaction) {
+  try {
+    const everyone   = guild.roles.everyone;
+    const adminRole  = guild.roles.cache.find(r => r.name === 'Admin');
+    const modRole    = guild.roles.cache.find(r => r.name === 'Moderator');
+    const suppRole   = guild.roles.cache.find(r => r.name === 'Supporter');
+    const verifRole  = guild.roles.cache.find(r => r.name === 'Verifiziert');
+
+    // ── 1. Neue Rollen ───────────────────────────────────────────────────────
+    await interaction.editReply('⚙️ Erstelle fehlende Rollen...');
+    const newRoles = [
+      { name: 'Survival-Fan',  color: 0x2ECC71 },
+      { name: 'Smash-Fan',     color: 0xFF5555 },
+      { name: 'IdleForge-Fan', color: 0xFFAA00 },
+    ];
+    const roleMap = {};
+    for (const def of newRoles) {
+      let role = guild.roles.cache.find(r => r.name === def.name);
+      if (!role) {
+        await interaction.editReply(`⚙️ Erstelle Rolle **${def.name}**...`);
+        role = await apiCall(() => guild.roles.create({ name: def.name, color: def.color, hoist: false, mentionable: false }));
+        await sleep(10000);
+      }
+      roleMap[def.name] = role;
+    }
+
+    // ── 2. SPIELMODUS Kategorie + rollen-wählen ──────────────────────────────
+    await interaction.editReply('⚙️ Erstelle **🎮 SPIELMODUS** Kategorie...');
+    const spielmodusCatPerms = [
+      { id: everyone.id,  deny:  [PermissionFlagsBits.ViewChannel] },
+      { id: verifRole.id, allow: [PermissionFlagsBits.ViewChannel] },
+      { id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel] },
+      { id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel] },
+      { id: suppRole.id,  allow: [PermissionFlagsBits.ViewChannel] },
+    ];
+    let spielmodusCat = guild.channels.cache.find(c => c.name === '🎮 SPIELMODUS' && c.type === ChannelType.GuildCategory);
+    if (!spielmodusCat) {
+      spielmodusCat = await apiCall(() => guild.channels.create({ name: '🎮 SPIELMODUS', type: ChannelType.GuildCategory, permissionOverwrites: spielmodusCatPerms }));
+      await sleep(10000);
+    }
+
+    let selfroleCh = guild.channels.cache.find(c => c.name === 'rollen-wählen' && c.parentId === spielmodusCat.id);
+    if (!selfroleCh) {
+      await interaction.editReply('⚙️ Erstelle **rollen-wählen** Kanal...');
+      selfroleCh = await apiCall(() => guild.channels.create({
+        name: 'rollen-wählen', type: ChannelType.GuildText, parent: spielmodusCat.id,
+        permissionOverwrites: [
+          { id: everyone.id,  deny:  [PermissionFlagsBits.SendMessages] },
+          { id: adminRole.id, allow: [PermissionFlagsBits.SendMessages] },
+          { id: modRole.id,   allow: [PermissionFlagsBits.SendMessages] },
+        ],
+      }));
+      await sleep(10000);
+    }
+
+    // ── 3. IDLEFORGE Kategorie + Kanäle ─────────────────────────────────────
+    await interaction.editReply('⚙️ Erstelle **⚙️ IDLEFORGE** Kategorie...');
+    const idleforgeCatPerms = [
+      { id: everyone.id,                      deny:  [PermissionFlagsBits.ViewChannel] },
+      { id: adminRole.id,                     allow: [PermissionFlagsBits.ViewChannel] },
+      { id: modRole.id,                       allow: [PermissionFlagsBits.ViewChannel] },
+      { id: suppRole.id,                      allow: [PermissionFlagsBits.ViewChannel] },
+      { id: roleMap['IdleForge-Fan'].id,      allow: [PermissionFlagsBits.ViewChannel] },
+    ];
+    let idleforgeCat = guild.channels.cache.find(c => c.name === '⚙️ IDLEFORGE' && c.type === ChannelType.GuildCategory);
+    if (!idleforgeCat) {
+      idleforgeCat = await apiCall(() => guild.channels.create({ name: '⚙️ IDLEFORGE', type: ChannelType.GuildCategory, permissionOverwrites: idleforgeCatPerms }));
+      await sleep(10000);
+    }
+
+    for (const chName of ['generators-allgemein', 'generators-tipps']) {
+      const exists = guild.channels.cache.find(c => c.name === chName && c.parentId === idleforgeCat.id);
+      if (!exists) {
+        await interaction.editReply(`⚙️ Erstelle **${chName}**...`);
+        await apiCall(() => guild.channels.create({ name: chName, type: ChannelType.GuildText, parent: idleforgeCat.id }));
+        await sleep(10000);
+      }
+    }
+
+    // ── 4. Spielmodus-Panel posten ───────────────────────────────────────────
+    await interaction.editReply('⚙️ Poste Spielmodus-Panel...');
+    const msgs = await selfroleCh.messages.fetch({ limit: 5 }).catch(() => null);
+    if (!msgs || msgs.size === 0) {
+      await selfroleCh.send({
+        embeds: [new EmbedBuilder()
+          .setTitle('🎮 Wähle deinen Spielmodus')
+          .setColor(0xAA00AA)
+          .setDescription([
+            'Klicke auf einen Button um die Rolle für deinen Spielmodus zu erhalten.',
+            'Du kannst mehrere Rollen gleichzeitig haben.',
+            '',
+            '**⛏️ Survival** – Erkunde die Welt, Claims & Economy',
+            '**🎮 Smash the Boss** – Besiege Bosse, Upgrades & Prestige',
+            '**⚙️ IdleForge** – Generatoren, passives Einkommen & Prestige',
+            '',
+            '*Klicke erneut auf eine Rolle um sie zu entfernen.*',
+          ].join('\n'))
+          .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' })],
+        components: [new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('selfrole_survival').setLabel('⛏️ Survival').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('selfrole_smash').setLabel('🎮 Smash the Boss').setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId('selfrole_idleforge').setLabel('⚙️ IdleForge').setStyle(ButtonStyle.Primary),
+        )],
+      });
+    }
+
+    await interaction.editReply([
+      '✅ **Fertig!**',
+      '• Rollen: Survival-Fan, Smash-Fan, IdleForge-Fan',
+      '• Kategorie: 🎮 SPIELMODUS mit #rollen-wählen',
+      '• Kategorie: ⚙️ IDLEFORGE mit #generators-allgemein + #generators-tipps',
+      '• Spielmodus-Panel gepostet',
+    ].join('\n'));
+
+  } catch (e) {
+    console.error('[SetupGenerators] Fehler:', e);
+    await interaction.editReply(`❌ Fehler: ${e.message}`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Full Setup Flow
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -986,6 +1110,11 @@ const COMMANDS = [
   new SlashCommandBuilder()
     .setName('selfrole-panel')
     .setDescription('Postet das Spielmodus-Rollenmenü in diesen Kanal (Admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName('setup-generators')
+    .setDescription('Erstellt nur die neuen Rollen + IdleForge/Spielmodus Kanäle (Admin)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
@@ -1329,6 +1458,9 @@ client.on('interactionCreate', async interaction => {
 
     if (commandName === 'setup') {
       await runSetup(guild, interaction);
+
+    } else if (commandName === 'setup-generators') {
+      await runSetupGenerators(guild, interaction);
 
     } else if (commandName === 'selfrole-panel') {
       await interaction.channel.send({
