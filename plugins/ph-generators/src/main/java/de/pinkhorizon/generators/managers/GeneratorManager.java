@@ -231,20 +231,28 @@ public class GeneratorManager {
         GeneratorType baseType = targets.get(0).getType();
         int maxLevel = data.maxGeneratorLevel();
 
+        // Fusions-Ergebnis ermitteln (Normal→Mega, Mega→Ultra, Ultra→null)
+        GeneratorType resultType = baseType.getNextFusionTier();
+        if (resultType == null) return FuseResult.ALREADY_MEGA;
+
         for (PlacedGenerator g : targets) {
             if (!g.getOwnerUUID().equals(player.getUniqueId())) return FuseResult.NOT_OWNER;
             if (g.getType() != baseType) return FuseResult.DIFFERENT_TYPE;
             if (g.getLevel() < maxLevel) return FuseResult.NOT_MAX_LEVEL;
-            if (g.getType().isMega()) return FuseResult.ALREADY_MEGA;
         }
 
-        GeneratorType megaType = baseType.getMegaTier();
-        if (megaType == null) return FuseResult.NO_MEGA_TIER;
-
-        // Ersten Generator zur Mega machen, die anderen zwei löschen
+        // Ersten Generator zum Ergebnis-Typ machen, die anderen zwei löschen
         PlacedGenerator keeper = targets.get(0);
-        keeper.setType(megaType);
+        keeper.setType(resultType);
         keeper.setLevel(1);
+
+        // Block des Keepers auf neues Material aktualisieren (wichtig für Ultra-Tiers)
+        org.bukkit.World keeperWorld = org.bukkit.Bukkit.getWorld(keeper.getWorld());
+        if (keeperWorld != null) {
+            keeperWorld.getBlockAt(keeper.getX(), keeper.getY(), keeper.getZ())
+                    .setType(resultType.getBlock());
+        }
+
         plugin.getRepository().updateGeneratorLevel(keeper);
         plugin.getHologramManager().updateHologram(keeper, data);
 

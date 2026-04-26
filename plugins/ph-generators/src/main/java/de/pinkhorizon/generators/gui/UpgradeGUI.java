@@ -280,7 +280,9 @@ public class UpgradeGUI implements Listener {
     /** Sucht benachbarte Generatoren desselben Typs auf Max-Level (für Fusion). */
     private List<PlacedGenerator> findFusionPartners(PlacedGenerator gen, PlayerData data) {
         List<PlacedGenerator> partners = new ArrayList<>();
-        if (gen.getType().isMega() || gen.getLevel() < data.maxGeneratorLevel()) return partners;
+        // Fusion nur möglich wenn es ein nächstes Fusions-Tier gibt
+        if (gen.getType().getNextFusionTier() == null) return partners;
+        if (gen.getLevel() < data.maxGeneratorLevel()) return partners;
 
         org.bukkit.World world = Bukkit.getWorld(gen.getWorld());
         if (world == null) return partners;
@@ -293,7 +295,7 @@ public class UpgradeGUI implements Listener {
             if (neighbor != null
                     && neighbor.getType() == gen.getType()
                     && neighbor.getLevel() >= data.maxGeneratorLevel()
-                    && !neighbor.getType().isMega()) {
+                    && neighbor.getType().getNextFusionTier() != null) {
                 partners.add(neighbor);
             }
         }
@@ -301,16 +303,21 @@ public class UpgradeGUI implements Listener {
     }
 
     private ItemStack buildFusionButton(PlacedGenerator gen, List<PlacedGenerator> partners) {
-        de.pinkhorizon.generators.GeneratorType mega = gen.getType().getMegaTier();
-        ItemStack item = new ItemStack(Material.BLAZE_ROD);
+        de.pinkhorizon.generators.GeneratorType result = gen.getType().getNextFusionTier();
+        boolean isUltraFusion = gen.getType().isMega(); // Mega→Ultra Fusion
+        ItemStack item = new ItemStack(isUltraFusion ? Material.NETHER_STAR : Material.BLAZE_ROD);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(MM.deserialize("<gold><bold>✦ FUSION verfügbar!</bold>"));
+        meta.displayName(MM.deserialize(isUltraFusion
+                ? "<light_purple><bold>◆ ULTRA-FUSION verfügbar!</bold>"
+                : "<gold><bold>✦ FUSION verfügbar!</bold>"));
         List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
         lore.add(MM.deserialize("<gray>Fusioniere 3 gleiche Max-Level-Generatoren"));
-        lore.add(MM.deserialize("<gray>zu einem mächtigen Mega-Generator!"));
+        lore.add(MM.deserialize(isUltraFusion
+                ? "<gray>zu einem gewaltigen <light_purple>Ultra-Generator<gray>!"
+                : "<gray>zu einem mächtigen <gold>Mega-Generator<gray>!"));
         lore.add(MM.deserialize(""));
-        if (mega != null) {
-            lore.add(MM.deserialize("<gray>Ergebnis: " + mega.getDisplayName()));
+        if (result != null) {
+            lore.add(MM.deserialize("<gray>Ergebnis: " + result.getDisplayName()));
         }
         lore.add(MM.deserialize("<gray>Partner gefunden: <white>" + Math.min(partners.size(), 2)));
         lore.add(MM.deserialize(""));
