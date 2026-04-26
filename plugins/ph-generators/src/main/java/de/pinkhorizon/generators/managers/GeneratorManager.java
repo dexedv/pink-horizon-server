@@ -24,7 +24,8 @@ public class GeneratorManager {
     /** locationKey → Generator (für schnellen Block-Lookup) */
     private final Map<String, PlacedGenerator> byLocation = new HashMap<>();
 
-    public static final NamespacedKey KEY_GENERATOR_TYPE = new NamespacedKey("ph-generators", "generator_type");
+    public static final NamespacedKey KEY_GENERATOR_TYPE  = new NamespacedKey("ph-generators", "generator_type");
+    public static final NamespacedKey KEY_GENERATOR_LEVEL = new NamespacedKey("ph-generators", "generator_level");
 
     public GeneratorManager(PHGenerators plugin) {
         this.plugin = plugin;
@@ -56,6 +57,10 @@ public class GeneratorManager {
      * Wird von GeneratorBlockListener aufgerufen.
      */
     public boolean placeGenerator(Player player, Location loc, GeneratorType type) {
+        return placeGenerator(player, loc, type, 1);
+    }
+
+    public boolean placeGenerator(Player player, Location loc, GeneratorType type, int level) {
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return false;
 
@@ -79,7 +84,7 @@ public class GeneratorManager {
                 player.getUniqueId(),
                 loc.getWorld().getName(),
                 loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(),
-                type, 1
+                type, Math.max(1, level)
         );
 
         data.getGenerators().add(gen);
@@ -113,6 +118,26 @@ public class GeneratorManager {
         plugin.getHologramManager().removeHologram(gen);
         plugin.getRepository().deleteGenerator(gen);
         return true;
+    }
+
+    /**
+     * Wie removeGenerator, aber gibt das Generator-Item mit erhaltenem Level zurück.
+     * Wird von GeneratorBlockListener aufgerufen.
+     */
+    public ItemStack removeGeneratorWithDrop(Location loc, UUID playerUUID) {
+        String key = loc.getWorld().getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
+        PlacedGenerator gen = byLocation.remove(key);
+        if (gen == null) return null;
+
+        PlayerData data = plugin.getPlayerDataMap().get(gen.getOwnerUUID());
+        if (data != null) {
+            data.getGenerators().remove(gen);
+            plugin.getSynergyManager().recalculateAll(data);
+        }
+        plugin.getHologramManager().removeHologram(gen);
+        plugin.getRepository().deleteGenerator(gen);
+
+        return createGeneratorItem(gen.getType(), gen.getLevel(), 1);
     }
 
     // ── Upgraden ─────────────────────────────────────────────────────────────
@@ -187,19 +212,27 @@ public class GeneratorManager {
 
     // ── Item-Erstellung ──────────────────────────────────────────────────────
 
-    /** Erstellt ein Generator-Item mit NBT-Tag für die Identifikation */
-    public ItemStack createGeneratorItem(GeneratorType type, int amount) {
+    /** Erstellt ein Generator-Item mit NBT-Tag für Typ und Level */
+    public ItemStack createGeneratorItem(GeneratorType type, int level, int amount) {
         ItemStack item = new ItemStack(type.getBlock(), amount);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(MiniMessage.miniMessage().deserialize(type.getDisplayName()));
         meta.lore(List.of(
                 MiniMessage.miniMessage().deserialize("<gray>Typ: <white>" + type.name()),
-                MiniMessage.miniMessage().deserialize("<gray>Einkommen: <green>$" + (long) type.getBaseIncomePerSec() + "/s"),
+                MiniMessage.miniMessage().deserialize("<gray>Level: <aqua>" + level),
+                MiniMessage.miniMessage().deserialize("<gray>Einkommen: <green>$"
+                        + String.format("%.1f", type.incomeAt(level)) + "/s"),
                 MiniMessage.miniMessage().deserialize("<yellow>Platziere diesen Block um den Generator zu aktivieren!")
         ));
         meta.getPersistentDataContainer().set(KEY_GENERATOR_TYPE, PersistentDataType.STRING, type.name());
+        meta.getPersistentDataContainer().set(KEY_GENERATOR_LEVEL, PersistentDataType.INTEGER, level);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** @deprecated Benutze createGeneratorItem(type, level, amount) */
+    public ItemStack createGeneratorItem(GeneratorType type, int amount) {
+        return createGeneratorItem(type, 1, amount);
     }
 
     /** Prüft ob ein ItemStack ein Generator-Item ist und gibt den Typ zurück */
@@ -213,6 +246,14 @@ public class GeneratorManager {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    /** Liest das gespeicherte Level aus einem Generator-Item (Standard: 1) */
+    public int getGeneratorLevel(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return 1;
+        Integer level = item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_GENERATOR_LEVEL, PersistentDataType.INTEGER);
+        return level != null ? level : 1;
     }
 
     // ── Lookup ───────────────────────────────────────────────────────────────

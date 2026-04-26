@@ -10,6 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.event.block.Action;
 import org.bukkit.entity.Player;
 
@@ -39,8 +40,9 @@ public class GeneratorBlockListener implements Listener {
             return;
         }
 
+        int level = plugin.getGeneratorManager().getGeneratorLevel(event.getItemInHand());
         boolean success = plugin.getGeneratorManager().placeGenerator(
-                player, event.getBlock().getLocation(), type);
+                player, event.getBlock().getLocation(), type, level);
 
         if (!success) {
             event.setCancelled(true);
@@ -87,13 +89,14 @@ public class GeneratorBlockListener implements Listener {
             return;
         }
 
-        // Drop: Generator-Item zurückgeben
+        // Drop: Generator-Item mit erhaltenem Level zurückgeben
         event.setDropItems(false);
-        plugin.getGeneratorManager().removeGenerator(event.getBlock().getLocation(), player.getUniqueId());
-        event.getBlock().getWorld().dropItemNaturally(
-                event.getBlock().getLocation(),
-                plugin.getGeneratorManager().createGeneratorItem(gen.getType(), 1));
+        ItemStack drop = plugin.getGeneratorManager().removeGeneratorWithDrop(
+                event.getBlock().getLocation(), player.getUniqueId());
+        if (drop != null) {
+            event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation(), drop);
+        }
 
-        player.sendMessage(MM.deserialize("<yellow>Generator abgebaut. Kauf-Level-Fortschritt geht verloren!"));
+        player.sendMessage(MM.deserialize("<yellow>Generator abgebaut. Level-Fortschritt bleibt erhalten!"));
     }
 }
