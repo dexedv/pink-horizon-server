@@ -2,6 +2,9 @@ package de.pinkhorizon.generators.managers;
 
 import de.pinkhorizon.generators.PHGenerators;
 import de.pinkhorizon.generators.data.PlayerData;
+import de.pinkhorizon.generators.listeners.ChatListener;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -76,6 +79,7 @@ public class ScoreboardManager {
     }
 
     public void updateTab(Player player, PlayerData data) {
+        // Tab-Kopf/Fuß
         player.sendPlayerListHeaderAndFooter(
                 MM.deserialize(
                         "\n<light_purple><bold>✦ IdleForge ✦</bold></light_purple>\n"
@@ -85,6 +89,13 @@ public class ScoreboardManager {
                         + " <gray>| Geld: <green>$" + MoneyManager.formatMoney(data.getMoney())
                         + "\n<dark_gray>play.pinkhorizon.de\n")
         );
+
+        // Spieler-Name in der Tab-Liste: LuckPerms-Prefix + Prestige-Badge + Name
+        // Direkt setzen, da unser eigenes Scoreboard die LP-Teams überlagert.
+        Component prefix  = ChatListener.getLuckPermsPrefix(player);
+        Component prestige = ChatListener.buildPrestigeBadge(data);
+        Component name    = Component.text(player.getName(), NamedTextColor.WHITE);
+        player.playerListName(prefix.append(prestige).append(name));
     }
 
     public void removeScoreboard(Player player) {

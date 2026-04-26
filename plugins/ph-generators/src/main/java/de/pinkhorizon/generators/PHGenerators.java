@@ -131,6 +131,7 @@ public class PHGenerators extends JavaPlugin {
         // ── Listener registrieren ─────────────────────────────────────────────
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         getServer().getPluginManager().registerEvents(new GeneratorBlockListener(this), this);
+        getServer().getPluginManager().registerEvents(new de.pinkhorizon.generators.listeners.ChatListener(this), this);
         getServer().getPluginManager().registerEvents(shopGUI, this);
         getServer().getPluginManager().registerEvents(upgradeGUI, this);
         getServer().getPluginManager().registerEvents(blockShopGUI, this);

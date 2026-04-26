@@ -3,6 +3,8 @@ version: '1.0.0'
 main: de.pinkhorizon.generators.PHGenerators
 api-version: '1.21'
 description: IdleForge Generator-Spielmodus
+soft-depend:
+  - LuckPerms
 
 commands:
   gen:
