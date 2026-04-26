@@ -18,8 +18,6 @@ tab-footer: '&7play.pinkhorizon.de'
 # Schild-Navigation: Schilder mit [PH-Nav] im ersten Header aktivieren Navigation
 signs:
   survival: Survival
-  skyblock: SkyBlock
-  minigames: Minigames
   generators: IdleForge
 border:
   centerX: -61.62334280884393
@@ -31,14 +29,6 @@ servers:
     display: "Survival"
     host: survival
     port: 25567
-  skyblock:
-    display: "SkyBlock"
-    host: skyblock
-    port: 25568
-  minigames:
-    display: "Minigames"
-    host: minigames
-    port: 25569
   smash:
     display: "Smash the Boss"
     host: smash

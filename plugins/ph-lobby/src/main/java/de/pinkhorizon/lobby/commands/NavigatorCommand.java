@@ -32,13 +32,11 @@ public class NavigatorCommand implements CommandExecutor, Listener {
     private static final List<ServerEntry> SERVERS = List.of(
         new ServerEntry("survival",   "Survival",       Material.GRASS_BLOCK,   List.of("Erkunde die Welt!", "Economy, Claims & mehr")),
         new ServerEntry("smash",      "Smash the Boss", Material.NETHER_STAR,   List.of("Besiege endlos starke Bosse!", "Upgrades, Loot & mehr")),
-        new ServerEntry("minigames",  "Minigames",      Material.DIAMOND_SWORD, List.of("BedWars & mehr")),
-        new ServerEntry("skyblock",   "SkyBlock",       Material.MAGMA_BLOCK,   List.of("Baue deine eigene Insel!")),
         new ServerEntry("generators", "IdleForge",      Material.GOLD_BLOCK,    List.of("Platziere Generatoren!", "Verdiene passiv Geld & Prestige"))
     );
 
-    // Slot-Positionen für 5 Server (Reihe 2: 3 Server, Reihe 3: 2 Server zentriert)
-    private static final int[] SERVER_SLOTS = {10, 12, 14, 20, 22};
+    // Slot-Positionen für 3 Server (zentriert in Reihe 2)
+    private static final int[] SERVER_SLOTS = {11, 13, 15};
 
     private final PHLobby plugin;
 
