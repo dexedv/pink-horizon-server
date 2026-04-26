@@ -9,44 +9,45 @@ import org.bukkit.Material;
 public enum GeneratorType {
 
     // ── Normale Tiers ──────────────────────────────────────────────────────
-    COBBLESTONE(Material.COBBLESTONE,    "<gray>Cobblestone-Generator</gray>",            1.0,      0L,        50L,      false, false),
-    IRON       (Material.IRON_BLOCK,     "<white>Iron-Generator</white>",                 5.0,    500L,       250L,      false, false),
-    GOLD       (Material.GOLD_BLOCK,     "<gold>Gold-Generator</gold>",                  15.0,  2_500L,       750L,      false, false),
-    LAPIS      (Material.LAPIS_BLOCK,    "<blue>Lapis-Generator</blue>",                 40.0, 10_000L,     2_000L,      false, false),
-    DIAMOND    (Material.DIAMOND_BLOCK,  "<aqua>Diamond-Generator</aqua>",              100.0, 50_000L,     5_000L,      false, false),
-    NETHERITE  (Material.NETHERITE_BLOCK,"<dark_gray>Netherite-Generator</dark_gray>",  500.0,250_000L,    25_000L,      false, false),
+    // baseCost = baseIncome * 18  (konstante ROI-Ratio, kein Long-Overflow bis Level ~10.000)
+    COBBLESTONE(Material.COBBLESTONE,    "<gray>Cobblestone-Generator</gray>",            1.0,      0L,        18L,      false, false),
+    IRON       (Material.IRON_BLOCK,     "<white>Iron-Generator</white>",                 5.0,    500L,        90L,      false, false),
+    GOLD       (Material.GOLD_BLOCK,     "<gold>Gold-Generator</gold>",                  15.0,  2_500L,       270L,      false, false),
+    LAPIS      (Material.LAPIS_BLOCK,    "<blue>Lapis-Generator</blue>",                 40.0, 10_000L,       720L,      false, false),
+    DIAMOND    (Material.DIAMOND_BLOCK,  "<aqua>Diamond-Generator</aqua>",              100.0, 50_000L,     1_800L,      false, false),
+    NETHERITE  (Material.NETHERITE_BLOCK,"<dark_gray>Netherite-Generator</dark_gray>",  500.0,250_000L,     9_000L,      false, false),
 
     // ── Mega-Tiers (3× Normal, nicht kaufbar) ─────────────────────────────
-    MEGA_COBBLESTONE(Material.COBBLESTONE,    "<gray><bold>✦ Mega-Cobblestone</bold></gray>",           4.0,  -1L,   200L, true, false),
-    MEGA_IRON       (Material.IRON_BLOCK,     "<white><bold>✦ Mega-Iron</bold></white>",               20.0,  -1L, 1_000L, true, false),
-    MEGA_GOLD       (Material.GOLD_BLOCK,     "<gold><bold>✦ Mega-Gold</bold></gold>",                 60.0,  -1L, 3_000L, true, false),
-    MEGA_LAPIS      (Material.LAPIS_BLOCK,    "<blue><bold>✦ Mega-Lapis</bold></blue>",               160.0,  -1L, 8_000L, true, false),
-    MEGA_DIAMOND    (Material.DIAMOND_BLOCK,  "<aqua><bold>✦ Mega-Diamond</bold></aqua>",             400.0,  -1L,20_000L, true, false),
-    MEGA_NETHERITE  (Material.NETHERITE_BLOCK,"<dark_gray><bold>✦ Mega-Netherite</bold></dark_gray>",2000.0,  -1L,100_000L,true, false),
+    MEGA_COBBLESTONE(Material.COBBLESTONE,    "<gray><bold>✦ Mega-Cobblestone</bold></gray>",           4.0,  -1L,       72L, true, false),
+    MEGA_IRON       (Material.IRON_BLOCK,     "<white><bold>✦ Mega-Iron</bold></white>",               20.0,  -1L,      360L, true, false),
+    MEGA_GOLD       (Material.GOLD_BLOCK,     "<gold><bold>✦ Mega-Gold</bold></gold>",                 60.0,  -1L,    1_080L, true, false),
+    MEGA_LAPIS      (Material.LAPIS_BLOCK,    "<blue><bold>✦ Mega-Lapis</bold></blue>",               160.0,  -1L,    2_880L, true, false),
+    MEGA_DIAMOND    (Material.DIAMOND_BLOCK,  "<aqua><bold>✦ Mega-Diamond</bold></aqua>",             400.0,  -1L,    7_200L, true, false),
+    MEGA_NETHERITE  (Material.NETHERITE_BLOCK,"<dark_gray><bold>✦ Mega-Netherite</bold></dark_gray>",2000.0,  -1L,   36_000L, true, false),
 
     // ── Ultra-Tiers (3× Mega, nicht kaufbar) ──────────────────────────────
-    ULTRA_COBBLESTONE(Material.OBSIDIAN,      "<dark_purple><bold>◆ Ultra-Cobblestone</bold></dark_purple>",    16.0,  -1L,    800L, true, false),
-    ULTRA_IRON       (Material.QUARTZ_BLOCK,  "<white><bold>◆ Ultra-Iron</bold></white>",                       80.0,  -1L,  4_000L, true, false),
-    ULTRA_GOLD       (Material.AMETHYST_BLOCK,"<light_purple><bold>◆ Ultra-Gold</bold></light_purple>",        240.0,  -1L, 12_000L, true, false),
-    ULTRA_LAPIS      (Material.BLUE_ICE,      "<aqua><bold>◆ Ultra-Lapis</bold></aqua>",                       640.0,  -1L, 32_000L, true, false),
-    ULTRA_DIAMOND    (Material.SEA_LANTERN,   "<aqua><bold>◆ Ultra-Diamond</bold></aqua>",                   1_600.0,  -1L, 80_000L, true, false),
-    ULTRA_NETHERITE  (Material.BEACON,        "<yellow><bold>◆ Ultra-Netherite</bold></yellow>",             8_000.0,  -1L,400_000L, true, false),
+    ULTRA_COBBLESTONE(Material.OBSIDIAN,      "<dark_purple><bold>◆ Ultra-Cobblestone</bold></dark_purple>",    16.0,  -1L,      288L, true, false),
+    ULTRA_IRON       (Material.QUARTZ_BLOCK,  "<white><bold>◆ Ultra-Iron</bold></white>",                       80.0,  -1L,    1_440L, true, false),
+    ULTRA_GOLD       (Material.AMETHYST_BLOCK,"<light_purple><bold>◆ Ultra-Gold</bold></light_purple>",        240.0,  -1L,    4_320L, true, false),
+    ULTRA_LAPIS      (Material.BLUE_ICE,      "<aqua><bold>◆ Ultra-Lapis</bold></aqua>",                       640.0,  -1L,   11_520L, true, false),
+    ULTRA_DIAMOND    (Material.SEA_LANTERN,   "<aqua><bold>◆ Ultra-Diamond</bold></aqua>",                   1_600.0,  -1L,   28_800L, true, false),
+    ULTRA_NETHERITE  (Material.BEACON,        "<yellow><bold>◆ Ultra-Netherite</bold></yellow>",             8_000.0,  -1L,  144_000L, true, false),
 
     // ── God-Tiers (3× Ultra, nicht kaufbar) ───────────────────────────────
-    GOD_COBBLESTONE(Material.GILDED_BLACKSTONE, "<gold><bold>★ God-Cobblestone</bold></gold>",              64.0,  -1L,   3_200L, true, false),
-    GOD_IRON       (Material.CRYING_OBSIDIAN,   "<light_purple><bold>★ God-Iron</bold></light_purple>",    320.0,  -1L,  16_000L, true, false),
-    GOD_GOLD       (Material.ANCIENT_DEBRIS,    "<gold><bold>★ God-Gold</bold></gold>",                    960.0,  -1L,  48_000L, true, false),
-    GOD_LAPIS      (Material.PRISMARINE_BRICKS, "<aqua><bold>★ God-Lapis</bold></aqua>",                 2_560.0,  -1L, 128_000L, true, false),
-    GOD_DIAMOND    (Material.PURPUR_BLOCK,      "<dark_purple><bold>★ God-Diamond</bold></dark_purple>",  6_400.0,  -1L, 320_000L, true, false),
-    GOD_NETHERITE  (Material.RESPAWN_ANCHOR,    "<red><bold>★ God-Netherite</bold></red>",              32_000.0,  -1L,1_600_000L,true, false),
+    GOD_COBBLESTONE(Material.GILDED_BLACKSTONE, "<gold><bold>★ God-Cobblestone</bold></gold>",              64.0,  -1L,    1_152L, true, false),
+    GOD_IRON       (Material.CRYING_OBSIDIAN,   "<light_purple><bold>★ God-Iron</bold></light_purple>",    320.0,  -1L,    5_760L, true, false),
+    GOD_GOLD       (Material.ANCIENT_DEBRIS,    "<gold><bold>★ God-Gold</bold></gold>",                    960.0,  -1L,   17_280L, true, false),
+    GOD_LAPIS      (Material.PRISMARINE_BRICKS, "<aqua><bold>★ God-Lapis</bold></aqua>",                 2_560.0,  -1L,   46_080L, true, false),
+    GOD_DIAMOND    (Material.PURPUR_BLOCK,      "<dark_purple><bold>★ God-Diamond</bold></dark_purple>",  6_400.0,  -1L,  115_200L, true, false),
+    GOD_NETHERITE  (Material.RESPAWN_ANCHOR,    "<red><bold>★ God-Netherite</bold></red>",              32_000.0,  -1L,  576_000L, true, false),
 
     // ── Titan-Tiers (3× God, nicht kaufbar) ───────────────────────────────
-    TITAN_COBBLESTONE(Material.SCULK,                  "<dark_red><bold>❋ Titan-Cobblestone</bold></dark_red>",       256.0,  -1L,   12_800L, true, false),
-    TITAN_IRON       (Material.DEEPSLATE_TILES,        "<gray><bold>❋ Titan-Iron</bold></gray>",                    1_280.0,  -1L,   64_000L, true, false),
-    TITAN_GOLD       (Material.SHROOMLIGHT,            "<gold><bold>❋ Titan-Gold</bold></gold>",                    3_840.0,  -1L,  192_000L, true, false),
-    TITAN_LAPIS      (Material.VERDANT_FROGLIGHT,      "<green><bold>❋ Titan-Lapis</bold></green>",                10_240.0,  -1L,  512_000L, true, false),
-    TITAN_DIAMOND    (Material.OCHRE_FROGLIGHT,        "<yellow><bold>❋ Titan-Diamond</bold></yellow>",            25_600.0,  -1L,1_280_000L, true, false),
-    TITAN_NETHERITE  (Material.REINFORCED_DEEPSLATE,   "<dark_red><bold>❋ Titan-Netherite</bold></dark_red>",     128_000.0,  -1L,6_400_000L, true, false);
+    TITAN_COBBLESTONE(Material.SCULK,                  "<dark_red><bold>❋ Titan-Cobblestone</bold></dark_red>",       256.0,  -1L,    4_608L, true, false),
+    TITAN_IRON       (Material.DEEPSLATE_TILES,        "<gray><bold>❋ Titan-Iron</bold></gray>",                    1_280.0,  -1L,   23_040L, true, false),
+    TITAN_GOLD       (Material.SHROOMLIGHT,            "<gold><bold>❋ Titan-Gold</bold></gold>",                    3_840.0,  -1L,   69_120L, true, false),
+    TITAN_LAPIS      (Material.VERDANT_FROGLIGHT,      "<green><bold>❋ Titan-Lapis</bold></green>",                10_240.0,  -1L,  184_320L, true, false),
+    TITAN_DIAMOND    (Material.OCHRE_FROGLIGHT,        "<yellow><bold>❋ Titan-Diamond</bold></yellow>",            25_600.0,  -1L,  460_800L, true, false),
+    TITAN_NETHERITE  (Material.REINFORCED_DEEPSLATE,   "<dark_red><bold>❋ Titan-Netherite</bold></dark_red>",     128_000.0,  -1L,2_304_000L, true, false);
 
     private final Material block;
     private final String displayName;
@@ -75,7 +76,9 @@ public enum GeneratorType {
 
     public long upgradeCostAt(int level) {
         if (baseUpgradeCost <= 0) return Long.MAX_VALUE;
-        return Math.round(baseUpgradeCost * Math.pow(1.6, level));
+        // Polynomial growth (level^2.5) statt exponentiell – verhindert Long-Overflow
+        // bei hohen Leveln (Prestige 50 = maxLevel 500), ROI bei Level 10 identisch.
+        return Math.round(baseUpgradeCost * Math.pow(level, 2.5));
     }
 
     // ── Fusionskette ─────────────────────────────────────────────────────────
@@ -169,23 +172,27 @@ public enum GeneratorType {
      * Kosten für ein Tier-Upgrade (Max-Level → nächstes Tier).
      * Normal:  = Kaufpreis des Ziel-Tiers
      * Mega:    = 4× der entsprechenden Normal-Tier-Kosten
-     * Ultra:   = 16× der entsprechenden Normal-Tier-Kosten
+     * Ultra:   = 256× der entsprechenden Normal-Tier-Kosten (16²)
+     * God:     = 4.096× (64²), Titan: = 65.536× (256²)
      * Gibt -1 zurück wenn kein nächstes Tier existiert.
      */
     public long getTierUpgradeCost() {
         if (getNextTier() == null) return -1L;
         if (!isMega()) {
-            // Normal → nächstes Normal: Kaufpreis des Ziel-Tiers
-            return getNextTier().getBuyPrice();
+            // Normal → nächstes Normal: 3× Kaufpreis (Konvertierungs-Aufschlag,
+            // da kein Slot verbraucht wird)
+            return getNextTier().getBuyPrice() * 3L;
         }
         // Basis-Typ bestimmen (z.B. MEGA_IRON → IRON)
         GeneratorType base = getBaseTier();
         if (base == null) return -1L;
         long normalCost = base.getTierUpgradeCost();
-        if (isTitan()) return normalCost * 256L;
-        if (isGod())   return normalCost * 64L;
-        if (isUltra()) return normalCost * 16L;
-        return normalCost * 4L;
+        // Quadratisch skaliert: Amortisationszeit steigt pro Tier ebenfalls,
+        // damit Tier-Upgrades bei hohen Fusions-Stufen spürbar teurer bleiben.
+        if (isTitan()) return normalCost * 65_536L;   // 256²
+        if (isGod())   return normalCost *  4_096L;   // 64²
+        if (isUltra()) return normalCost *    256L;   // 16²
+        return           normalCost *     16L;        // Mega: 4²
     }
 
     public GeneratorType getBaseTier() {

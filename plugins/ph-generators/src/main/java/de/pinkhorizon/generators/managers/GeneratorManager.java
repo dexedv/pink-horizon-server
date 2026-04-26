@@ -317,7 +317,7 @@ public class GeneratorManager {
         // Ersten Generator zum Ergebnis-Typ machen, die anderen zwei löschen
         PlacedGenerator keeper = targets.get(0);
         keeper.setType(resultType);
-        keeper.setLevel(1);
+        keeper.setLevel(maxLevel);
 
         // Block des Keepers auf neues Material aktualisieren (wichtig für Ultra-Tiers)
         org.bukkit.World keeperWorld = org.bukkit.Bukkit.getWorld(keeper.getWorld());
