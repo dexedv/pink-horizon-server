@@ -40,7 +40,23 @@ done
 cp /opt/pink-horizon/deploy/systemd/*.service /etc/systemd/system/
 systemctl daemon-reload
 
+# ── Automatische Backups per Cron einrichten ──────────────────────────────────
+echo "[6/6] Richte automatische World-Backups ein..."
+BACKUP_SCRIPT="$(cd "$(dirname "$0")" && pwd)/backup.sh"
+chmod +x "$BACKUP_SCRIPT"
+mkdir -p /opt/minecraft/backups
+
+# Cron-Job: alle 4 Stunden Backup
+CRON_JOB="0 */4 * * * bash $BACKUP_SCRIPT >> /var/log/ph-backup.log 2>&1"
+# Nur hinzufügen wenn noch nicht vorhanden
+( crontab -l 2>/dev/null | grep -v "backup.sh"; echo "$CRON_JOB" ) | crontab -
+echo "  Backup-Cron eingerichtet: alle 4 Stunden"
+echo "  Backup-Ordner: /opt/minecraft/backups"
+echo "  Log: /var/log/ph-backup.log"
+
 echo ""
 echo "=== Setup abgeschlossen! ==="
 echo "Konfiguration kopieren: cp -r /opt/pink-horizon/proxy/* /opt/minecraft/proxy/"
 echo "Plugins bauen und kopieren, dann starten mit: bash start-all.sh"
+echo ""
+echo "Backup manuell testen: bash $(dirname "$0")/backup.sh"

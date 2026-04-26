@@ -38,6 +38,16 @@ echo ""
 
 START_TIME=$(date +%s)
 
+# ── 0. Welt-Backup VOR dem Pull ───────────────────────────────────────────────
+step "Welt-Backup erstellen" "[0/5]"
+BACKUP_SCRIPT="$(dirname "$0")/backup.sh"
+if [ -f "$BACKUP_SCRIPT" ]; then
+    bash "$BACKUP_SCRIPT" >> /var/log/ph-backup.log 2>&1 &
+    ok "Backup läuft im Hintergrund (Log: /var/log/ph-backup.log)"
+else
+    warn "backup.sh nicht gefunden – kein Backup erstellt!"
+fi
+
 # ── 1. Git Pull ───────────────────────────────────────────────────────────────
 step "Git Pull" "[1/5]"
 OUTPUT=$(git pull 2>&1)
