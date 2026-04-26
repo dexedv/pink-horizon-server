@@ -216,6 +216,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./servers/lobby:/data/lobby:ro
       - ./servers/survival:/data/survival:ro
+      - ./servers/smash:/data/smash:ro
+      - ./servers/skyblock:/data/skyblock:ro
+      - ./servers/generators:/data/generators:ro
       - ./data/dashboard:/data/dashboard
       - ./backups:/data/backups
     environment:

@@ -824,54 +824,68 @@ app.get('/api/backups', auth, async (req, res) => {
   } catch (e) { res.json({ backups: [] }); }
 });
 
-// Alle Server sichern (backup.sh)
-app.post('/api/backups/run', auth, (req, res) => {
-  const script = path.join(__dirname, '..', 'deploy', 'backup.sh');
-  execFile('bash', [script], { timeout: 600000 }, (err, stdout, stderr) => {
-    if (err) return res.status(500).json({ ok: false, error: stderr || err.message });
-    res.json({ ok: true, message: 'Backup abgeschlossen', log: stdout });
-  });
-});
+const SERVER_WORLD_DIRS = {
+  lobby:      ['world'],
+  survival:   ['world', 'world_nether', 'world_the_end'],
+  smash:      ['world'],
+  skyblock:   ['world', 'skyblock_world'],
+  generators: ['island-template'],
+};
 
-// Einzelnen Server sichern (legacy + smash/skyblock/generators)
-app.post('/api/backup/:server', auth, async (req, res) => {
-  const serverName = req.params.server;
-  const allowed = ['lobby', 'survival', 'smash', 'skyblock', 'generators'];
-  if (!allowed.includes(serverName))
-    return res.status(400).json({ error: 'Unbekannter Server' });
+async function createBackup(serverName) {
+  const dirs = SERVER_WORLD_DIRS[serverName];
+  if (!dirs) throw new Error('Unbekannter Server');
 
-  const worldDirs = {
-    lobby:      ['world'],
-    survival:   ['world', 'world_nether', 'world_the_end'],
-    smash:      ['world'],
-    skyblock:   ['world', 'skyblock_world'],
-    generators: ['island-template'],
-  };
-  const dirs = worldDirs[serverName].join(' ');
   const ts  = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
   const arc = path.join(BACKUP_DIR, `${serverName}_${ts}.tar.gz`);
+  const src = `/data/${serverName}`;
 
+  await fs.mkdir(BACKUP_DIR, { recursive: true });
+
+  // save-all via RCON
   try {
-    await fs.mkdir(BACKUP_DIR, { recursive: true });
-    // save-all via RCON
-    try {
-      const cfg = SERVERS[serverName];
-      if (cfg?.rcon) { await rconSend(cfg.rcon, 'save-all'); await new Promise(r => setTimeout(r, 2000)); }
-    } catch {}
+    const cfg = SERVERS[serverName];
+    if (cfg?.rcon) { await rconSend(cfg.rcon, 'save-all'); await new Promise(r => setTimeout(r, 2000)); }
+  } catch {}
 
-    const serverPath = path.join(__dirname, '..', 'servers', serverName);
-    await new Promise((resolve, reject) => {
-      execFile('tar', ['-czf', arc, '-C', serverPath, ...worldDirs[serverName]], { timeout: 300000 }, (err) => {
-        if (err) reject(err); else resolve();
-      });
+  await new Promise((resolve, reject) => {
+    execFile('tar', ['-czf', arc, '-C', src, ...dirs], { timeout: 300000 }, (err) => {
+      if (err) reject(err); else resolve();
     });
+  });
 
-    // Rotation: maximal 7 Backups pro Server behalten
-    const all = (await fs.readdir(BACKUP_DIR)).filter(f => f.startsWith(`${serverName}_`) && f.endsWith('.tar.gz')).sort().reverse();
-    for (const old of all.slice(7)) await fs.unlink(path.join(BACKUP_DIR, old)).catch(() => {});
+  // Rotation: maximal 7 Backups pro Server behalten
+  const all = (await fs.readdir(BACKUP_DIR))
+    .filter(f => f.startsWith(`${serverName}_`) && f.endsWith('.tar.gz')).sort().reverse();
+  for (const old of all.slice(7)) await fs.unlink(path.join(BACKUP_DIR, old)).catch(() => {});
 
-    const stat = await fs.stat(arc);
-    res.json({ ok: true, message: `Backup erstellt: ${path.basename(arc)}`, size: stat.size });
+  const stat = await fs.stat(arc);
+  return { name: path.basename(arc), size: stat.size };
+}
+
+// Alle Server sichern
+app.post('/api/backups/run', auth, async (req, res) => {
+  const results = [];
+  for (const srv of Object.keys(SERVER_WORLD_DIRS)) {
+    try {
+      const r = await createBackup(srv);
+      results.push({ server: srv, ok: true, ...r });
+    } catch (e) {
+      results.push({ server: srv, ok: false, error: e.message });
+    }
+  }
+  const allOk = results.every(r => r.ok);
+  res.json({ ok: allOk, results });
+});
+
+// Einzelnen Server sichern
+app.post('/api/backup/:server', auth, async (req, res) => {
+  const serverName = req.params.server;
+  if (!SERVER_WORLD_DIRS[serverName])
+    return res.status(400).json({ error: 'Unbekannter Server' });
+  try {
+    const r = await createBackup(serverName);
+    res.json({ ok: true, message: `Backup erstellt: ${r.name}`, size: r.size });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
