@@ -57,9 +57,9 @@ public class PlayerData {
         return Math.max(10, prestige * 10);
     }
 
-    /** Kosten für das nächste Prestige (prestige+1) * 1.000.000 */
+    /** Kosten für das nächste Prestige (prestige+1) * 100.000.000 */
     public long nextPrestigeCost() {
-        return (long) (prestige + 1) * 1_000_000L;
+        return (long) (prestige + 1) * 100_000_000L;
     }
 
     /** Permanenter Einkommens-Multiplikator durch Prestige */
