@@ -28,6 +28,20 @@ public class PlayerData {
     private long boosterExpiry = 0;
     private double boosterMultiplier = 1.0;
 
+    // Insel-Border
+    private int borderSize = 40;
+
+    // Tutorial
+    private boolean tutorialDone = false;
+
+    // Stats-Hologramm (Spieler-Selbst-Platzierung)
+    private String holoWorld = null;
+    private int holoX, holoY, holoZ;
+
+    // Ranglisten-Hologramm (Spieler-Selbst-Platzierung)
+    private String lbHoloWorld = null;
+    private int lbHoloX, lbHoloY, lbHoloZ;
+
     public PlayerData(UUID uuid, String name, long money, int prestige, long lastSeen) {
         this.uuid = uuid;
         this.name = name;
@@ -116,4 +130,37 @@ public class PlayerData {
     public void incrementAfkBoxes()                { this.afkBoxesOpened++; }
     public void setBoosterExpiry(long ts)          { this.boosterExpiry = ts; }
     public void setBoosterMultiplier(double m)     { this.boosterMultiplier = m; }
+    public int getBorderSize()                     { return borderSize; }
+    public void setBorderSize(int borderSize)      { this.borderSize = Math.max(40, borderSize); }
+
+    // ── Stats-Hologramm ──────────────────────────────────────────────────────
+
+    public boolean hasStatsHolo()                  { return holoWorld != null; }
+    public String getHoloWorld()                   { return holoWorld; }
+    public int getHoloX()                          { return holoX; }
+    public int getHoloY()                          { return holoY; }
+    public int getHoloZ()                          { return holoZ; }
+
+    public void setHoloLocation(String world, int x, int y, int z) {
+        this.holoWorld = world; this.holoX = x; this.holoY = y; this.holoZ = z;
+    }
+    public void clearHoloLocation() { this.holoWorld = null; }
+
+    // ── Ranglisten-Hologramm ─────────────────────────────────────────────────
+
+    public boolean hasLbHolo()                   { return lbHoloWorld != null; }
+    public String getLbHoloWorld()               { return lbHoloWorld; }
+    public int getLbHoloX()                      { return lbHoloX; }
+    public int getLbHoloY()                      { return lbHoloY; }
+    public int getLbHoloZ()                      { return lbHoloZ; }
+
+    public void setLbHoloLocation(String world, int x, int y, int z) {
+        this.lbHoloWorld = world; this.lbHoloX = x; this.lbHoloY = y; this.lbHoloZ = z;
+    }
+    public void clearLbHoloLocation() { this.lbHoloWorld = null; }
+
+    // ── Tutorial ─────────────────────────────────────────────────────────────
+
+    public boolean isTutorialDone()              { return tutorialDone; }
+    public void setTutorialDone(boolean done)    { this.tutorialDone = done; }
 }

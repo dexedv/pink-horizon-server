@@ -27,8 +27,8 @@ public class ShopGUI implements Listener {
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final String TITLE = "Generator-Shop";
 
-    // Slot-Positionen für die 6 Generator-Typen (zentriert in Reihe 2)
-    private static final int[] GEN_SLOTS = {11, 12, 13, 14, 15, 16};
+    // Slot-Position für den Cobblestone-Generator (zentriert)
+    private static final int[] GEN_SLOTS = {13};
     // Booster-Slots in Reihe 4
     private static final int[] BOOSTER_SLOTS = {29, 31, 33};
 
@@ -43,11 +43,8 @@ public class ShopGUI implements Listener {
         ItemStack glass = filler(Material.BLACK_STAINED_GLASS_PANE, "<dark_gray> ");
         for (int i = 0; i < 54; i++) inv.setItem(i, glass);
 
-        // Generator-Items
-        GeneratorType[] buyable = {
-                GeneratorType.COBBLESTONE, GeneratorType.IRON, GeneratorType.GOLD,
-                GeneratorType.LAPIS, GeneratorType.DIAMOND, GeneratorType.NETHERITE
-        };
+        // Generator-Items (nur Cobblestone kaufbar, andere per Upgrade/Prestige freischaltbar)
+        GeneratorType[] buyable = { GeneratorType.COBBLESTONE };
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
 
         for (int i = 0; i < buyable.length; i++) {
@@ -81,11 +78,11 @@ public class ShopGUI implements Listener {
         if (data == null) return;
 
         // Generator kaufen?
+        GeneratorType[] buyable = { GeneratorType.COBBLESTONE };
         for (int i = 0; i < GEN_SLOTS.length; i++) {
             if (slot == GEN_SLOTS[i]) {
-                GeneratorType type = GeneratorType.values()[i];
-                buyGenerator(player, data, type);
-                open(player); // GUI aktualisieren
+                buyGenerator(player, data, buyable[i]);
+                open(player);
                 return;
             }
         }

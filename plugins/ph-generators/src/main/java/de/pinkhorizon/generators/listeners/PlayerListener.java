@@ -38,7 +38,8 @@ public class PlayerListener implements Listener {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             PlayerData data = plugin.getRepository().loadPlayer(uuid);
 
-            if (data == null) {
+            boolean isNewPlayer = (data == null);
+            if (isNewPlayer) {
                 data = new PlayerData(uuid, player.getName(), 0L, 0, System.currentTimeMillis() / 1000);
                 plugin.getRepository().savePlayer(data);
             }
@@ -67,6 +68,34 @@ public class PlayerListener implements Listener {
                 // Kompass-Navigator in Slot 8 setzen
                 plugin.getNavigatorGUI().giveCompass(player);
 
+                // Stats-Hologramm wiederherstellen (falls gesetzt)
+                if (finalData.hasStatsHolo()) {
+                    org.bukkit.World hw = Bukkit.getWorld(finalData.getHoloWorld());
+                    if (hw != null) {
+                        org.bukkit.Location holoLoc = new org.bukkit.Location(
+                                hw, finalData.getHoloX() + 0.5,
+                                finalData.getHoloY() + 1.5,
+                                finalData.getHoloZ() + 0.5);
+                        plugin.getHologramManager().setStatsHolo(uuid, holoLoc);
+                    }
+                }
+                // Ranglisten-Hologramm wiederherstellen (falls gesetzt)
+                if (finalData.hasLbHolo()) {
+                    org.bukkit.World lbw = Bukkit.getWorld(finalData.getLbHoloWorld());
+                    if (lbw != null) {
+                        org.bukkit.Location lbLoc = new org.bukkit.Location(
+                                lbw, finalData.getLbHoloX() + 0.5,
+                                finalData.getLbHoloY() + 1.5,
+                                finalData.getLbHoloZ() + 0.5);
+                        plugin.getHologramManager().setLbHolo(uuid, lbLoc);
+                    }
+                }
+
+                // Tutorial für neue Spieler starten
+                if (isNewPlayer || !finalData.isTutorialDone()) {
+                    plugin.getTutorialManager().startTutorial(player);
+                }
+
                 // Insel laden und Spieler teleportieren
                 plugin.getIslandWorldManager().loadAndTeleport(player);
 
@@ -86,11 +115,14 @@ public class PlayerListener implements Listener {
         if (data == null) return;
 
         data.setLastSeen(System.currentTimeMillis() / 1000);
+        plugin.getHologramManager().removeStatsHolo(uuid);
+        plugin.getHologramManager().removeLbHolo(uuid);
         plugin.getGeneratorManager().unloadForPlayer(data);
         plugin.getSynergyManager().remove(uuid);
         plugin.getAfkRewardManager().onQuit(uuid);
         plugin.getAchievementManager().unloadPlayer(uuid);
         plugin.getUpgradeGUI().close(uuid);
+        plugin.getTutorialManager().onQuit(uuid);
 
         // Insel-Welt entladen (Dateien bleiben erhalten)
         plugin.getIslandWorldManager().unloadIsland(uuid);

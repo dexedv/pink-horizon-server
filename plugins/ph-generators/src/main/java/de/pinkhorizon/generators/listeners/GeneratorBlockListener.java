@@ -49,6 +49,7 @@ public class GeneratorBlockListener implements Listener {
         } else {
             var data = plugin.getPlayerDataMap().get(player.getUniqueId());
             if (data != null) plugin.getQuestManager().trackPlace(data);
+            plugin.getTutorialManager().onGeneratorPlaced(player);
         }
     }
 

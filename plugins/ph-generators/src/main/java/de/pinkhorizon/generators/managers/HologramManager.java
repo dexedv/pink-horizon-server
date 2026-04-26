@@ -27,8 +27,12 @@ public class HologramManager {
     private final PHGenerators plugin;
     private static final MiniMessage MM = MiniMessage.miniMessage();
 
-    /** locationKey → TextDisplay */
+    /** locationKey → TextDisplay (Generator-Holograms) */
     private final Map<String, TextDisplay> holograms = new HashMap<>();
+    /** uuid → TextDisplay (Stats-Holograms) */
+    private final Map<UUID, TextDisplay> statsHolograms = new HashMap<>();
+    /** uuid → TextDisplay (Leaderboard-Holograms) */
+    private final Map<UUID, TextDisplay> lbHolograms = new HashMap<>();
     private BukkitTask updateTask;
 
     public HologramManager(PHGenerators plugin) {
@@ -43,6 +47,8 @@ public class HologramManager {
     public void stopUpdateTask() {
         if (updateTask != null) updateTask.cancel();
         removeAll();
+        removeAllStatsHolos();
+        removeAllLbHolos();
     }
 
     // ── Hologramm-Verwaltung ─────────────────────────────────────────────────
@@ -114,7 +120,162 @@ public class HologramManager {
                     display.text(MM.deserialize(buildHologramText(gen, data)));
                 }
             }
+            // Stats-Hologramm aktualisieren
+            if (data.hasStatsHolo()) {
+                updateStatsHolo(entry.getKey(), data);
+            }
+            // Ranglisten-Hologramm aktualisieren
+            if (data.hasLbHolo()) {
+                updateLbHolo(entry.getKey(), data);
+            }
         }
+    }
+
+    // ── Stats-Hologramm ──────────────────────────────────────────────────────
+
+    public void setStatsHolo(UUID uuid, org.bukkit.Location loc) {
+        removeStatsHolo(uuid);
+        TextDisplay display = loc.getWorld().spawn(loc, TextDisplay.class, entity -> {
+            entity.setBillboard(Display.Billboard.CENTER);
+            entity.setDefaultBackground(false);
+            entity.setShadowed(true);
+            entity.setPersistent(false);
+            entity.setTransformation(new Transformation(
+                    new Vector3f(0, 0, 0), new AxisAngle4f(0, 0, 0, 1),
+                    new Vector3f(1.0f, 1.0f, 1.0f), new AxisAngle4f(0, 0, 0, 1)));
+        });
+        statsHolograms.put(uuid, display);
+        PlayerData data = plugin.getPlayerDataMap().get(uuid);
+        if (data != null) display.text(MM.deserialize(buildStatsText(data)));
+    }
+
+    public void removeStatsHolo(UUID uuid) {
+        TextDisplay d = statsHolograms.remove(uuid);
+        if (d != null && !d.isDead()) d.remove();
+    }
+
+    public void removeAllStatsHolos() {
+        statsHolograms.values().forEach(d -> { if (d != null && !d.isDead()) d.remove(); });
+        statsHolograms.clear();
+    }
+
+    // ── Ranglisten-Hologramm ─────────────────────────────────────────────────
+
+    public void setLbHolo(UUID uuid, Location loc) {
+        removeLbHolo(uuid);
+        TextDisplay display = loc.getWorld().spawn(loc, TextDisplay.class, entity -> {
+            entity.setBillboard(Display.Billboard.CENTER);
+            entity.setDefaultBackground(false);
+            entity.setShadowed(true);
+            entity.setPersistent(false);
+            entity.setTransformation(new Transformation(
+                    new Vector3f(0, 0, 0), new AxisAngle4f(0, 0, 0, 1),
+                    new Vector3f(1.0f, 1.0f, 1.0f), new AxisAngle4f(0, 0, 0, 1)));
+        });
+        display.text(MM.deserialize(buildLbText()));
+        lbHolograms.put(uuid, display);
+    }
+
+    public void removeLbHolo(UUID uuid) {
+        TextDisplay d = lbHolograms.remove(uuid);
+        if (d != null && !d.isDead()) d.remove();
+    }
+
+    public void removeAllLbHolos() {
+        lbHolograms.values().forEach(d -> { if (d != null && !d.isDead()) d.remove(); });
+        lbHolograms.clear();
+    }
+
+    private void updateLbHolo(UUID uuid, PlayerData data) {
+        TextDisplay display = lbHolograms.get(uuid);
+        if (display == null || display.isDead()) {
+            World world = org.bukkit.Bukkit.getWorld(data.getLbHoloWorld());
+            if (world == null) return;
+            Location loc = new Location(world,
+                    data.getLbHoloX() + 0.5, data.getLbHoloY(), data.getLbHoloZ() + 0.5);
+            setLbHolo(uuid, loc);
+            return;
+        }
+        display.text(MM.deserialize(buildLbText()));
+    }
+
+    private String buildLbText() {
+        java.util.List<de.pinkhorizon.generators.data.PlayerData> top =
+                plugin.getLeaderboardManager().getCachedTop();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<gold><bold>⚙ Top Generatoren-Spieler</bold></gold>\n");
+        sb.append("<dark_gray>──────────────────────</dark_gray>\n");
+
+        if (top.isEmpty()) {
+            sb.append("<gray>Noch keine Daten…");
+            return sb.toString();
+        }
+
+        String[] medals = {"<gold>① ", "<gray>② ", "<dark_red>③ ",
+                           "<yellow>#4 ", "<yellow>#5 ", "<yellow>#6 ",
+                           "<yellow>#7 ", "<yellow>#8 ", "<yellow>#9 ", "<yellow>#10 "};
+
+        int shown = Math.min(top.size(), 10);
+        for (int i = 0; i < shown; i++) {
+            de.pinkhorizon.generators.data.PlayerData d = top.get(i);
+            boolean online = org.bukkit.Bukkit.getPlayer(d.getUuid()) != null;
+            String dot = online ? "<green>●</green> " : "<red>●</red> ";
+            String prestige = d.getPrestige() > 0 ? " <dark_purple>[P" + d.getPrestige() + "]" : "";
+            sb.append(medals[i]).append(dot)
+              .append("<white>").append(d.getName()).append(prestige)
+              .append(" <gold>$").append(MoneyManager.formatMoney(d.getMoney())).append("\n");
+        }
+        sb.append("<dark_gray>──────────────────────</dark_gray>\n");
+        sb.append("<dark_gray>Aktualisiert alle 60s");
+        return sb.toString();
+    }
+
+    private void updateStatsHolo(UUID uuid, PlayerData data) {
+        TextDisplay display = statsHolograms.get(uuid);
+        if (display == null || display.isDead()) {
+            World world = Bukkit.getWorld(data.getHoloWorld());
+            if (world == null) return;
+            Location loc = new Location(world, data.getHoloX() + 0.5, data.getHoloY(), data.getHoloZ() + 0.5);
+            setStatsHolo(uuid, loc);
+            return;
+        }
+        display.text(MM.deserialize(buildStatsText(data)));
+    }
+
+    private String buildStatsText(PlayerData data) {
+        // Gesamteinkommen berechnen
+        double totalIncome = 0;
+        for (PlacedGenerator gen : data.getGenerators()) {
+            totalIncome += gen.incomePerSecond()
+                    * data.prestigeMultiplier()
+                    * data.effectiveBoosterMultiplier()
+                    * plugin.getMoneyManager().getServerBoosterMultiplier()
+                    * plugin.getSynergyManager().getTotalSynergyMultiplier(data);
+        }
+        int maxSlots = data.maxGeneratorSlots(
+                plugin.getConfig().getInt("max-generators", 10),
+                plugin.getConfig().getInt("generator-slot-per-prestige", 2));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<gold><bold>⚙ ").append(data.getName()).append("</bold></gold>\n");
+        sb.append("<dark_gray>──────────────────</dark_gray>\n");
+        sb.append("<gray>💰 Geld: <green>$").append(MoneyManager.formatMoney(data.getMoney())).append("\n");
+        sb.append("<gray>✦ Prestige: <light_purple>").append(data.getPrestige())
+          .append(" <gray>(+").append((int)((data.prestigeMultiplier()-1)*100)).append("%)\n");
+        sb.append("<gray>⚙ Generatoren: <white>").append(data.getGenerators().size()).append("<gray>/").append(maxSlots).append("\n");
+        sb.append("<gray>📈 Einkommen: <aqua>$").append(MoneyManager.formatMoney(Math.round(totalIncome))).append("/s\n");
+        sb.append("<gray>🏆 Gesamt: <yellow>$").append(MoneyManager.formatMoney(data.getTotalEarned())).append("\n");
+        sb.append("<gray>🌍 Border: <white>").append(data.getBorderSize()).append("×").append(data.getBorderSize()).append("\n");
+        sb.append("<dark_gray>──────────────────</dark_gray>\n");
+        if (data.hasActiveBooster()) {
+            long remaining = (data.getBoosterExpiry() - System.currentTimeMillis() / 1000) / 60;
+            sb.append("<yellow>⚡ x").append(data.getBoosterMultiplier())
+              .append(" Booster <gray>(").append(remaining).append(" Min)");
+        } else {
+            sb.append("<dark_gray>Kein Booster aktiv");
+        }
+        return sb.toString();
     }
 
     // ── Text-Generierung ─────────────────────────────────────────────────────
@@ -132,16 +293,30 @@ public class HologramManager {
                     * plugin.getSynergyManager().getTotalSynergyMultiplier(data);
         }
 
-        String nextUpgrade = "";
-        if (data != null && gen.getLevel() < data.maxGeneratorLevel()) {
-            nextUpgrade = "\n<gray>⬆ Upgrade: <yellow>$" + MoneyManager.formatMoney(gen.upgradeCost());
-        } else if (data != null) {
-            nextUpgrade = "\n<green><bold>MAX LEVEL</bold></green>";
+        boolean isMax = data != null && gen.getLevel() >= data.maxGeneratorLevel();
+        boolean hasTierUp = isMax && gen.getType().getNextTier() != null;
+
+        String levelText = isMax
+                ? "<gold><bold>" + gen.getLevel() + "</bold></gold>"
+                : "<white>" + gen.getLevel();
+
+        String statusLine;
+        String incomeLine;
+        if (!isMax) {
+            statusLine = "\n<gray>⬆ Upgrade: <yellow>$" + MoneyManager.formatMoney(gen.upgradeCost());
+            incomeLine = "\n<green>$" + MoneyManager.formatMoney(Math.round(effectiveIncome)) + "/s";
+        } else if (hasTierUp) {
+            statusLine = "\n<gold><bold>★ MAX LEVEL ★</bold></gold>"
+                    + "\n<aqua>⬆ Tier: <yellow>$" + MoneyManager.formatMoney(gen.getType().getTierUpgradeCost());
+            incomeLine = "\n<green><bold>$" + MoneyManager.formatMoney(Math.round(effectiveIncome)) + "/s</bold></green>";
+        } else {
+            statusLine = "\n<gold><bold>✦ ABSOLUTES MAXIMUM ✦</bold></gold>";
+            incomeLine = "\n<green><bold>$" + MoneyManager.formatMoney(Math.round(effectiveIncome)) + "/s</bold></green>";
         }
 
-        return megaPrefix + gen.getType().getDisplayName() + megaSuffix + "\n"
-                + "<gray>Level: <white>" + gen.getLevel()
-                + nextUpgrade + "\n"
-                + "<green>$" + MoneyManager.formatMoney(Math.round(effectiveIncome)) + "/s";
+        return megaPrefix + gen.getType().getDisplayName() + megaSuffix
+                + "\n<gray>Level: " + levelText
+                + statusLine
+                + incomeLine;
     }
 }

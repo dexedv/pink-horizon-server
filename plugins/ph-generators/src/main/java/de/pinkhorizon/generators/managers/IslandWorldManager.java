@@ -201,6 +201,13 @@ public class IslandWorldManager {
         player.teleport(spawn);
         player.setGameMode(GameMode.SURVIVAL);
 
+        // World-Border setzen
+        de.pinkhorizon.generators.data.PlayerData borderData =
+                plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (borderData != null) {
+            plugin.getWorldBorderManager().applyBorder(world, borderData);
+        }
+
         // Welt ist jetzt sicher geladen → Blöcke wiederherstellen + Hologramme spawnen
         de.pinkhorizon.generators.data.PlayerData data =
                 plugin.getPlayerDataMap().get(player.getUniqueId());

@@ -1,6 +1,7 @@
 package de.pinkhorizon.generators.commands;
 
 import de.pinkhorizon.generators.PHGenerators;
+import org.bukkit.Bukkit;
 import de.pinkhorizon.generators.data.PlacedGenerator;
 import de.pinkhorizon.generators.data.PlayerData;
 import de.pinkhorizon.generators.managers.GeneratorManager;
@@ -61,6 +62,10 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             case "achievements", "ach" -> { showAchievements(player); yield true; }
             case "guild"        -> { handleGuild(player, args); yield true; }
             case "guildtop"     -> { showGuildTop(player); yield true; }
+            case "border"       -> { plugin.getBorderShopGUI().open(player); yield true; }
+            case "holo"         -> { handleHolo(player, args); yield true; }
+            case "pay"          -> { handlePay(player, args); yield true; }
+            case "tutorial"     -> { plugin.getTutorialManager().startTutorial(player); yield true; }
             case "synergy"      -> { showSynergy(player); yield true; }
             case "help"         -> { showHelp(player); yield true; }
             case "give"         -> {
@@ -324,21 +329,163 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void handlePay(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage(MM.deserialize(
+                    "<red>Nutzung: <yellow>/gen pay <spieler> <betrag>"));
+            return;
+        }
+
+        PlayerData senderData = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (senderData == null) return;
+
+        // Ziel-Spieler suchen
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null || !target.isOnline()) {
+            player.sendMessage(MM.deserialize(
+                    "<red>Spieler <white>" + args[1] + " <red>ist nicht online!"));
+            return;
+        }
+        if (target.getUniqueId().equals(player.getUniqueId())) {
+            player.sendMessage(MM.deserialize("<red>Du kannst kein Geld an dich selbst senden!"));
+            return;
+        }
+
+        PlayerData targetData = plugin.getPlayerDataMap().get(target.getUniqueId());
+        if (targetData == null) {
+            player.sendMessage(MM.deserialize("<red>Spielerdaten von " + target.getName() + " nicht geladen!"));
+            return;
+        }
+
+        // Betrag parsen
+        long amount;
+        try {
+            amount = Long.parseLong(args[2].replace("_", "").replace(".", ""));
+        } catch (NumberFormatException e) {
+            player.sendMessage(MM.deserialize("<red>Ungültiger Betrag: <white>" + args[2]));
+            return;
+        }
+
+        if (amount <= 0) {
+            player.sendMessage(MM.deserialize("<red>Der Betrag muss größer als 0 sein!"));
+            return;
+        }
+        if (!senderData.takeMoney(amount)) {
+            player.sendMessage(MM.deserialize(
+                    "<red>Nicht genug Geld! Du hast <yellow>$"
+                    + MoneyManager.formatMoney(senderData.getMoney())
+                    + "<red>, benötigt: <yellow>$" + MoneyManager.formatMoney(amount)));
+            return;
+        }
+
+        targetData.addMoney(amount);
+
+        // Beide asynchron speichern
+        final PlayerData sd = senderData;
+        final PlayerData td = targetData;
+        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            plugin.getRepository().savePlayer(sd);
+            plugin.getRepository().savePlayer(td);
+        });
+
+        player.sendMessage(MM.deserialize(
+                "<green>✔ <yellow>$" + MoneyManager.formatMoney(amount)
+                + "<green> an <white>" + target.getName()
+                + "<green> gesendet. Dein Guthaben: <yellow>$"
+                + MoneyManager.formatMoney(senderData.getMoney())));
+
+        target.sendMessage(MM.deserialize(
+                "<green>✦ <white>" + player.getName()
+                + "<green> hat dir <yellow>$" + MoneyManager.formatMoney(amount)
+                + "<green> gesendet! Dein Guthaben: <yellow>$"
+                + MoneyManager.formatMoney(targetData.getMoney())));
+    }
+
+    private void handleHolo(Player player, String[] args) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) { player.sendMessage(MM.deserialize("<red>Daten nicht geladen!")); return; }
+
+        String sub = args.length >= 2 ? args[1].toLowerCase() : "set";
+
+        if (sub.equals("remove")) {
+            if (!data.hasStatsHolo()) {
+                player.sendMessage(MM.deserialize("<red>Du hast kein Stats-Hologramm gesetzt."));
+                return;
+            }
+            plugin.getHologramManager().removeStatsHolo(player.getUniqueId());
+            data.clearHoloLocation();
+            plugin.getRepository().clearHoloLocation(player.getUniqueId());
+            player.sendMessage(MM.deserialize("<yellow>⚙ Stats-Hologramm entfernt."));
+            return;
+        }
+
+        if (sub.equals("lb")) {
+            org.bukkit.Location loc = player.getLocation().add(0, 1.5, 0);
+            loc.setX(loc.getBlockX() + 0.5);
+            loc.setZ(loc.getBlockZ() + 0.5);
+            if (data.hasLbHolo()) {
+                plugin.getHologramManager().removeLbHolo(player.getUniqueId());
+            }
+            plugin.getHologramManager().setLbHolo(player.getUniqueId(), loc);
+            data.setLbHoloLocation(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
+                    plugin.getRepository().saveLbHoloLocation(player.getUniqueId(),
+                            loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ()));
+            player.sendMessage(MM.deserialize("<green>✔ Ranglisten-Hologramm platziert! <gray>Entfernen: <yellow>/gen holo lbremove"));
+            return;
+        }
+
+        if (sub.equals("lbremove")) {
+            if (!data.hasLbHolo()) {
+                player.sendMessage(MM.deserialize("<red>Du hast kein Ranglisten-Hologramm gesetzt."));
+                return;
+            }
+            plugin.getHologramManager().removeLbHolo(player.getUniqueId());
+            data.clearLbHoloLocation();
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
+                    plugin.getRepository().clearLbHoloLocation(player.getUniqueId()));
+            player.sendMessage(MM.deserialize("<yellow>⚙ Ranglisten-Hologramm entfernt."));
+            return;
+        }
+
+        // "set" – Stats-Hologramm an aktueller Position platzieren
+        org.bukkit.Location loc = player.getLocation().add(0, 1.5, 0);
+        loc.setX(loc.getBlockX() + 0.5);
+        loc.setZ(loc.getBlockZ() + 0.5);
+
+        if (data.hasStatsHolo()) {
+            plugin.getHologramManager().removeStatsHolo(player.getUniqueId());
+        }
+
+        plugin.getHologramManager().setStatsHolo(player.getUniqueId(), loc);
+        data.setHoloLocation(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
+        plugin.getRepository().saveHoloLocation(player.getUniqueId(),
+                loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
+
+        player.sendMessage(MM.deserialize("<green>✔ Stats-Hologramm platziert! <gray>Entfernen: <yellow>/gen holo remove"));
+    }
+
     private void showHelp(Player player) {
         player.sendMessage(MM.deserialize("""
             <gold>━━ IdleForge Befehle ━━
             <yellow>/gen shop <gray>- Generator-Shop öffnen
             <yellow>/gen upgrade <gray>- Generatoren upgraden
             <yellow>/gen stats <gray>- Deine Statistiken
+            <yellow>/gen pay <spieler> <betrag> <gray>- Geld senden
             <yellow>/gen balance <gray>- Kontostand
             <yellow>/gen top <gray>- Leaderboard
             <yellow>/gen prestige <gray>- Prestige machen
             <yellow>/gen fuse <gray>- Generatoren fusionieren
             <yellow>/gen quests <gray>- Tages-/Wochen-Quests
             <yellow>/gen achievements <gray>- Achievements
+            <yellow>/gen border <gray>- Insel-Grenze erweitern
             <yellow>/gen synergy <gray>- Synergie-Boni anzeigen
             <yellow>/gen guild <create|join|leave|info> <gray>- Gilden
             <yellow>/gen guildtop <gray>- Gilden-Leaderboard
+            <yellow>/gen holo set <gray>- Stats-Hologramm hier platzieren
+            <yellow>/gen holo remove <gray>- Stats-Hologramm entfernen
+            <yellow>/gen holo lb <gray>- Ranglisten-Hologramm hier platzieren
+            <yellow>/gen holo lbremove <gray>- Ranglisten-Hologramm entfernen
             <yellow>/booster status <gray>- Booster-Status"""));
     }
 
@@ -346,10 +493,24 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 1) {
             return Arrays.asList("shop", "upgrade", "balance", "stats", "top", "prestige",
-                    "fuse", "quests", "achievements", "guild", "guildtop", "synergy", "help");
+                    "fuse", "quests", "achievements", "guild", "guildtop", "synergy", "border",
+                    "holo", "pay", "tutorial", "help");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("guild")) {
             return Arrays.asList("create", "join", "leave", "info");
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("holo")) {
+            return Arrays.asList("set", "remove", "lb", "lbremove");
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("pay")) {
+            String prefix = args[1].toLowerCase();
+            List<String> names = new ArrayList<>();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!p.equals(sender) && p.getName().toLowerCase().startsWith(prefix)) {
+                    names.add(p.getName());
+                }
+            }
+            return names;
         }
         return List.of();
     }

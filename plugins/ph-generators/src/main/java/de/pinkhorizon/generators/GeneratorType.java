@@ -30,7 +30,23 @@ public enum GeneratorType {
     ULTRA_GOLD       (Material.AMETHYST_BLOCK,"<light_purple><bold>◆ Ultra-Gold</bold></light_purple>",        240.0,  -1L, 12_000L, true, false),
     ULTRA_LAPIS      (Material.BLUE_ICE,      "<aqua><bold>◆ Ultra-Lapis</bold></aqua>",                       640.0,  -1L, 32_000L, true, false),
     ULTRA_DIAMOND    (Material.SEA_LANTERN,   "<aqua><bold>◆ Ultra-Diamond</bold></aqua>",                   1_600.0,  -1L, 80_000L, true, false),
-    ULTRA_NETHERITE  (Material.BEACON,        "<yellow><bold>◆ Ultra-Netherite</bold></yellow>",             8_000.0,  -1L,400_000L, true, false);
+    ULTRA_NETHERITE  (Material.BEACON,        "<yellow><bold>◆ Ultra-Netherite</bold></yellow>",             8_000.0,  -1L,400_000L, true, false),
+
+    // ── God-Tiers (3× Ultra, nicht kaufbar) ───────────────────────────────
+    GOD_COBBLESTONE(Material.GILDED_BLACKSTONE, "<gold><bold>★ God-Cobblestone</bold></gold>",              64.0,  -1L,   3_200L, true, false),
+    GOD_IRON       (Material.CRYING_OBSIDIAN,   "<light_purple><bold>★ God-Iron</bold></light_purple>",    320.0,  -1L,  16_000L, true, false),
+    GOD_GOLD       (Material.ANCIENT_DEBRIS,    "<gold><bold>★ God-Gold</bold></gold>",                    960.0,  -1L,  48_000L, true, false),
+    GOD_LAPIS      (Material.PRISMARINE_BRICKS, "<aqua><bold>★ God-Lapis</bold></aqua>",                 2_560.0,  -1L, 128_000L, true, false),
+    GOD_DIAMOND    (Material.PURPUR_BLOCK,      "<dark_purple><bold>★ God-Diamond</bold></dark_purple>",  6_400.0,  -1L, 320_000L, true, false),
+    GOD_NETHERITE  (Material.RESPAWN_ANCHOR,    "<red><bold>★ God-Netherite</bold></red>",              32_000.0,  -1L,1_600_000L,true, false),
+
+    // ── Titan-Tiers (3× God, nicht kaufbar) ───────────────────────────────
+    TITAN_COBBLESTONE(Material.SCULK,                  "<dark_red><bold>❋ Titan-Cobblestone</bold></dark_red>",       256.0,  -1L,   12_800L, true, false),
+    TITAN_IRON       (Material.DEEPSLATE_TILES,        "<gray><bold>❋ Titan-Iron</bold></gray>",                    1_280.0,  -1L,   64_000L, true, false),
+    TITAN_GOLD       (Material.SHROOMLIGHT,            "<gold><bold>❋ Titan-Gold</bold></gold>",                    3_840.0,  -1L,  192_000L, true, false),
+    TITAN_LAPIS      (Material.VERDANT_FROGLIGHT,      "<green><bold>❋ Titan-Lapis</bold></green>",                10_240.0,  -1L,  512_000L, true, false),
+    TITAN_DIAMOND    (Material.OCHRE_FROGLIGHT,        "<yellow><bold>❋ Titan-Diamond</bold></yellow>",            25_600.0,  -1L,1_280_000L, true, false),
+    TITAN_NETHERITE  (Material.REINFORCED_DEEPSLATE,   "<dark_red><bold>❋ Titan-Netherite</bold></dark_red>",     128_000.0,  -1L,6_400_000L, true, false);
 
     private final Material block;
     private final String displayName;
@@ -83,8 +99,22 @@ public enum GeneratorType {
             case MEGA_LAPIS       -> ULTRA_LAPIS;
             case MEGA_DIAMOND     -> ULTRA_DIAMOND;
             case MEGA_NETHERITE   -> ULTRA_NETHERITE;
-            // Ultra → keine weitere Fusion
-            default               -> null;
+            // Ultra → God
+            case ULTRA_COBBLESTONE -> GOD_COBBLESTONE;
+            case ULTRA_IRON        -> GOD_IRON;
+            case ULTRA_GOLD        -> GOD_GOLD;
+            case ULTRA_LAPIS       -> GOD_LAPIS;
+            case ULTRA_DIAMOND     -> GOD_DIAMOND;
+            case ULTRA_NETHERITE   -> GOD_NETHERITE;
+            // God → Titan
+            case GOD_COBBLESTONE -> TITAN_COBBLESTONE;
+            case GOD_IRON        -> TITAN_IRON;
+            case GOD_GOLD        -> TITAN_GOLD;
+            case GOD_LAPIS       -> TITAN_LAPIS;
+            case GOD_DIAMOND     -> TITAN_DIAMOND;
+            case GOD_NETHERITE   -> TITAN_NETHERITE;
+            // Titan → keine weitere Fusion
+            default              -> null;
         };
     }
 
@@ -119,6 +149,18 @@ public enum GeneratorType {
             case ULTRA_GOLD        -> ULTRA_LAPIS;
             case ULTRA_LAPIS       -> ULTRA_DIAMOND;
             case ULTRA_DIAMOND     -> ULTRA_NETHERITE;
+            // God
+            case GOD_COBBLESTONE -> GOD_IRON;
+            case GOD_IRON        -> GOD_GOLD;
+            case GOD_GOLD        -> GOD_LAPIS;
+            case GOD_LAPIS       -> GOD_DIAMOND;
+            case GOD_DIAMOND     -> GOD_NETHERITE;
+            // Titan
+            case TITAN_COBBLESTONE -> TITAN_IRON;
+            case TITAN_IRON        -> TITAN_GOLD;
+            case TITAN_GOLD        -> TITAN_LAPIS;
+            case TITAN_LAPIS       -> TITAN_DIAMOND;
+            case TITAN_DIAMOND     -> TITAN_NETHERITE;
             default                -> null;
         };
     }
@@ -140,23 +182,28 @@ public enum GeneratorType {
         GeneratorType base = getBaseTier();
         if (base == null) return -1L;
         long normalCost = base.getTierUpgradeCost();
-        return isUltra() ? normalCost * 16L : normalCost * 4L;
+        if (isTitan()) return normalCost * 256L;
+        if (isGod())   return normalCost * 64L;
+        if (isUltra()) return normalCost * 16L;
+        return normalCost * 4L;
     }
 
     public GeneratorType getBaseTier() {
         if (!mega) return null;
         return switch (this) {
-            case MEGA_COBBLESTONE,  ULTRA_COBBLESTONE -> COBBLESTONE;
-            case MEGA_IRON,         ULTRA_IRON        -> IRON;
-            case MEGA_GOLD,         ULTRA_GOLD        -> GOLD;
-            case MEGA_LAPIS,        ULTRA_LAPIS       -> LAPIS;
-            case MEGA_DIAMOND,      ULTRA_DIAMOND     -> DIAMOND;
-            case MEGA_NETHERITE,    ULTRA_NETHERITE   -> NETHERITE;
-            default                                   -> null;
+            case MEGA_COBBLESTONE, ULTRA_COBBLESTONE, GOD_COBBLESTONE, TITAN_COBBLESTONE -> COBBLESTONE;
+            case MEGA_IRON,        ULTRA_IRON,        GOD_IRON,        TITAN_IRON        -> IRON;
+            case MEGA_GOLD,        ULTRA_GOLD,        GOD_GOLD,        TITAN_GOLD        -> GOLD;
+            case MEGA_LAPIS,       ULTRA_LAPIS,       GOD_LAPIS,       TITAN_LAPIS       -> LAPIS;
+            case MEGA_DIAMOND,     ULTRA_DIAMOND,     GOD_DIAMOND,     TITAN_DIAMOND     -> DIAMOND;
+            case MEGA_NETHERITE,   ULTRA_NETHERITE,   GOD_NETHERITE,   TITAN_NETHERITE   -> NETHERITE;
+            default                                                                       -> null;
         };
     }
 
     public boolean isUltra() { return name().startsWith("ULTRA_"); }
+    public boolean isGod()   { return name().startsWith("GOD_"); }
+    public boolean isTitan() { return name().startsWith("TITAN_"); }
 
     // ── Getter ───────────────────────────────────────────────────────────────
 

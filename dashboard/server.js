@@ -632,10 +632,11 @@ app.post('/api/players/unban', strictLimit, auth, async (req, res) => {
 
 app.get('/api/databases', auth, async (req, res) => {
   const checkTable = async (pool, query) => { try { await pool.execute(query); return true; } catch { return false; } };
-  const [ctr, ph, sv, sm, gn, vt, dc] = await Promise.allSettled([
+  const [ctr, ph, sv, mg, sm, gn, vt, dc] = await Promise.allSettled([
     getContainerStatus('ph-mysql'),
     checkDb(poolCore),
     checkDb(poolSv),
+    checkDb(poolMg),
     checkDb(poolSmash),
     checkDb(poolGen),
     checkTable(poolCore, 'SELECT 1 FROM vote_coins LIMIT 1'),
@@ -645,6 +646,7 @@ app.get('/api/databases', auth, async (req, res) => {
     container:     ctr.status === 'fulfilled' ? ctr.value : { running: false, status: 'error' },
     pinkhorizon:   ph.status  === 'fulfilled' ? ph.value  : false,
     ph_survival:   sv.status  === 'fulfilled' ? sv.value  : false,
+    ph_minigames:  mg.status  === 'fulfilled' ? mg.value  : false,
     ph_smash:      sm.status  === 'fulfilled' ? sm.value  : false,
     ph_generators: gn.status  === 'fulfilled' ? gn.value  : false,
     ph_vote:       vt.status  === 'fulfilled' ? vt.value  : false,
@@ -749,7 +751,8 @@ const STATS_CONTAINERS = {
 
 const STATS_LABELS = {
   velocity: 'Velocity Proxy', lobby: 'Lobby', survival: 'Survival',
-  minigames: 'Minigames', smash: 'Smash the Boss', mysql: 'MySQL', dashboard: 'Dashboard'
+  minigames: 'Minigames', smash: 'Smash the Boss', generators: 'IdleForge',
+  mysql: 'MySQL', dashboard: 'Dashboard'
 };
 
 async function fetchAllStats() {
@@ -921,9 +924,13 @@ app.post('/api/db/query', auth, async (req, res) => {
   const { query, database } = req.body;
   if (!query?.trim()) return res.status(400).json({ error: 'Keine Abfrage' });
   if (!/^\s*SELECT\s/i.test(query)) return res.status(400).json({ error: 'Nur SELECT-Abfragen erlaubt' });
-  if (!/^(pinkhorizon|ph_survival|ph_smash)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
+  if (!/^(pinkhorizon|ph_survival|ph_smash|ph_generators|ph_minigames)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
   try {
-    const pool = database === 'pinkhorizon' ? poolCore : database === 'ph_smash' ? poolSmash : poolSv;
+    const pool = database === 'pinkhorizon' ? poolCore
+      : database === 'ph_smash'      ? poolSmash
+      : database === 'ph_generators' ? poolGen
+      : database === 'ph_minigames'  ? poolMg
+      : poolSv;
     const lq = /\blimit\b/i.test(query) ? query.trimEnd().replace(/;$/, '') : `${query.trimEnd().replace(/;$/, '')} LIMIT 200`;
     const [rows, fields] = await pool.execute(lq);
     res.json({ ok: true, columns: fields.map(f => f.name), rows, count: rows.length });
@@ -1444,10 +1451,14 @@ app.get('/api/generators/online', auth, async (req, res) => {
   const cfg = SERVERS.generators;
   if (!cfg?.rcon) return res.json({ offline: true, players: [], count: 0 });
   try {
-    const out = await sendRcon(cfg.rcon.host, cfg.rcon.port, cfg.rcon.password, 'list');
-    if (!out) return res.json({ offline: true, players: [], count: 0 });
-    const match = out.match(/:\s*(.+)$/);
-    const players = match && match[1].trim() !== '' ? match[1].split(',').map(s => s.trim()).filter(Boolean) : [];
+    const { running } = await getContainerStatus(cfg.container);
+    if (!running) return res.json({ offline: true, players: [], count: 0 });
+    const raw   = await rconSend(cfg.rcon, 'list');
+    const clean = stripColors(raw);
+    const match = /players online:\s*(.+)/i.exec(clean);
+    const players = match && match[1].trim() !== ''
+      ? match[1].split(',').map(s => s.trim()).filter(Boolean)
+      : [];
     res.json({ offline: false, players, count: players.length });
   } catch { res.json({ offline: true, players: [], count: 0 }); }
 });
@@ -1486,6 +1497,69 @@ app.get('/api/generators/leaderboard', auth, async (req, res) => {
         'SELECT name, money, prestige FROM gen_players ORDER BY money DESC LIMIT 10');
     }
     res.json({ ok: true, rows: rows.map((r, i) => ({ rank: i + 1, ...r })) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/generators/players', auth, async (req, res) => {
+  const page  = Math.max(0, parseInt(req.query.page  || 0));
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || 50)));
+  const sort  = ['money','prestige','total_earned','total_upgrades'].includes(req.query.sort) ? req.query.sort : 'money';
+  try {
+    const [rows] = await poolGen.query(
+      `SELECT uuid, name, money, prestige, total_earned, total_upgrades, border_size,
+              booster_expiry, booster_mult, last_seen
+       FROM gen_players ORDER BY ${sort} DESC LIMIT ? OFFSET ?`,
+      [limit, page * limit]
+    );
+    const [[{ total }]] = await poolGen.query('SELECT COUNT(*) AS total FROM gen_players');
+    res.json({
+      ok: true,
+      rows: rows.map(r => ({ ...r, money: Number(r.money), total_earned: Number(r.total_earned) })),
+      total: Number(total),
+      page, limit
+    });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/generators/player', auth, async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: 'Kein Name' });
+  try {
+    const [players] = await poolGen.query('SELECT * FROM gen_players WHERE name = ? LIMIT 1', [name]);
+    if (!players.length) return res.status(404).json({ ok: false, error: 'Spieler nicht gefunden' });
+    const p = players[0];
+    const [generators] = await poolGen.query(
+      'SELECT tier, level, world, x, y, z FROM gen_generators WHERE uuid = ? ORDER BY tier, level DESC', [p.uuid]);
+    const guildId = await (async () => {
+      const [r] = await poolGen.query('SELECT guild_id FROM gen_guild_members WHERE uuid = ? LIMIT 1', [p.uuid]);
+      return r.length ? r[0].guild_id : null;
+    })();
+    let guild = null;
+    if (guildId) {
+      const [gr] = await poolGen.query('SELECT name FROM gen_guilds WHERE id = ? LIMIT 1', [guildId]);
+      if (gr.length) guild = gr[0].name;
+    }
+    res.json({
+      ok: true,
+      player: { ...p, money: Number(p.money), total_earned: Number(p.total_earned) },
+      generators,
+      guild
+    });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/generators/guilds', auth, async (req, res) => {
+  try {
+    const [rows] = await poolGen.query(`
+      SELECT g.id, g.name, g.leader_uuid,
+             COUNT(m.uuid) AS member_count,
+             COALESCE(SUM(p.money), 0) AS total_money,
+             COALESCE(MAX(p.prestige), 0) AS max_prestige
+      FROM gen_guilds g
+      LEFT JOIN gen_guild_members m ON g.id = m.guild_id
+      LEFT JOIN gen_players p ON m.uuid = p.uuid
+      GROUP BY g.id ORDER BY total_money DESC LIMIT 20`);
+    res.json({ ok: true, rows: rows.map(r => ({ ...r, total_money: Number(r.total_money) })) });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
@@ -1722,11 +1796,15 @@ app.get('/api/network/events', auth, async (req, res) => {
 
 app.get('/api/db/tables', auth, async (req, res) => {
   const db = req.query.database;
-  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote'];
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames'];
   if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
   try {
     // ph_vote ist ein Alias auf pinkhorizon (vote_coins-Tabellen liegen dort)
-    const pool = db === 'ph_survival' ? poolSv : db === 'ph_smash' ? poolSmash : poolCore;
+    const pool = db === 'ph_survival'   ? poolSv
+      : db === 'ph_smash'      ? poolSmash
+      : db === 'ph_generators' ? poolGen
+      : db === 'ph_minigames'  ? poolMg
+      : poolCore;
     const schemaDb = db === 'ph_vote' ? 'pinkhorizon' : db;
     const [rows] = await pool.execute(`
       SELECT table_name AS name, table_rows AS approx_rows,
@@ -1741,12 +1819,16 @@ app.get('/api/db/tables', auth, async (req, res) => {
 
 app.get('/api/db/table', auth, async (req, res) => {
   const { database: db, table, page = 0, limit = 50, search = '', sort = '', dir = 'ASC' } = req.query;
-  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote'];
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames'];
   if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
   if (!/^[a-zA-Z0-9_]+$/.test(table)) return res.status(400).json({ error: 'Invalid table' });
   const safeDir = dir === 'DESC' ? 'DESC' : 'ASC';
   try {
-    const pool = db === 'ph_survival' ? poolSv : db === 'ph_smash' ? poolSmash : poolCore;
+    const pool = db === 'ph_survival'   ? poolSv
+      : db === 'ph_smash'      ? poolSmash
+      : db === 'ph_generators' ? poolGen
+      : db === 'ph_minigames'  ? poolMg
+      : poolCore;
     // Spalten ermitteln
     const [cols] = await pool.execute(`SHOW COLUMNS FROM \`${table}\``);
     const columns = cols.map(c => ({ name: c.Field, type: c.Type, key: c.Key, nullable: c.Null === 'YES' }));
@@ -1788,11 +1870,15 @@ app.get('/api/db/table', auth, async (req, res) => {
 
 app.put('/api/db/row', auth, async (req, res) => {
   const { database: db, table, pk, pkValue, updates } = req.body;
-  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote'];
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames'];
   if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
   if (!/^[a-zA-Z0-9_]+$/.test(table) || !/^[a-zA-Z0-9_]+$/.test(pk)) return res.status(400).json({ error: 'Invalid params' });
   try {
-    const pool = db === 'ph_survival' ? poolSv : db === 'ph_smash' ? poolSmash : poolCore;
+    const pool = db === 'ph_survival'   ? poolSv
+      : db === 'ph_smash'      ? poolSmash
+      : db === 'ph_generators' ? poolGen
+      : db === 'ph_minigames'  ? poolMg
+      : poolCore;
     const setClauses = Object.keys(updates).map(k => `\`${k}\` = ?`).join(', ');
     const values = [...Object.values(updates), pkValue];
     await pool.execute(`UPDATE \`${table}\` SET ${setClauses} WHERE \`${pk}\` = ?`, values);
@@ -1805,11 +1891,15 @@ app.put('/api/db/row', auth, async (req, res) => {
 
 app.delete('/api/db/row', auth, async (req, res) => {
   const { database: db, table, pk, pkValue } = req.body;
-  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote'];
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames'];
   if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
   if (!/^[a-zA-Z0-9_]+$/.test(table) || !/^[a-zA-Z0-9_]+$/.test(pk)) return res.status(400).json({ error: 'Invalid params' });
   try {
-    const pool = db === 'ph_survival' ? poolSv : db === 'ph_smash' ? poolSmash : poolCore;
+    const pool = db === 'ph_survival'   ? poolSv
+      : db === 'ph_smash'      ? poolSmash
+      : db === 'ph_generators' ? poolGen
+      : db === 'ph_minigames'  ? poolMg
+      : poolCore;
     await pool.execute(`DELETE FROM \`${table}\` WHERE \`${pk}\` = ?`, [pkValue]);
     addAudit('db_delete', table, `${pk}=${pkValue}`);
     res.json({ ok: true });

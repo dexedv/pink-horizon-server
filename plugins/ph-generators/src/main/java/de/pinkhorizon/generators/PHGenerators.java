@@ -5,6 +5,7 @@ import de.pinkhorizon.generators.data.PlayerData;
 import de.pinkhorizon.generators.database.GenDatabaseManager;
 import de.pinkhorizon.generators.database.GeneratorRepository;
 import de.pinkhorizon.generators.gui.BlockShopGUI;
+import de.pinkhorizon.generators.gui.BorderShopGUI;
 import de.pinkhorizon.generators.gui.NavigatorGUI;
 import de.pinkhorizon.generators.gui.ShopGUI;
 import de.pinkhorizon.generators.gui.UpgradeGUI;
@@ -42,12 +43,17 @@ public class PHGenerators extends JavaPlugin {
     private GuildManager      guildManager;
     private AfkRewardManager  afkRewardManager;
     private LeaderboardManager leaderboardManager;
+    private TutorialManager   tutorialManager;
 
     // GUIs
-    private ShopGUI      shopGUI;
-    private UpgradeGUI   upgradeGUI;
-    private BlockShopGUI blockShopGUI;
-    private NavigatorGUI navigatorGUI;
+    private ShopGUI       shopGUI;
+    private UpgradeGUI    upgradeGUI;
+    private BlockShopGUI  blockShopGUI;
+    private NavigatorGUI  navigatorGUI;
+    private BorderShopGUI borderShopGUI;
+
+    // Border
+    private WorldBorderManager worldBorderManager;
 
     // Scoreboard
     private ScoreboardManager scoreboardManager;
@@ -66,6 +72,7 @@ public class PHGenerators extends JavaPlugin {
         repository = new GeneratorRepository(databaseManager, getLogger());
 
         // ── Manager (Reihenfolge wichtig) ─────────────────────────────────────
+        worldBorderManager = new WorldBorderManager(this);
         islandWorldManager = new IslandWorldManager(this);
         hologramManager   = new HologramManager(this);
         synergyManager    = new SynergyManager(this);
@@ -78,12 +85,14 @@ public class PHGenerators extends JavaPlugin {
         guildManager      = new GuildManager(this);
         afkRewardManager  = new AfkRewardManager(this);
         leaderboardManager = new LeaderboardManager(this);
+        tutorialManager   = new TutorialManager(this);
 
         // ── GUIs ──────────────────────────────────────────────────────────────
-        shopGUI      = new ShopGUI(this);
-        upgradeGUI   = new UpgradeGUI(this);
+        shopGUI       = new ShopGUI(this);
+        upgradeGUI    = new UpgradeGUI(this);
         blockShopGUI  = new BlockShopGUI(this);
         navigatorGUI  = new NavigatorGUI(this);
+        borderShopGUI = new BorderShopGUI(this);
         scoreboardManager = new ScoreboardManager(this);
 
         // ── Starten ───────────────────────────────────────────────────────────
@@ -107,6 +116,7 @@ public class PHGenerators extends JavaPlugin {
         getServer().getPluginManager().registerEvents(upgradeGUI, this);
         getServer().getPluginManager().registerEvents(blockShopGUI, this);
         getServer().getPluginManager().registerEvents(navigatorGUI, this);
+        getServer().getPluginManager().registerEvents(borderShopGUI, this);
 
         getLogger().info("PH-Generators (IdleForge) gestartet!");
     }
@@ -154,11 +164,14 @@ public class PHGenerators extends JavaPlugin {
     public GuildManager      getGuildManager()           { return guildManager; }
     public AfkRewardManager  getAfkRewardManager()       { return afkRewardManager; }
     public LeaderboardManager getLeaderboardManager()    { return leaderboardManager; }
+    public TutorialManager   getTutorialManager()        { return tutorialManager; }
 
-    public ShopGUI      getShopGUI()                     { return shopGUI; }
-    public UpgradeGUI   getUpgradeGUI()                  { return upgradeGUI; }
-    public BlockShopGUI getBlockShopGUI()                { return blockShopGUI; }
-    public NavigatorGUI getNavigatorGUI()                { return navigatorGUI; }
+    public ShopGUI       getShopGUI()                    { return shopGUI; }
+    public UpgradeGUI    getUpgradeGUI()                 { return upgradeGUI; }
+    public BlockShopGUI  getBlockShopGUI()               { return blockShopGUI; }
+    public NavigatorGUI  getNavigatorGUI()               { return navigatorGUI; }
+    public BorderShopGUI getBorderShopGUI()              { return borderShopGUI; }
+    public WorldBorderManager getWorldBorderManager()    { return worldBorderManager; }
     public ScoreboardManager getScoreboardManager()      { return scoreboardManager; }
 
     public Map<UUID, PlayerData> getPlayerDataMap()      { return playerDataMap; }

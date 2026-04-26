@@ -1,13 +1,15 @@
 # PH-Generators Konfiguration
 
 database:
-  type: sqlite   # "sqlite" oder "mysql"
+  # Für Dashboard-Integration "mysql" verwenden!
+  # Für lokale Entwicklung/Test reicht "sqlite"
+  type: mysql   # "sqlite" oder "mysql"
   mysql:
-    host: localhost
+    host: ph-mysql   # Docker-Service-Name (oder "localhost" für lokale Entwicklung)
     port: 3306
     database: ph_generators
     username: ph_user
-    password: ""
+    password: "ph-db-2024"
 
 # Island-Spawn: Koordinaten auf dem Skyblock-Template wo Spieler spawnen
 # Passe diese an deinen Map-Spawn an!

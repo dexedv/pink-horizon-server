@@ -172,6 +172,54 @@ public class GenDatabaseManager {
                     last_box_time BIGINT DEFAULT 0
                 )
             """).execute();
+
+            // Migration: lb_holo position
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN lb_holo_world VARCHAR(64) NULL")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN lb_holo_x INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN lb_holo_y INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN lb_holo_z INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+
+            // Migration: tutorial_done
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN tutorial_done TINYINT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+
+            // Migration: border_size
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN border_size INT DEFAULT 40")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+
+            // Migration: stats-hologramm position
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN holo_world VARCHAR(64) NULL")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN holo_x INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN holo_y INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN holo_z INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
         }
     }
 

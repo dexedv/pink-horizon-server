@@ -878,6 +878,7 @@ async function loadDbStatus(elementId = 'db-section') {
     { name:'ph-mysql (Container)',  ok: ctrOk,            detail: d.container?.status || '—' },
     { name:'pinkhorizon (DB)',       ok: d.pinkhorizon,    detail: d.pinkhorizon    ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_survival (DB)',       ok: d.ph_survival,    detail: d.ph_survival    ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph_minigames (DB)',       ok: d.ph_minigames,   detail: d.ph_minigames   ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_smash (DB)',          ok: d.ph_smash,       detail: d.ph_smash       ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_generators (DB)',     ok: d.ph_generators,  detail: d.ph_generators  ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_vote (DB)',           ok: d.ph_vote,        detail: d.ph_vote        ? 'Verbunden' : 'Nicht erreichbar' },
@@ -2581,6 +2582,9 @@ const SQL_HINTS = [
   { db:'pinkhorizon',  q:'SELECT name, coins AS vote_coins, total_votes FROM vote_coins ORDER BY coins DESC LIMIT 20' },
   { db:'pinkhorizon',  q:'SELECT mc_name, discord_id, verified_at FROM discord_sync ORDER BY verified_at DESC LIMIT 20' },
   { db:'pinkhorizon',  q:'SELECT server_name, event_type, seconds_until, FROM_UNIXTIME(created_at/1000) AS time FROM network_events ORDER BY created_at DESC LIMIT 20' },
+  { db:'ph_generators', q:'SELECT name, money, prestige, total_earned, total_upgrades, border_size FROM gen_players ORDER BY money DESC LIMIT 20' },
+  { db:'ph_generators', q:'SELECT tier, level, COUNT(*) AS cnt FROM gen_generators GROUP BY tier, level ORDER BY tier, level DESC' },
+  { db:'ph_generators', q:'SELECT g.name, COUNT(m.uuid) AS members, SUM(p.money) AS total FROM gen_guilds g LEFT JOIN gen_guild_members m ON g.id=m.guild_id LEFT JOIN gen_players p ON m.uuid=p.uuid GROUP BY g.id ORDER BY total DESC' },
 ];
 
 async function renderSqlConsole() {
@@ -2594,6 +2598,8 @@ async function renderSqlConsole() {
           <option value="pinkhorizon">pinkhorizon</option>
           <option value="ph_survival">ph_survival</option>
           <option value="ph_smash">ph_smash</option>
+          <option value="ph_generators">ph_generators</option>
+          <option value="ph_minigames">ph_minigames</option>
         </select>
         <span style="color:var(--muted);font-size:.82rem">Nur SELECT erlaubt</span>
       </div>
@@ -2854,54 +2860,130 @@ async function renderGenDash() {
   const c = document.getElementById('page-content');
   c.innerHTML = `<div class="page">
     <div class="g4" id="gen-kpi">
-      <div class="card stat-card"><span class="stat-icon">👤</span><div><div class="stat-lbl">Registrierte Spieler</div><div class="stat-val" id="gk-players">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">👤</span><div><div class="stat-lbl">Spieler gesamt</div><div class="stat-val" id="gk-players">—</div></div></div>
       <div class="card stat-card"><span class="stat-icon">💰</span><div><div class="stat-lbl">Geld im Umlauf</div><div class="stat-val" id="gk-money" style="color:var(--yellow)">—</div></div></div>
-      <div class="card stat-card"><span class="stat-icon">⚙</span><div><div class="stat-lbl">Aktive Generatoren</div><div class="stat-val" id="gk-gens" style="color:#4CAF50">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">⚙</span><div><div class="stat-lbl">Platzierte Generatoren</div><div class="stat-val" id="gk-gens" style="color:#4CAF50">—</div></div></div>
       <div class="card stat-card"><span class="stat-icon">✦</span><div><div class="stat-lbl">Höchstes Prestige</div><div class="stat-val" id="gk-prestige" style="color:#AA00FF">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🛡</span><div><div class="stat-lbl">Gilden</div><div class="stat-val" id="gk-guilds" style="color:var(--blue)">—</div></div></div>
     </div>
-    <div class="card" style="padding:14px 18px">
-      <div style="font-weight:600;margin-bottom:8px;color:var(--accent)">🟢 Gerade online auf IdleForge</div>
-      <div id="gen-online" style="color:var(--muted);font-size:0.9em">Lade…</div>
+    <div class="g2">
+      <div class="card" style="padding:14px 18px">
+        <div style="font-weight:600;margin-bottom:10px">🟢 Online auf IdleForge</div>
+        <div id="gen-online" style="color:var(--muted);font-size:0.9em">Lade…</div>
+      </div>
+      <div class="card" style="padding:14px 18px">
+        <div style="font-weight:600;margin-bottom:10px">🔍 Spieler-Lookup</div>
+        <div class="irow">
+          <input class="field" id="gen-pl-search" placeholder="Spielername…" onkeydown="if(event.key==='Enter')genLookupPlayer()">
+          <button class="btn btn-p" onclick="genLookupPlayer()">Suchen</button>
+        </div>
+        <div id="gen-pl-result" style="margin-top:10px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 Top 10 – Geld</div>
+      <div id="gen-top-table"><div class="empty">Lade…</div></div>
     </div>
   </div>`;
 
-  const [ovRes, onRes] = await Promise.all([
+  const [ovRes, onRes, lbRes] = await Promise.all([
     apiFetch('/api/generators/overview'),
-    apiFetch('/api/generators/online')
+    apiFetch('/api/generators/online'),
+    apiFetch('/api/generators/leaderboard?type=money')
   ]);
+
   if (ovRes?.ok) {
     const ov = await ovRes.json();
     document.getElementById('gk-players').textContent  = Number(ov.totalPlayers    ?? 0).toLocaleString('de-DE');
     document.getElementById('gk-money').textContent    = '$' + Number(ov.totalMoney ?? 0).toLocaleString('de-DE');
     document.getElementById('gk-gens').textContent     = Number(ov.totalGenerators  ?? 0).toLocaleString('de-DE');
     document.getElementById('gk-prestige').textContent = Number(ov.topPrestige      ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-guilds').textContent   = Number(ov.totalGuilds      ?? 0).toLocaleString('de-DE');
   }
+
   const onEl = document.getElementById('gen-online');
-  if (onEl && onRes?.ok) {
-    const on = await onRes.json();
-    if (on.offline) {
-      onEl.innerHTML = '<span style="color:var(--muted)">Server offline</span>';
-    } else if (!on.players.length) {
-      onEl.innerHTML = '<span style="color:var(--muted)">Niemand online</span>';
+  if (onEl) {
+    if (!onRes?.ok) {
+      onEl.innerHTML = '<span style="color:var(--muted)">Nicht verfügbar</span>';
     } else {
-      onEl.innerHTML = on.players.map(p =>
-        `<span style="display:inline-block;background:rgba(255,215,0,.15);color:#FFD700;border-radius:4px;padding:2px 10px;margin:2px 4px 2px 0;font-weight:600">${escH(p)}</span>`
-      ).join('') + `<span style="color:var(--muted);font-size:0.82em;margin-left:6px">(${on.count} Spieler)</span>`;
+      const on = await onRes.json();
+      if (on.offline) {
+        onEl.innerHTML = '<span class="badge b-red">Server offline</span>';
+      } else if (!on.players.length) {
+        onEl.innerHTML = '<span style="color:var(--muted)">Niemand online</span>';
+      } else {
+        onEl.innerHTML = on.players.map(p =>
+          `<span style="display:inline-block;background:rgba(255,215,0,.15);color:#FFD700;border-radius:4px;padding:2px 10px;margin:2px 4px 2px 0;font-weight:600">${escH(p)}</span>`
+        ).join('') + `<span style="color:var(--muted);font-size:0.82em;margin-left:6px">${on.count} Spieler</span>`;
+      }
     }
   }
+
+  const topEl = document.getElementById('gen-top-table');
+  if (topEl && lbRes?.ok) {
+    const lb = await lbRes.json();
+    if (!lb.rows?.length) { topEl.innerHTML = '<div class="empty">Keine Daten</div>'; }
+    else {
+      const rankColor = i => i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--muted)';
+      topEl.innerHTML = `<div class="lb-table">${lb.rows.map((r,i) => `
+        <div class="lb-row">
+          <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+          <span style="flex:2;font-weight:600">${escH(r.name)}</span>
+          <span style="color:var(--yellow);font-weight:700;min-width:130px">💰 $${Number(r.money).toLocaleString('de-DE')}</span>
+          <span style="color:#AA00FF;min-width:70px">✦ P${r.prestige}</span>
+        </div>`).join('')}</div>`;
+    }
+  }
+}
+
+async function genLookupPlayer() {
+  const name = document.getElementById('gen-pl-search')?.value?.trim();
+  if (!name) return;
+  const el = document.getElementById('gen-pl-result');
+  if (el) el.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Suche…</div>';
+  const r = await apiFetch(`/api/generators/player?name=${encodeURIComponent(name)}`);
+  if (!el) return;
+  if (!r?.ok) { el.innerHTML = '<div style="color:var(--red);font-size:.85rem">Spieler nicht gefunden</div>'; return; }
+  const d = await r.json();
+  if (!d.ok) { el.innerHTML = `<div style="color:var(--red);font-size:.85rem">${escH(d.error||'Nicht gefunden')}</div>`; return; }
+  const p = d.player;
+  const gensByTier = {};
+  (d.generators||[]).forEach(g => { gensByTier[g.tier] = (gensByTier[g.tier]||0) + 1; });
+  const tierStr = Object.entries(gensByTier).map(([t,n])=>`${n}× ${t}`).join(', ') || '—';
+  el.innerHTML = `
+    <div style="font-size:.83rem;display:flex;flex-direction:column;gap:4px">
+      <div class="srv-row"><span>Geld</span><span style="color:var(--yellow)">$${Number(p.money).toLocaleString('de-DE')}</span></div>
+      <div class="srv-row"><span>Prestige</span><span style="color:#AA00FF">✦ ${p.prestige}</span></div>
+      <div class="srv-row"><span>Max-Level</span><span>${Math.max(10, p.prestige * 10)}</span></div>
+      <div class="srv-row"><span>Generatoren</span><span>${d.generators?.length||0}</span></div>
+      <div class="srv-row"><span>Border</span><span>${p.border_size}×${p.border_size}</span></div>
+      <div class="srv-row"><span>Gilde</span><span>${escH(d.guild || '—')}</span></div>
+      <div class="srv-row" style="align-items:flex-start"><span>Typen</span><span style="text-align:right;font-size:.78rem;color:var(--muted)">${escH(tierStr)}</span></div>
+    </div>`;
 }
 
 async function renderGenLb() {
   setHdr('🏆 IdleForge – Leaderboard', `<button class="btn" onclick="renderGenLb()">↺ Aktualisieren</button>`);
   const c = document.getElementById('page-content');
-  c.innerHTML = `<div class="page"><div class="card">
-    <div class="rtabs" style="margin-bottom:10px">
-      <button class="rtab ${genLbTab==='money'?'active':''}"      onclick="genTab('money')">💰 Geld</button>
-      <button class="rtab ${genLbTab==='prestige'?'active':''}"   onclick="genTab('prestige')">✦ Prestige</button>
-      <button class="rtab ${genLbTab==='generators'?'active':''}" onclick="genTab('generators')">⚙ Generatoren</button>
+  c.innerHTML = `<div class="page">
+    <div class="card">
+      <div class="rtabs" style="margin-bottom:10px">
+        <button class="rtab ${genLbTab==='money'?'active':''}"      onclick="genTab('money')">💰 Geld</button>
+        <button class="rtab ${genLbTab==='prestige'?'active':''}"   onclick="genTab('prestige')">✦ Prestige</button>
+        <button class="rtab ${genLbTab==='generators'?'active':''}" onclick="genTab('generators')">⚙ Generatoren</button>
+        <button class="rtab ${genLbTab==='guilds'?'active':''}"     onclick="genTab('guilds')">🛡 Gilden</button>
+      </div>
+      <div id="gen-lb"><div class="empty">Lade…</div></div>
     </div>
-    <div id="gen-lb"><div class="empty">Lade…</div></div>
-  </div></div>`;
+    <div class="card">
+      <div class="card-title">🔍 Spieler-Lookup</div>
+      <div class="irow">
+        <input class="field" id="gen-lb-search" placeholder="Spielername…" onkeydown="if(event.key==='Enter')genLbLookup()">
+        <button class="btn btn-p" onclick="genLbLookup()">Suchen</button>
+      </div>
+      <div id="gen-lb-result" style="margin-top:12px"></div>
+    </div>
+  </div>`;
   await genLoadLb();
 }
 
@@ -2911,30 +2993,94 @@ async function genTab(tab) {
     b.classList.toggle('active',
       (tab==='money'      && b.textContent.includes('Geld')) ||
       (tab==='prestige'   && b.textContent.includes('Prestige')) ||
-      (tab==='generators' && b.textContent.includes('Generator')));
+      (tab==='generators' && b.textContent.includes('Generator')) ||
+      (tab==='guilds'     && b.textContent.includes('Gilden')));
   });
   await genLoadLb();
 }
 
 async function genLoadLb() {
   const el = document.getElementById('gen-lb'); if (!el) return;
-  const r = await apiFetch(`/api/generators/leaderboard?type=${genLbTab}`);
-  if (!r?.ok) { el.innerHTML = '<div class="empty">Fehler beim Laden</div>'; return; }
-  const { rows } = await r.json();
-  if (!rows?.length) { el.innerHTML = '<div class="empty">Keine Daten</div>'; return; }
+  el.innerHTML = '<div class="empty">Lade…</div>';
   const rankColor = i => i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--muted)';
-  el.innerHTML = `<div class="lb-table">${rows.map((r,i) => {
-    const extra = genLbTab === 'money'
-      ? `<span style="color:var(--yellow);font-weight:700;min-width:120px">💰 $${Number(r.money).toLocaleString('de-DE')}</span><span style="color:#AA00FF;min-width:80px">✦ P${r.prestige}</span>`
-      : genLbTab === 'prestige'
-      ? `<span style="color:#AA00FF;font-weight:700;min-width:100px">✦ Prestige ${r.prestige}</span><span style="color:var(--yellow);min-width:120px">💰 $${Number(r.money).toLocaleString('de-DE')}</span>`
-      : `<span style="color:#4CAF50;font-weight:700;min-width:120px">⚙ ${r.gen_count} Generatoren</span><span style="color:#AA00FF;min-width:80px">✦ P${r.prestige}</span>`;
-    return `<div class="lb-row">
-      <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
-      <span style="flex:2;font-weight:600">${escH(r.name)}</span>
-      ${extra}
+
+  try {
+    if (genLbTab === 'guilds') {
+      const r = await apiFetch('/api/generators/guilds');
+      if (!r) { el.innerHTML = '<div class="empty" style="color:var(--red)">Server nicht erreichbar</div>'; return; }
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        el.innerHTML = `<div class="empty" style="color:var(--red)">Datenbankfehler: ${escH(err.error || 'ph_generators nicht verfügbar')}</div>`;
+        return;
+      }
+      const { rows } = await r.json();
+      if (!rows?.length) { el.innerHTML = '<div class="empty">Keine Gilden vorhanden</div>'; return; }
+      el.innerHTML = `<div class="lb-table">${rows.map((g,i) => `
+        <div class="lb-row">
+          <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+          <span style="flex:2;font-weight:600">🛡 ${escH(g.name)}</span>
+          <span style="color:var(--yellow);font-weight:700;min-width:130px">💰 $${Number(g.total_money).toLocaleString('de-DE')}</span>
+          <span style="color:var(--blue);min-width:80px">👥 ${g.member_count}/5</span>
+          <span style="color:#AA00FF;min-width:70px">✦ P${g.max_prestige}</span>
+        </div>`).join('')}</div>`;
+      return;
+    }
+
+    const r = await apiFetch(`/api/generators/leaderboard?type=${genLbTab}`);
+    if (!r) { el.innerHTML = '<div class="empty" style="color:var(--red)">Server nicht erreichbar</div>'; return; }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      el.innerHTML = `<div class="empty" style="color:var(--red)">Datenbankfehler: ${escH(err.error || 'ph_generators nicht verfügbar')}</div>`;
+      return;
+    }
+    const { rows } = await r.json();
+    if (!rows?.length) { el.innerHTML = '<div class="empty">Keine Spieler gefunden</div>'; return; }
+    el.innerHTML = `<div class="lb-table">${rows.map((row,i) => {
+      const extra = genLbTab === 'money'
+        ? `<span style="color:var(--yellow);font-weight:700;min-width:130px">💰 $${Number(row.money||0).toLocaleString('de-DE')}</span><span style="color:#AA00FF;min-width:80px">✦ P${row.prestige||0}</span>`
+        : genLbTab === 'prestige'
+        ? `<span style="color:#AA00FF;font-weight:700;min-width:110px">✦ Prestige ${row.prestige||0}</span><span style="color:var(--yellow);min-width:130px">💰 $${Number(row.money||0).toLocaleString('de-DE')}</span>`
+        : `<span style="color:#4CAF50;font-weight:700;min-width:120px">⚙ ${row.gen_count||0} Generatoren</span><span style="color:#AA00FF;min-width:80px">✦ P${row.prestige||0}</span>`;
+      return `<div class="lb-row">
+        <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+        <span style="flex:2;font-weight:600">${escH(row.name||'Unbekannt')}</span>
+        ${extra}
+      </div>`;
+    }).join('')}</div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="empty" style="color:var(--red)">Fehler: ${escH(e.message)}</div>`;
+  }
+}
+
+async function genLbLookup() {
+  const name = document.getElementById('gen-lb-search')?.value?.trim();
+  if (!name) return;
+  const el = document.getElementById('gen-lb-result');
+  if (el) el.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Suche…</div>';
+  const r = await apiFetch(`/api/generators/player?name=${encodeURIComponent(name)}`);
+  if (!el) return;
+  if (!r?.ok) { el.innerHTML = `<div class="msg msg-err">Spieler nicht gefunden</div>`; return; }
+  const d = await r.json();
+  if (!d.ok) { el.innerHTML = `<div class="msg msg-err">${escH(d.error||'Nicht gefunden')}</div>`; return; }
+  const p = d.player;
+  const gensByTier = {};
+  (d.generators||[]).forEach(g => { gensByTier[g.tier] = (gensByTier[g.tier]||0) + 1; });
+  const tierStr = Object.entries(gensByTier).map(([t,n])=>`${n}× ${t.replace(/_/g,' ')}`).join(' · ') || '—';
+  el.innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:.85rem">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:10px">🎮 ${escH(p.name)}</div>
+      <div class="g2" style="gap:8px">
+        <div><div class="srv-row"><span>Geld</span><span style="color:var(--yellow);font-weight:700">$${Number(p.money).toLocaleString('de-DE')}</span></div>
+             <div class="srv-row"><span>Prestige</span><span style="color:#AA00FF">✦ ${p.prestige}</span></div>
+             <div class="srv-row"><span>Max-Level</span><span>${Math.max(10, p.prestige * 10)}</span></div>
+             <div class="srv-row"><span>Border</span><span>${p.border_size}×${p.border_size}</span></div></div>
+        <div><div class="srv-row"><span>Generatoren</span><span style="color:#4CAF50">${d.generators?.length||0}</span></div>
+             <div class="srv-row"><span>Upgrades</span><span>${p.total_upgrades}</span></div>
+             <div class="srv-row"><span>Total verdient</span><span style="color:var(--yellow)">$${Number(p.total_earned).toLocaleString('de-DE')}</span></div>
+             <div class="srv-row"><span>Gilde</span><span>${escH(d.guild || '—')}</span></div></div>
+      </div>
+      ${tierStr !== '—' ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:.78rem;color:var(--muted)">${escH(tierStr)}</div>` : ''}
     </div>`;
-  }).join('')}</div>`;
 }
 
 // ── VoteCoins Leaderboard ─────────────────────────────────────────────────
@@ -3459,7 +3605,7 @@ async function renderDatabase() {
   setHdr('🗄️ Datenbank-Editor', `<button class="btn" onclick="loadDbTables()">↺ Aktualisieren</button>`);
   const c = document.getElementById('page-content');
   c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
-  const DB_LABELS = { pinkhorizon: 'Core / Vote', ph_survival: 'Survival', ph_smash: 'Smash' };
+  const DB_LABELS = { pinkhorizon: 'Core / Vote', ph_survival: 'Survival', ph_smash: 'Smash', ph_generators: 'IdleForge', ph_minigames: 'Minigames' };
   c.innerHTML = `<div class="page" style="display:flex;flex-direction:column;flex:1;min-height:0;padding-bottom:0">
     <div class="db-editor">
       <div class="db-sidebar">
@@ -3482,7 +3628,7 @@ async function dbSetDb(db) {
   dbState.table = null;
   dbState.page = 1;
   document.querySelectorAll('.db-tab').forEach(b => {
-    const map = { 'Core / Vote': 'pinkhorizon', 'Survival': 'ph_survival', 'Smash': 'ph_smash' };
+    const map = { 'Core / Vote': 'pinkhorizon', 'Survival': 'ph_survival', 'Smash': 'ph_smash', 'IdleForge': 'ph_generators', 'Minigames': 'ph_minigames' };
     b.classList.toggle('active', map[b.textContent.trim()] === db);
   });
   const tl = document.getElementById('db-tbl-list');

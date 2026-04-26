@@ -67,6 +67,8 @@ public class NavigatorGUI implements Listener {
                 MM.deserialize("<gray>Rechtsklick auf Generator → Aufheben"),
                 MM.deserialize("<dark_gray>Level-Fortschritt bleibt erhalten!")
         ));
+        meta.setUnbreakable(true);
+        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
         item.setItemMeta(meta);
         return item;
     }
@@ -190,6 +192,7 @@ public class NavigatorGUI implements Listener {
         inv.setItem(30, buildButton(Material.TOTEM_OF_UNDYING, "<yellow>Achievements",       "<gray>Errungenschaften ansehen",    "/gen achievements"));
         inv.setItem(32, buildButton(Material.DIAMOND,          "<aqua>Leaderboard",          "<gray>Top 10 Spieler",             "/gen top"));
         inv.setItem(34, buildButton(Material.SHIELD,           "<blue>Gilde",                "<gray>Gilde verwalten",            "/gen guild"));
+        inv.setItem(40, buildButton(Material.CYAN_CONCRETE,    "<cyan>Insel-Grenze",         "<gray>Border erweitern",           "/gen border"));
 
         player.openInventory(inv);
     }

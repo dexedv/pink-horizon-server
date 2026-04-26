@@ -44,6 +44,17 @@ public class GeneratorRepository {
                 data.setAfkBoxesOpened(rs.getInt("afk_boxes_opened"));
                 data.setBoosterExpiry(rs.getLong("booster_expiry"));
                 data.setBoosterMultiplier(rs.getDouble("booster_mult"));
+                int bs = rs.getInt("border_size");
+                data.setBorderSize(rs.wasNull() ? 40 : bs);
+                String hw = rs.getString("holo_world");
+                if (hw != null && !hw.isEmpty()) {
+                    data.setHoloLocation(hw, rs.getInt("holo_x"), rs.getInt("holo_y"), rs.getInt("holo_z"));
+                }
+                data.setTutorialDone(rs.getInt("tutorial_done") == 1);
+                String lbhw = rs.getString("lb_holo_world");
+                if (lbhw != null && !lbhw.isEmpty()) {
+                    data.setLbHoloLocation(lbhw, rs.getInt("lb_holo_x"), rs.getInt("lb_holo_y"), rs.getInt("lb_holo_z"));
+                }
                 return data;
             }
         } catch (SQLException e) {
@@ -57,19 +68,21 @@ public class GeneratorRepository {
         if (db.getDbType().equals("mysql")) {
             sql = """
                 INSERT INTO gen_players (uuid, name, money, prestige, total_earned, total_upgrades,
-                    afk_boxes_opened, booster_expiry, booster_mult, last_seen)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
+                    afk_boxes_opened, booster_expiry, booster_mult, last_seen, border_size)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
                 ON DUPLICATE KEY UPDATE
                     name=VALUES(name), money=VALUES(money), prestige=VALUES(prestige),
                     total_earned=VALUES(total_earned), total_upgrades=VALUES(total_upgrades),
                     afk_boxes_opened=VALUES(afk_boxes_opened), booster_expiry=VALUES(booster_expiry),
-                    booster_mult=VALUES(booster_mult), last_seen=VALUES(last_seen)
+                    booster_mult=VALUES(booster_mult), last_seen=VALUES(last_seen),
+                    border_size=VALUES(border_size)
             """;
         } else {
             sql = """
                 INSERT OR REPLACE INTO gen_players (uuid, name, money, prestige, total_earned,
-                    total_upgrades, afk_boxes_opened, booster_expiry, booster_mult, last_seen)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
+                    total_upgrades, afk_boxes_opened, booster_expiry, booster_mult, last_seen,
+                    border_size)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """;
         }
         try (Connection con = db.getConnection();
@@ -84,9 +97,73 @@ public class GeneratorRepository {
             stmt.setLong(8, data.getBoosterExpiry());
             stmt.setDouble(9, data.getBoosterMultiplier());
             stmt.setLong(10, data.getLastSeen());
+            stmt.setInt(11, data.getBorderSize());
             stmt.executeUpdate();
         } catch (SQLException e) {
             log.warning("[GenRepo] savePlayer: " + e.getMessage());
+        }
+    }
+
+    public void saveHoloLocation(UUID uuid, String world, int x, int y, int z) {
+        String sql = "UPDATE gen_players SET holo_world=?, holo_x=?, holo_y=?, holo_z=? WHERE uuid=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, world);
+            stmt.setInt(2, x);
+            stmt.setInt(3, y);
+            stmt.setInt(4, z);
+            stmt.setString(5, uuid.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] saveHoloLocation: " + e.getMessage());
+        }
+    }
+
+    public void saveLbHoloLocation(UUID uuid, String world, int x, int y, int z) {
+        String sql = "UPDATE gen_players SET lb_holo_world=?, lb_holo_x=?, lb_holo_y=?, lb_holo_z=? WHERE uuid=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, world);
+            stmt.setInt(2, x);
+            stmt.setInt(3, y);
+            stmt.setInt(4, z);
+            stmt.setString(5, uuid.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] saveLbHoloLocation: " + e.getMessage());
+        }
+    }
+
+    public void clearLbHoloLocation(UUID uuid) {
+        String sql = "UPDATE gen_players SET lb_holo_world=NULL WHERE uuid=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] clearLbHoloLocation: " + e.getMessage());
+        }
+    }
+
+    public void saveTutorialDone(UUID uuid) {
+        String sql = "UPDATE gen_players SET tutorial_done=1 WHERE uuid=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] saveTutorialDone: " + e.getMessage());
+        }
+    }
+
+    public void clearHoloLocation(UUID uuid) {
+        String sql = "UPDATE gen_players SET holo_world=NULL WHERE uuid=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] clearHoloLocation: " + e.getMessage());
         }
     }
 

@@ -90,6 +90,7 @@ public class UpgradeGUI implements Listener {
         openInventories.put(player.getUniqueId(), new ArrayList<>(gens));
         singleView.remove(player.getUniqueId());
         player.openInventory(inv);
+        plugin.getTutorialManager().onUpgradeGuiOpened(player);
     }
 
     @EventHandler
@@ -175,6 +176,7 @@ public class UpgradeGUI implements Listener {
             case SUCCESS -> {
                 player.sendMessage(MM.deserialize("<green>✔ " + gen.getType().getDisplayName()
                         + " <green>auf Level <white>" + gen.getLevel() + " <green>upgegraded!"));
+                plugin.getTutorialManager().onUpgradeDone(player);
                 refresh(player, gen);
             }
             case MAX_LEVEL -> {
@@ -205,22 +207,40 @@ public class UpgradeGUI implements Listener {
     // ── Item-Builder ─────────────────────────────────────────────────────────
 
     private ItemStack buildGenUpgradeItem(PlacedGenerator gen, PlayerData data) {
-        ItemStack item = new ItemStack(gen.getType().getBlock());
-        ItemMeta meta = item.getItemMeta();
-        meta.displayName(MM.deserialize(gen.getType().getDisplayName()));
-
         int level = gen.getLevel();
         int maxLevel = data.maxGeneratorLevel();
+        boolean isMax = level >= maxLevel;
+        de.pinkhorizon.generators.GeneratorType nextTier = gen.getType().getNextTier();
+        boolean isTrulyMaxTier = isMax && nextTier == null;
+
+        // Max-Level → BEACON-Icon als Highlight; Max-Tier → NETHER_STAR
+        Material displayMat = isTrulyMaxTier
+                ? Material.NETHER_STAR
+                : (isMax ? Material.BEACON : gen.getType().getBlock());
+
+        ItemStack item = new ItemStack(displayMat);
+        ItemMeta meta = item.getItemMeta();
+
+        // Enchantment-Glow bei Max-Level
+        if (isMax) {
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+        }
+
+        String namePrefix = isMax ? "<bold>" : "";
+        String nameSuffix = isMax ? "</bold>" : "";
+        meta.displayName(MM.deserialize(namePrefix + gen.getType().getDisplayName() + nameSuffix));
+
         long upgCost = gen.upgradeCost();
         double income = gen.incomePerSecond();
         double nextIncome = gen.getType().incomeAt(level + 1);
         boolean canAfford = data.getMoney() >= upgCost;
-        boolean isMax = level >= maxLevel;
 
         List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
-        lore.add(MM.deserialize("<gray>Level: <white>" + level + "<gray>/" + maxLevel));
+        lore.add(MM.deserialize((isMax ? "<gold>" : "<gray>") + "Level: "
+                + (isMax ? "<bold>" : "<white>") + level + (isMax ? "</bold></gold>" : "")
+                + (isMax ? "" : "<gray>/" + maxLevel)));
         lore.add(MM.deserialize("<gray>Einkommen: <green>$" + String.format("%.1f", income) + "/s"));
-        de.pinkhorizon.generators.GeneratorType nextTier = gen.getType().getNextTier();
 
         if (!isMax) {
             lore.add(MM.deserialize("<gray>Nach Upgrade: <aqua>$" + String.format("%.1f", nextIncome) + "/s"));
@@ -233,15 +253,19 @@ public class UpgradeGUI implements Listener {
         } else if (nextTier != null) {
             long tierCost = gen.getType().getTierUpgradeCost();
             boolean canAffordTier = data.getMoney() >= tierCost;
-            lore.add(MM.deserialize("<green><bold>★ MAX LEVEL ★</bold></green>"));
+            lore.add(MM.deserialize(""));
+            lore.add(MM.deserialize("<gold><bold>⬆ MAX LEVEL – Tier-Upgrade möglich!</bold></gold>"));
             lore.add(MM.deserialize("<gray>Nächstes Tier: " + nextTier.getDisplayName()));
-            lore.add(MM.deserialize((canAffordTier ? "<green>" : "<red>") + "Tier-Upgrade: $" + tierCost));
+            lore.add(MM.deserialize((canAffordTier ? "<green>" : "<red>") + "Kosten: $" + tierCost));
             lore.add(MM.deserialize(""));
             lore.add(MM.deserialize("<yellow>Linksklick → Tier-Upgrade"));
         } else {
-            lore.add(MM.deserialize("<gold><bold>★ MAX TIER ★</bold></gold>"));
-            lore.add(MM.deserialize("<gray>Mache Prestige für mehr Level!"));
+            lore.add(MM.deserialize(""));
+            lore.add(MM.deserialize("<gold><bold>✦ ABSOLUTES MAXIMUM ✦</bold></gold>"));
+            lore.add(MM.deserialize("<gray>Höchstes Tier & Level erreicht!"));
+            lore.add(MM.deserialize("<dark_gray>Mache Prestige für mehr Level."));
         }
+        lore.add(MM.deserialize(""));
         lore.add(MM.deserialize("<dark_gray>" + gen.getWorld() + " " + gen.getX() + "," + gen.getY() + "," + gen.getZ()));
         meta.lore(lore);
         item.setItemMeta(meta);
