@@ -12,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
 import java.util.UUID;
 
@@ -100,6 +101,22 @@ public class PlayerListener implements Listener {
                 plugin.getRepository().savePlayer(finalData));
 
         plugin.getPlayerDataMap().remove(uuid);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        // Nur in Insel-Welten eingreifen
+        if (!plugin.getIslandWorldManager().isIslandWorld(player.getWorld())) return;
+
+        org.bukkit.World islandWorld = player.getWorld();
+        double spawnX = plugin.getConfig().getDouble("island.spawn-x", 0.5);
+        double spawnY = plugin.getConfig().getDouble("island.spawn-y", 64.0);
+        double spawnZ = plugin.getConfig().getDouble("island.spawn-z", 0.5);
+        float yaw     = (float) plugin.getConfig().getDouble("island.spawn-yaw", 0.0);
+        float pitch   = (float) plugin.getConfig().getDouble("island.spawn-pitch", 0.0);
+
+        event.setRespawnLocation(new org.bukkit.Location(islandWorld, spawnX, spawnY, spawnZ, yaw, pitch));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
