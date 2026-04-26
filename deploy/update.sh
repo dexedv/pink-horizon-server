@@ -58,7 +58,9 @@ ok "Berechtigungen gesetzt (uid 1000)"
 
 # ── 3. Spielserver neu starten ────────────────────────────────────────────────
 step "Spielserver neu starten" "[3/5]"
-info "Stoppe: lobby, survival, smash, generators, velocity..."
+info "Erstelle fehlende Container (z.B. generators bei Erststart)..."
+docker compose up -d --no-recreate lobby survival smash generators velocity
+info "Starte neu: lobby, survival, smash, generators, velocity..."
 docker compose restart lobby survival smash generators velocity
 ok "Alle Spielserver neu gestartet"
 
