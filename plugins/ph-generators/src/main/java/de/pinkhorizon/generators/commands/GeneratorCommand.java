@@ -63,7 +63,16 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             case "border"       -> { plugin.getBorderShopGUI().open(player); yield true; }
             case "holo"         -> { handleHolo(player, args); yield true; }
             case "pay"          -> { handlePay(player, args); yield true; }
-            case "tutorial"     -> { plugin.getTutorialManager().startTutorial(player); yield true; }
+            case "tutorial"     -> {
+                if (args.length >= 2 && args[1].equalsIgnoreCase("hide")) {
+                    plugin.getHologramManager().removeSpawnHolo(player.getUniqueId());
+                    player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                        .deserialize("<gray>Tutorial-Hologramm ausgeblendet."));
+                } else {
+                    plugin.getTutorialManager().startTutorial(player);
+                }
+                yield true;
+            }
             case "synergy"      -> { showSynergy(player); yield true; }
             case "list"         -> { showGeneratorList(player); yield true; }
             case "upgradeall", "ua" -> {
