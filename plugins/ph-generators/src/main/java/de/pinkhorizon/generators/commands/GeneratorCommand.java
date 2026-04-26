@@ -50,6 +50,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
 
         return switch (args[0].toLowerCase()) {
             case "shop"         -> { plugin.getShopGUI().open(player); yield true; }
+            case "blockshop", "bs" -> { plugin.getBlockShopGUI().open(player); yield true; }
             case "upgrade", "up"-> { plugin.getUpgradeGUI().open(player); yield true; }
             case "balance", "bal"-> { showBalance(player); yield true; }
             case "stats"        -> { showStats(player); yield true; }

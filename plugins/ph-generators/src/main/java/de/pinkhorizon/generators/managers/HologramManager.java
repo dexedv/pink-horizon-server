@@ -47,13 +47,13 @@ public class HologramManager {
 
     // ── Hologramm-Verwaltung ─────────────────────────────────────────────────
 
-    public void spawnHologram(PlacedGenerator gen) {
+    private void spawnHologramWithData(PlacedGenerator gen, PlayerData data) {
         removeHologram(gen);
         World world = Bukkit.getWorld(gen.getWorld());
         if (world == null) return;
 
         Location loc = new Location(world, gen.getX() + 0.5, gen.getY() + 1.6, gen.getZ() + 0.5);
-        String text = buildHologramText(gen, null);
+        String text = buildHologramText(gen, data);
 
         TextDisplay display = world.spawn(loc, TextDisplay.class, entity -> {
             entity.text(MM.deserialize(text));
@@ -69,13 +69,21 @@ public class HologramManager {
         holograms.put(gen.locationKey(), display);
     }
 
+    /** Hilfsmethode für updateAll */
+
     public void updateHologram(PlacedGenerator gen, PlayerData data) {
         TextDisplay display = holograms.get(gen.locationKey());
         if (display == null || display.isDead()) {
-            spawnHologram(gen);
+            PlayerData d = data != null ? data : plugin.getPlayerDataMap().get(gen.getOwnerUUID());
+            spawnHologramWithData(gen, d);
             return;
         }
         display.text(MM.deserialize(buildHologramText(gen, data)));
+    }
+
+    public void spawnHologram(PlacedGenerator gen) {
+        PlayerData data = plugin.getPlayerDataMap().get(gen.getOwnerUUID());
+        spawnHologramWithData(gen, data);
     }
 
     public void removeHologram(PlacedGenerator gen) {
@@ -94,7 +102,7 @@ public class HologramManager {
             for (PlacedGenerator gen : data.getGenerators()) {
                 TextDisplay display = holograms.get(gen.locationKey());
                 if (display == null || display.isDead()) {
-                    spawnHologram(gen);
+                    spawnHologramWithData(gen, data);
                 } else {
                     display.text(MM.deserialize(buildHologramText(gen, data)));
                 }

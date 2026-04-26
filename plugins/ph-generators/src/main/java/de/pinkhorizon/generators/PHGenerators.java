@@ -4,6 +4,7 @@ import de.pinkhorizon.generators.commands.GeneratorCommand;
 import de.pinkhorizon.generators.data.PlayerData;
 import de.pinkhorizon.generators.database.GenDatabaseManager;
 import de.pinkhorizon.generators.database.GeneratorRepository;
+import de.pinkhorizon.generators.gui.BlockShopGUI;
 import de.pinkhorizon.generators.gui.ShopGUI;
 import de.pinkhorizon.generators.gui.UpgradeGUI;
 import de.pinkhorizon.generators.listeners.GeneratorBlockListener;
@@ -42,8 +43,12 @@ public class PHGenerators extends JavaPlugin {
     private LeaderboardManager leaderboardManager;
 
     // GUIs
-    private ShopGUI    shopGUI;
-    private UpgradeGUI upgradeGUI;
+    private ShopGUI      shopGUI;
+    private UpgradeGUI   upgradeGUI;
+    private BlockShopGUI blockShopGUI;
+
+    // Scoreboard
+    private ScoreboardManager scoreboardManager;
 
     // Online-Spielerdaten
     private final Map<UUID, PlayerData> playerDataMap = new ConcurrentHashMap<>();
@@ -73,8 +78,10 @@ public class PHGenerators extends JavaPlugin {
         leaderboardManager = new LeaderboardManager(this);
 
         // ── GUIs ──────────────────────────────────────────────────────────────
-        shopGUI    = new ShopGUI(this);
-        upgradeGUI = new UpgradeGUI(this);
+        shopGUI      = new ShopGUI(this);
+        upgradeGUI   = new UpgradeGUI(this);
+        blockShopGUI = new BlockShopGUI(this);
+        scoreboardManager = new ScoreboardManager(this);
 
         // ── Starten ───────────────────────────────────────────────────────────
         hologramManager.startUpdateTask();
@@ -82,6 +89,7 @@ public class PHGenerators extends JavaPlugin {
         questManager.start();
         afkRewardManager.start();
         leaderboardManager.start();
+        scoreboardManager.start();
 
         // ── Commands registrieren ─────────────────────────────────────────────
         GeneratorCommand cmd = new GeneratorCommand(this);
@@ -94,6 +102,7 @@ public class PHGenerators extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new GeneratorBlockListener(this), this);
         getServer().getPluginManager().registerEvents(shopGUI, this);
         getServer().getPluginManager().registerEvents(upgradeGUI, this);
+        getServer().getPluginManager().registerEvents(blockShopGUI, this);
 
         getLogger().info("PH-Generators (IdleForge) gestartet!");
     }
@@ -101,6 +110,7 @@ public class PHGenerators extends JavaPlugin {
     @Override
     public void onDisable() {
         // Ticker stoppen
+        if (scoreboardManager != null) scoreboardManager.stop();
         if (moneyManager != null) moneyManager.stop();
         if (hologramManager != null) hologramManager.stopUpdateTask();
         if (questManager != null) questManager.stop();
@@ -141,8 +151,10 @@ public class PHGenerators extends JavaPlugin {
     public AfkRewardManager  getAfkRewardManager()       { return afkRewardManager; }
     public LeaderboardManager getLeaderboardManager()    { return leaderboardManager; }
 
-    public ShopGUI    getShopGUI()                       { return shopGUI; }
-    public UpgradeGUI getUpgradeGUI()                    { return upgradeGUI; }
+    public ShopGUI      getShopGUI()                     { return shopGUI; }
+    public UpgradeGUI   getUpgradeGUI()                  { return upgradeGUI; }
+    public BlockShopGUI getBlockShopGUI()                { return blockShopGUI; }
+    public ScoreboardManager getScoreboardManager()      { return scoreboardManager; }
 
     public Map<UUID, PlayerData> getPlayerDataMap()      { return playerDataMap; }
 }

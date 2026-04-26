@@ -119,3 +119,91 @@ achievements:
     description: "Öffne 10 AFK-Belohnungsboxen"
     target: 10
     reward-money: 15000
+
+# Block-Shop: Erweiterungsblöcke für Inseln kaufen
+block-shop:
+  grass:
+    material: GRASS_BLOCK
+    name: "<green>Grasblock"
+    price: 500
+    amount: 64
+  dirt:
+    material: DIRT
+    name: "<dark_green>Erde"
+    price: 250
+    amount: 64
+  stone:
+    material: STONE
+    name: "<gray>Stein"
+    price: 300
+    amount: 64
+  cobblestone:
+    material: COBBLESTONE
+    name: "<gray>Kopfsteinpflaster"
+    price: 200
+    amount: 64
+  oak_log:
+    material: OAK_LOG
+    name: "<yellow>Eichenholz"
+    price: 600
+    amount: 64
+  oak_planks:
+    material: OAK_PLANKS
+    name: "<yellow>Holzbretter"
+    price: 400
+    amount: 64
+  glass:
+    material: GLASS
+    name: "<aqua>Glas"
+    price: 800
+    amount: 64
+  sand:
+    material: SAND
+    name: "<yellow>Sand"
+    price: 350
+    amount: 64
+  gravel:
+    material: GRAVEL
+    name: "<gray>Kies"
+    price: 300
+    amount: 64
+  oak_leaves:
+    material: OAK_LEAVES
+    name: "<green>Blätter"
+    price: 400
+    amount: 64
+  white_wool:
+    material: WHITE_WOOL
+    name: "<white>Wolle"
+    price: 500
+    amount: 64
+  stone_bricks:
+    material: STONE_BRICKS
+    name: "<gray>Steinziegel"
+    price: 700
+    amount: 64
+  oak_stairs:
+    material: OAK_STAIRS
+    name: "<yellow>Holztreppe"
+    price: 500
+    amount: 32
+  oak_slab:
+    material: OAK_SLAB
+    name: "<yellow>Holzhalbblock"
+    price: 300
+    amount: 64
+  torch:
+    material: TORCH
+    name: "<yellow>Fackel"
+    price: 100
+    amount: 64
+  water_bucket:
+    material: WATER_BUCKET
+    name: "<blue>Wassereimer"
+    price: 1000
+    amount: 1
+  lava_bucket:
+    material: LAVA_BUCKET
+    name: "<red>Lavaeimer"
+    price: 2000
+    amount: 1
