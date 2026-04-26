@@ -807,38 +807,71 @@ app.get('/api/containers/stats', auth, async (req, res) => {
 
 // ── REST-API: Backup ──────────────────────────────────────────────────────
 
+const { execFile } = require('child_process');
+const BACKUP_DIR = path.join(__dirname, '..', 'backups');
+
+// Alle Backups auflisten
+app.get('/api/backups', auth, async (req, res) => {
+  try {
+    await fs.mkdir(BACKUP_DIR, { recursive: true });
+    const files = await fs.readdir(BACKUP_DIR);
+    const tars  = files.filter(f => f.endsWith('.tar.gz')).sort().reverse();
+    const list  = await Promise.all(tars.map(async f => {
+      const stat = await fs.stat(path.join(BACKUP_DIR, f));
+      return { name: f, size: stat.size, mtime: stat.mtimeMs };
+    }));
+    res.json({ backups: list });
+  } catch (e) { res.json({ backups: [] }); }
+});
+
+// Alle Server sichern (backup.sh)
+app.post('/api/backups/run', auth, (req, res) => {
+  const script = path.join(__dirname, '..', 'deploy', 'backup.sh');
+  execFile('bash', [script], { timeout: 600000 }, (err, stdout, stderr) => {
+    if (err) return res.status(500).json({ ok: false, error: stderr || err.message });
+    res.json({ ok: true, message: 'Backup abgeschlossen', log: stdout });
+  });
+});
+
+// Einzelnen Server sichern (legacy + smash/skyblock/generators)
 app.post('/api/backup/:server', auth, async (req, res) => {
   const serverName = req.params.server;
-  if (!['lobby', 'survival'].includes(serverName))
+  const allowed = ['lobby', 'survival', 'smash', 'skyblock', 'generators'];
+  if (!allowed.includes(serverName))
     return res.status(400).json({ error: 'Unbekannter Server' });
-  const cfg = SERVERS[serverName];
+
+  const worldDirs = {
+    lobby:      ['world'],
+    survival:   ['world', 'world_nether', 'world_the_end'],
+    smash:      ['world'],
+    skyblock:   ['world', 'skyblock_world'],
+    generators: ['island-template'],
+  };
+  const dirs = worldDirs[serverName].join(' ');
   const ts  = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
-  const arc = `backup-${ts}.tar.gz`;
+  const arc = path.join(BACKUP_DIR, `${serverName}_${ts}.tar.gz`);
+
   try {
-    if (cfg.rcon) {
-      try { await rconSend(cfg.rcon, 'save-all'); await new Promise(r => setTimeout(r, 2000)); } catch {}
-    }
-    const exec = await docker.getContainer(`ph-${serverName}`).exec({
-      Cmd: ['bash', '-c', `cd /data && tar -czf ${arc} world world_nether world_the_end --ignore-failed-read 2>/dev/null; echo ok`],
-      AttachStdout: true, AttachStderr: true
-    });
-    const stream = await exec.start({ hijack: true });
-    await new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error('Backup-Timeout (5 min)')), 300000);
-      stream.on('end', () => { clearTimeout(t); resolve(); });
-      stream.on('error', e => { clearTimeout(t); reject(e); });
-    });
-    // Backup-Rotation: maximal 7 Backups behalten, älteste löschen
+    await fs.mkdir(BACKUP_DIR, { recursive: true });
+    // save-all via RCON
     try {
-      const rot = await docker.getContainer(`ph-${serverName}`).exec({
-        Cmd: ['bash', '-c',
-          `cd /data && ls -1t backup-*.tar.gz 2>/dev/null | tail -n +8 | xargs -r rm -f`],
-        AttachStdout: true, AttachStderr: true
-      });
-      const rotStream = await rot.start({ hijack: true });
-      await new Promise(r => { rotStream.on('end', r); rotStream.on('error', r); });
+      const cfg = SERVERS[serverName];
+      if (cfg?.rcon) { await rconSend(cfg.rcon, 'save-all'); await new Promise(r => setTimeout(r, 2000)); }
     } catch {}
-    res.json({ ok: true, message: `Backup erstellt: ${arc}` });
+
+    const serverPath = path.join(__dirname, '..', 'servers', serverName);
+    await new Promise((resolve, reject) => {
+      execFile('tar', ['-czf', arc, '-C', serverPath, ...worldDirs[serverName]], { timeout: 300000 }, (err) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+
+    // Rotation: maximal 7 Backups pro Server behalten
+    const all = (await fs.readdir(BACKUP_DIR)).filter(f => f.startsWith(`${serverName}_`) && f.endsWith('.tar.gz')).sort().reverse();
+    for (const old of all.slice(7)) await fs.unlink(path.join(BACKUP_DIR, old)).catch(() => {});
+
+    const stat = await fs.stat(arc);
+    res.json({ ok: true, message: `Backup erstellt: ${path.basename(arc)}`, size: stat.size });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
