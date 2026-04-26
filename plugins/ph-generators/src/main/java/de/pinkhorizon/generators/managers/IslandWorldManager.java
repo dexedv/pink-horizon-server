@@ -199,6 +199,7 @@ public class IslandWorldManager {
         }
 
         player.teleport(spawn);
+        player.setGameMode(GameMode.SURVIVAL);
         player.sendMessage(MM.deserialize(
                 "<green>✔ Willkommen auf deiner Insel! <gray>| <yellow>/gen shop"));
     }
