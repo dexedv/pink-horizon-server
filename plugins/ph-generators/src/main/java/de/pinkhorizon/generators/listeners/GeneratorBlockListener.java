@@ -7,6 +7,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.Material;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -74,7 +75,7 @@ public class GeneratorBlockListener implements Listener {
         plugin.getUpgradeGUI().openSingle(player, gen);
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         if (!plugin.getGeneratorManager().isGenerator(event.getBlock().getLocation())) return;
@@ -82,16 +83,19 @@ public class GeneratorBlockListener implements Listener {
         PlacedGenerator gen = plugin.getGeneratorManager().getAt(event.getBlock().getLocation());
         if (gen == null) return;
 
+        // Immer canceln – wir übernehmen den Abbau komplett selbst,
+        // unabhängig vom Werkzeug oder anderen Cancellations.
+        event.setCancelled(true);
+
         // Nur der Besitzer darf abbauen (oder Admin)
         if (!gen.getOwnerUUID().equals(player.getUniqueId())
                 && !player.hasPermission("ph.generators.admin")) {
-            event.setCancelled(true);
             player.sendMessage(MM.deserialize("<red>Das ist nicht dein Generator!"));
             return;
         }
 
-        // Drop: Generator-Item mit erhaltenem Level zurückgeben
-        event.setDropItems(false);
+        // Block selbst entfernen + Generator-Item droppen
+        event.getBlock().setType(Material.AIR);
         ItemStack drop = plugin.getGeneratorManager().removeGeneratorWithDrop(
                 event.getBlock().getLocation(), player.getUniqueId());
         if (drop != null) {
