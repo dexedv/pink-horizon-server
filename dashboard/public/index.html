@@ -3036,6 +3036,44 @@ async function genLoadLb() {
     const { rows } = await r.json();
     if (!rows?.length) { el.innerHTML = '<div class="empty">Keine Spieler gefunden</div>'; return; }
     el.innerHTML = `<div class="lb-table">${rows.map((row,i) => {
+      const formatTier = tier => {
+        const t = (tier||'').toUpperCase();
+        if (t.startsWith('TITAN_'))  return { icon:'❋', label: t.replace('TITAN_','').replace(/_/g,' '), color:'#e040fb' };
+        if (t.startsWith('GOD_'))    return { icon:'✦', label: t.replace('GOD_','').replace(/_/g,' '),   color:'#ff5252' };
+        if (t.startsWith('ULTRA_'))  return { icon:'⬆', label: t.replace('ULTRA_','').replace(/_/g,' '), color:'#FFD700' };
+        if (t.startsWith('MEGA_'))   return { icon:'★', label: t.replace('MEGA_','').replace(/_/g,' '),  color:'#ff9800' };
+        return { icon:'⚙', label: t.replace(/_/g,' '), color:'#4CAF50' };
+      };
+      const cap = s => s.charAt(0) + s.slice(1).toLowerCase();
+
+      if (genLbTab === 'generators' && row.generators?.length) {
+        // Gruppieren nach Tier
+        const grouped = {};
+        row.generators.forEach(g => {
+          if (!grouped[g.tier]) grouped[g.tier] = [];
+          grouped[g.tier].push(g.level);
+        });
+        // Sortieren: Titan → God → Ultra → Mega → Normal
+        const tierOrder = t => t.startsWith('TITAN')?0:t.startsWith('GOD')?1:t.startsWith('ULTRA')?2:t.startsWith('MEGA')?3:4;
+        const tags = Object.entries(grouped)
+          .sort((a,b) => tierOrder(a[0]) - tierOrder(b[0]))
+          .map(([tier, levels]) => {
+            const { icon, label, color } = formatTier(tier);
+            levels.sort((a,b)=>b-a);
+            const lvlStr = levels.length === 1
+              ? `Lv.${levels[0]}`
+              : `${levels.length}× Ø Lv.${Math.round(levels.reduce((s,v)=>s+v,0)/levels.length)}`;
+            return `<span style="display:inline-block;background:${color}22;border:1px solid ${color}55;border-radius:4px;padding:1px 6px;margin:2px;font-size:.72rem;color:${color}">${icon} ${cap(label)} ${lvlStr}</span>`;
+          }).join('');
+        return `<div class="lb-row" style="flex-wrap:wrap;align-items:flex-start;row-gap:4px">
+          <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+          <span style="flex:2;font-weight:600;min-width:100px">${escH(row.name||'Unbekannt')}</span>
+          <span style="color:#4CAF50;font-weight:700;min-width:110px">⚙ ${row.gen_count||0} Gen.</span>
+          <span style="color:#AA00FF;min-width:70px">✦ P${row.prestige||0}</span>
+          <div style="width:100%;padding-left:32px;margin-top:2px">${tags}</div>
+        </div>`;
+      }
+
       const extra = genLbTab === 'money'
         ? `<span style="color:var(--yellow);font-weight:700;min-width:130px">💰 $${Number(row.money||0).toLocaleString('de-DE')}</span><span style="color:#AA00FF;min-width:80px">✦ P${row.prestige||0}</span>`
         : genLbTab === 'prestige'

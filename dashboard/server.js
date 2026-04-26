@@ -1489,9 +1489,17 @@ app.get('/api/generators/leaderboard', auth, async (req, res) => {
         'SELECT name, prestige, money FROM gen_players ORDER BY prestige DESC, money DESC LIMIT 10');
     } else if (type === 'generators') {
       [rows] = await poolGen.query(
-        `SELECT p.name, COUNT(g.id) AS gen_count, p.prestige
+        `SELECT p.name, p.prestige, p.money, COUNT(g.id) AS gen_count,
+                CAST(JSON_ARRAYAGG(
+                  IF(g.id IS NULL, NULL, JSON_OBJECT('tier', g.tier, 'level', g.level))
+                ) AS CHAR) AS generators
          FROM gen_players p LEFT JOIN gen_generators g ON p.uuid = g.uuid
          GROUP BY p.uuid ORDER BY gen_count DESC LIMIT 10`);
+      rows = rows.map(r => {
+        let gens = [];
+        try { gens = (JSON.parse(r.generators) || []).filter(g => g && g.tier); } catch {}
+        return { ...r, generators: gens };
+      });
     } else {
       [rows] = await poolGen.query(
         'SELECT name, money, prestige FROM gen_players ORDER BY money DESC LIMIT 10');
