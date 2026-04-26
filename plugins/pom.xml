@@ -20,6 +20,7 @@
         <module>ph-minigames</module>
         <module>ph-smash</module>
         <module>ph-vote</module>
+        <module>ph-generators</module>
     </modules>
 
     <properties>

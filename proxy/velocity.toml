@@ -17,10 +17,11 @@ player-info-forwarding-mode = "MODERN"
 forwarding-secret-file = "forwarding.secret"
 
 [servers]
-  lobby     = "ph-lobby:25566"
-  survival  = "ph-survival:25567"
-  minigames = "ph-minigames:25569"
-  smash     = "ph-smash:25570"
+  lobby      = "ph-lobby:25566"
+  survival   = "ph-survival:25567"
+  minigames  = "ph-minigames:25569"
+  smash      = "ph-smash:25570"
+  generators = "ph-generators:25571"
 
 # Server, auf den neue Spieler kommen
 try = ["lobby"]

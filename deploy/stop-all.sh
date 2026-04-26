@@ -1,7 +1,7 @@
 #!/bin/bash
 # Pink Horizon - Alle Server stoppen
 
-for name in proxy lobby survival skyblock minigames; do
+for name in proxy lobby survival skyblock minigames generators; do
   if screen -list | grep -q "ph-$name"; then
     echo "Stoppe ph-$name..."
     screen -S "ph-$name" -p 0 -X stuff "stop\n"

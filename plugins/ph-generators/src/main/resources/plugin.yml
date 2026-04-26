@@ -1,0 +1,22 @@
+name: PH-Generators
+version: '1.0.0'
+main: de.pinkhorizon.generators.PHGenerators
+api-version: '1.21'
+description: IdleForge Generator-Spielmodus
+
+commands:
+  gen:
+    description: Haupt-Generator-Befehl
+    usage: /gen [shop|upgrade|top|prestige|balance|stats|achievements|fuse|guildtop]
+    aliases: [generator, generators]
+  booster:
+    description: Booster-Befehle
+    usage: /booster [activate|list]
+
+permissions:
+  ph.generators.admin:
+    description: Admin-Zugriff auf alle Generator-Befehle
+    default: op
+  ph.generators.booster.admin:
+    description: Serverweiten Booster aktivieren
+    default: op

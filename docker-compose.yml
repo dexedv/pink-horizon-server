@@ -140,6 +140,38 @@ services:
       mysql:
         condition: service_healthy
 
+  # ── IdleForge Generators ─────────────────────────────────────────────
+  generators:
+    image: itzg/minecraft-server:latest
+    container_name: ph-generators
+    mem_limit: 4g
+    healthcheck:
+      start_period: 3m
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: "1.21.4"
+      INIT_MEMORY: "512m"
+      MEMORY: "3500m"
+      USE_AIKAR_FLAGS: "true"
+      ONLINE_MODE: "false"
+      ENABLE_RCON: "true"
+      RCON_PORT: "25575"
+      RCON_PASSWORD: "${RCON_PASSWORD}"
+      SERVER_PORT: "25571"
+      TZ: Europe/Berlin
+    ports:
+      - "25580:25575"             # RCON
+      - "25571:25571"             # Minecraft (intern für Velocity)
+    volumes:
+      - ./servers/generators:/data
+    networks:
+      - ph-net
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   # ── Smash the Boss ────────────────────────────────────────────────────
   smash:
     image: itzg/minecraft-server:latest

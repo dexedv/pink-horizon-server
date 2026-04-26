@@ -1,0 +1,124 @@
+# PH-Generators Konfiguration
+
+database:
+  type: sqlite   # "sqlite" oder "mysql"
+  mysql:
+    host: localhost
+    port: 3306
+    database: ph_generators
+    username: ph_user
+    password: ""
+
+# Island-Spawn: Koordinaten auf dem Skyblock-Template wo Spieler spawnen
+# Passe diese an deinen Map-Spawn an!
+island:
+  spawn-x: 0.5
+  spawn-y: 64.0
+  spawn-z: 0.5
+  spawn-yaw: 0.0
+  spawn-pitch: 0.0
+
+# Welt in der Generatoren platziert werden dürfen
+# "island" = nur auf eigener Insel (Standard, empfohlen)
+# leer = alle Welten erlaubt
+generator-world: ""
+
+# Max. Generatoren pro Spieler (ohne Prestige-Erweiterungen)
+max-generators: 10
+
+# Generatoren-Erweiterung durch Prestige: alle X Prestige-Stufen +1 Slot
+generator-slot-per-prestige: 2
+
+# Offline-Einkommen Cap in Stunden
+offline-cap-hours: 8
+
+# Datenbankspeiherung alle X Sekunden
+db-save-interval: 30
+
+# Hologramm-Update alle X Ticks (20 Ticks = 1 Sekunde)
+hologram-update-ticks: 40
+
+# AFK-Belohnungsbox nach X Minuten AFK
+afk-reward-minutes: 120
+
+# Prestige max
+max-prestige: 50
+
+# Booster-Dauer in Minuten (Standard-Shop-Booster)
+default-booster-duration: 60
+
+# Serverweiter Event-Booster Multiplikator
+server-booster-multiplier: 2.0
+
+# Seasonal Events (Generatoren die zeitlich begrenzt kaufbar sind)
+seasonal-events:
+  halloween:
+    active-from: "10-25"   # MM-DD
+    active-until: "11-03"
+    generator-name: "<orange>Kürbis-Generator</orange>"
+    block: PUMPKIN
+    base-income: 200.0
+    buy-price: 75000
+    base-upgrade-cost: 10000
+  winter:
+    active-from: "12-20"
+    active-until: "01-05"
+    generator-name: "<aqua>Eis-Generator</aqua>"
+    block: PACKED_ICE
+    base-income: 300.0
+    buy-price: 100000
+    base-upgrade-cost: 15000
+
+# Achievements (können hier erweitert werden)
+# Format: id, name, beschreibung, ziel-zahl, belohnung-geld
+achievements:
+  first_generator:
+    name: "<gray>Erster Schritt</gray>"
+    description: "Platziere deinen ersten Generator"
+    target: 1
+    reward-money: 100
+  millionaire:
+    name: "<gold>Millionär</gold>"
+    description: "Verdiene $1.000.000"
+    target: 1000000
+    reward-money: 50000
+  prestige_1:
+    name: "<light_purple>Aufsteiger</light_purple>"
+    description: "Erreiche Prestige 1"
+    target: 1
+    reward-money: 10000
+  prestige_10:
+    name: "<red>Prestige-König</red>"
+    description: "Erreiche Prestige 10"
+    target: 10
+    reward-money: 100000
+  prestige_50:
+    name: "<dark_purple>✦ God of Generators ✦</dark_purple>"
+    description: "Erreiche Prestige 50"
+    target: 50
+    reward-money: 1000000
+  upgrade_100:
+    name: "<green>Upgrade-Junkie</green>"
+    description: "Führe 100 Generator-Upgrades durch"
+    target: 100
+    reward-money: 5000
+  full_netherite:
+    name: "<dark_gray>Netherite-Gott</dark_gray>"
+    description: "Besitze 10 Netherite-Generatoren"
+    target: 10
+    reward-money: 500000
+  fuse_first:
+    name: "<yellow>Fusion!</yellow>"
+    description: "Fusionie deinen ersten Mega-Generator"
+    target: 1
+    reward-money: 25000
+  guild_create:
+    name: "<blue>Gründer</blue>"
+    description: "Gründe eine Gilde"
+    target: 1
+    reward-money: 2000
+  afk_box_10:
+    name: "<green>AFK-Profi</green>"
+    description: "Öffne 10 AFK-Belohnungsboxen"
+    target: 10
+    reward-money: 15000

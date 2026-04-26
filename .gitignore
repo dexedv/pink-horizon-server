@@ -69,3 +69,25 @@ servers/*/plugins/PH-Core/data.db
 *.iml
 .vscode/
 servers/survival/plugins/PH-Survival/pending_spawn_paste.yml
+
+# ── Playwright MCP (Browser-Automation Logs, nicht committen) ─────────
+.playwright-mcp/
+
+# ── Generators: Per-Spieler-Inseln (zur Laufzeit generiert) ──────────
+servers/generators/island_*/
+servers/generators/world/
+servers/generators/world_nether/
+servers/generators/world_the_end/
+servers/generators/plugins/PH-Generators/generators.db
+
+# island-template level.dat explizit tracken (wird für Weltladung benötigt)
+!servers/generators/island-template/level.dat
+!servers/generators/island-template/level.dat_old
+
+# island-template: Spielerdaten und Forge-Dateien nicht tracken
+servers/generators/island-template/players/
+servers/generators/island-template/serverconfig/
+servers/generators/island-template/spsSettings.json
+servers/generators/island-template/DIM1/
+servers/generators/island-template/DIM-1/
+servers/generators/island-template/dimensions/

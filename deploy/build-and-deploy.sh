@@ -16,17 +16,18 @@ mvn clean package -q
 echo "=== Kopiere Plugins ==="
 
 # Core kommt auf alle Server
-for SERVER in lobby survival skyblock minigames; do
+for SERVER in lobby survival skyblock minigames generators; do
   mkdir -p "$MC_BASE/servers/$SERVER/plugins"
   cp "$PLUGINS_DIR/ph-core/target/ph-core-1.0.0.jar" "$MC_BASE/servers/$SERVER/plugins/"
   echo "[Core] -> $SERVER"
 done
 
 # Server-spezifische Plugins
-cp "$PLUGINS_DIR/ph-lobby/target/ph-lobby-1.0.0.jar"         "$MC_BASE/servers/lobby/plugins/"
-cp "$PLUGINS_DIR/ph-survival/target/ph-survival-1.0.0.jar"   "$MC_BASE/servers/survival/plugins/"
-cp "$PLUGINS_DIR/ph-skyblock/target/ph-skyblock-1.0.0.jar"   "$MC_BASE/servers/skyblock/plugins/"
-cp "$PLUGINS_DIR/ph-minigames/target/ph-minigames-1.0.0.jar" "$MC_BASE/servers/minigames/plugins/"
+cp "$PLUGINS_DIR/ph-lobby/target/ph-lobby-1.0.0.jar"               "$MC_BASE/servers/lobby/plugins/"
+cp "$PLUGINS_DIR/ph-survival/target/ph-survival-1.0.0.jar"         "$MC_BASE/servers/survival/plugins/"
+cp "$PLUGINS_DIR/ph-skyblock/target/ph-skyblock-1.0.0.jar"         "$MC_BASE/servers/skyblock/plugins/"
+cp "$PLUGINS_DIR/ph-minigames/target/ph-minigames-1.0.0.jar"       "$MC_BASE/servers/minigames/plugins/"
+cp "$PLUGINS_DIR/ph-generators/target/ph-generators-1.0.0.jar"     "$MC_BASE/servers/generators/plugins/"
 
 echo ""
 echo "=== Fertig! Starte Server neu mit: bash stop-all.sh && bash start-all.sh ==="

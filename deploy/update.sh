@@ -53,13 +53,13 @@ fi
 
 # ── 2. Berechtigungen ────────────────────────────────────────────────────────
 step "Berechtigungen setzen" "[2/5]"
-chown -R 1000:1000 servers/lobby/ servers/survival/ servers/smash/ 2>/dev/null || true
+chown -R 1000:1000 servers/lobby/ servers/survival/ servers/smash/ servers/generators/ 2>/dev/null || true
 ok "Berechtigungen gesetzt (uid 1000)"
 
 # ── 3. Spielserver neu starten ────────────────────────────────────────────────
 step "Spielserver neu starten" "[3/5]"
-info "Stoppe: lobby, survival, smash, velocity..."
-docker compose restart lobby survival smash velocity
+info "Stoppe: lobby, survival, smash, generators, velocity..."
+docker compose restart lobby survival smash generators velocity
 ok "Alle Spielserver neu gestartet"
 
 # ── 4. Dashboard ──────────────────────────────────────────────────────────────

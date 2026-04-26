@@ -35,10 +35,11 @@ start_server "proxy"    "$BASE/proxy"              "velocity.jar" "512M"
 sleep 2
 
 # Sub-Server
-start_server "lobby"    "$BASE/servers/lobby"      "server.jar"   "1G"
-start_server "survival" "$BASE/servers/survival"   "server.jar"   "2G"
-start_server "skyblock" "$BASE/servers/skyblock"   "server.jar"   "2G"
-start_server "minigames" "$BASE/servers/minigames" "server.jar"   "2G"
+start_server "lobby"      "$BASE/servers/lobby"       "server.jar"   "1G"
+start_server "survival"   "$BASE/servers/survival"    "server.jar"   "2G"
+start_server "skyblock"   "$BASE/servers/skyblock"    "server.jar"   "2G"
+start_server "minigames"  "$BASE/servers/minigames"   "server.jar"   "2G"
+start_server "generators" "$BASE/servers/generators"  "server.jar"   "2G"
 
 echo ""
 echo "Alle Server gestartet!"
