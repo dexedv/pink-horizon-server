@@ -50,10 +50,16 @@ public class UpgradeGUI implements Listener {
         for (int i = 0; i < 27; i++) inv.setItem(i, glass);
 
         inv.setItem(4, buildPlayerInfoItem(data));
-        inv.setItem(9, buildGenUpgradeItem(gen, data)); // Slot 9 → genIndex 0
+        inv.setItem(9, buildGenUpgradeItem(gen, data));
+
+        // Fusions-Button wenn 2 passende Nachbarn auf Max-Level vorhanden
+        List<PlacedGenerator> partners = findFusionPartners(gen, data);
+        if (partners.size() >= 2) {
+            inv.setItem(15, buildFusionButton(gen, partners));
+        }
 
         List<PlacedGenerator> list = new ArrayList<>();
-        list.add(gen); // index 0
+        list.add(gen);
         openInventories.put(player.getUniqueId(), list);
         singleView.add(player.getUniqueId());
         player.openInventory(inv);
@@ -97,6 +103,43 @@ public class UpgradeGUI implements Listener {
 
         List<PlacedGenerator> gens = openInventories.get(player.getUniqueId());
         if (gens == null) return;
+
+        // Fusions-Button (Slot 15, nur im Single-View)
+        if (slot == 15 && singleView.contains(player.getUniqueId()) && !gens.isEmpty()) {
+            PlacedGenerator mainGen = gens.get(0);
+            PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+            if (data == null) return;
+
+            List<PlacedGenerator> partners = findFusionPartners(mainGen, data);
+            if (partners.size() < 2) {
+                player.sendMessage(MM.deserialize("<red>Keine passenden Nachbar-Generatoren mehr!"));
+                return;
+            }
+
+            List<PlacedGenerator> toFuse = new ArrayList<>();
+            toFuse.add(mainGen);
+            toFuse.add(partners.get(0));
+            toFuse.add(partners.get(1));
+
+            GeneratorManager.FuseResult result = plugin.getGeneratorManager().fuse(player, toFuse);
+            switch (result) {
+                case SUCCESS -> {
+                    player.sendMessage(MM.deserialize(
+                            "<gold>✦ Fusion erfolgreich! <yellow>Mega-Generator erschaffen!"));
+                    player.closeInventory();
+                }
+                case NOT_MAX_LEVEL -> player.sendMessage(MM.deserialize(
+                        "<red>Alle 3 Generatoren müssen auf Max-Level sein!"));
+                case DIFFERENT_TYPE -> player.sendMessage(MM.deserialize(
+                        "<red>Alle 3 Generatoren müssen denselben Typ haben!"));
+                case ALREADY_MEGA -> player.sendMessage(MM.deserialize(
+                        "<red>Mega-Generatoren können nicht fusioniert werden!"));
+                case NO_MEGA_TIER -> player.sendMessage(MM.deserialize(
+                        "<red>Dieser Typ hat kein Mega-Tier!"));
+                default -> player.sendMessage(MM.deserialize("<red>Fusion fehlgeschlagen."));
+            }
+            return;
+        }
 
         int genIndex = slot - 9;
         if (genIndex < 0 || genIndex >= gens.size()) return;
@@ -230,6 +273,49 @@ public class UpgradeGUI implements Listener {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(MM.deserialize("<gray> "));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Sucht benachbarte Generatoren desselben Typs auf Max-Level (für Fusion). */
+    private List<PlacedGenerator> findFusionPartners(PlacedGenerator gen, PlayerData data) {
+        List<PlacedGenerator> partners = new ArrayList<>();
+        if (gen.getType().isMega() || gen.getLevel() < data.maxGeneratorLevel()) return partners;
+
+        org.bukkit.World world = Bukkit.getWorld(gen.getWorld());
+        if (world == null) return partners;
+
+        int[][] offsets = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+        for (int[] off : offsets) {
+            org.bukkit.Location loc = new org.bukkit.Location(
+                    world, gen.getX() + off[0], gen.getY() + off[1], gen.getZ() + off[2]);
+            PlacedGenerator neighbor = plugin.getGeneratorManager().getAt(loc);
+            if (neighbor != null
+                    && neighbor.getType() == gen.getType()
+                    && neighbor.getLevel() >= data.maxGeneratorLevel()
+                    && !neighbor.getType().isMega()) {
+                partners.add(neighbor);
+            }
+        }
+        return partners;
+    }
+
+    private ItemStack buildFusionButton(PlacedGenerator gen, List<PlacedGenerator> partners) {
+        de.pinkhorizon.generators.GeneratorType mega = gen.getType().getMegaTier();
+        ItemStack item = new ItemStack(Material.BLAZE_ROD);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(MM.deserialize("<gold><bold>✦ FUSION verfügbar!</bold>"));
+        List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+        lore.add(MM.deserialize("<gray>Fusioniere 3 gleiche Max-Level-Generatoren"));
+        lore.add(MM.deserialize("<gray>zu einem mächtigen Mega-Generator!"));
+        lore.add(MM.deserialize(""));
+        if (mega != null) {
+            lore.add(MM.deserialize("<gray>Ergebnis: " + mega.getDisplayName()));
+        }
+        lore.add(MM.deserialize("<gray>Partner gefunden: <white>" + Math.min(partners.size(), 2)));
+        lore.add(MM.deserialize(""));
+        lore.add(MM.deserialize("<yellow>Klick → Jetzt fusionieren!"));
+        meta.lore(lore);
         item.setItemMeta(meta);
         return item;
     }
