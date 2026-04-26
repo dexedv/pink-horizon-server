@@ -49,9 +49,10 @@ const GUILD_ID   = process.env.DISCORD_GUILD_ID;
 const MC_ADDRESS = process.env.MC_ADDRESS || 'play.pinkhorizon.fun';
 
 const SERVERS = [
-  { label: '🎮 Smash the Boss', container: 'ph-smash'    },
-  { label: '⛏️ Survival',       container: 'ph-survival' },
-  { label: '🏠 Lobby',          container: 'ph-lobby'    },
+  { label: '🎮 Smash the Boss', container: 'ph-smash'      },
+  { label: '⛏️ Survival',       container: 'ph-survival'   },
+  { label: '⚙️ IdleForge',      container: 'ph-generators' },
+  { label: '🏠 Lobby',          container: 'ph-lobby'      },
 ];
 const PROXY_HOST        = process.env.PROXY_HOST || 'velocity';
 const PROXY_PORT        = parseInt(process.env.PROXY_PORT || '25565');
@@ -613,13 +614,40 @@ const ROLE_DEFS = [
   { name: 'Server-Updates', color: 0x5865F2, hoist: false, mentionable: true  },
   { name: 'Neuigkeiten',    color: 0x2ECC71, hoist: false, mentionable: true  },
   { name: 'Spieler',        color: 0xAAAAAA, hoist: false, mentionable: false },
+  { name: 'Survival-Fan',  color: 0x2ECC71, hoist: false, mentionable: false },
+  { name: 'Smash-Fan',     color: 0xFF5555, hoist: false, mentionable: false },
+  { name: 'IdleForge-Fan', color: 0xFFAA00, hoist: false, mentionable: false },
 ];
+
+async function apiCall(fn) {
+  while (true) {
+    try {
+      return await fn();
+    } catch (e) {
+      const msg = String(e.message ?? '');
+      const isRateLimit = e.status === 429 || e.code === 429
+        || msg.toLowerCase().includes('rate limit');
+      if (isRateLimit) {
+        const match = msg.match(/Retry after ([\d.]+)/i);
+        const retrySec = match ? parseFloat(match[1]) : (e.retryAfter ?? e.retry_after ?? 30);
+        const wait = Math.ceil(retrySec * 1000) + 1500;
+        console.warn(`[RateLimit] Warte ${Math.round(wait / 1000)}s...`);
+        await sleep(wait);
+      } else {
+        throw e;
+      }
+    }
+  }
+}
 
 async function ensureRoles(guild) {
   const created = {};
   for (const def of ROLE_DEFS) {
     let role = guild.roles.cache.find(r => r.name === def.name);
-    if (!role) { role = await guild.roles.create({ name: def.name, color: def.color, hoist: def.hoist, mentionable: def.mentionable }); await sleep(400); }
+    if (!role) {
+      role = await apiCall(() => guild.roles.create({ name: def.name, color: def.color, hoist: def.hoist, mentionable: def.mentionable }));
+      await sleep(1500);
+    }
     created[def.name] = role;
   }
   return created;
@@ -650,7 +678,13 @@ function buildChannelDefs() {
       ],
     },
     {
-      name: '🎮 SMASH THE BOSS',
+      name: '🎮 SPIELMODUS',
+      children: [
+        { name: 'rollen-wählen', readonly: true, tag: 'selfroles' },
+      ],
+    },
+    {
+      name: '🎮 SMASH THE BOSS', gameRole: 'Smash-Fan',
       children: [
         { name: 'smash-allgemein' },
         { name: 'smash-tipps'     },
@@ -658,10 +692,17 @@ function buildChannelDefs() {
       ],
     },
     {
-      name: '⛏️ SURVIVAL',
+      name: '⛏️ SURVIVAL', gameRole: 'Survival-Fan',
       children: [
         { name: 'survival-allgemein' },
         { name: 'survival-handel'    },
+      ],
+    },
+    {
+      name: '⚙️ IDLEFORGE', gameRole: 'IdleForge-Fan',
+      children: [
+        { name: 'generators-allgemein' },
+        { name: 'generators-tipps'     },
       ],
     },
     {
@@ -708,6 +749,15 @@ async function ensureChannels(guild, roles) {
         { id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel] },
         { id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel] },
       ];
+    } else if (catDef.gameRole) {
+      const gameRole = roles[catDef.gameRole];
+      catPerms = [
+        { id: everyone.id,  deny:  [PermissionFlagsBits.ViewChannel] },
+        { id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel] },
+        { id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel] },
+        { id: suppRole.id,  allow: [PermissionFlagsBits.ViewChannel] },
+      ];
+      if (gameRole) catPerms.push({ id: gameRole.id, allow: [PermissionFlagsBits.ViewChannel] });
     } else {
       catPerms = [
         { id: everyone.id,  deny:  [PermissionFlagsBits.ViewChannel] },
@@ -719,7 +769,10 @@ async function ensureChannels(guild, roles) {
     }
 
     let category = guild.channels.cache.find(c => c.name === catDef.name && c.type === ChannelType.GuildCategory);
-    if (!category) { category = await guild.channels.create({ name: catDef.name, type: ChannelType.GuildCategory, permissionOverwrites: catPerms }); await sleep(400); }
+    if (!category) {
+      category = await apiCall(() => guild.channels.create({ name: catDef.name, type: ChannelType.GuildCategory, permissionOverwrites: catPerms }));
+      await sleep(1500);
+    }
 
     for (const chDef of catDef.children) {
       if (!chDef.voice) {
@@ -739,13 +792,13 @@ async function ensureChannels(guild, roles) {
           perms.push({ id: modRole.id,   allow: [PermissionFlagsBits.SendMessages] });
         }
 
-        const ch = await guild.channels.create({ name: chDef.name, type: ChannelType.GuildText, parent: category.id, permissionOverwrites: perms });
-        await sleep(400);
+        const ch = await apiCall(() => guild.channels.create({ name: chDef.name, type: ChannelType.GuildText, parent: category.id, permissionOverwrites: perms }));
+        await sleep(1500);
         if (chDef.tag) created[chDef.tag] = ch.id;
       } else {
         const perms = [{ id: everyone.id, deny: [PermissionFlagsBits.Connect] }];
-        const ch = await guild.channels.create({ name: chDef.name, type: ChannelType.GuildVoice, parent: category.id, permissionOverwrites: perms });
-        await sleep(400);
+        const ch = await apiCall(() => guild.channels.create({ name: chDef.name, type: ChannelType.GuildVoice, parent: category.id, permissionOverwrites: perms }));
+        await sleep(1500);
         if (chDef.tag) created[chDef.tag] = ch.id;
       }
     }
@@ -788,6 +841,46 @@ async function postDefaultContent(guild, createdChannels) {
             .setCustomId('verify')
             .setLabel('✅ Regeln akzeptieren & Verifizieren')
             .setStyle(ButtonStyle.Success),
+        )],
+      });
+    }
+  }
+
+  // #rollen-wählen – Spielmodus Self-Role Panel
+  const selfroleCh = createdChannels?.selfroles
+    ? guild.channels.cache.get(createdChannels.selfroles)
+    : guild.channels.cache.find(c => c.name === 'rollen-wählen' && c.type === ChannelType.GuildText);
+  if (selfroleCh) {
+    const msgs = await selfroleCh.messages.fetch({ limit: 5 }).catch(() => null);
+    if (msgs?.size === 0) {
+      await selfroleCh.send({
+        embeds: [new EmbedBuilder()
+          .setTitle('🎮 Wähle deinen Spielmodus')
+          .setColor(0xAA00AA)
+          .setDescription([
+            'Klicke auf einen Button um die Rolle für deinen Spielmodus zu erhalten.',
+            'Du kannst mehrere Rollen gleichzeitig haben.',
+            '',
+            '**⛏️ Survival** – Erkunde die Welt, Claims & Economy',
+            '**🎮 Smash the Boss** – Besiege Bosse, Upgrades & Prestige',
+            '**⚙️ IdleForge** – Generatoren, passives Einkommen & Prestige',
+            '',
+            '*Klicke erneut auf eine Rolle um sie zu entfernen.*',
+          ].join('\n'))
+          .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' })],
+        components: [new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('selfrole_survival')
+            .setLabel('⛏️ Survival')
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId('selfrole_smash')
+            .setLabel('🎮 Smash the Boss')
+            .setStyle(ButtonStyle.Danger),
+          new ButtonBuilder()
+            .setCustomId('selfrole_idleforge')
+            .setLabel('⚙️ IdleForge')
+            .setStyle(ButtonStyle.Primary),
         )],
       });
     }
@@ -927,6 +1020,19 @@ client.once('ready', async () => {
 
     startMonitor(guild);
 
+    // Thread-only Kanäle: keine normalen Nachrichten, nur Threads
+    const THREAD_ONLY_CHANNELS = ['1497212103671550155', '1497212066950283395'];
+    for (const chId of THREAD_ONLY_CHANNELS) {
+      const ch = guild.channels.cache.get(chId);
+      if (ch) {
+        await ch.permissionOverwrites.edit(guild.roles.everyone, {
+          SendMessages:          false,
+          CreatePublicThreads:   true,
+          SendMessagesInThreads: true,
+        }).catch(() => {});
+      }
+    }
+
     // Creator-Channel umbenennen
     const creatorCh = guild.channels.cache.get(TEMP_VOICE_CREATOR_ID);
     if (creatorCh) await creatorCh.setName('➕ Channel erstellen').catch(() => {});
@@ -1062,6 +1168,48 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
     }
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Self-Role: Spielmodus
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GAME_ROLE_MAP = {
+  selfrole_survival:  'Survival-Fan',
+  selfrole_smash:     'Smash-Fan',
+  selfrole_idleforge: 'IdleForge-Fan',
+};
+
+async function toggleGameRole(interaction) {
+  const roleName = GAME_ROLE_MAP[interaction.customId];
+  if (!roleName) return;
+
+  const member = interaction.member;
+  const guild  = interaction.guild;
+  const role   = guild.roles.cache.find(r => r.name === roleName);
+
+  if (!role) {
+    return interaction.reply({ content: `❌ Rolle \`${roleName}\` nicht gefunden. Bitte einen Admin kontaktieren.`, ephemeral: true });
+  }
+
+  const hasRole = member.roles.cache.has(role.id);
+  if (hasRole) {
+    await member.roles.remove(role).catch(() => {});
+    await interaction.reply({
+      embeds: [new EmbedBuilder()
+        .setColor(0xED4245)
+        .setDescription(`✅ Rolle **${roleName}** wurde dir entfernt.`)],
+      ephemeral: true,
+    });
+  } else {
+    await member.roles.add(role).catch(() => {});
+    await interaction.reply({
+      embeds: [new EmbedBuilder()
+        .setColor(0x57F287)
+        .setDescription(`✅ Rolle **${roleName}** wurde dir vergeben! Du hast jetzt Zugriff auf den entsprechenden Kanal.`)],
+      ephemeral: true,
+    });
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ingame Verifikation (Code-Check)
@@ -1249,6 +1397,9 @@ client.on('interactionCreate', async interaction => {
 
     if (id === 'verify') {
       await verifyMember(interaction);
+
+    } else if (id === 'selfrole_survival' || id === 'selfrole_smash' || id === 'selfrole_idleforge') {
+      await toggleGameRole(interaction);
 
     } else if (id === 'ticket_open') {
       await openTicketCategory(interaction);
