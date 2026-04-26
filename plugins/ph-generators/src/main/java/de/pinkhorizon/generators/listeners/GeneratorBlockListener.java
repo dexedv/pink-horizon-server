@@ -9,6 +9,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.entity.Player;
 
 /**
@@ -46,6 +48,27 @@ public class GeneratorBlockListener implements Listener {
             var data = plugin.getPlayerDataMap().get(player.getUniqueId());
             if (data != null) plugin.getQuestManager().trackPlace(data);
         }
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        if (!event.getPlayer().isSneaking()) return;
+        if (event.getClickedBlock() == null) return;
+
+        Player player = event.getPlayer();
+        PlacedGenerator gen = plugin.getGeneratorManager().getAt(event.getClickedBlock().getLocation());
+        if (gen == null) return;
+
+        event.setCancelled(true);
+
+        if (!gen.getOwnerUUID().equals(player.getUniqueId())
+                && !player.hasPermission("ph.generators.admin")) {
+            player.sendMessage(MM.deserialize("<red>Das ist nicht dein Generator!"));
+            return;
+        }
+
+        plugin.getUpgradeGUI().openSingle(player, gen);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

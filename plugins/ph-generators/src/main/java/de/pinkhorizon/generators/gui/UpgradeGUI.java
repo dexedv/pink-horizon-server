@@ -36,6 +36,25 @@ public class UpgradeGUI implements Listener {
         this.plugin = plugin;
     }
 
+    /** Öffnet das Upgrade-Menü direkt für einen einzelnen Generator (Sneak-Rechtsklick). */
+    public void openSingle(Player player, PlacedGenerator gen) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) return;
+
+        Inventory inv = Bukkit.createInventory(null, 27, MM.deserialize("<aqua>" + TITLE));
+
+        ItemStack glass = filler(Material.GRAY_STAINED_GLASS_PANE);
+        for (int i = 0; i < 27; i++) inv.setItem(i, glass);
+
+        inv.setItem(4, buildPlayerInfoItem(data));
+        inv.setItem(9, buildGenUpgradeItem(gen, data)); // Slot 9 → genIndex 0
+
+        List<PlacedGenerator> list = new ArrayList<>();
+        list.add(gen); // index 0
+        openInventories.put(player.getUniqueId(), list);
+        player.openInventory(inv);
+    }
+
     public void open(Player player) {
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return;
@@ -78,6 +97,7 @@ public class UpgradeGUI implements Listener {
         if (genIndex < 0 || genIndex >= gens.size()) return;
 
         PlacedGenerator gen = gens.get(genIndex);
+        if (gen == null) return;
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return;
 
