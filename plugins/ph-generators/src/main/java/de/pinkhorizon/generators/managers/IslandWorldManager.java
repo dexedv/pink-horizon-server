@@ -54,14 +54,24 @@ public class IslandWorldManager {
             return;
         }
 
-        // Welt-Ordner existiert → nur laden, sonst Template kopieren
+        // Welt-Ordner existiert → nur laden, sonst Template kopieren (oder leer anlegen)
         File worldFolder = new File(Bukkit.getWorldContainer(), worldName);
         if (!worldFolder.exists()) {
-            log.info("[IslandWorld] Erstelle neue Insel für " + player.getName());
-            if (!copyTemplate(worldFolder)) {
-                player.sendMessage(MM.deserialize(
-                        "<red>Fehler beim Erstellen deiner Insel! Bitte Admin kontaktieren."));
-                return;
+            File template = new File(Bukkit.getWorldContainer(), "island-template");
+            boolean hasTemplate = template.exists() && template.isDirectory()
+                    && template.list() != null && template.list().length > 0;
+
+            if (hasTemplate) {
+                log.info("[IslandWorld] Erstelle neue Insel aus Template für " + player.getName());
+                if (!copyTemplate(worldFolder)) {
+                    player.sendMessage(MM.deserialize(
+                            "<red>Fehler beim Erstellen deiner Insel! Bitte Admin kontaktieren."));
+                    return;
+                }
+            } else {
+                // Kein Template → leere Welt anlegen (VoidChunkGenerator + Glasplattform)
+                log.info("[IslandWorld] Erstelle neue leere Insel für " + player.getName());
+                worldFolder.mkdirs();
             }
         }
 
