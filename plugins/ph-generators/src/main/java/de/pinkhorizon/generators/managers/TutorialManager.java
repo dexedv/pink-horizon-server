@@ -50,6 +50,8 @@ public class TutorialManager {
         cancelTask(player.getUniqueId());
         steps.put(player.getUniqueId(), 1);
         showStep(player, 1);
+        // Spawn-Hologramm auf Schritt 1 zurücksetzen (30s Preview)
+        plugin.getHologramManager().previewTutorial(player.getUniqueId());
     }
 
     public boolean isActive(UUID uuid) {

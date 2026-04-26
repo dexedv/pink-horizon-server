@@ -35,6 +35,8 @@ public class HologramManager {
     private final Map<UUID, TextDisplay> lbHolograms = new HashMap<>();
     /** uuid → TextDisplay (Spawn-Info-Hologramme – auto-platziert neben dem Insel-Spawnpunkt) */
     private final Map<UUID, TextDisplay> spawnHolos = new HashMap<>();
+    /** UUIDs whose spawn-holo is currently in preview-mode (frozen at step 1) */
+    private final java.util.Set<UUID> previewMode = new java.util.HashSet<>();
     private BukkitTask updateTask;
 
     public HologramManager(PHGenerators plugin) {
@@ -338,7 +340,32 @@ public class HologramManager {
         spawnHolos.clear();
     }
 
+    /**
+     * Zeigt das Tutorial-Hologramm 30 Sekunden lang im Schritt-1-Zustand (Preview).
+     * Danach wird es automatisch auf den echten Fortschritt zurückgestellt.
+     */
+    public void previewTutorial(UUID uuid) {
+        previewMode.add(uuid);
+        TextDisplay display = spawnHolos.get(uuid);
+        if (display != null && !display.isDead()) {
+            de.pinkhorizon.generators.data.PlayerData empty =
+                    new de.pinkhorizon.generators.data.PlayerData(uuid, "preview", 0L, 0, 0L);
+            display.text(MM.deserialize(buildSpawnHoloText(empty)));
+        }
+        // Nach 30 Sekunden Preview beenden und echten Fortschritt wiederherstellen
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            previewMode.remove(uuid);
+            de.pinkhorizon.generators.data.PlayerData real =
+                    plugin.getPlayerDataMap().get(uuid);
+            TextDisplay d = spawnHolos.get(uuid);
+            if (d != null && !d.isDead() && real != null) {
+                d.text(MM.deserialize(buildSpawnHoloText(real)));
+            }
+        }, 30 * 20L);
+    }
+
     private void updateSpawnHolo(UUID uuid, PlayerData data) {
+        if (previewMode.contains(uuid)) return; // Preview läuft, nicht überschreiben
         TextDisplay display = spawnHolos.get(uuid);
         if (display == null || display.isDead()) {
             // Hologramm ist weg (z.B. Chunk-Reload) → neu spawnen
