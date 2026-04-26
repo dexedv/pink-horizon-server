@@ -151,7 +151,7 @@ public class UpgradeGUI implements Listener {
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return;
 
-        boolean useToken = event.isRightClick() && plugin.getAfkRewardManager().hasUpgradeToken(player);
+        boolean useToken = event.isRightClick() && data.getUpgradeTokens() > 0;
 
         if (useToken) {
             // Gratis-Upgrade mit Token
@@ -160,13 +160,14 @@ public class UpgradeGUI implements Listener {
                 player.sendMessage(MM.deserialize("<red>Maximales Level erreicht!"));
                 return;
             }
-            plugin.getAfkRewardManager().consumeUpgradeToken(player);
+            data.useUpgradeToken();
             gen.setLevel(gen.getLevel() + 1);
             data.incrementUpgrades();
             plugin.getRepository().updateGeneratorLevel(gen);
             plugin.getHologramManager().updateHologram(gen, data);
             plugin.getAchievementManager().track(data, "upgrade_100", 1);
-            player.sendMessage(MM.deserialize("<aqua>✦ Token verwendet! Generator ist jetzt Level " + gen.getLevel()));
+            player.sendMessage(MM.deserialize("<aqua>✦ Token verwendet! Generator ist jetzt Level " + gen.getLevel()
+                    + " <gray>(" + data.getUpgradeTokens() + " Tokens übrig)"));
             refresh(player, gen);
             return;
         }
