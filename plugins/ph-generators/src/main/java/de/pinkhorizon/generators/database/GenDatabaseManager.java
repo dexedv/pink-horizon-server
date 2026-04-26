@@ -370,6 +370,16 @@ public class GenDatabaseManager {
                     "ALTER TABLE gen_players ADD COLUMN stored_boosters VARCHAR(500) DEFAULT ''")
                     .execute();
             } catch (java.sql.SQLException ignored) {}
+
+            // Migration: Tebex-Bundle-Felder
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN bonus_slots INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN prestige_tokens INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
         }
     }
 

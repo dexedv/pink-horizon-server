@@ -33,6 +33,12 @@ public class PlayerData {
     // Upgrade-Tokens (kostenlose Upgrades)
     private int upgradeTokens = 0;
 
+    // Permanente Bonus-Slots (Tebex-Käufe)
+    private int bonusSlots = 0;
+
+    // Prestige-Tokens (überspringen die Geld-Anforderung)
+    private int prestigeTokens = 0;
+
     // Talent-System
     private int talentPoints = 0;
     private final Set<String> unlockedTalents = new HashSet<>();
@@ -150,7 +156,7 @@ public class PlayerData {
     }
 
     public int maxGeneratorSlots(int baseSlots, int prestigePerSlot, int talentSlots) {
-        return baseSlots + (prestige / prestigePerSlot) + getRankExtraSlots() + talentSlots;
+        return baseSlots + (prestige / prestigePerSlot) + getRankExtraSlots() + talentSlots + bonusSlots;
     }
 
     // ── Rang-Perks (LP-Gruppe) ───────────────────────────────────────────────
@@ -186,6 +192,11 @@ public class PlayerData {
     /** true wenn der Rang Bulk-Upgrade erlaubt (Rune / Catalyst / Nexus). */
     public boolean rankAllowsBulkUpgrade() {
         return lpGroup.equals("rune") || lpGroup.equals("catalyst") || lpGroup.equals("nexus");
+    }
+
+    /** true wenn der Rang Auto-Tier-Upgrade erlaubt (nur Nexus). */
+    public boolean rankAllowsTierUpgradeAll() {
+        return lpGroup.equals("nexus");
     }
 
     // ── Getter & Setter ──────────────────────────────────────────────────────
@@ -233,6 +244,21 @@ public class PlayerData {
     public boolean useUpgradeToken()               {
         if (upgradeTokens <= 0) return false;
         upgradeTokens--;
+        return true;
+    }
+
+    // ── Bonus-Slots (Tebex) ──────────────────────────────────────────────────
+    public int getBonusSlots()                      { return bonusSlots; }
+    public void setBonusSlots(int n)                { this.bonusSlots = n; }
+    public void addBonusSlots(int n)                { this.bonusSlots += n; }
+
+    // ── Prestige-Tokens (Tebex) ──────────────────────────────────────────────
+    public int getPrestigeTokens()                  { return prestigeTokens; }
+    public void setPrestigeTokens(int n)            { this.prestigeTokens = n; }
+    public void addPrestigeTokens(int n)            { this.prestigeTokens += n; }
+    public boolean usePrestigeToken()               {
+        if (prestigeTokens <= 0) return false;
+        prestigeTokens--;
         return true;
     }
 

@@ -33,8 +33,13 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         // Konsolen-Befehle (Tebex-Lieferung)
         if (!(sender instanceof Player)) {
-            if (args.length >= 1 && args[0].equalsIgnoreCase("givebooster")) {
-                handleGiveBoosterConsole(sender, args);
+            if (args.length >= 1) switch (args[0].toLowerCase()) {
+                case "givebooster"          -> handleGiveBoosterConsole(sender, args);
+                case "givetoken"            -> handleGiveTokenConsole(sender, args);
+                case "givegenerator", "givegen" -> handleGiveGeneratorConsole(sender, args);
+                case "giveslot"             -> handleGiveSlotConsole(sender, args);
+                case "giveprestige"         -> handleGivePrestigeConsole(sender, args);
+                default -> sender.sendMessage("Nur Spieler können diesen Befehl nutzen!");
             } else {
                 sender.sendMessage("Nur Spieler können diesen Befehl nutzen!");
             }
@@ -93,6 +98,13 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
                 if (_d != null && !_d.rankAllowsAutoUpgrade()) {
                     player.sendMessage(MM.deserialize("<red>Auto-Upgrade erfordert mindestens den <light_purple>Catalyst<red>-Rang!"));
                 } else { toggleAutoUpgrade(player); }
+                yield true;
+            }
+            case "tierupgradeall", "tua" -> {
+                PlayerData _d = plugin.getPlayerDataMap().get(player.getUniqueId());
+                if (_d != null && !_d.rankAllowsTierUpgradeAll()) {
+                    player.sendMessage(MM.deserialize("<red>Auto-Tier-Upgrade ist exklusiv für den <dark_red>Nexus<red>-Rang!"));
+                } else { handleTierUpgradeAll(player); }
                 yield true;
             }
             case "visit"        -> { handleVisit(player, args); yield true; }
@@ -179,12 +191,35 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return;
 
+        // Prestige-Token einlösen: überspringt die Geldkosten
+        if (data.getPrestigeTokens() > 0 && data.getMoney() < data.nextPrestigeCost()) {
+            int maxPrestige = plugin.getConfig().getInt("max-prestige", 1000);
+            if (data.getPrestige() >= maxPrestige) {
+                player.sendMessage(MM.deserialize(
+                        "<red>Du hast bereits das maximale Prestige (" + maxPrestige + ") erreicht!"));
+                return;
+            }
+            data.usePrestigeToken();
+            long saved = data.nextPrestigeCost();
+            PrestigeManager.PrestigeResult result = plugin.getPrestigeManager().tryPrestigeWithToken(player);
+            if (result == PrestigeManager.PrestigeResult.SUCCESS) {
+                player.sendMessage(MM.deserialize(
+                        "<light_purple>✦ Prestige-Token eingelöst! <gray>($"
+                        + MoneyManager.formatMoney(saved) + " gespart) "
+                        + "<white>" + (data.getPrestigeTokens()) + " Token verbleibend."));
+            }
+            return;
+        }
+
         PrestigeManager.PrestigeResult result = plugin.getPrestigeManager().tryPrestige(player);
         switch (result) {
             case NO_MONEY -> player.sendMessage(MM.deserialize(
                     "<red>Nicht genug Geld! Benötigt: $"
                             + MoneyManager.formatMoney(data.nextPrestigeCost())
-                            + " | Du hast: $" + MoneyManager.formatMoney(data.getMoney())));
+                            + " | Du hast: $" + MoneyManager.formatMoney(data.getMoney())
+                            + (data.getPrestigeTokens() > 0
+                                ? "\n<light_purple>Du hast " + data.getPrestigeTokens() + " Prestige-Token – reicht nur wenn Geld fehlt!"
+                                : "")));
             case MAX_REACHED -> player.sendMessage(MM.deserialize(
                     "<red>Du hast bereits das maximale Prestige (" + plugin.getConfig().getInt("max-prestige", 1000) + ") erreicht!"));
             case SUCCESS -> {} // Nachricht wird im Manager gesendet
@@ -350,6 +385,38 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
         } else {
             player.sendMessage(MM.deserialize(
                     "<green>✔ <white>" + count + " <green>Generator" + (count == 1 ? "" : "en") + " upgegraded!"));
+        }
+    }
+
+    private void handleTierUpgradeAll(Player player) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) return;
+
+        int maxLevel = data.maxGeneratorLevel();
+        long eligible = data.getGenerators().stream()
+                .filter(g -> g.getLevel() >= maxLevel && g.getType().getNextTier() != null)
+                .count();
+
+        if (eligible == 0) {
+            player.sendMessage(MM.deserialize(
+                    "<yellow>⚠ Keine Generatoren auf Max-Level mit verfügbarem nächsten Tier."));
+            return;
+        }
+
+        int upgraded = plugin.getGeneratorManager().tierUpgradeAll(player);
+        if (upgraded == 0) {
+            player.sendMessage(MM.deserialize(
+                    "<red>Nicht genug Geld für ein Tier-Upgrade! Benötigt: $"
+                    + MoneyManager.formatMoney(data.getGenerators().stream()
+                        .filter(g -> g.getLevel() >= maxLevel && g.getType().getNextTier() != null)
+                        .findFirst().map(g -> g.getType().getTierUpgradeCost()).orElse(0L))));
+        } else {
+            player.sendMessage(MM.deserialize(
+                    "<green>✔ <white>" + upgraded + " <green>Generator"
+                    + (upgraded == 1 ? "" : "en") + " auf das nächste Tier aufgewertet!"
+                    + (upgraded < eligible
+                        ? " <gray>(<yellow>" + (eligible - upgraded) + " <gray>übersprungen – kein Geld)"
+                        : "")));
         }
     }
 
@@ -656,6 +723,69 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("[PHGen] Booster x" + mult + " (" + minutes + " Min.) an " + target.getName() + " vergeben.");
     }
 
+    /** /gen givetoken <spieler> <anzahl> – Tebex-Konsole */
+    private void handleGiveTokenConsole(CommandSender sender, String[] args) {
+        if (args.length < 3) { sender.sendMessage("Nutzung: gen givetoken <spieler> <anzahl>"); return; }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) { sender.sendMessage("[PHGen] givetoken: Spieler '" + args[1] + "' nicht online."); return; }
+        PlayerData data = plugin.getPlayerDataMap().get(target.getUniqueId());
+        if (data == null) { sender.sendMessage("[PHGen] givetoken: Spielerdaten nicht geladen."); return; }
+        try {
+            int amount = Integer.parseInt(args[2]);
+            data.addUpgradeTokens(amount);
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> plugin.getRepository().savePlayer(data));
+            target.sendMessage(MM.deserialize("<aqua>✦ Du hast <white>" + amount + " Upgrade-Token<aqua> erhalten!"));
+            sender.sendMessage("[PHGen] " + amount + " Token an " + target.getName() + " vergeben.");
+        } catch (NumberFormatException e) { sender.sendMessage("[PHGen] Ungültige Anzahl!"); }
+    }
+
+    /** /gen givegenerator <spieler> <TYP> [level] – Tebex-Konsole */
+    private void handleGiveGeneratorConsole(CommandSender sender, String[] args) {
+        if (args.length < 3) { sender.sendMessage("Nutzung: gen givegenerator <spieler> <TYP> [level]"); return; }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) { sender.sendMessage("[PHGen] givegenerator: Spieler '" + args[1] + "' nicht online."); return; }
+        try {
+            GeneratorType type = GeneratorType.valueOf(args[2].toUpperCase());
+            int level = args.length >= 4 ? Integer.parseInt(args[3]) : 1;
+            target.getInventory().addItem(plugin.getGeneratorManager().createGeneratorItem(type, level));
+            target.sendMessage(MM.deserialize("<green>✦ Du hast einen <gold>" + type.getDisplayName()
+                    + " <gray>(Lvl " + level + ")<green> erhalten!"));
+            sender.sendMessage("[PHGen] " + type.name() + " Lvl " + level + " an " + target.getName() + " gegeben.");
+        } catch (IllegalArgumentException e) { sender.sendMessage("[PHGen] Unbekannter Typ: " + args[2]); }
+    }
+
+    /** /gen giveslot <spieler> <anzahl> – Tebex-Konsole */
+    private void handleGiveSlotConsole(CommandSender sender, String[] args) {
+        if (args.length < 3) { sender.sendMessage("Nutzung: gen giveslot <spieler> <anzahl>"); return; }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) { sender.sendMessage("[PHGen] giveslot: Spieler '" + args[1] + "' nicht online."); return; }
+        PlayerData data = plugin.getPlayerDataMap().get(target.getUniqueId());
+        if (data == null) { sender.sendMessage("[PHGen] giveslot: Spielerdaten nicht geladen."); return; }
+        try {
+            int amount = Integer.parseInt(args[2]);
+            data.addBonusSlots(amount);
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> plugin.getRepository().savePlayer(data));
+            target.sendMessage(MM.deserialize("<green>✦ Du hast <white>" + amount
+                    + " permanente Generator-Slot(s)<green> erhalten!"));
+            sender.sendMessage("[PHGen] " + amount + " Slot(s) an " + target.getName() + " vergeben.");
+        } catch (NumberFormatException e) { sender.sendMessage("[PHGen] Ungültige Anzahl!"); }
+    }
+
+    /** /gen giveprestige <spieler> [anzahl] – Tebex-Konsole */
+    private void handleGivePrestigeConsole(CommandSender sender, String[] args) {
+        if (args.length < 2) { sender.sendMessage("Nutzung: gen giveprestige <spieler> [anzahl]"); return; }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) { sender.sendMessage("[PHGen] giveprestige: Spieler '" + args[1] + "' nicht online."); return; }
+        PlayerData data = plugin.getPlayerDataMap().get(target.getUniqueId());
+        if (data == null) { sender.sendMessage("[PHGen] giveprestige: Spielerdaten nicht geladen."); return; }
+        int amount = args.length >= 3 ? Math.max(1, parseInt(args[2], 1)) : 1;
+        data.addPrestigeTokens(amount);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> plugin.getRepository().savePlayer(data));
+        target.sendMessage(MM.deserialize("<light_purple>✦ Du hast <white>" + amount
+                + " Prestige-Token<light_purple> erhalten! Nutze <yellow>/gen prestige<light_purple> um sie einzulösen."));
+        sender.sendMessage("[PHGen] " + amount + " Prestige-Token an " + target.getName() + " vergeben.");
+    }
+
     private void handleSetMoney(Player player, String[] args) {
         if (args.length < 3) {
             player.sendMessage(MM.deserialize("<red>Nutzung: /gen setmoney <spieler> <betrag>")); return;
@@ -816,6 +946,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             <yellow>/gen upgrade <gray>- Generatoren upgraden
             <yellow>/gen upgradeall [typ] <gray>- Alle upgraden
             <yellow>/gen auto <gray>- Auto-Upgrade umschalten
+            <yellow>/gen tierupgradeall <gray>- Max-Gens → nächstes Tier <dark_red>[Nexus]
             <yellow>/gen list <gray>- Generatoren-Liste
             <yellow>/gen talents <gray>- Talent-Baum öffnen
             <yellow>/gen market <gray>- Marktplatz (Tokens)
@@ -843,8 +974,8 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("shop", "upgrade", "upgradeall", "auto", "list", "talents",
-                    "market", "tokens", "milestones", "visit", "home",
+            return Arrays.asList("shop", "upgrade", "upgradeall", "auto", "tierupgradeall", "tua",
+                    "list", "talents", "market", "tokens", "milestones", "visit", "home",
                     "balance", "stats", "top", "season", "prestige",
                     "fuse", "quests", "achievements", "guild", "guildtop", "synergy", "border",
                     "holo", "pay", "tutorial", "help", "event", "booster", "givebooster");

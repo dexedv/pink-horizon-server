@@ -63,6 +63,8 @@ public class GeneratorRepository {
                 try { data.setUpgradeTokens(rs.getInt("upgrade_tokens")); } catch (SQLException ignored) {}
                 try { data.setTalentPoints(rs.getInt("talent_points")); } catch (SQLException ignored) {}
                 try { data.setMilestoneReached(rs.getInt("milestone_reached")); } catch (SQLException ignored) {}
+                try { data.setBonusSlots(rs.getInt("bonus_slots")); } catch (SQLException ignored) {}
+                try { data.setPrestigeTokens(rs.getInt("prestige_tokens")); } catch (SQLException ignored) {}
                 try {
                     String sbStr = rs.getString("stored_boosters");
                     if (sbStr != null && !sbStr.isBlank()) {
@@ -86,8 +88,8 @@ public class GeneratorRepository {
                 INSERT INTO gen_players (uuid, name, money, prestige, total_earned, total_upgrades,
                     afk_boxes_opened, booster_expiry, booster_mult, last_seen, border_size,
                     last_daily, daily_streak, auto_upgrade, upgrade_tokens, talent_points,
-                    milestone_reached, stored_boosters)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    milestone_reached, stored_boosters, bonus_slots, prestige_tokens)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON DUPLICATE KEY UPDATE
                     name=VALUES(name), money=VALUES(money), prestige=VALUES(prestige),
                     total_earned=VALUES(total_earned), total_upgrades=VALUES(total_upgrades),
@@ -97,15 +99,16 @@ public class GeneratorRepository {
                     daily_streak=VALUES(daily_streak), auto_upgrade=VALUES(auto_upgrade),
                     upgrade_tokens=VALUES(upgrade_tokens), talent_points=VALUES(talent_points),
                     milestone_reached=VALUES(milestone_reached),
-                    stored_boosters=VALUES(stored_boosters)
+                    stored_boosters=VALUES(stored_boosters),
+                    bonus_slots=VALUES(bonus_slots), prestige_tokens=VALUES(prestige_tokens)
             """;
         } else {
             sql = """
                 INSERT OR REPLACE INTO gen_players (uuid, name, money, prestige, total_earned,
                     total_upgrades, afk_boxes_opened, booster_expiry, booster_mult, last_seen,
                     border_size, last_daily, daily_streak, auto_upgrade, upgrade_tokens,
-                    talent_points, milestone_reached, stored_boosters)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    talent_points, milestone_reached, stored_boosters, bonus_slots, prestige_tokens)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         }
         try (Connection con = db.getConnection();
@@ -128,6 +131,8 @@ public class GeneratorRepository {
             stmt.setInt(16, data.getTalentPoints());
             stmt.setInt(17, data.getMilestoneReached());
             stmt.setString(18, serializeStoredBoosters(data));
+            stmt.setInt(19, data.getBonusSlots());
+            stmt.setInt(20, data.getPrestigeTokens());
             stmt.executeUpdate();
         } catch (SQLException e) {
             log.warning("[GenRepo] savePlayer: " + e.getMessage());

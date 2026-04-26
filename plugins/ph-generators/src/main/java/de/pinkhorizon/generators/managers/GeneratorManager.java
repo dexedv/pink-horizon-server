@@ -409,6 +409,32 @@ public class GeneratorManager {
         return Collections.unmodifiableMap(byLocation);
     }
 
+    /**
+     * Tier-Upgrade aller Max-Level-Generatoren (Nexus-Rang-Perk).
+     * Upgradet jeden Generator auf das nächste Tier, solange Geld vorhanden.
+     * Gibt Anzahl erfolgreich upgegradeter Generatoren zurück.
+     */
+    public int tierUpgradeAll(Player player) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) return 0;
+
+        int maxLevel = data.maxGeneratorLevel();
+        int count = 0;
+        for (PlacedGenerator gen : new java.util.ArrayList<>(data.getGenerators())) {
+            if (!gen.getOwnerUUID().equals(player.getUniqueId())) continue;
+            if (gen.getLevel() < maxLevel) continue;
+            if (gen.getType().getNextTier() == null) continue;
+
+            TierUpgradeResult result = tierUpgrade(player, gen);
+            if (result == TierUpgradeResult.SUCCESS) {
+                count++;
+            } else if (result == TierUpgradeResult.NO_MONEY) {
+                break; // kein Geld mehr, abbrechen
+            }
+        }
+        return count;
+    }
+
     // ── Ergebnis-Enums ───────────────────────────────────────────────────────
 
     public enum UpgradeResult {

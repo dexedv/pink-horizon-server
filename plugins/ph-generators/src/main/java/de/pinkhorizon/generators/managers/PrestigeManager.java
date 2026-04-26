@@ -62,6 +62,34 @@ public class PrestigeManager {
         return PrestigeResult.SUCCESS;
     }
 
+    /** Prestige ohne Geld-Abzug (für Prestige-Token). */
+    public PrestigeResult tryPrestigeWithToken(Player player) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) return PrestigeResult.NO_DATA;
+
+        int maxPrestige = plugin.getConfig().getInt("max-prestige", 1000);
+        if (data.getPrestige() >= maxPrestige) return PrestigeResult.MAX_REACHED;
+
+        int newPrestige = data.getPrestige() + 1;
+        data.setPrestige(newPrestige);
+
+        for (PlacedGenerator gen : data.getGenerators()) {
+            gen.setLevel(1);
+            plugin.getRepository().updateGeneratorLevel(gen);
+            plugin.getHologramManager().updateHologram(gen, data);
+        }
+        plugin.getSynergyManager().recalculateAll(data);
+        applyPrestigeEffects(player, newPrestige);
+        if (plugin.getTalentManager() != null) plugin.getTalentManager().onPrestige(data);
+        plugin.getAchievementManager().track(data, "prestige_1", newPrestige);
+        plugin.getAchievementManager().track(data, "prestige_10", newPrestige);
+        plugin.getAchievementManager().track(data, "prestige_50", newPrestige);
+        plugin.getAchievementManager().track(data, "prestige_100", newPrestige);
+        plugin.getAchievementManager().track(data, "prestige_1000", newPrestige);
+        plugin.getRepository().savePlayer(data);
+        return PrestigeResult.SUCCESS;
+    }
+
     private void applyPrestigeEffects(Player player, int prestige) {
         String msg = buildPrestigeMessage(prestige);
         player.sendMessage(MM.deserialize(msg));
