@@ -796,6 +796,8 @@ async function ensureChannels(guild, roles) {
         await sleep(10000);
         if (chDef.tag) created[chDef.tag] = ch.id;
       } else {
+        const existsVoice = guild.channels.cache.find(c => c.name === chDef.name && c.parentId === category.id && c.type === ChannelType.GuildVoice);
+        if (existsVoice) { if (chDef.tag) created[chDef.tag] = existsVoice.id; continue; }
         const perms = [{ id: everyone.id, deny: [PermissionFlagsBits.Connect] }];
         const ch = await apiCall(() => guild.channels.create({ name: chDef.name, type: ChannelType.GuildVoice, parent: category.id, permissionOverwrites: perms }));
         await sleep(10000);
@@ -942,7 +944,7 @@ async function runSetup(guild, interaction) {
     await postDefaultContent(guild, created);
 
     await interaction.editReply('⚙️ Inhalte ✅ – Server-Monitor wird gestartet...');
-    await guild.members.fetch();
+    await guild.members.fetch().catch(() => {});
     startMonitor(guild);
 
     await interaction.editReply([
@@ -979,6 +981,11 @@ const COMMANDS = [
   new SlashCommandBuilder()
     .setName('post-rules')
     .setDescription('Postet Regeln + Verifikations-Button in diesen Kanal (Admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName('selfrole-panel')
+    .setDescription('Postet das Spielmodus-Rollenmenü in diesen Kanal (Admin)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
@@ -1322,6 +1329,30 @@ client.on('interactionCreate', async interaction => {
 
     if (commandName === 'setup') {
       await runSetup(guild, interaction);
+
+    } else if (commandName === 'selfrole-panel') {
+      await interaction.channel.send({
+        embeds: [new EmbedBuilder()
+          .setTitle('🎮 Wähle deinen Spielmodus')
+          .setColor(0xAA00AA)
+          .setDescription([
+            'Klicke auf einen Button um die Rolle für deinen Spielmodus zu erhalten.',
+            'Du kannst mehrere Rollen gleichzeitig haben.',
+            '',
+            '**⛏️ Survival** – Erkunde die Welt, Claims & Economy',
+            '**🎮 Smash the Boss** – Besiege Bosse, Upgrades & Prestige',
+            '**⚙️ IdleForge** – Generatoren, passives Einkommen & Prestige',
+            '',
+            '*Klicke erneut auf eine Rolle um sie zu entfernen.*',
+          ].join('\n'))
+          .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' })],
+        components: [new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('selfrole_survival').setLabel('⛏️ Survival').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId('selfrole_smash').setLabel('🎮 Smash the Boss').setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId('selfrole_idleforge').setLabel('⚙️ IdleForge').setStyle(ButtonStyle.Primary),
+        )],
+      });
+      await interaction.editReply('✅ Spielmodus-Panel gepostet.');
 
     } else if (commandName === 'ticket-panel') {
       await interaction.channel.send({ embeds: [ticketPanelEmbed()], components: [ticketPanelRow()] });
