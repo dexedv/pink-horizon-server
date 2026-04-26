@@ -104,7 +104,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
                 PlayerData _d = plugin.getPlayerDataMap().get(player.getUniqueId());
                 if (_d != null && !_d.rankAllowsTierUpgradeAll()) {
                     player.sendMessage(MM.deserialize("<red>Auto-Tier-Upgrade ist exklusiv für den <dark_red>Nexus<red>-Rang!"));
-                } else { handleTierUpgradeAll(player); }
+                } else { toggleAutoTierUpgrade(player); }
                 yield true;
             }
             case "visit"        -> { handleVisit(player, args); yield true; }
@@ -388,35 +388,21 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private void handleTierUpgradeAll(Player player) {
+    private void toggleAutoTierUpgrade(Player player) {
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return;
 
-        int maxLevel = data.maxGeneratorLevel();
-        long eligible = data.getGenerators().stream()
-                .filter(g -> g.getLevel() >= maxLevel && g.getType().getNextTier() != null)
-                .count();
+        boolean newState = !data.isAutoTierUpgrade();
+        data.setAutoTierUpgrade(newState);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
+                plugin.getRepository().savePlayer(data));
 
-        if (eligible == 0) {
+        if (newState) {
             player.sendMessage(MM.deserialize(
-                    "<yellow>⚠ Keine Generatoren auf Max-Level mit verfügbarem nächsten Tier."));
-            return;
-        }
-
-        int upgraded = plugin.getGeneratorManager().tierUpgradeAll(player);
-        if (upgraded == 0) {
-            player.sendMessage(MM.deserialize(
-                    "<red>Nicht genug Geld für ein Tier-Upgrade! Benötigt: $"
-                    + MoneyManager.formatMoney(data.getGenerators().stream()
-                        .filter(g -> g.getLevel() >= maxLevel && g.getType().getNextTier() != null)
-                        .findFirst().map(g -> g.getType().getTierUpgradeCost()).orElse(0L))));
+                    "<gold>✔ Auto-Tier-Upgrade <green>aktiviert! <gray>Max-Level-Generatoren werden automatisch auf das nächste Tier aufgewertet.\n"
+                    + "<dark_gray>Deaktivieren: <yellow>/gen tua"));
         } else {
-            player.sendMessage(MM.deserialize(
-                    "<green>✔ <white>" + upgraded + " <green>Generator"
-                    + (upgraded == 1 ? "" : "en") + " auf das nächste Tier aufgewertet!"
-                    + (upgraded < eligible
-                        ? " <gray>(<yellow>" + (eligible - upgraded) + " <gray>übersprungen – kein Geld)"
-                        : "")));
+            player.sendMessage(MM.deserialize("<yellow>⚠ Auto-Tier-Upgrade <red>deaktiviert."));
         }
     }
 
@@ -946,7 +932,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             <yellow>/gen upgrade <gray>- Generatoren upgraden
             <yellow>/gen upgradeall [typ] <gray>- Alle upgraden
             <yellow>/gen auto <gray>- Auto-Upgrade umschalten
-            <yellow>/gen tierupgradeall <gray>- Max-Gens → nächstes Tier <dark_red>[Nexus]
+            <yellow>/gen tua <gray>- Auto-Tier-Upgrade umschalten <dark_red>[Nexus]
             <yellow>/gen list <gray>- Generatoren-Liste
             <yellow>/gen talents <gray>- Talent-Baum öffnen
             <yellow>/gen market <gray>- Marktplatz (Tokens)

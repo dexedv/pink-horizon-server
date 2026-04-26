@@ -30,6 +30,9 @@ public class PlayerData {
     // Auto-Upgrade
     private boolean autoUpgrade = false;
 
+    // Auto-Tier-Upgrade (Nexus-exklusiv)
+    private boolean autoTierUpgrade = false;
+
     // Upgrade-Tokens (kostenlose Upgrades)
     private int upgradeTokens = 0;
 
@@ -236,6 +239,10 @@ public class PlayerData {
     // ── Auto-Upgrade ─────────────────────────────────────────────────────────
     public boolean isAutoUpgrade()                 { return autoUpgrade; }
     public void setAutoUpgrade(boolean b)          { this.autoUpgrade = b; }
+
+    // ── Auto-Tier-Upgrade (Nexus) ────────────────────────────────────────────
+    public boolean isAutoTierUpgrade()             { return autoTierUpgrade; }
+    public void setAutoTierUpgrade(boolean b)      { this.autoTierUpgrade = b; }
 
     // ── Upgrade-Tokens ───────────────────────────────────────────────────────
     public int getUpgradeTokens()                  { return upgradeTokens; }

@@ -98,13 +98,18 @@ public class MoneyManager {
                 doAutoUpgrade(data);
             }
 
+            // Auto-Tier-Upgrade (Nexus)
+            if (data.isAutoTierUpgrade()) {
+                doAutoTierUpgrade(data);
+            }
+
             // ActionBar: aktuelles Einkommen anzeigen
             Player player = Bukkit.getPlayer(entry.getKey());
             if (player != null) {
-                String enchantHint = "";
                 String autoTag = data.isAutoUpgrade() ? " <aqua>[AUTO]" : "";
+                String tierTag = data.isAutoTierUpgrade() ? " <gold>[TIER-AUTO]" : "";
                 player.sendActionBar(MiniMessage.miniMessage().deserialize(
-                        "<green>+$" + formatMoney(earned) + "/s" + autoTag + " <dark_gray>| <gold>$" + formatMoney(data.getMoney())));
+                        "<green>+$" + formatMoney(earned) + "/s" + autoTag + tierTag + " <dark_gray>| <gold>$" + formatMoney(data.getMoney())));
             }
         }
     }
@@ -131,6 +136,31 @@ public class MoneyManager {
                 plugin.getRepository().updateGeneratorLevel(g);
                 plugin.getHologramManager().updateHologram(g, data);
             });
+        }
+    }
+
+    private void doAutoTierUpgrade(PlayerData data) {
+        int maxLevel = data.maxGeneratorLevel();
+        for (PlacedGenerator gen : data.getGenerators()) {
+            if (gen.getLevel() < maxLevel) continue;
+            de.pinkhorizon.generators.GeneratorType nextTier = gen.getType().getNextTier();
+            if (nextTier == null) continue;
+            long cost = gen.getType().getTierUpgradeCost();
+            if (cost < 0 || data.getMoney() < cost) continue;
+
+            data.takeMoney(cost);
+            gen.setType(nextTier);
+            gen.setLevel(1);
+
+            // Block + Hologramm + Synergie aktualisieren (bereits auf Main-Thread)
+            org.bukkit.World world = Bukkit.getWorld(gen.getWorld());
+            if (world != null) {
+                world.getBlockAt(gen.getX(), gen.getY(), gen.getZ()).setType(nextTier.getBlock());
+            }
+            plugin.getRepository().updateGeneratorLevel(gen);
+            plugin.getHologramManager().updateHologram(gen, data);
+            plugin.getSynergyManager().recalculate(gen, data);
+            break; // nur ein Tier-Upgrade pro Tick
         }
     }
 

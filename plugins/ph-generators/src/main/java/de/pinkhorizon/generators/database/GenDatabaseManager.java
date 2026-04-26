@@ -380,6 +380,12 @@ public class GenDatabaseManager {
                     "ALTER TABLE gen_players ADD COLUMN prestige_tokens INT DEFAULT 0")
                     .execute();
             } catch (java.sql.SQLException ignored) {}
+
+            // Migration: Auto-Tier-Upgrade (Nexus-Perk)
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN auto_tier_upgrade TINYINT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
         }
     }
 
