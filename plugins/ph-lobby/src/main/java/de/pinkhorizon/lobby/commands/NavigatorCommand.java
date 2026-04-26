@@ -30,14 +30,15 @@ public class NavigatorCommand implements CommandExecutor, Listener {
     private record ServerEntry(String id, String displayName, Material icon, List<String> desc) {}
 
     private static final List<ServerEntry> SERVERS = List.of(
-        new ServerEntry("survival",  "Survival",       Material.GRASS_BLOCK,   List.of("Erkunde die Welt!", "Economy, Claims & mehr")),
-        new ServerEntry("smash",     "Smash the Boss",  Material.NETHER_STAR,   List.of("Besiege endlos starke Bosse!", "Upgrades, Loot & mehr")),
-        new ServerEntry("minigames", "Minigames",       Material.DIAMOND_SWORD, List.of("BedWars & mehr")),
-        new ServerEntry("skyblock",  "SkyBlock",        Material.MAGMA_BLOCK,   List.of("Baue deine eigene Insel!"))
+        new ServerEntry("survival",   "Survival",       Material.GRASS_BLOCK,   List.of("Erkunde die Welt!", "Economy, Claims & mehr")),
+        new ServerEntry("smash",      "Smash the Boss", Material.NETHER_STAR,   List.of("Besiege endlos starke Bosse!", "Upgrades, Loot & mehr")),
+        new ServerEntry("minigames",  "Minigames",      Material.DIAMOND_SWORD, List.of("BedWars & mehr")),
+        new ServerEntry("skyblock",   "SkyBlock",       Material.MAGMA_BLOCK,   List.of("Baue deine eigene Insel!")),
+        new ServerEntry("generators", "IdleForge",      Material.GOLD_BLOCK,    List.of("Platziere Generatoren!", "Verdiene passiv Geld & Prestige"))
     );
 
-    // Slot-Positionen für die 4 Server (mittlere Reihe zentriert)
-    private static final int[] SERVER_SLOTS = {10, 12, 14, 16};
+    // Slot-Positionen für 5 Server (Reihe 2: 3 Server, Reihe 3: 2 Server zentriert)
+    private static final int[] SERVER_SLOTS = {10, 12, 14, 20, 22};
 
     private final PHLobby plugin;
 
@@ -73,8 +74,8 @@ public class NavigatorCommand implements CommandExecutor, Listener {
             inv.setItem(SERVER_SLOTS[i], buildServerItem(entry, status, players));
         }
 
-        // Lobby-Button
-        inv.setItem(22, buildLobbyItem());
+        // Lobby-Button (unten rechts zentriert)
+        inv.setItem(24, buildLobbyItem());
 
         player.openInventory(inv);
     }

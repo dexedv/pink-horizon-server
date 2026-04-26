@@ -424,7 +424,7 @@ let ws = null;
 let conSrv = null;
 let cmdHist = [], histIdx = -1;
 let autoScroll = true;
-const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-smash': [] };
+const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-smash': [], 'ph-generators': [] };
 
 // ── Rang-Definitionen ─────────────────────────────────────────────────────
 const RANK_DEFS = [
@@ -499,8 +499,9 @@ const NAV_DEF = [
   { sec: 'Konsolen' },
   { id:'con_velocity', dot:true,  label:'Velocity Proxy', srv:'velocity'  },
   { id:'con_lobby',    dot:true,  label:'Lobby',          srv:'lobby'     },
-  { id:'con_survival', dot:true,  label:'Survival',       srv:'survival'  },
-  { id:'con_smash',    dot:true,  label:'Smash the Boss', srv:'smash' },
+  { id:'con_survival',   dot:true,  label:'Survival',       srv:'survival'   },
+  { id:'con_smash',      dot:true,  label:'Smash the Boss', srv:'smash'      },
+  { id:'con_generators', dot:true,  label:'IdleForge',      srv:'generators' },
   { sec: 'Survival' },
   { id:'survival_dash',icon:'🌿', label:'Survival'        },
   { id:'players',      icon:'👥', label:'Spieler'         },
@@ -510,7 +511,10 @@ const NAV_DEF = [
   { id:'stats',        icon:'📈', label:'Statistiken'     },
   { id:'auction',      icon:'🏪', label:'Auktionshaus'    },
   { sec: 'Smash the Boss' },
-  { id:'smash_lb',     icon:'⚔', label:'Leaderboard'     },
+  { id:'smash_lb',       icon:'⚔',  label:'Leaderboard'     },
+  { sec: 'IdleForge' },
+  { id:'gen_dash',       icon:'⚙',  label:'Übersicht'       },
+  { id:'gen_lb',         icon:'🏆', label:'Leaderboard'     },
   { sec: 'Vote & Community' },
   { id:'vote_lb',      icon:'🗳', label:'VoteCoins'       },
   { id:'discord_sync', icon:'💬', label:'Discord Sync'    },
@@ -589,6 +593,8 @@ function renderPage() {
   if (PAGE === 'backup')       return renderBackup();
   if (PAGE === 'motd')         return renderMotd();
   if (PAGE === 'smash_lb')     return renderSmash();
+  if (PAGE === 'gen_dash')     return renderGenDash();
+  if (PAGE === 'gen_lb')       return renderGenLb();
   if (PAGE === 'vote_lb')      return renderVoteLb();
   if (PAGE === 'discord_sync') return renderDiscordSync();
   if (PAGE === 'net_events')   return renderNetEvents();
@@ -828,7 +834,7 @@ async function doCancelRestart() {
 async function loadResStats() {
   const el = document.getElementById('res-section'); if (!el) return;
   el.innerHTML = `<div class="g4" id="dash-res-grid">
-    ${['velocity','lobby','survival','smash'].map(k=>`
+    ${['velocity','lobby','survival','smash','generators'].map(k=>`
       <div class="card res-card" id="dash-res-${k}">
         <div style="font-weight:700;font-size:.88rem;margin-bottom:4px">${escH(srvData[k]?.label||k)}</div>
         <div class="empty" style="padding:4px 0;font-size:.8rem">Lade…</div>
@@ -841,7 +847,7 @@ async function loadResStats() {
 }
 
 function updateDashStats(data) {
-  const srvOrder = ['velocity','lobby','survival','smash'];
+  const srvOrder = ['velocity','lobby','survival','smash','generators'];
   for (const k of srvOrder) {
     const el = document.getElementById(`dash-res-${k}`); if (!el) continue;
     const d = data[k]; const s = srvData[k];
@@ -873,6 +879,7 @@ async function loadDbStatus(elementId = 'db-section') {
     { name:'pinkhorizon (DB)',       ok: d.pinkhorizon,    detail: d.pinkhorizon    ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_survival (DB)',       ok: d.ph_survival,    detail: d.ph_survival    ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_smash (DB)',          ok: d.ph_smash,       detail: d.ph_smash       ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph_generators (DB)',     ok: d.ph_generators,  detail: d.ph_generators  ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_vote (DB)',           ok: d.ph_vote,        detail: d.ph_vote        ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'discord_sync (Tabelle)', ok: d.discord_sync,   detail: d.discord_sync   ? 'Verbunden' : 'Nicht erreichbar' },
   ];
@@ -2837,6 +2844,97 @@ async function smashLoadLb() {
         <span style="color:#FF9800;min-width:80px">Lv. ${r.personal_level ?? 0}</span>
       </div>`).join('')}</div>`;
   }
+}
+
+// ── IdleForge Generators ─────────────────────────────────────────────────
+let genLbTab = 'money';
+
+async function renderGenDash() {
+  setHdr('⚙ IdleForge – Übersicht', `<button class="btn" onclick="renderGenDash()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">
+    <div class="g4" id="gen-kpi">
+      <div class="card stat-card"><span class="stat-icon">👤</span><div><div class="stat-lbl">Registrierte Spieler</div><div class="stat-val" id="gk-players">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">💰</span><div><div class="stat-lbl">Geld im Umlauf</div><div class="stat-val" id="gk-money" style="color:var(--yellow)">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">⚙</span><div><div class="stat-lbl">Aktive Generatoren</div><div class="stat-val" id="gk-gens" style="color:#4CAF50">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">✦</span><div><div class="stat-lbl">Höchstes Prestige</div><div class="stat-val" id="gk-prestige" style="color:#AA00FF">—</div></div></div>
+    </div>
+    <div class="card" style="padding:14px 18px">
+      <div style="font-weight:600;margin-bottom:8px;color:var(--accent)">🟢 Gerade online auf IdleForge</div>
+      <div id="gen-online" style="color:var(--muted);font-size:0.9em">Lade…</div>
+    </div>
+  </div>`;
+
+  const [ovRes, onRes] = await Promise.all([
+    apiFetch('/api/generators/overview'),
+    apiFetch('/api/generators/online')
+  ]);
+  if (ovRes?.ok) {
+    const ov = await ovRes.json();
+    document.getElementById('gk-players').textContent  = Number(ov.totalPlayers    ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-money').textContent    = '$' + Number(ov.totalMoney ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-gens').textContent     = Number(ov.totalGenerators  ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-prestige').textContent = Number(ov.topPrestige      ?? 0).toLocaleString('de-DE');
+  }
+  const onEl = document.getElementById('gen-online');
+  if (onEl && onRes?.ok) {
+    const on = await onRes.json();
+    if (on.offline) {
+      onEl.innerHTML = '<span style="color:var(--muted)">Server offline</span>';
+    } else if (!on.players.length) {
+      onEl.innerHTML = '<span style="color:var(--muted)">Niemand online</span>';
+    } else {
+      onEl.innerHTML = on.players.map(p =>
+        `<span style="display:inline-block;background:rgba(255,215,0,.15);color:#FFD700;border-radius:4px;padding:2px 10px;margin:2px 4px 2px 0;font-weight:600">${escH(p)}</span>`
+      ).join('') + `<span style="color:var(--muted);font-size:0.82em;margin-left:6px">(${on.count} Spieler)</span>`;
+    }
+  }
+}
+
+async function renderGenLb() {
+  setHdr('🏆 IdleForge – Leaderboard', `<button class="btn" onclick="renderGenLb()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page"><div class="card">
+    <div class="rtabs" style="margin-bottom:10px">
+      <button class="rtab ${genLbTab==='money'?'active':''}"      onclick="genTab('money')">💰 Geld</button>
+      <button class="rtab ${genLbTab==='prestige'?'active':''}"   onclick="genTab('prestige')">✦ Prestige</button>
+      <button class="rtab ${genLbTab==='generators'?'active':''}" onclick="genTab('generators')">⚙ Generatoren</button>
+    </div>
+    <div id="gen-lb"><div class="empty">Lade…</div></div>
+  </div></div>`;
+  await genLoadLb();
+}
+
+async function genTab(tab) {
+  genLbTab = tab;
+  document.querySelectorAll('#page-content .rtab').forEach(b => {
+    b.classList.toggle('active',
+      (tab==='money'      && b.textContent.includes('Geld')) ||
+      (tab==='prestige'   && b.textContent.includes('Prestige')) ||
+      (tab==='generators' && b.textContent.includes('Generator')));
+  });
+  await genLoadLb();
+}
+
+async function genLoadLb() {
+  const el = document.getElementById('gen-lb'); if (!el) return;
+  const r = await apiFetch(`/api/generators/leaderboard?type=${genLbTab}`);
+  if (!r?.ok) { el.innerHTML = '<div class="empty">Fehler beim Laden</div>'; return; }
+  const { rows } = await r.json();
+  if (!rows?.length) { el.innerHTML = '<div class="empty">Keine Daten</div>'; return; }
+  const rankColor = i => i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--muted)';
+  el.innerHTML = `<div class="lb-table">${rows.map((r,i) => {
+    const extra = genLbTab === 'money'
+      ? `<span style="color:var(--yellow);font-weight:700;min-width:120px">💰 $${Number(r.money).toLocaleString('de-DE')}</span><span style="color:#AA00FF;min-width:80px">✦ P${r.prestige}</span>`
+      : genLbTab === 'prestige'
+      ? `<span style="color:#AA00FF;font-weight:700;min-width:100px">✦ Prestige ${r.prestige}</span><span style="color:var(--yellow);min-width:120px">💰 $${Number(r.money).toLocaleString('de-DE')}</span>`
+      : `<span style="color:#4CAF50;font-weight:700;min-width:120px">⚙ ${r.gen_count} Generatoren</span><span style="color:#AA00FF;min-width:80px">✦ P${r.prestige}</span>`;
+    return `<div class="lb-row">
+      <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
+      <span style="flex:2;font-weight:600">${escH(r.name)}</span>
+      ${extra}
+    </div>`;
+  }).join('')}</div>`;
 }
 
 // ── VoteCoins Leaderboard ─────────────────────────────────────────────────

@@ -47,3 +47,7 @@ servers:
     display: "Smash the Boss"
     host: "smash"
     port: 25570
+  generators:
+    display: "IdleForge"
+    host: "generators"
+    port: 25571

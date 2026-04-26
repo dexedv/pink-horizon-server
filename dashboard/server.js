@@ -76,6 +76,12 @@ const SERVERS = {
     container: 'ph-smash',
     color:     '#F44336',
     rcon:      { host: process.env.SMASH_RCON_HOST || 'smash', port: 25575, password: process.env.RCON_PASSWORD || 'ph-admin-2024' }
+  },
+  generators: {
+    label:     'IdleForge',
+    container: 'ph-generators',
+    color:     '#FFD700',
+    rcon:      { host: process.env.GENERATORS_RCON_HOST || 'generators', port: 25575, password: process.env.RCON_PASSWORD || 'ph-admin-2024' }
   }
 };
 
@@ -127,6 +133,12 @@ const poolMg = mysql.createPool({
 const poolSmash = mysql.createPool({
   host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
   database: 'ph_smash', waitForConnections: true,
+  connectionLimit: 5, connectTimeout: 5000
+});
+
+const poolGen = mysql.createPool({
+  host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+  database: 'ph_generators', waitForConnections: true,
   connectionLimit: 5, connectTimeout: 5000
 });
 
@@ -620,21 +632,23 @@ app.post('/api/players/unban', strictLimit, auth, async (req, res) => {
 
 app.get('/api/databases', auth, async (req, res) => {
   const checkTable = async (pool, query) => { try { await pool.execute(query); return true; } catch { return false; } };
-  const [ctr, ph, sv, sm, vt, dc] = await Promise.allSettled([
+  const [ctr, ph, sv, sm, gn, vt, dc] = await Promise.allSettled([
     getContainerStatus('ph-mysql'),
     checkDb(poolCore),
     checkDb(poolSv),
     checkDb(poolSmash),
+    checkDb(poolGen),
     checkTable(poolCore, 'SELECT 1 FROM vote_coins LIMIT 1'),
     checkTable(poolCore, 'SELECT 1 FROM discord_sync LIMIT 1')
   ]);
   res.json({
-    container:    ctr.status === 'fulfilled' ? ctr.value : { running: false, status: 'error' },
-    pinkhorizon:  ph.status  === 'fulfilled' ? ph.value  : false,
-    ph_survival:  sv.status  === 'fulfilled' ? sv.value  : false,
-    ph_smash:     sm.status  === 'fulfilled' ? sm.value  : false,
-    ph_vote:      vt.status  === 'fulfilled' ? vt.value  : false,
-    discord_sync: dc.status  === 'fulfilled' ? dc.value  : false
+    container:     ctr.status === 'fulfilled' ? ctr.value : { running: false, status: 'error' },
+    pinkhorizon:   ph.status  === 'fulfilled' ? ph.value  : false,
+    ph_survival:   sv.status  === 'fulfilled' ? sv.value  : false,
+    ph_smash:      sm.status  === 'fulfilled' ? sm.value  : false,
+    ph_generators: gn.status  === 'fulfilled' ? gn.value  : false,
+    ph_vote:       vt.status  === 'fulfilled' ? vt.value  : false,
+    discord_sync:  dc.status  === 'fulfilled' ? dc.value  : false
   });
 });
 
@@ -1421,6 +1435,57 @@ app.get('/api/smash/weekly-lb', auth, async (req, res) => {
       WHERE w.week_start = ?
       ORDER BY w.kills DESC LIMIT 10`, [weekStart]);
     res.json({ ok: true, rows, weekStart });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: IdleForge Generators ───────────────────────────────────────
+
+app.get('/api/generators/online', auth, async (req, res) => {
+  const cfg = SERVERS.generators;
+  if (!cfg?.rcon) return res.json({ offline: true, players: [], count: 0 });
+  try {
+    const out = await sendRcon(cfg.rcon.host, cfg.rcon.port, cfg.rcon.password, 'list');
+    if (!out) return res.json({ offline: true, players: [], count: 0 });
+    const match = out.match(/:\s*(.+)$/);
+    const players = match && match[1].trim() !== '' ? match[1].split(',').map(s => s.trim()).filter(Boolean) : [];
+    res.json({ offline: false, players, count: players.length });
+  } catch { res.json({ offline: true, players: [], count: 0 }); }
+});
+
+app.get('/api/generators/overview', auth, async (req, res) => {
+  try {
+    const [[players]]    = await poolGen.query('SELECT COUNT(*) AS cnt FROM gen_players');
+    const [[money]]      = await poolGen.query('SELECT COALESCE(SUM(money),0) AS total FROM gen_players');
+    const [[gens]]       = await poolGen.query('SELECT COUNT(*) AS cnt FROM gen_generators');
+    const [[topPrestige]]= await poolGen.query('SELECT COALESCE(MAX(prestige),0) AS max_p FROM gen_players');
+    const [[guilds]]     = await poolGen.query('SELECT COUNT(*) AS cnt FROM gen_guilds');
+    res.json({ ok: true,
+      totalPlayers:  Number(players.cnt),
+      totalMoney:    Number(money.total),
+      totalGenerators: Number(gens.cnt),
+      topPrestige:   Number(topPrestige.max_p),
+      totalGuilds:   Number(guilds.cnt)
+    });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/generators/leaderboard', auth, async (req, res) => {
+  const type = req.query.type || 'money';
+  try {
+    let rows;
+    if (type === 'prestige') {
+      [rows] = await poolGen.query(
+        'SELECT name, prestige, money FROM gen_players ORDER BY prestige DESC, money DESC LIMIT 10');
+    } else if (type === 'generators') {
+      [rows] = await poolGen.query(
+        `SELECT p.name, COUNT(g.id) AS gen_count, p.prestige
+         FROM gen_players p LEFT JOIN gen_generators g ON p.uuid = g.uuid
+         GROUP BY p.uuid ORDER BY gen_count DESC LIMIT 10`);
+    } else {
+      [rows] = await poolGen.query(
+        'SELECT name, money, prestige FROM gen_players ORDER BY money DESC LIMIT 10');
+    }
+    res.json({ ok: true, rows: rows.map((r, i) => ({ rank: i + 1, ...r })) });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
