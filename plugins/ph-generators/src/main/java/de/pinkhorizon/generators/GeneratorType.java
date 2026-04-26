@@ -17,12 +17,12 @@ public enum GeneratorType {
     NETHERITE  (Material.NETHERITE_BLOCK,"<dark_gray>Netherite-Generator</dark_gray>", 500.0, 250_000L, 25_000L, false, false),
 
     // ── Mega-Tiers (durch Fusion, nicht kaufbar) ───────────────────────────
-    MEGA_COBBLESTONE(Material.COBBLESTONE, "<gray><bold>✦ Mega-Cobblestone</bold></gray>", 4.0,    -1L, -1L, true, false),
-    MEGA_IRON       (Material.IRON_BLOCK,  "<white><bold>✦ Mega-Iron</bold></white>",      20.0,   -1L, -1L, true, false),
-    MEGA_GOLD       (Material.GOLD_BLOCK,  "<gold><bold>✦ Mega-Gold</bold></gold>",        60.0,   -1L, -1L, true, false),
-    MEGA_LAPIS      (Material.LAPIS_BLOCK, "<blue><bold>✦ Mega-Lapis</bold></blue>",       160.0,  -1L, -1L, true, false),
-    MEGA_DIAMOND    (Material.DIAMOND_BLOCK,"<aqua><bold>✦ Mega-Diamond</bold></aqua>",    400.0,  -1L, -1L, true, false),
-    MEGA_NETHERITE  (Material.NETHERITE_BLOCK,"<dark_gray><bold>✦ Mega-Netherite</bold></dark_gray>", 2000.0, -1L, -1L, true, false);
+    MEGA_COBBLESTONE(Material.COBBLESTONE, "<gray><bold>✦ Mega-Cobblestone</bold></gray>", 4.0,    -1L, 200L,     true, false),
+    MEGA_IRON       (Material.IRON_BLOCK,  "<white><bold>✦ Mega-Iron</bold></white>",      20.0,   -1L, 1_000L,   true, false),
+    MEGA_GOLD       (Material.GOLD_BLOCK,  "<gold><bold>✦ Mega-Gold</bold></gold>",        60.0,   -1L, 3_000L,   true, false),
+    MEGA_LAPIS      (Material.LAPIS_BLOCK, "<blue><bold>✦ Mega-Lapis</bold></blue>",       160.0,  -1L, 8_000L,   true, false),
+    MEGA_DIAMOND    (Material.DIAMOND_BLOCK,"<aqua><bold>✦ Mega-Diamond</bold></aqua>",    400.0,  -1L, 20_000L,  true, false),
+    MEGA_NETHERITE  (Material.NETHERITE_BLOCK,"<dark_gray><bold>✦ Mega-Netherite</bold></dark_gray>", 2000.0, -1L, 100_000L, true, false);
 
     private final Material block;
     private final String displayName;       // MiniMessage-Format
