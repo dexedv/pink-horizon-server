@@ -5,6 +5,7 @@ import de.pinkhorizon.generators.data.PlayerData;
 import de.pinkhorizon.generators.database.GenDatabaseManager;
 import de.pinkhorizon.generators.database.GeneratorRepository;
 import de.pinkhorizon.generators.gui.BlockShopGUI;
+import de.pinkhorizon.generators.gui.NavigatorGUI;
 import de.pinkhorizon.generators.gui.ShopGUI;
 import de.pinkhorizon.generators.gui.UpgradeGUI;
 import de.pinkhorizon.generators.listeners.GeneratorBlockListener;
@@ -46,6 +47,7 @@ public class PHGenerators extends JavaPlugin {
     private ShopGUI      shopGUI;
     private UpgradeGUI   upgradeGUI;
     private BlockShopGUI blockShopGUI;
+    private NavigatorGUI navigatorGUI;
 
     // Scoreboard
     private ScoreboardManager scoreboardManager;
@@ -80,7 +82,8 @@ public class PHGenerators extends JavaPlugin {
         // ── GUIs ──────────────────────────────────────────────────────────────
         shopGUI      = new ShopGUI(this);
         upgradeGUI   = new UpgradeGUI(this);
-        blockShopGUI = new BlockShopGUI(this);
+        blockShopGUI  = new BlockShopGUI(this);
+        navigatorGUI  = new NavigatorGUI(this);
         scoreboardManager = new ScoreboardManager(this);
 
         // ── Starten ───────────────────────────────────────────────────────────
@@ -103,6 +106,7 @@ public class PHGenerators extends JavaPlugin {
         getServer().getPluginManager().registerEvents(shopGUI, this);
         getServer().getPluginManager().registerEvents(upgradeGUI, this);
         getServer().getPluginManager().registerEvents(blockShopGUI, this);
+        getServer().getPluginManager().registerEvents(navigatorGUI, this);
 
         getLogger().info("PH-Generators (IdleForge) gestartet!");
     }
@@ -154,6 +158,7 @@ public class PHGenerators extends JavaPlugin {
     public ShopGUI      getShopGUI()                     { return shopGUI; }
     public UpgradeGUI   getUpgradeGUI()                  { return upgradeGUI; }
     public BlockShopGUI getBlockShopGUI()                { return blockShopGUI; }
+    public NavigatorGUI getNavigatorGUI()                { return navigatorGUI; }
     public ScoreboardManager getScoreboardManager()      { return scoreboardManager; }
 
     public Map<UUID, PlayerData> getPlayerDataMap()      { return playerDataMap; }

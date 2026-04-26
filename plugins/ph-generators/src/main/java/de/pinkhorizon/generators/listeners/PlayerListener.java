@@ -63,6 +63,9 @@ public class PlayerListener implements Listener {
                                     + " <gray>Offline-Einkommen (bis 8h)"));
                 }
 
+                // Kompass-Navigator in Slot 8 setzen
+                plugin.getNavigatorGUI().giveCompass(player);
+
                 // Insel laden und Spieler teleportieren
                 plugin.getIslandWorldManager().loadAndTeleport(player);
 
