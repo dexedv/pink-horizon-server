@@ -4,6 +4,7 @@ import de.pinkhorizon.generators.PHGenerators;
 import de.pinkhorizon.generators.data.PlacedGenerator;
 import de.pinkhorizon.generators.data.PlayerData;
 import de.pinkhorizon.generators.managers.GeneratorManager;
+import de.pinkhorizon.generators.managers.MoneyManager;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -280,12 +281,43 @@ public class UpgradeGUI implements Listener {
         ItemStack item = new ItemStack(Material.PLAYER_HEAD);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(MM.deserialize("<gold>Deine Stats"));
-        meta.lore(List.of(
-                MM.deserialize("<gray>Geld: <green>$" + data.getMoney()),
-                MM.deserialize("<gray>Prestige: <light_purple>" + data.getPrestige()),
-                MM.deserialize("<gray>Max Level: <aqua>" + data.maxGeneratorLevel()),
-                MM.deserialize("<gray>Generatoren: <white>" + data.getGenerators().size())
-        ));
+
+        List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+        lore.add(MM.deserialize("<gray>Geld: <green>$" + MoneyManager.formatMoney(data.getMoney())));
+        lore.add(MM.deserialize("<gray>Prestige: <light_purple>" + data.getPrestige()));
+        lore.add(MM.deserialize("<gray>Max Level: <aqua>" + data.maxGeneratorLevel()));
+        lore.add(MM.deserialize("<gray>Generatoren: <white>" + data.getGenerators().size()));
+
+        // Rang-Info
+        String group = data.getLpGroup();
+        if (!group.equals("default")) {
+            String rankColor = switch (group) {
+                case "nexus"    -> "<gold>";
+                case "catalyst" -> "<light_purple>";
+                case "rune"     -> "<dark_purple>";
+                default         -> "<gray>";
+            };
+            lore.add(MM.deserialize("<gray>Rang: " + rankColor + group.substring(0, 1).toUpperCase() + group.substring(1)
+                    + " <dark_gray>(+" + (int)((data.getRankMultiplier()-1)*100) + "%)"));
+        }
+
+        // Booster-Status
+        if (data.hasActiveBooster()) {
+            long rem = data.getBoosterExpiry() - System.currentTimeMillis() / 1000;
+            lore.add(MM.deserialize("<gold>⚡ Booster: <yellow>x" + data.getBoosterMultiplier()
+                    + " <gray>(" + rem / 60 + "m " + rem % 60 + "s)"));
+        } else if (!data.getStoredBoosters().isEmpty()) {
+            lore.add(MM.deserialize("<gray>Booster bereit: <aqua>" + data.getStoredBoosters().size()
+                    + " <dark_gray>(→ /gen booster)"));
+        }
+
+        // Tokens
+        if (data.getUpgradeTokens() > 0) {
+            lore.add(MM.deserialize("<aqua>✦ Upgrade-Tokens: <white>" + data.getUpgradeTokens()
+                    + " <dark_gray>(Rechtsklick)"));
+        }
+
+        meta.lore(lore);
         item.setItemMeta(meta);
         return item;
     }

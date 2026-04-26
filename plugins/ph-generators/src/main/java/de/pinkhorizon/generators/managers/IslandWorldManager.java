@@ -96,6 +96,9 @@ public class IslandWorldManager {
         World world = Bukkit.getWorld(worldName);
         if (world == null) return;
 
+        // Spawn-Info-Hologramm entfernen
+        plugin.getHologramManager().removeSpawnHolo(uuid);
+
         // Alle Spieler aus der Welt entfernen (Sicherheit)
         Location lobby = getFallbackLocation();
         for (Player p : world.getPlayers()) {
@@ -212,9 +215,13 @@ public class IslandWorldManager {
         de.pinkhorizon.generators.data.PlayerData data =
                 plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data != null) {
+            final Location spawnLoc = new Location(world, spawnX, spawnY, spawnZ);
             // 3 Ticks warten damit der Client die Welt fertig empfangen hat
-            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin,
-                    () -> plugin.getGeneratorManager().loadHolograms(data), 3L);
+            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                plugin.getGeneratorManager().loadHolograms(data);
+                // Spawn-Info-Hologramm 4 Blöcke neben dem Spawnpunkt setzen
+                plugin.getHologramManager().setSpawnHolo(player.getUniqueId(), spawnLoc);
+            }, 3L);
         }
 
         player.sendMessage(MM.deserialize(

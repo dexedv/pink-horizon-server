@@ -51,6 +51,9 @@ public class PlayerData {
     private long boosterExpiry = 0;
     private double boosterMultiplier = 1.0;
 
+    // Gespeicherte (noch nicht aktivierte) Booster (Tebex-Käufe)
+    private final List<StoredBooster> storedBoosters = new ArrayList<>();
+
     // Insel-Border
     private int borderSize = 40;
 
@@ -94,6 +97,18 @@ public class PlayerData {
     /** Permanenter Einkommens-Multiplikator durch Prestige */
     public double prestigeMultiplier() {
         return 1.0 + (prestige * 0.05);
+    }
+
+    // ── Stored Boosters (Tebex-Käufe) ───────────────────────────────────────
+
+    public List<StoredBooster> getStoredBoosters() { return storedBoosters; }
+
+    public void addStoredBooster(StoredBooster b) { storedBoosters.add(b); }
+
+    public boolean removeStoredBooster(int index) {
+        if (index < 0 || index >= storedBoosters.size()) return false;
+        storedBoosters.remove(index);
+        return true;
     }
 
     // ── Booster ──────────────────────────────────────────────────────────────

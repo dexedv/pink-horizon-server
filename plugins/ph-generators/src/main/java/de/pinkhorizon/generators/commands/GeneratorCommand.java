@@ -92,6 +92,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
                 yield true;
             }
             case "season"       -> { handleSeason(player, args); yield true; }
+            case "booster"      -> { plugin.getBoosterGUI().open(player); yield true; }
             case "help"         -> { showHelp(player); yield true; }
             case "give"         -> {
                 if (player.hasPermission("ph.generators.admin")) handleAdminGive(player, args);
@@ -100,6 +101,11 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             }
             case "setmoney"     -> {
                 if (player.hasPermission("ph.generators.admin")) handleSetMoney(player, args);
+                else showHelp(player);
+                yield true;
+            }
+            case "givebooster"  -> {
+                if (player.hasPermission("ph.generators.admin")) handleGiveBooster(player, args);
                 else showHelp(player);
                 yield true;
             }
@@ -584,6 +590,32 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void handleGiveBooster(Player player, String[] args) {
+        // /gen givebooster <spieler> <multiplikator> <minuten>
+        if (args.length < 4) {
+            player.sendMessage(MM.deserialize("<red>Nutzung: /gen givebooster <spieler> <multiplikator> <minuten>"));
+            return;
+        }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) {
+            player.sendMessage(MM.deserialize("<red>Spieler <white>" + args[1] + " <red>ist nicht online!"));
+            return;
+        }
+        double mult;
+        int minutes;
+        try {
+            mult    = Double.parseDouble(args[2]);
+            minutes = Integer.parseInt(args[3]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(MM.deserialize("<red>Ungültiger Multiplikator oder Dauer!"));
+            return;
+        }
+        plugin.getBoosterManager().giveBooster(target, mult, minutes);
+        player.sendMessage(MM.deserialize(
+                "<green>✔ Booster <gold>x" + mult + " <gray>(" + minutes + " Min.) an <white>"
+                + target.getName() + " <green>vergeben!"));
+    }
+
     private void handleSetMoney(Player player, String[] args) {
         if (args.length < 3) {
             player.sendMessage(MM.deserialize("<red>Nutzung: /gen setmoney <spieler> <betrag>")); return;
@@ -764,6 +796,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             <yellow>/gen synergy <gray>- Synergien
             <yellow>/gen guild <create|join|leave|info> <gray>- Gilden
             <yellow>/gen holo set/remove/lb/lbremove <gray>- Hologramme
+            <yellow>/gen booster <gray>- Gespeicherte Booster aktivieren
             <yellow>/booster status <gray>- Booster-Status"""));
     }
 
@@ -774,7 +807,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
                     "market", "tokens", "milestones", "visit", "home",
                     "balance", "stats", "top", "season", "prestige",
                     "fuse", "quests", "achievements", "guild", "guildtop", "synergy", "border",
-                    "holo", "pay", "tutorial", "help", "event");
+                    "holo", "pay", "tutorial", "help", "event", "booster", "givebooster");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("guild")) {
             return Arrays.asList("create", "join", "leave", "info");

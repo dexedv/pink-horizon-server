@@ -3,6 +3,7 @@ package de.pinkhorizon.generators.database;
 import de.pinkhorizon.generators.GeneratorType;
 import de.pinkhorizon.generators.data.PlacedGenerator;
 import de.pinkhorizon.generators.data.PlayerData;
+import de.pinkhorizon.generators.data.StoredBooster;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -62,6 +63,14 @@ public class GeneratorRepository {
                 try { data.setUpgradeTokens(rs.getInt("upgrade_tokens")); } catch (SQLException ignored) {}
                 try { data.setTalentPoints(rs.getInt("talent_points")); } catch (SQLException ignored) {}
                 try { data.setMilestoneReached(rs.getInt("milestone_reached")); } catch (SQLException ignored) {}
+                try {
+                    String sbStr = rs.getString("stored_boosters");
+                    if (sbStr != null && !sbStr.isBlank()) {
+                        for (String part : sbStr.split("\\|")) {
+                            if (!part.isBlank()) data.addStoredBooster(StoredBooster.deserialize(part));
+                        }
+                    }
+                } catch (SQLException ignored) {}
                 return data;
             }
         } catch (SQLException e) {
@@ -76,8 +85,9 @@ public class GeneratorRepository {
             sql = """
                 INSERT INTO gen_players (uuid, name, money, prestige, total_earned, total_upgrades,
                     afk_boxes_opened, booster_expiry, booster_mult, last_seen, border_size,
-                    last_daily, daily_streak, auto_upgrade, upgrade_tokens, talent_points, milestone_reached)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    last_daily, daily_streak, auto_upgrade, upgrade_tokens, talent_points,
+                    milestone_reached, stored_boosters)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON DUPLICATE KEY UPDATE
                     name=VALUES(name), money=VALUES(money), prestige=VALUES(prestige),
                     total_earned=VALUES(total_earned), total_upgrades=VALUES(total_upgrades),
@@ -86,15 +96,16 @@ public class GeneratorRepository {
                     border_size=VALUES(border_size), last_daily=VALUES(last_daily),
                     daily_streak=VALUES(daily_streak), auto_upgrade=VALUES(auto_upgrade),
                     upgrade_tokens=VALUES(upgrade_tokens), talent_points=VALUES(talent_points),
-                    milestone_reached=VALUES(milestone_reached)
+                    milestone_reached=VALUES(milestone_reached),
+                    stored_boosters=VALUES(stored_boosters)
             """;
         } else {
             sql = """
                 INSERT OR REPLACE INTO gen_players (uuid, name, money, prestige, total_earned,
                     total_upgrades, afk_boxes_opened, booster_expiry, booster_mult, last_seen,
                     border_size, last_daily, daily_streak, auto_upgrade, upgrade_tokens,
-                    talent_points, milestone_reached)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    talent_points, milestone_reached, stored_boosters)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         }
         try (Connection con = db.getConnection();
@@ -116,6 +127,7 @@ public class GeneratorRepository {
             stmt.setInt(15, data.getUpgradeTokens());
             stmt.setInt(16, data.getTalentPoints());
             stmt.setInt(17, data.getMilestoneReached());
+            stmt.setString(18, serializeStoredBoosters(data));
             stmt.executeUpdate();
         } catch (SQLException e) {
             log.warning("[GenRepo] savePlayer: " + e.getMessage());
@@ -749,5 +761,18 @@ public class GeneratorRepository {
         } catch (SQLException e) {
             log.warning("[GenRepo] setAfkData: " + e.getMessage());
         }
+    }
+
+    // ── Stored Boosters ───────────────────────────────────────────────────────
+
+    private String serializeStoredBoosters(PlayerData data) {
+        List<StoredBooster> list = data.getStoredBoosters();
+        if (list.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (StoredBooster b : list) {
+            if (sb.length() > 0) sb.append("|");
+            sb.append(b.serialize());
+        }
+        return sb.toString();
     }
 }

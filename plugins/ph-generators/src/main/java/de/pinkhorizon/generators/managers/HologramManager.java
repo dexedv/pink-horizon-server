@@ -33,6 +33,8 @@ public class HologramManager {
     private final Map<UUID, TextDisplay> statsHolograms = new HashMap<>();
     /** uuid → TextDisplay (Leaderboard-Holograms) */
     private final Map<UUID, TextDisplay> lbHolograms = new HashMap<>();
+    /** uuid → TextDisplay (Spawn-Info-Hologramme – auto-platziert neben dem Insel-Spawnpunkt) */
+    private final Map<UUID, TextDisplay> spawnHolos = new HashMap<>();
     private BukkitTask updateTask;
 
     public HologramManager(PHGenerators plugin) {
@@ -49,6 +51,7 @@ public class HologramManager {
         removeAll();
         removeAllStatsHolos();
         removeAllLbHolos();
+        removeAllSpawnHolos();
     }
 
     // ── Hologramm-Verwaltung ─────────────────────────────────────────────────
@@ -127,6 +130,10 @@ public class HologramManager {
             // Ranglisten-Hologramm aktualisieren
             if (data.hasLbHolo()) {
                 updateLbHolo(entry.getKey(), data);
+            }
+            // Spawn-Info-Hologramm aktualisieren (falls gesetzt)
+            if (spawnHolos.containsKey(entry.getKey())) {
+                updateSpawnHolo(entry.getKey(), data);
             }
         }
     }
@@ -275,6 +282,177 @@ public class HologramManager {
         } else {
             sb.append("<dark_gray>Kein Booster aktiv");
         }
+        return sb.toString();
+    }
+
+    // ── Spawn-Info-Hologramm ─────────────────────────────────────────────────
+
+    /**
+     * Setzt das automatische Spawn-Info-Hologramm 4 Blöcke neben dem Insel-Spawnpunkt.
+     * Wird beim Teleportieren auf die Insel automatisch aufgerufen.
+     *
+     * @param uuid UUID des Spielers
+     * @param spawnLoc Spawn-Position der Insel (aus config)
+     */
+    public void setSpawnHolo(UUID uuid, Location spawnLoc) {
+        removeSpawnHolo(uuid);
+
+        // 4 Blöcke in +X-Richtung (Ost), auf Augenhöhe
+        double offsetX = plugin.getConfig().getDouble("island.spawn-holo-offset-x", 4.0);
+        double offsetZ = plugin.getConfig().getDouble("island.spawn-holo-offset-z", 0.0);
+        Location holoLoc = spawnLoc.clone().add(offsetX, 1.6, offsetZ);
+
+        World world = holoLoc.getWorld();
+        if (world == null) return;
+
+        PlayerData data = plugin.getPlayerDataMap().get(uuid);
+
+        TextDisplay display = world.spawn(holoLoc, TextDisplay.class, entity -> {
+            entity.setBillboard(Display.Billboard.CENTER);
+            entity.setDefaultBackground(false);
+            entity.setShadowed(true);
+            entity.setPersistent(false);
+            entity.setTransformation(new Transformation(
+                    new Vector3f(0, 0, 0), new AxisAngle4f(0, 0, 0, 1),
+                    new Vector3f(1.1f, 1.1f, 1.1f), new AxisAngle4f(0, 0, 0, 1)));
+            if (data != null) entity.text(MM.deserialize(buildSpawnHoloText(data)));
+        });
+
+        spawnHolos.put(uuid, display);
+    }
+
+    public void removeSpawnHolo(UUID uuid) {
+        TextDisplay d = spawnHolos.remove(uuid);
+        if (d != null && !d.isDead()) d.remove();
+    }
+
+    public void removeAllSpawnHolos() {
+        spawnHolos.values().forEach(d -> { if (d != null && !d.isDead()) d.remove(); });
+        spawnHolos.clear();
+    }
+
+    private void updateSpawnHolo(UUID uuid, PlayerData data) {
+        TextDisplay display = spawnHolos.get(uuid);
+        if (display == null || display.isDead()) {
+            // Hologramm ist weg (z.B. Chunk-Reload) → neu spawnen
+            World world = Bukkit.getWorld(plugin.getIslandWorldManager().getWorldName(uuid));
+            if (world == null) return;
+            double spawnX = plugin.getConfig().getDouble("island.spawn-x", 0.5);
+            double spawnY = plugin.getConfig().getDouble("island.spawn-y", 64.0);
+            double spawnZ = plugin.getConfig().getDouble("island.spawn-z", 0.5);
+            setSpawnHolo(uuid, new Location(world, spawnX, spawnY, spawnZ));
+            return;
+        }
+        display.text(MM.deserialize(buildSpawnHoloText(data)));
+    }
+
+    /**
+     * Baut den Tutorial-Guide-Text für das Spawn-Hologramm.
+     * Zeigt dem Spieler die nächsten Schritte basierend auf seinem Fortschritt.
+     */
+    private String buildSpawnHoloText(PlayerData data) {
+        // Fortschritt ermitteln
+        boolean hasGen      = !data.getGenerators().isEmpty();
+        boolean hasUpgraded = data.getTotalUpgrades() > 0;
+        boolean hasThreeGen = data.getGenerators().size() >= 3;
+        boolean hasPrestige = data.getPrestige() > 0;
+
+        // Gesamteinkommen für Fortschrittszeile
+        double totalIncome = 0;
+        for (de.pinkhorizon.generators.data.PlacedGenerator gen : data.getGenerators()) {
+            totalIncome += gen.incomePerSecond()
+                    * data.prestigeMultiplier()
+                    * data.effectiveBoosterMultiplier()
+                    * plugin.getMoneyManager().getServerBoosterMultiplier()
+                    * plugin.getSynergyManager().getTotalSynergyMultiplier(data)
+                    * data.getRankMultiplier();
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        // ── Titel ────────────────────────────────────────────────────────────
+        sb.append("<light_purple><bold>  ✦ IdleForge – Guide ✦  </bold></light_purple>\n");
+        sb.append("<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+        // ── Schritt 1: Ersten Generator platzieren ───────────────────────────
+        if (!hasGen) {
+            sb.append("<yellow><bold>➤ Schritt 1: Generator platzieren</bold></yellow>\n");
+            sb.append("<gray>  Du hast einen <white>Cobblestone-Generator\n");
+            sb.append("<gray>  im Inventar. Lege ihn auf der\n");
+            sb.append("<gray>  Insel ab um zu starten!\n");
+            sb.append("<dark_gray>  ↳ Er generiert sofort Geld/s\n");
+        } else {
+            sb.append("<green>✔ <white>Schritt 1: <green>Generator platziert!\n");
+        }
+
+        sb.append("<dark_gray>───────────────────────\n");
+
+        // ── Schritt 2: Upgraden ──────────────────────────────────────────────
+        if (hasGen && !hasUpgraded) {
+            sb.append("<yellow><bold>➤ Schritt 2: Generator upgraden</bold></yellow>\n");
+            sb.append("<gray>  <white>Schleichen + Rechtsklick\n");
+            sb.append("<gray>  auf deinen Generator\n");
+            sb.append("<gray>  oder <yellow>/gen upgrade\n");
+            sb.append("<dark_gray>  ↳ Jedes Level = +10% Einkommen\n");
+        } else if (!hasGen) {
+            sb.append("<dark_gray>○ Schritt 2: Generator upgraden\n");
+        } else {
+            sb.append("<green>✔ <white>Schritt 2: <green>Upgrade durchgeführt!\n");
+        }
+
+        sb.append("<dark_gray>───────────────────────\n");
+
+        // ── Schritt 3: Mehr Generatoren ──────────────────────────────────────
+        if (hasUpgraded && !hasThreeGen) {
+            sb.append("<yellow><bold>➤ Schritt 3: Mehr Generatoren</bold></yellow>\n");
+            sb.append("<gray>  Kaufe weitere Typen im Shop:\n");
+            sb.append("<gray>  <yellow>/gen shop\n");
+            sb.append("<dark_gray>  ↳ Iron, Gold, Lapis … bis Netherite\n");
+        } else if (!hasUpgraded) {
+            sb.append("<dark_gray>○ Schritt 3: Mehr Generatoren kaufen\n");
+        } else {
+            sb.append("<green>✔ <white>Schritt 3: <green>3+ Generatoren aktiv!\n");
+        }
+
+        sb.append("<dark_gray>───────────────────────\n");
+
+        // ── Schritt 4: Prestige ──────────────────────────────────────────────
+        if (hasThreeGen && !hasPrestige) {
+            sb.append("<yellow><bold>➤ Schritt 4: Prestige machen</bold></yellow>\n");
+            sb.append("<gray>  Kosten: <gold>$").append(MoneyManager.formatMoney(data.nextPrestigeCost())).append("\n");
+            sb.append("<gray>  Befehl: <yellow>/gen prestige\n");
+            sb.append("<dark_gray>  ↳ Höheres Max-Level + +5% Bonus\n");
+        } else if (!hasThreeGen) {
+            sb.append("<dark_gray>○ Schritt 4: Prestige (später)\n");
+        } else {
+            sb.append("<green>✔ <white>Schritt 4: <green>Prestige ").append(data.getPrestige()).append(" erreicht!\n");
+        }
+
+        sb.append("<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+        // ── Fortschrittszeile ────────────────────────────────────────────────
+        sb.append("<gray>💰 <green>$").append(MoneyManager.formatMoney(data.getMoney()));
+        if (totalIncome > 0) {
+            sb.append("  <gray>📈 <aqua>$")
+              .append(MoneyManager.formatMoney(Math.round(totalIncome))).append("/s");
+        }
+        sb.append("\n");
+
+        // Aktiver Booster (kompakt)
+        if (data.hasActiveBooster()) {
+            long rem = data.getBoosterExpiry() - System.currentTimeMillis() / 1000;
+            sb.append("<yellow>⚡ x").append(data.getBoosterMultiplier())
+              .append(" <dark_gray>(").append(rem / 60).append("m ").append(rem % 60).append("s)\n");
+        }
+        if (plugin.getMoneyManager().isServerBoosterActive()) {
+            long rem = plugin.getMoneyManager().getServerBoosterExpiry() - System.currentTimeMillis() / 1000;
+            sb.append("<gold>⚡ Server x").append(plugin.getMoneyManager().getServerBoosterMultiplier())
+              .append(" <dark_gray>(").append(rem / 60).append("m)\n");
+        }
+
+        sb.append("<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━\n");
+        sb.append("<dark_gray>💡 <gray>/gen <dark_gray>→ Hauptmenü öffnen");
+
         return sb.toString();
     }
 

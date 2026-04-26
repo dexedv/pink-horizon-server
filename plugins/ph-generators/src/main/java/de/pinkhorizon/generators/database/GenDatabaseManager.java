@@ -364,6 +364,12 @@ public class GenDatabaseManager {
                     "ALTER TABLE gen_players ADD COLUMN holo_z INT DEFAULT 0")
                     .execute();
             } catch (java.sql.SQLException ignored) {}
+
+            // Migration: stored boosters (Tebex-Käufe)
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN stored_boosters VARCHAR(500) DEFAULT ''")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
         }
     }
 

@@ -23,11 +23,20 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Navigator (Spielerkopf, Slot 8) + Generator-Aufheber (Goldspitzhacke, Slot 7).
- * Beide Items sind nicht wegwerfbar und nicht verschiebbar.
+ * Navigator-GUI: Übersicht aller IdleForge-Menüs.
+ *
+ * Layout (54 Slots):
+ *   Row 0: [fill][fill][fill][fill][STATS][fill][fill][fill][fill]
+ *   Row 1: [fill][SHOP][fill][UPGR][fill][BLKS][fill][PRST][fill]
+ *   Row 2: [fill][QUST][fill][ACHV][fill][LDRB][fill][GILD][fill]
+ *   Row 3: [fill][BLST][fill][TLNT][fill][MRKT][fill][MILS][fill]
+ *   Row 4: [fill][SASN][fill][SYNG][fill][BRDR][fill][fill][fill]
+ *   Row 5: all filler
  */
 public class NavigatorGUI implements Listener {
 
@@ -43,7 +52,6 @@ public class NavigatorGUI implements Listener {
 
     // ── Items geben ──────────────────────────────────────────────────────────
 
-    /** Gibt Navigator-Kopf und Aufheber-Spitzhacke in den Hotbar. */
     public void giveCompass(Player player) {
         player.getInventory().setItem(NAVIGATOR_SLOT, buildNavigator(player));
         player.getInventory().setItem(PICKER_SLOT,    buildPicker());
@@ -81,7 +89,6 @@ public class NavigatorGUI implements Listener {
         Player player = event.getPlayer();
         ItemStack item = player.getInventory().getItemInMainHand();
 
-        // Navigator → Menü öffnen
         if (isNavigator(item)) {
             if (event.getAction() != Action.RIGHT_CLICK_AIR
                     && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
@@ -90,7 +97,6 @@ public class NavigatorGUI implements Listener {
             return;
         }
 
-        // Aufheber → Generator aufnehmen
         if (isPicker(item)) {
             if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
             if (event.getClickedBlock() == null) return;
@@ -139,24 +145,18 @@ public class NavigatorGUI implements Listener {
         }
     }
 
-    /** Verhindert Verschieben der Special-Items im Inventar. */
     @EventHandler(priority = EventPriority.HIGH)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
 
-        // Cursor hält Special-Item → nicht ablegen
         if (isSpecialItem(event.getCursor())) {
             event.setCancelled(true);
             return;
         }
-
-        // Klick direkt auf Special-Item → nicht nehmen / verschieben
         if (isSpecialItem(event.getCurrentItem())) {
             event.setCancelled(true);
             return;
         }
-
-        // Spezial-Slots im eigenen Inventar schützen (nichts dort ablegen)
         if (event.getClickedInventory() != null
                 && event.getClickedInventory() == player.getInventory()) {
             int slot = event.getSlot();
@@ -166,7 +166,6 @@ public class NavigatorGUI implements Listener {
         }
     }
 
-    /** Items nach dem Tod wiederherstellen. */
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
@@ -179,20 +178,51 @@ public class NavigatorGUI implements Listener {
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         Inventory inv = Bukkit.createInventory(null, 54, MM.deserialize("<light_purple>" + TITLE));
 
-        ItemStack filler = filler();
-        for (int i = 0; i < 54; i++) inv.setItem(i, filler);
+        ItemStack fill = filler();
+        for (int i = 0; i < 54; i++) inv.setItem(i, fill);
 
-        inv.setItem(4, buildStatsItem(data));
+        // Stats-Item
+        inv.setItem(4, buildStatsItem(player, data));
 
-        inv.setItem(10, buildButton(Material.GOLD_BLOCK,       "<gold>Generator-Shop",      "<gray>Generatoren kaufen",          "/gen shop"));
-        inv.setItem(12, buildButton(Material.ANVIL,            "<aqua>Upgrades",             "<gray>Generatoren upgraden",        "/gen upgrade"));
-        inv.setItem(14, buildButton(Material.CHEST,            "<yellow>Block-Shop",         "<gray>Inselblöcke kaufen",          "/gen blockshop"));
-        inv.setItem(16, buildButton(Material.NETHER_STAR,      "<light_purple>Prestige",     "<gray>Prestige durchführen",        "/gen prestige"));
-        inv.setItem(28, buildButton(Material.BOOK,             "<green>Quests",              "<gray>Tägliche Aufgaben",           "/gen quests"));
-        inv.setItem(30, buildButton(Material.TOTEM_OF_UNDYING, "<yellow>Achievements",       "<gray>Errungenschaften ansehen",    "/gen achievements"));
-        inv.setItem(32, buildButton(Material.DIAMOND,          "<aqua>Leaderboard",          "<gray>Top 10 Spieler",             "/gen top"));
-        inv.setItem(34, buildButton(Material.SHIELD,           "<blue>Gilde",                "<gray>Gilde verwalten",            "/gen guild"));
-        inv.setItem(40, buildButton(Material.CYAN_CONCRETE,    "<cyan>Insel-Grenze",         "<gray>Border erweitern",           "/gen border"));
+        // ── Row 1: Haupt-Menüs ────────────────────────────────────────────
+        inv.setItem(10, btn(Material.GOLD_BLOCK,       "<gold>Generator-Shop",
+                "<gray>Generatoren & Booster kaufen",          "/gen shop"));
+        inv.setItem(12, btn(Material.ANVIL,            "<aqua>Upgrades",
+                "<gray>Generatoren upgraden",                  "/gen upgrade"));
+        inv.setItem(14, btn(Material.CHEST,            "<yellow>Block-Shop",
+                "<gray>Inselblöcke kaufen",                    "/gen blockshop"));
+        inv.setItem(16, btn(Material.NETHER_STAR,      "<light_purple>Prestige",
+                "<gray>Prestige durchführen",                  "/gen prestige"));
+
+        // ── Row 2: Fortschritt & Social ──────────────────────────────────
+        inv.setItem(19, btn(Material.BOOK,             "<green>Quests",
+                "<gray>Tägliche & wöchentliche Aufgaben",      "/gen quests"));
+        inv.setItem(21, btn(Material.TOTEM_OF_UNDYING, "<yellow>Achievements",
+                "<gray>Errungenschaften ansehen",              "/gen achievements"));
+        inv.setItem(23, btn(Material.DIAMOND,          "<aqua>Leaderboard",
+                "<gray>Top-10 nach Geld",                      "/gen top"));
+        inv.setItem(25, btn(Material.SHIELD,           "<blue>Gilde",
+                "<gray>Gilde verwalten / beitreten",           "/gen guild"));
+
+        // ── Row 3: Extras ────────────────────────────────────────────────
+        inv.setItem(28, btn(Material.BLAZE_POWDER,     "<gold>Booster",
+                "<gray>Gespeicherte Booster aktivieren",       "/gen booster"));
+        inv.setItem(30, btn(Material.NETHER_STAR,      "<light_purple>Talente",
+                "<gray>Talent-Baum öffnen",                    "/gen talents"));
+        inv.setItem(32, btn(Material.GOLD_NUGGET,      "<yellow>Marktplatz",
+                "<gray>Upgrade-Tokens handeln",                "/gen market"));
+        inv.setItem(34, btn(Material.BEACON,           "<aqua>Meilensteine",
+                "<gray>Meilensteine & Belohnungen",            "/gen milestones"));
+
+        // ── Row 4: Verwaltung ────────────────────────────────────────────
+        inv.setItem(37, btn(Material.CLOCK,            "<white>Saison-LB",
+                "<gray>Saison-Rangliste anzeigen",             "/gen season"));
+        inv.setItem(39, btn(Material.COMPARATOR,       "<gray>Synergien",
+                "<gray>Aktive Generator-Synergien",            "/gen synergy"));
+        inv.setItem(41, btn(Material.CYAN_CONCRETE,    "<cyan>Insel-Grenze",
+                "<gray>Spielfeld erweitern",                   "/gen border"));
+        inv.setItem(43, btn(Material.PLAYER_HEAD,      "<white>Spieler besuchen",
+                "<gray>Insel eines Spielers besuchen",         "/gen visit "));
 
         player.openInventory(inv);
     }
@@ -214,38 +244,90 @@ public class NavigatorGUI implements Listener {
 
         if (!cmd.startsWith("/")) return;
 
+        // Besuchen braucht noch einen Spielernamen → Inventar schließen und Chat öffnen
+        if (cmd.trim().equals("/gen visit")) {
+            player.closeInventory();
+            player.sendMessage(MM.deserialize(
+                    "<yellow>Gib den Spielernamen ein: <white>/gen visit <spielername>"));
+            return;
+        }
+
         player.closeInventory();
-        Bukkit.getScheduler().runTask(plugin, () -> player.performCommand(cmd.substring(1)));
+        Bukkit.getScheduler().runTask(plugin, () -> player.performCommand(cmd.substring(1).trim()));
     }
 
     // ── Item-Builder ─────────────────────────────────────────────────────────
 
-    private ItemStack buildButton(Material mat, String name, String desc, String command) {
+    /** Erstellt einen Menü-Button. Die letzte Lore-Zeile enthält den Befehl (versteckt). */
+    private ItemStack btn(Material mat, String name, String desc, String command) {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(MM.deserialize(name));
         meta.lore(List.of(
                 MM.deserialize(desc),
                 MM.deserialize(""),
-                MM.deserialize("<yellow>Linksklick → Öffnen"),
+                MM.deserialize("<yellow>▶ Klick zum Öffnen"),
                 MM.deserialize("<dark_gray>" + command)
         ));
         item.setItemMeta(meta);
         return item;
     }
 
-    private ItemStack buildStatsItem(PlayerData data) {
+    private ItemStack buildStatsItem(Player player, PlayerData data) {
         ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        ItemMeta meta = item.getItemMeta();
-        meta.displayName(MM.deserialize("<gold><bold>Deine Stats</bold>"));
-        if (data != null) {
-            meta.lore(List.of(
-                    MM.deserialize("<gray>Guthaben: <green>$" + MoneyManager.formatMoney(data.getMoney())),
-                    MM.deserialize("<gray>Prestige: <light_purple>" + data.getPrestige()),
-                    MM.deserialize("<gray>Generatoren: <white>" + data.getGenerators().size()),
-                    MM.deserialize("<gray>Max Level: <aqua>" + data.maxGeneratorLevel())
-            ));
+        if (item.getItemMeta() instanceof SkullMeta skull) {
+            skull.setOwningPlayer(player);
+            item.setItemMeta(skull);
         }
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(MM.deserialize("<gold><bold>" + player.getName() + "</bold>"));
+
+        List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+        if (data != null) {
+            // Geld & Prestige
+            lore.add(MM.deserialize("<gray>Guthaben: <green>$" + MoneyManager.formatMoney(data.getMoney())));
+            lore.add(MM.deserialize("<gray>Prestige: <light_purple>" + data.getPrestige()
+                    + " <dark_gray>/ " + plugin.getConfig().getInt("max-prestige", 1000)));
+            lore.add(MM.deserialize("<gray>Max Level: <aqua>" + data.maxGeneratorLevel()));
+            lore.add(MM.deserialize("<gray>Generatoren: <white>" + data.getGenerators().size()
+                    + " <dark_gray>/ " + data.maxGeneratorSlots(
+                        plugin.getConfig().getInt("max-generators", 10),
+                        plugin.getConfig().getInt("generator-slot-per-prestige", 2))));
+
+            // Aktiver Booster
+            if (data.hasActiveBooster()) {
+                long rem = data.getBoosterExpiry() - System.currentTimeMillis() / 1000;
+                lore.add(MM.deserialize("<gold>⚡ Booster: <yellow>x" + data.getBoosterMultiplier()
+                        + " <gray>(" + rem / 60 + "m " + rem % 60 + "s)"));
+            } else if (!data.getStoredBoosters().isEmpty()) {
+                lore.add(MM.deserialize("<gray>⚡ Booster bereit: <aqua>" + data.getStoredBoosters().size()
+                        + " <dark_gray>→ /gen booster"));
+            }
+
+            // Server-Booster
+            if (plugin.getMoneyManager().isServerBoosterActive()) {
+                long rem = plugin.getMoneyManager().getServerBoosterExpiry() - System.currentTimeMillis() / 1000;
+                lore.add(MM.deserialize("<gold>⚡ Server-Booster: <yellow>x"
+                        + plugin.getMoneyManager().getServerBoosterMultiplier()
+                        + " <gray>(" + rem / 60 + "m)"));
+            }
+
+            // Rang
+            String group = data.getLpGroup();
+            String rankDisp = switch (group) {
+                case "nexus"    -> "<gold>[Nexus]";
+                case "catalyst" -> "<light_purple>[Catalyst]";
+                case "rune"     -> "<dark_purple>[Rune]";
+                default         -> "<gray>Spieler";
+            };
+            lore.add(MM.deserialize("<gray>Rang: " + rankDisp));
+
+            // Tokens
+            if (data.getUpgradeTokens() > 0) {
+                lore.add(MM.deserialize("<gray>Upgrade-Tokens: <aqua>" + data.getUpgradeTokens()));
+            }
+        }
+        meta.lore(lore);
         item.setItemMeta(meta);
         return item;
     }

@@ -2,7 +2,9 @@ package de.pinkhorizon.generators.managers;
 
 import de.pinkhorizon.generators.PHGenerators;
 import de.pinkhorizon.generators.data.PlayerData;
+import de.pinkhorizon.generators.data.StoredBooster;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 /**
@@ -38,6 +40,24 @@ public class BoosterManager {
                 "<green>✔ Booster aktiviert! <white>x" + multiplier
                         + " für " + durationMin + " Minuten."));
         return BuyResult.SUCCESS;
+    }
+
+    /**
+     * Gibt einem Spieler einen gespeicherten Booster (Tebex-Kauf oder Admin-Befehl).
+     * Der Booster wird nicht sofort aktiviert, sondern im Inventar gespeichert.
+     */
+    public void giveBooster(Player player, double multiplier, int durationMinutes) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) {
+            plugin.getLogger().warning("[BoosterManager] giveBooster: PlayerData für " + player.getName() + " nicht geladen");
+            return;
+        }
+        data.addStoredBooster(new StoredBooster(multiplier, durationMinutes));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
+                plugin.getRepository().savePlayer(data));
+        player.sendMessage(MM.deserialize(
+                "<green>✦ Du hast einen <gold>x" + multiplier + " Booster <green>erhalten!\n"
+                + "<gray>Aktivieren im Booster-Menü: <yellow>/gen booster"));
     }
 
     /**
