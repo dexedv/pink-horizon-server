@@ -20,6 +20,7 @@ signs:
   survival: Survival
   skyblock: SkyBlock
   minigames: Minigames
+  generators: IdleForge
 border:
   centerX: -61.62334280884393
   centerZ: -67.4661148306987
@@ -42,6 +43,10 @@ servers:
     display: "Smash the Boss"
     host: smash
     port: 25570
+  generators:
+    display: "IdleForge"
+    host: generators
+    port: 25571
 
 portals:
   survival:
