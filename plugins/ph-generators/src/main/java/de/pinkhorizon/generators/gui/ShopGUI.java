@@ -33,12 +33,11 @@ public class ShopGUI implements Listener {
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final String TITLE = "Generator-Shop";
 
-    // Alle kaufbaren Basis-Typen
+    // Kaufbare Generator-Typen im Shop
     private static final GeneratorType[] GEN_TYPES = {
-        GeneratorType.COBBLESTONE, GeneratorType.IRON,    GeneratorType.GOLD,
-        GeneratorType.LAPIS,       GeneratorType.DIAMOND, GeneratorType.NETHERITE
+        GeneratorType.COBBLESTONE
     };
-    private static final int[] GEN_SLOTS = {10, 11, 12, 13, 14, 15};
+    private static final int[] GEN_SLOTS = {13};
 
     // Booster-Definitionen (werden ins Inventar gelegt, nicht sofort aktiviert)
     private static final int[]      BOOSTER_SLOTS  = {29, 31, 33};
@@ -63,9 +62,7 @@ public class ShopGUI implements Listener {
 
         // ── Sektion: Generatoren ─────────────────────────────────────────────
         ItemStack genHeader = filler(Material.LIME_STAINED_GLASS_PANE, "<green>── Generatoren ──");
-        inv.setItem(9, genHeader);
-        inv.setItem(16, genHeader);
-        inv.setItem(17, genHeader);
+        for (int i = 9; i <= 17; i++) inv.setItem(i, genHeader);
 
         for (int i = 0; i < GEN_TYPES.length; i++) {
             GeneratorType type = GEN_TYPES[i];
