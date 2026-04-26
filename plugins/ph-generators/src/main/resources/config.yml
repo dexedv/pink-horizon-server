@@ -44,7 +44,7 @@ hologram-update-ticks: 40
 afk-reward-minutes: 120
 
 # Prestige max
-max-prestige: 50
+max-prestige: 1000
 
 # Booster-Dauer in Minuten (Standard-Shop-Booster)
 default-booster-duration: 60

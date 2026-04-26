@@ -23,7 +23,7 @@ public class PrestigeManager {
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return PrestigeResult.NO_DATA;
 
-        int maxPrestige = plugin.getConfig().getInt("max-prestige", 50);
+        int maxPrestige = plugin.getConfig().getInt("max-prestige", 1000);
         if (data.getPrestige() >= maxPrestige) return PrestigeResult.MAX_REACHED;
 
         long cost = data.nextPrestigeCost();
@@ -50,6 +50,8 @@ public class PrestigeManager {
         plugin.getAchievementManager().track(data, "prestige_1", newPrestige);
         plugin.getAchievementManager().track(data, "prestige_10", newPrestige);
         plugin.getAchievementManager().track(data, "prestige_50", newPrestige);
+        plugin.getAchievementManager().track(data, "prestige_100", newPrestige);
+        plugin.getAchievementManager().track(data, "prestige_1000", newPrestige);
 
         plugin.getRepository().savePlayer(data);
         return PrestigeResult.SUCCESS;
@@ -64,7 +66,8 @@ public class PrestigeManager {
                 player.getLocation().add(0, 1, 0), 80, 0.5, 1, 0.5, 0.3);
 
         // Spezielle Meilenstein-Nachrichten
-        if (prestige == 10 || prestige == 25 || prestige == 50) {
+        if (prestige == 10 || prestige == 25 || prestige == 50 || prestige == 100
+                || prestige == 250 || prestige == 500 || prestige == 1000) {
             org.bukkit.Bukkit.broadcast(MM.deserialize(
                     "<gold><bold>✦ PRESTIGE " + prestige + "</bold></gold> "
                             + "<yellow>" + player.getName()
@@ -82,11 +85,15 @@ public class PrestigeManager {
     }
 
     public String getPrestigeTitle(int prestige) {
-        if (prestige >= 50) return "<dark_purple>✦ God of Generators ✦</dark_purple>";
-        if (prestige >= 25) return "<light_purple>★ Prestige-Meister ★</light_purple>";
-        if (prestige >= 10) return "<red>⚡ Prestige-König ⚡</red>";
-        if (prestige >= 5)  return "<gold>♦ Fortgeschrittener ♦</gold>";
-        if (prestige >= 1)  return "<green>✔ Aufsteiger</green>";
+        if (prestige >= 1000) return "<dark_red><bold>❋ TITAN DER GENERATOREN ❋</bold></dark_red>";
+        if (prestige >= 500)  return "<red><bold>☠ Zerstörer ☠</bold></red>";
+        if (prestige >= 250)  return "<gold><bold>⚡ Legende ⚡</bold></gold>";
+        if (prestige >= 100)  return "<dark_purple>✦ God of Generators ✦</dark_purple>";
+        if (prestige >= 50)   return "<light_purple>★ Prestige-Meister ★</light_purple>";
+        if (prestige >= 25)   return "<red>⚡ Prestige-König ⚡</red>";
+        if (prestige >= 10)   return "<gold>♦ Fortgeschrittener ♦</gold>";
+        if (prestige >= 5)    return "<yellow>◆ Erfahrener</yellow>";
+        if (prestige >= 1)    return "<green>✔ Aufsteiger</green>";
         return "<gray>Anfänger</gray>";
     }
 

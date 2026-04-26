@@ -106,7 +106,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
 
         player.sendMessage(MM.deserialize("<gold>━━ Deine Generator-Stats ━━"));
         player.sendMessage(MM.deserialize("<gray>Geld: <green>$" + MoneyManager.formatMoney(data.getMoney())));
-        player.sendMessage(MM.deserialize("<gray>Prestige: <light_purple>" + data.getPrestige() + "/" + plugin.getConfig().getInt("max-prestige", 50)));
+        player.sendMessage(MM.deserialize("<gray>Prestige: <light_purple>" + data.getPrestige() + "/" + plugin.getConfig().getInt("max-prestige", 1000)));
         player.sendMessage(MM.deserialize("<gray>Nächstes Prestige kostet: <yellow>$" + MoneyManager.formatMoney(data.nextPrestigeCost())));
         player.sendMessage(MM.deserialize("<gray>Max. Generator-Level: <aqua>" + data.maxGeneratorLevel()));
         player.sendMessage(MM.deserialize("<gray>Generatoren: <white>" + data.getGenerators().size()));
@@ -140,7 +140,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
                             + MoneyManager.formatMoney(data.nextPrestigeCost())
                             + " | Du hast: $" + MoneyManager.formatMoney(data.getMoney())));
             case MAX_REACHED -> player.sendMessage(MM.deserialize(
-                    "<red>Du hast bereits das maximale Prestige (" + plugin.getConfig().getInt("max-prestige", 50) + ") erreicht!"));
+                    "<red>Du hast bereits das maximale Prestige (" + plugin.getConfig().getInt("max-prestige", 1000) + ") erreicht!"));
             case SUCCESS -> {} // Nachricht wird im Manager gesendet
             default -> {}
         }
