@@ -346,18 +346,12 @@ public class HologramManager {
         display.text(MM.deserialize(buildSpawnHoloText(data)));
     }
 
-    /**
-     * Baut den Tutorial-Guide-Text für das Spawn-Hologramm.
-     * Zeigt dem Spieler die nächsten Schritte basierend auf seinem Fortschritt.
-     */
     private String buildSpawnHoloText(PlayerData data) {
-        // Fortschritt ermitteln
         boolean hasGen      = !data.getGenerators().isEmpty();
         boolean hasUpgraded = data.getTotalUpgrades() > 0;
         boolean hasThreeGen = data.getGenerators().size() >= 3;
         boolean hasPrestige = data.getPrestige() > 0;
 
-        // Gesamteinkommen für Fortschrittszeile
         double totalIncome = 0;
         for (de.pinkhorizon.generators.data.PlacedGenerator gen : data.getGenerators()) {
             totalIncome += gen.incomePerSecond()
@@ -370,11 +364,10 @@ public class HologramManager {
 
         StringBuilder sb = new StringBuilder();
 
-        // ── Titel ────────────────────────────────────────────────────────────
         sb.append("<light_purple><bold>  ✦ IdleForge – Guide ✦  </bold></light_purple>\n");
         sb.append("<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-        // ── Schritt 1: Ersten Generator platzieren ───────────────────────────
+        // Schritt 1
         if (!hasGen) {
             sb.append("<yellow><bold>➤ Schritt 1: Generator platzieren</bold></yellow>\n");
             sb.append("<gray>  Du hast einen <white>Cobblestone-Generator\n");
@@ -384,10 +377,9 @@ public class HologramManager {
         } else {
             sb.append("<green>✔ <white>Schritt 1: <green>Generator platziert!\n");
         }
-
         sb.append("<dark_gray>───────────────────────\n");
 
-        // ── Schritt 2: Upgraden ──────────────────────────────────────────────
+        // Schritt 2
         if (hasGen && !hasUpgraded) {
             sb.append("<yellow><bold>➤ Schritt 2: Generator upgraden</bold></yellow>\n");
             sb.append("<gray>  <white>Schleichen + Rechtsklick\n");
@@ -399,10 +391,9 @@ public class HologramManager {
         } else {
             sb.append("<green>✔ <white>Schritt 2: <green>Upgrade durchgeführt!\n");
         }
-
         sb.append("<dark_gray>───────────────────────\n");
 
-        // ── Schritt 3: Mehr Generatoren ──────────────────────────────────────
+        // Schritt 3
         if (hasUpgraded && !hasThreeGen) {
             sb.append("<yellow><bold>➤ Schritt 3: Mehr Generatoren</bold></yellow>\n");
             sb.append("<gray>  Kaufe weitere Typen im Shop:\n");
@@ -413,10 +404,9 @@ public class HologramManager {
         } else {
             sb.append("<green>✔ <white>Schritt 3: <green>3+ Generatoren aktiv!\n");
         }
-
         sb.append("<dark_gray>───────────────────────\n");
 
-        // ── Schritt 4: Prestige ──────────────────────────────────────────────
+        // Schritt 4
         if (hasThreeGen && !hasPrestige) {
             sb.append("<yellow><bold>➤ Schritt 4: Prestige machen</bold></yellow>\n");
             sb.append("<gray>  Kosten: <gold>$").append(MoneyManager.formatMoney(data.nextPrestigeCost())).append("\n");
@@ -430,7 +420,6 @@ public class HologramManager {
 
         sb.append("<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-        // ── Fortschrittszeile ────────────────────────────────────────────────
         sb.append("<gray>💰 <green>$").append(MoneyManager.formatMoney(data.getMoney()));
         if (totalIncome > 0) {
             sb.append("  <gray>📈 <aqua>$")
@@ -438,7 +427,6 @@ public class HologramManager {
         }
         sb.append("\n");
 
-        // Aktiver Booster (kompakt)
         if (data.hasActiveBooster()) {
             long rem = data.getBoosterExpiry() - System.currentTimeMillis() / 1000;
             sb.append("<yellow>⚡ x").append(data.getBoosterMultiplier())
