@@ -1138,8 +1138,6 @@ client.once('ready', async () => {
 
   const guild = client.guilds.cache.get(GUILD_ID);
   if (guild) {
-    await guild.members.fetch().catch(() => {});
-
     // Auto-find existing channels
     const statusCh  = guild.channels.cache.find(c => c.name === 'server-status');
     const membersCh = guild.channels.cache.find(c => c.name.startsWith('👥 Mitglieder'));
