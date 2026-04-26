@@ -174,6 +174,20 @@ public class IslandWorldManager {
         // Sicherstellen dass der Chunk geladen ist
         world.loadChunk(spawn.getBlockX() >> 4, spawn.getBlockZ() >> 4, true);
 
+        // Plattform-Fallback: falls kein Boden vorhanden, Glass-Plattform setzen
+        org.bukkit.block.Block below = world.getBlockAt((int) spawnX, (int) spawnY - 1, (int) spawnZ);
+        if (below.getType() == org.bukkit.Material.AIR
+                || below.getType() == org.bukkit.Material.VOID_AIR
+                || below.getType() == org.bukkit.Material.CAVE_AIR) {
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    world.getBlockAt((int) spawnX + dx, (int) spawnY - 1, (int) spawnZ + dz)
+                            .setType(org.bukkit.Material.GLASS);
+                }
+            }
+            log.info("[IslandWorld] Spawn-Plattform erstellt für " + player.getName());
+        }
+
         player.teleport(spawn);
         player.sendMessage(MM.deserialize(
                 "<green>✔ Willkommen auf deiner Insel! <gray>| <yellow>/gen shop"));
