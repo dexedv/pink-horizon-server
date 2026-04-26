@@ -929,6 +929,7 @@ async function postDefaultContent(guild, createdChannels) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function runSetupGenerators(guild, interaction) {
+  const log = msg => { console.log('[AutoSetup]', msg); if (interaction) interaction.editReply(msg).catch(() => {}); };
   try {
     const everyone   = guild.roles.everyone;
     const adminRole  = guild.roles.cache.find(r => r.name === 'Admin');
@@ -937,7 +938,7 @@ async function runSetupGenerators(guild, interaction) {
     const verifRole  = guild.roles.cache.find(r => r.name === 'Verifiziert');
 
     // ── 1. Neue Rollen ───────────────────────────────────────────────────────
-    await interaction.editReply('⚙️ Erstelle fehlende Rollen...');
+    log('Erstelle fehlende Rollen...');
     const newRoles = [
       { name: 'Survival-Fan',  color: 0x2ECC71 },
       { name: 'Smash-Fan',     color: 0xFF5555 },
@@ -947,7 +948,7 @@ async function runSetupGenerators(guild, interaction) {
     for (const def of newRoles) {
       let role = guild.roles.cache.find(r => r.name === def.name);
       if (!role) {
-        await interaction.editReply(`⚙️ Erstelle Rolle **${def.name}**...`);
+        log(`Erstelle Rolle ${def.name}...`);
         role = await apiCall(() => guild.roles.create({ name: def.name, color: def.color, hoist: false, mentionable: false }));
         await sleep(10000);
       }
@@ -955,7 +956,7 @@ async function runSetupGenerators(guild, interaction) {
     }
 
     // ── 2. SPIELMODUS Kategorie + rollen-wählen ──────────────────────────────
-    await interaction.editReply('⚙️ Erstelle **🎮 SPIELMODUS** Kategorie...');
+    log('Erstelle 🎮 SPIELMODUS Kategorie...');
     const spielmodusCatPerms = [
       { id: everyone.id,  deny:  [PermissionFlagsBits.ViewChannel] },
       { id: verifRole.id, allow: [PermissionFlagsBits.ViewChannel] },
@@ -984,7 +985,7 @@ async function runSetupGenerators(guild, interaction) {
     }
 
     // ── 3. IDLEFORGE Kategorie + Kanäle ─────────────────────────────────────
-    await interaction.editReply('⚙️ Erstelle **⚙️ IDLEFORGE** Kategorie...');
+    log('Erstelle ⚙️ IDLEFORGE Kategorie...');
     const idleforgeCatPerms = [
       { id: everyone.id,                      deny:  [PermissionFlagsBits.ViewChannel] },
       { id: adminRole.id,                     allow: [PermissionFlagsBits.ViewChannel] },
@@ -1001,14 +1002,14 @@ async function runSetupGenerators(guild, interaction) {
     for (const chName of ['generators-allgemein', 'generators-tipps']) {
       const exists = guild.channels.cache.find(c => c.name === chName && c.parentId === idleforgeCat.id);
       if (!exists) {
-        await interaction.editReply(`⚙️ Erstelle **${chName}**...`);
+        log(`Erstelle ${chName}...`);
         await apiCall(() => guild.channels.create({ name: chName, type: ChannelType.GuildText, parent: idleforgeCat.id }));
         await sleep(10000);
       }
     }
 
     // ── 4. Spielmodus-Panel posten ───────────────────────────────────────────
-    await interaction.editReply('⚙️ Poste Spielmodus-Panel...');
+    log('Poste Spielmodus-Panel...');
     const msgs = await selfroleCh.messages.fetch({ limit: 5 }).catch(() => null);
     if (!msgs || msgs.size === 0) {
       await selfroleCh.send({
@@ -1034,17 +1035,11 @@ async function runSetupGenerators(guild, interaction) {
       });
     }
 
-    await interaction.editReply([
-      '✅ **Fertig!**',
-      '• Rollen: Survival-Fan, Smash-Fan, IdleForge-Fan',
-      '• Kategorie: 🎮 SPIELMODUS mit #rollen-wählen',
-      '• Kategorie: ⚙️ IDLEFORGE mit #generators-allgemein + #generators-tipps',
-      '• Spielmodus-Panel gepostet',
-    ].join('\n'));
+    log('✅ AutoSetup abgeschlossen: Rollen + Kanäle + Panel bereit.');
 
   } catch (e) {
-    console.error('[SetupGenerators] Fehler:', e);
-    await interaction.editReply(`❌ Fehler: ${e.message}`);
+    console.error('[AutoSetup] Fehler:', e.message);
+    if (interaction) interaction.editReply(`❌ Fehler: ${e.message}`).catch(() => {});
   }
 }
 
@@ -1154,6 +1149,9 @@ client.once('ready', async () => {
     if (ingameCh)  state.ingameCountChannelId  = ingameCh.id;
 
     startMonitor(guild);
+
+    // Neue Kanäle + Rollen automatisch beim Start erstellen
+    setTimeout(() => runSetupGenerators(guild, null).catch(e => console.error('[AutoSetup]', e.message)), 5000);
 
     // Thread-only Kanäle: keine normalen Nachrichten, nur Threads
     const THREAD_ONLY_CHANNELS = ['1497212103671550155', '1497212066950283395'];
