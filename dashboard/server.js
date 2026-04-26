@@ -808,7 +808,7 @@ app.get('/api/containers/stats', auth, async (req, res) => {
 // ── REST-API: Backup ──────────────────────────────────────────────────────
 
 const { execFile } = require('child_process');
-const BACKUP_DIR = path.join(__dirname, '..', 'backups');
+const BACKUP_DIR = process.env.BACKUP_DIR || '/data/backups';
 
 // Alle Backups auflisten
 app.get('/api/backups', auth, async (req, res) => {

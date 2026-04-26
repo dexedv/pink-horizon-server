@@ -217,7 +217,9 @@ services:
       - ./servers/lobby:/data/lobby:ro
       - ./servers/survival:/data/survival:ro
       - ./data/dashboard:/data/dashboard
+      - ./backups:/data/backups
     environment:
+      BACKUP_DIR:         "/data/backups"
       DASHBOARD_PASSWORD: "${DASHBOARD_PASSWORD}"
       LOBBY_RCON_HOST:    "lobby"
       SURVIVAL_RCON_HOST: "survival"
