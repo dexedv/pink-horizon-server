@@ -1068,7 +1068,6 @@ async function runSetup(guild, interaction) {
     await postDefaultContent(guild, created);
 
     await interaction.editReply('⚙️ Inhalte ✅ – Server-Monitor wird gestartet...');
-    await guild.members.fetch().catch(() => {});
     startMonitor(guild);
 
     await interaction.editReply([
