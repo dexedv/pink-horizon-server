@@ -31,10 +31,16 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage("Nur Spieler können diesen Befehl nutzen!");
+        // Konsolen-Befehle (Tebex-Lieferung)
+        if (!(sender instanceof Player)) {
+            if (args.length >= 1 && args[0].equalsIgnoreCase("givebooster")) {
+                handleGiveBoosterConsole(sender, args);
+            } else {
+                sender.sendMessage("Nur Spieler können diesen Befehl nutzen!");
+            }
             return true;
         }
+        Player player = (Player) sender;
 
         // /booster
         if (label.equalsIgnoreCase("booster")) {
@@ -623,6 +629,31 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(MM.deserialize(
                 "<green>✔ Booster <gold>x" + mult + " <gray>(" + minutes + " Min.) an <white>"
                 + target.getName() + " <green>vergeben!"));
+    }
+
+    /** Konsolen-Version von givebooster – für Tebex-Lieferung. */
+    private void handleGiveBoosterConsole(CommandSender sender, String[] args) {
+        // /gen givebooster <spieler> <multiplikator> <minuten>
+        if (args.length < 4) {
+            sender.sendMessage("Nutzung: /gen givebooster <spieler> <multiplikator> <minuten>");
+            return;
+        }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) {
+            sender.sendMessage("[PHGen] givebooster: Spieler '" + args[1] + "' ist nicht online – Tebex erneut versuchen.");
+            return;
+        }
+        double mult;
+        int minutes;
+        try {
+            mult    = Double.parseDouble(args[2]);
+            minutes = Integer.parseInt(args[3]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage("[PHGen] givebooster: Ungültiger Multiplikator oder Dauer!");
+            return;
+        }
+        plugin.getBoosterManager().giveBooster(target, mult, minutes);
+        sender.sendMessage("[PHGen] Booster x" + mult + " (" + minutes + " Min.) an " + target.getName() + " vergeben.");
     }
 
     private void handleSetMoney(Player player, String[] args) {
