@@ -52,6 +52,13 @@ public class HologramManager {
         World world = Bukkit.getWorld(gen.getWorld());
         if (world == null) return;
 
+        // Chunk laden damit der TextDisplay gespawnt werden kann
+        int cx = gen.getX() >> 4;
+        int cz = gen.getZ() >> 4;
+        if (!world.isChunkLoaded(cx, cz)) {
+            world.loadChunk(cx, cz, false);
+        }
+
         Location loc = new Location(world, gen.getX() + 0.5, gen.getY() + 1.6, gen.getZ() + 0.5);
         String text = buildHologramText(gen, data);
 

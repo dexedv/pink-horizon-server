@@ -39,7 +39,9 @@ public class GeneratorManager {
         data.getGenerators().addAll(gens);
         for (PlacedGenerator g : gens) {
             byLocation.put(g.locationKey(), g);
-            plugin.getHologramManager().spawnHologram(g);
+            // Hologramme erst spawnen wenn die Welt geladen ist (2 Ticks Verzögerung)
+            org.bukkit.Bukkit.getScheduler().runTaskLater(plugin,
+                    () -> plugin.getHologramManager().spawnHologram(g), 10L);
         }
     }
 
