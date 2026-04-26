@@ -289,10 +289,13 @@ public class NavigatorGUI implements Listener {
             lore.add(MM.deserialize("<gray>Prestige: <light_purple>" + data.getPrestige()
                     + " <dark_gray>/ " + plugin.getConfig().getInt("max-prestige", 1000)));
             lore.add(MM.deserialize("<gray>Max Level: <aqua>" + data.maxGeneratorLevel()));
+            int talentSlots = plugin.getTalentManager() != null
+                    ? plugin.getTalentManager().getExtraGeneratorSlots(data) : 0;
             lore.add(MM.deserialize("<gray>Generatoren: <white>" + data.getGenerators().size()
                     + " <dark_gray>/ " + data.maxGeneratorSlots(
                         plugin.getConfig().getInt("max-generators", 10),
-                        plugin.getConfig().getInt("generator-slot-per-prestige", 2))));
+                        plugin.getConfig().getInt("generator-slot-per-prestige", 2),
+                        talentSlots)));
 
             // Aktiver Booster
             if (data.hasActiveBooster()) {

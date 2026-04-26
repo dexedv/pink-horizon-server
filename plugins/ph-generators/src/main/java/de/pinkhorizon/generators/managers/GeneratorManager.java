@@ -85,7 +85,9 @@ public class GeneratorManager {
 
         int baseSlots = plugin.getConfig().getInt("max-generators", 10);
         int perPrestige = plugin.getConfig().getInt("generator-slot-per-prestige", 2);
-        if (data.getGenerators().size() >= data.maxGeneratorSlots(baseSlots, perPrestige)) {
+        int talentSlots = plugin.getTalentManager() != null
+                ? plugin.getTalentManager().getExtraGeneratorSlots(data) : 0;
+        if (data.getGenerators().size() >= data.maxGeneratorSlots(baseSlots, perPrestige, talentSlots)) {
             player.sendMessage(MiniMessage.miniMessage().deserialize(
                     "<red>Du hast dein Generator-Limit erreicht! Mache mehr Prestige für mehr Slots."));
             return false;

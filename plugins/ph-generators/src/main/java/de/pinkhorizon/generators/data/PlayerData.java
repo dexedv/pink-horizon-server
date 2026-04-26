@@ -146,7 +146,11 @@ public class PlayerData {
      * Basis aus config, Default 10.
      */
     public int maxGeneratorSlots(int baseSlots, int prestigePerSlot) {
-        return baseSlots + (prestige / prestigePerSlot) + getRankExtraSlots();
+        return maxGeneratorSlots(baseSlots, prestigePerSlot, 0);
+    }
+
+    public int maxGeneratorSlots(int baseSlots, int prestigePerSlot, int talentSlots) {
+        return baseSlots + (prestige / prestigePerSlot) + getRankExtraSlots() + talentSlots;
     }
 
     // ── Rang-Perks (LP-Gruppe) ───────────────────────────────────────────────

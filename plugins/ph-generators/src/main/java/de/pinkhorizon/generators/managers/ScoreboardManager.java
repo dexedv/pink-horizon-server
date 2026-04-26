@@ -51,13 +51,18 @@ public class ScoreboardManager {
                 MM.deserialize("<light_purple><bold>✦ IdleForge ✦</bold>"));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
+        double talentMult = plugin.getTalentManager() != null
+                ? plugin.getTalentManager().getIncomeMultiplier(data) : 1.0;
+        int talentSlots = plugin.getTalentManager() != null
+                ? plugin.getTalentManager().getExtraGeneratorSlots(data) : 0;
         double totalIncome = data.getGenerators().stream()
                 .mapToDouble(g -> g.incomePerSecond()
                         * data.prestigeMultiplier()
                         * data.effectiveBoosterMultiplier()
                         * plugin.getMoneyManager().getServerBoosterMultiplier()
                         * plugin.getSynergyManager().getTotalSynergyMultiplier(data)
-                        * data.getRankMultiplier())
+                        * data.getRankMultiplier()
+                        * talentMult)
                 .sum();
 
         int line = 15;
@@ -73,7 +78,8 @@ public class ScoreboardManager {
         set(obj, "§bGeneratoren: §f" + data.getGenerators().size()
                 + "§7/§f" + data.maxGeneratorSlots(
                         plugin.getConfig().getInt("max-generators", 10),
-                        plugin.getConfig().getInt("generator-slot-per-prestige", 2)), line--);
+                        plugin.getConfig().getInt("generator-slot-per-prestige", 2),
+                        talentSlots), line--);
         set(obj, "§r§r§r§r§r", line--);
         set(obj, "§7play.pinkhorizon.de", line--);
 

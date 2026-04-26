@@ -252,17 +252,24 @@ public class HologramManager {
 
     private String buildStatsText(PlayerData data) {
         // Gesamteinkommen berechnen
+        double talentIncomeMult = plugin.getTalentManager() != null
+                ? plugin.getTalentManager().getIncomeMultiplier(data) : 1.0;
+        int talentSlots = plugin.getTalentManager() != null
+                ? plugin.getTalentManager().getExtraGeneratorSlots(data) : 0;
         double totalIncome = 0;
         for (PlacedGenerator gen : data.getGenerators()) {
             totalIncome += gen.incomePerSecond()
                     * data.prestigeMultiplier()
                     * data.effectiveBoosterMultiplier()
                     * plugin.getMoneyManager().getServerBoosterMultiplier()
-                    * plugin.getSynergyManager().getTotalSynergyMultiplier(data);
+                    * plugin.getSynergyManager().getTotalSynergyMultiplier(data)
+                    * talentIncomeMult
+                    * data.getRankMultiplier();
         }
         int maxSlots = data.maxGeneratorSlots(
                 plugin.getConfig().getInt("max-generators", 10),
-                plugin.getConfig().getInt("generator-slot-per-prestige", 2));
+                plugin.getConfig().getInt("generator-slot-per-prestige", 2),
+                talentSlots);
 
         StringBuilder sb = new StringBuilder();
         sb.append("<gold><bold>⚙ ").append(data.getName()).append("</bold></gold>\n");
@@ -453,10 +460,14 @@ public class HologramManager {
         double rawIncome = gen.incomePerSecond();
         double effectiveIncome = rawIncome;
         if (data != null) {
+            double talentMult = plugin.getTalentManager() != null
+                    ? plugin.getTalentManager().getIncomeMultiplier(data) : 1.0;
             effectiveIncome *= data.prestigeMultiplier()
                     * data.effectiveBoosterMultiplier()
                     * plugin.getMoneyManager().getServerBoosterMultiplier()
-                    * plugin.getSynergyManager().getTotalSynergyMultiplier(data);
+                    * plugin.getSynergyManager().getTotalSynergyMultiplier(data)
+                    * talentMult
+                    * data.getRankMultiplier();
         }
 
         boolean isMax = data != null && gen.getLevel() >= data.maxGeneratorLevel();
