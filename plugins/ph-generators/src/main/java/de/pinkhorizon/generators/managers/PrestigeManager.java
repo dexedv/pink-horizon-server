@@ -1,10 +1,13 @@
 package de.pinkhorizon.generators.managers;
 
+import de.pinkhorizon.generators.GeneratorType;
 import de.pinkhorizon.generators.PHGenerators;
 import de.pinkhorizon.generators.data.PlacedGenerator;
 import de.pinkhorizon.generators.data.PlayerData;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 /**
@@ -29,13 +32,19 @@ public class PrestigeManager {
         long cost = data.nextPrestigeCost();
         if (data.getMoney() < cost) return PrestigeResult.NO_MONEY;
 
-        data.takeMoney(cost);
+        data.setMoney(0);
         int newPrestige = data.getPrestige() + 1;
         data.setPrestige(newPrestige);
 
-        // Alle Generatoren auf Level 1 zurücksetzen
+        // Alle Generatoren auf Cobblestone Level 1 zurücksetzen
         for (PlacedGenerator gen : data.getGenerators()) {
+            gen.setType(GeneratorType.COBBLESTONE);
             gen.setLevel(1);
+            World world = Bukkit.getWorld(gen.getWorld());
+            if (world != null) {
+                world.getBlockAt(gen.getX(), gen.getY(), gen.getZ())
+                        .setType(GeneratorType.COBBLESTONE.getBlock());
+            }
             plugin.getRepository().updateGeneratorLevel(gen);
             plugin.getHologramManager().updateHologram(gen, data);
         }
@@ -70,11 +79,18 @@ public class PrestigeManager {
         int maxPrestige = plugin.getConfig().getInt("max-prestige", 1000);
         if (data.getPrestige() >= maxPrestige) return PrestigeResult.MAX_REACHED;
 
+        data.setMoney(0);
         int newPrestige = data.getPrestige() + 1;
         data.setPrestige(newPrestige);
 
         for (PlacedGenerator gen : data.getGenerators()) {
+            gen.setType(GeneratorType.COBBLESTONE);
             gen.setLevel(1);
+            World world = Bukkit.getWorld(gen.getWorld());
+            if (world != null) {
+                world.getBlockAt(gen.getX(), gen.getY(), gen.getZ())
+                        .setType(GeneratorType.COBBLESTONE.getBlock());
+            }
             plugin.getRepository().updateGeneratorLevel(gen);
             plugin.getHologramManager().updateHologram(gen, data);
         }
