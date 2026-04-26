@@ -7,10 +7,12 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.user.User;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,9 +22,7 @@ import java.util.Map;
 
 /**
  * Chat-Format: [Rang-Prefix] [P{prestige}] Name: Nachricht
- *
- * Rang-Prefix wird aus der LuckPerms-Gruppe des Spielers abgeleitet
- * (gleiche Mapping-Tabelle wie ph-lobby's RankManager).
+ * Identisches Vorgehen wie ph-lobby ChatListener.
  */
 public class ChatListener implements Listener {
 
@@ -31,8 +31,7 @@ public class ChatListener implements Listener {
     private static final LegacyComponentSerializer LEGACY =
             LegacyComponentSerializer.legacySection();
 
-    // Dieselbe Mapping-Tabelle wie ph-lobby RankManager
-    // Key = LP-Gruppenname, Value = Legacy-Chat-Prefix
+    // Identische Tabelle wie ph-lobby RankManager
     private static final Map<String, String> GROUP_PREFIX = Map.of(
         "owner",     "§4§l[Owner] §r",
         "admin",     "§c§l[Admin] §r",
@@ -42,7 +41,6 @@ public class ChatListener implements Listener {
         "vip",       "§6[VIP] §r"
     );
 
-    // Namensfarbe je Gruppe (public für ScoreboardManager)
     public static final Map<String, TextColor> GROUP_COLOR = Map.of(
         "owner",     TextColor.color(0xCC0000),
         "admin",     NamedTextColor.RED,
@@ -57,34 +55,36 @@ public class ChatListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onChat(AsyncChatEvent e) {
-        Player player = e.getPlayer();
+    public void onChat(AsyncChatEvent event) {
+        event.setCancelled(true);
+
+        Player player = event.getPlayer();
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
 
         String group = getPrimaryGroup(player);
-        Component prefix  = buildPrefix(group);
-        Component prestige = buildPrestigeBadge(data);
+        String rawPrefix = GROUP_PREFIX.getOrDefault(group, "");
         TextColor nameColor = GROUP_COLOR.getOrDefault(group, NamedTextColor.WHITE);
-        Component name = Component.text(player.getName(), nameColor);
 
-        // [§4§l[Owner]§r] [P5] Spielername: Nachricht
-        Component displayName = prefix.append(prestige).append(name);
+        // Nachrichtentext als plain text (wie Lobby)
+        String text = PlainTextComponentSerializer.plainText().serialize(event.message());
 
-        e.renderer((source, sourceDisplayName, message, viewer) ->
-                displayName
-                        .append(Component.text(": ", NamedTextColor.GRAY))
-                        .append(message)
-        );
+        Component formatted = LEGACY.deserialize(rawPrefix)
+                .append(buildPrestigeBadge(data))
+                .append(Component.text(player.getName(), nameColor))
+                .append(Component.text(" » ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(text, NamedTextColor.WHITE));
+
+        Bukkit.broadcast(formatted);
     }
 
-    // ── Hilfsmethoden (auch von ScoreboardManager verwendet) ───────────────
+    // ── Hilfsmethoden ──────────────────────────────────────────────────────
 
-    /** Primäre LP-Gruppe des Spielers (online-Cache, kein DB-Call). */
+    /** LP-Gruppe des Spielers via Player-Adapter (sicher für Online-Spieler). */
     public static String getPrimaryGroup(Player player) {
         try {
             LuckPerms lp = LuckPermsProvider.get();
-            User user = lp.getUserManager().getUser(player.getUniqueId());
-            if (user != null) return user.getPrimaryGroup();
+            User user = lp.getPlayerAdapter(Player.class).getUser(player);
+            return user.getPrimaryGroup();
         } catch (Exception ignored) {}
         return "default";
     }
@@ -96,7 +96,7 @@ public class ChatListener implements Listener {
         return LEGACY.deserialize(raw);
     }
 
-    /** Prestige-Badge als Component (leer bei Prestige 0). */
+    /** Prestige-Badge (leer bei Prestige 0). */
     public static Component buildPrestigeBadge(PlayerData data) {
         if (data == null || data.getPrestige() <= 0) return Component.empty();
         return MM.deserialize("<dark_gray>[<light_purple>P" + data.getPrestige()
