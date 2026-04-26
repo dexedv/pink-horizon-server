@@ -227,11 +227,21 @@ public class IslandWorldManager {
         Files.walkFileTree(src, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                // Spielerdaten-Ordner überspringen
+                String dirName = dir.getFileName() != null ? dir.getFileName().toString() : "";
+                if (dirName.equals("players") || dirName.equals("playerdata")) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
                 Files.createDirectories(dest.resolve(src.relativize(dir)));
                 return FileVisitResult.CONTINUE;
             }
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                // level.dat überspringen → Paper generiert eine frische für die neue Welt
+                String name = file.getFileName().toString();
+                if (name.equals("level.dat") || name.equals("level.dat_old") || name.equals("session.lock")) {
+                    return FileVisitResult.CONTINUE;
+                }
                 Files.copy(file, dest.resolve(src.relativize(file)), StandardCopyOption.REPLACE_EXISTING);
                 return FileVisitResult.CONTINUE;
             }
