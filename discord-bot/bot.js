@@ -646,7 +646,7 @@ async function ensureRoles(guild) {
     let role = guild.roles.cache.find(r => r.name === def.name);
     if (!role) {
       role = await apiCall(() => guild.roles.create({ name: def.name, color: def.color, hoist: def.hoist, mentionable: def.mentionable }));
-      await sleep(1500);
+      await sleep(10000);
     }
     created[def.name] = role;
   }
@@ -771,7 +771,7 @@ async function ensureChannels(guild, roles) {
     let category = guild.channels.cache.find(c => c.name === catDef.name && c.type === ChannelType.GuildCategory);
     if (!category) {
       category = await apiCall(() => guild.channels.create({ name: catDef.name, type: ChannelType.GuildCategory, permissionOverwrites: catPerms }));
-      await sleep(1500);
+      await sleep(10000);
     }
 
     for (const chDef of catDef.children) {
@@ -793,12 +793,12 @@ async function ensureChannels(guild, roles) {
         }
 
         const ch = await apiCall(() => guild.channels.create({ name: chDef.name, type: ChannelType.GuildText, parent: category.id, permissionOverwrites: perms }));
-        await sleep(1500);
+        await sleep(10000);
         if (chDef.tag) created[chDef.tag] = ch.id;
       } else {
         const perms = [{ id: everyone.id, deny: [PermissionFlagsBits.Connect] }];
         const ch = await apiCall(() => guild.channels.create({ name: chDef.name, type: ChannelType.GuildVoice, parent: category.id, permissionOverwrites: perms }));
-        await sleep(1500);
+        await sleep(10000);
         if (chDef.tag) created[chDef.tag] = ch.id;
       }
     }
