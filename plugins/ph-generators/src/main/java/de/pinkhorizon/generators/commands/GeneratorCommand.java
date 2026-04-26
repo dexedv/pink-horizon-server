@@ -66,8 +66,20 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             case "tutorial"     -> { plugin.getTutorialManager().startTutorial(player); yield true; }
             case "synergy"      -> { showSynergy(player); yield true; }
             case "list"         -> { showGeneratorList(player); yield true; }
-            case "upgradeall", "ua" -> { handleUpgradeAll(player, args); yield true; }
-            case "auto"         -> { toggleAutoUpgrade(player); yield true; }
+            case "upgradeall", "ua" -> {
+                PlayerData _d = plugin.getPlayerDataMap().get(player.getUniqueId());
+                if (_d != null && !_d.rankAllowsBulkUpgrade()) {
+                    player.sendMessage(MM.deserialize("<red>Bulk-Upgrade erfordert mindestens den <light_purple>Rune<red>-Rang!"));
+                } else { handleUpgradeAll(player, args); }
+                yield true;
+            }
+            case "auto"         -> {
+                PlayerData _d = plugin.getPlayerDataMap().get(player.getUniqueId());
+                if (_d != null && !_d.rankAllowsAutoUpgrade()) {
+                    player.sendMessage(MM.deserialize("<red>Auto-Upgrade erfordert mindestens den <light_purple>Catalyst<red>-Rang!"));
+                } else { toggleAutoUpgrade(player); }
+                yield true;
+            }
             case "visit"        -> { handleVisit(player, args); yield true; }
             case "home"         -> { handleHome(player); yield true; }
             case "talents", "talent" -> { plugin.getTalentsGUI().open(player); yield true; }

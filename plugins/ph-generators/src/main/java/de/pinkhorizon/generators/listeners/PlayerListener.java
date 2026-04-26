@@ -49,6 +49,10 @@ public class PlayerListener implements Listener {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 plugin.getPlayerDataMap().put(uuid, finalData);
 
+                // LP-Gruppe setzen (für Rang-Perks)
+                finalData.setLpGroup(
+                        de.pinkhorizon.generators.listeners.ChatListener.getPrimaryGroup(player));
+
                 // Generatoren, Synergien, Achievements, Quests, AFK laden
                 plugin.getGeneratorManager().loadForPlayer(finalData);
                 plugin.getSynergyManager().recalculateAll(finalData);

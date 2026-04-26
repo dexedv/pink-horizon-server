@@ -79,7 +79,8 @@ public class MoneyManager {
                     * plugin.getSynergyManager().getTotalSynergyMultiplier(data)
                     * eventMult
                     * talentMult
-                    * guildMult;
+                    * guildMult
+                    * data.getRankMultiplier();
 
             long earned = Math.max(1, Math.round(income * totalMult));
             data.addMoney(earned);

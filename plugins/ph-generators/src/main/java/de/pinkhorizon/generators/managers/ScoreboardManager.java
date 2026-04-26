@@ -56,7 +56,8 @@ public class ScoreboardManager {
                         * data.prestigeMultiplier()
                         * data.effectiveBoosterMultiplier()
                         * plugin.getMoneyManager().getServerBoosterMultiplier()
-                        * plugin.getSynergyManager().getTotalSynergyMultiplier(data))
+                        * plugin.getSynergyManager().getTotalSynergyMultiplier(data)
+                        * data.getRankMultiplier())
                 .sum();
 
         int line = 15;

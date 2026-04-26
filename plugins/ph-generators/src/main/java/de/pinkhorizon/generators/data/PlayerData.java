@@ -68,6 +68,9 @@ public class PlayerData {
     // Rang aus pinkhorizon.players (session-only, wird beim Join geladen)
     private transient String rank = "spieler";
 
+    // LP-Gruppe (session-only, wird beim Join über LuckPerms gesetzt)
+    private transient String lpGroup = "default";
+
     public PlayerData(UUID uuid, String name, long money, int prestige, long lastSeen) {
         this.uuid = uuid;
         this.name = name;
@@ -128,7 +131,42 @@ public class PlayerData {
      * Basis aus config, Default 10.
      */
     public int maxGeneratorSlots(int baseSlots, int prestigePerSlot) {
-        return baseSlots + (prestige / prestigePerSlot);
+        return baseSlots + (prestige / prestigePerSlot) + getRankExtraSlots();
+    }
+
+    // ── Rang-Perks (LP-Gruppe) ───────────────────────────────────────────────
+
+    public String getLpGroup()              { return lpGroup; }
+    public void   setLpGroup(String g)      { this.lpGroup = g == null ? "default" : g; }
+
+    /** Einkommens-Multiplikator durch gekauften Rang. */
+    public double getRankMultiplier() {
+        return switch (lpGroup) {
+            case "nexus"    -> 1.15;
+            case "catalyst" -> 1.10;
+            case "rune"     -> 1.05;
+            default         -> 1.0;
+        };
+    }
+
+    /** Extra Generator-Slots durch gekauften Rang. */
+    public int getRankExtraSlots() {
+        return switch (lpGroup) {
+            case "nexus"    -> 6;
+            case "catalyst" -> 4;
+            case "rune"     -> 2;
+            default         -> 0;
+        };
+    }
+
+    /** true wenn der Rang Auto-Upgrade erlaubt (Catalyst / Nexus). */
+    public boolean rankAllowsAutoUpgrade() {
+        return lpGroup.equals("catalyst") || lpGroup.equals("nexus");
+    }
+
+    /** true wenn der Rang Bulk-Upgrade erlaubt (Rune / Catalyst / Nexus). */
+    public boolean rankAllowsBulkUpgrade() {
+        return lpGroup.equals("rune") || lpGroup.equals("catalyst") || lpGroup.equals("nexus");
     }
 
     // ── Getter & Setter ──────────────────────────────────────────────────────

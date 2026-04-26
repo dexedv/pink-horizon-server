@@ -31,23 +31,29 @@ public class ChatListener implements Listener {
     private static final LegacyComponentSerializer LEGACY =
             LegacyComponentSerializer.legacySection();
 
-    // Identische Tabelle wie ph-lobby RankManager
-    private static final Map<String, String> GROUP_PREFIX = Map.of(
-        "owner",     "§4§l[Owner] §r",
-        "admin",     "§c§l[Admin] §r",
-        "dev",       "§b§l[DEV] §r",
-        "moderator", "§9§l[Mod] §r",
-        "supporter", "§3§l[Support] §r",
-        "vip",       "§6[VIP] §r"
+    // Identische Tabelle wie ph-lobby RankManager + Rang-Perks
+    private static final Map<String, String> GROUP_PREFIX = Map.ofEntries(
+        Map.entry("owner",     "§4§l[Owner] §r"),
+        Map.entry("admin",     "§c§l[Admin] §r"),
+        Map.entry("dev",       "§b§l[DEV] §r"),
+        Map.entry("moderator", "§9§l[Mod] §r"),
+        Map.entry("supporter", "§3§l[Support] §r"),
+        Map.entry("vip",       "§6[VIP] §r"),
+        Map.entry("nexus",     "§6§l[Nexus] §r"),
+        Map.entry("catalyst",  "§d§l[Catalyst] §r"),
+        Map.entry("rune",      "§5§l[Rune] §r")
     );
 
-    public static final Map<String, TextColor> GROUP_COLOR = Map.of(
-        "owner",     TextColor.color(0xCC0000),
-        "admin",     NamedTextColor.RED,
-        "dev",       TextColor.color(0x00CCCC),
-        "moderator", NamedTextColor.BLUE,
-        "supporter", TextColor.color(0x00AAAA),
-        "vip",       NamedTextColor.GOLD
+    public static final Map<String, TextColor> GROUP_COLOR = Map.ofEntries(
+        Map.entry("owner",     TextColor.color(0xCC0000)),
+        Map.entry("admin",     NamedTextColor.RED),
+        Map.entry("dev",       TextColor.color(0x00CCCC)),
+        Map.entry("moderator", NamedTextColor.BLUE),
+        Map.entry("supporter", TextColor.color(0x00AAAA)),
+        Map.entry("vip",       NamedTextColor.GOLD),
+        Map.entry("nexus",     NamedTextColor.GOLD),
+        Map.entry("catalyst",  NamedTextColor.LIGHT_PURPLE),
+        Map.entry("rune",      TextColor.color(0xAA00AA))
     );
 
     public ChatListener(PHGenerators plugin) {
