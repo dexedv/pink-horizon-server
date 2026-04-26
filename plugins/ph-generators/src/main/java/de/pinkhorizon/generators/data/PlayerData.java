@@ -65,6 +65,9 @@ public class PlayerData {
     private String lbHoloWorld = null;
     private int lbHoloX, lbHoloY, lbHoloZ;
 
+    // Rang aus pinkhorizon.players (session-only, wird beim Join geladen)
+    private transient String rank = "spieler";
+
     public PlayerData(UUID uuid, String name, long money, int prestige, long lastSeen) {
         this.uuid = uuid;
         this.name = name;

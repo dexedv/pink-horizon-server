@@ -5,6 +5,7 @@ import de.pinkhorizon.generators.data.PlayerData;
 import de.pinkhorizon.generators.listeners.ChatListener;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -90,11 +91,14 @@ public class ScoreboardManager {
                         + "\n<dark_gray>play.pinkhorizon.de\n")
         );
 
-        // Spieler-Name in der Tab-Liste: LuckPerms-Prefix + Prestige-Badge + Name
+        // Spieler-Name in der Tab-Liste: LP-Gruppen-Prefix + Prestige-Badge + Name
         // Direkt setzen, da unser eigenes Scoreboard die LP-Teams überlagert.
-        Component prefix  = ChatListener.getLuckPermsPrefix(player);
+        String group      = ChatListener.getPrimaryGroup(player);
+        Component prefix  = ChatListener.buildPrefix(group);
         Component prestige = ChatListener.buildPrestigeBadge(data);
-        Component name    = Component.text(player.getName(), NamedTextColor.WHITE);
+        TextColor nameColor = de.pinkhorizon.generators.listeners.ChatListener.GROUP_COLOR
+                .getOrDefault(group, NamedTextColor.WHITE);
+        Component name    = Component.text(player.getName(), nameColor);
         player.playerListName(prefix.append(prestige).append(name));
     }
 
