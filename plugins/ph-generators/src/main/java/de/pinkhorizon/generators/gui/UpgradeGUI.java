@@ -129,8 +129,27 @@ public class UpgradeGUI implements Listener {
                         + " <green>auf Level <white>" + gen.getLevel() + " <green>upgegraded!"));
                 open(player);
             }
-            case MAX_LEVEL -> player.sendMessage(MM.deserialize(
-                    "<red>Maximales Level (" + data.maxGeneratorLevel() + ") erreicht! Mache mehr Prestige."));
+            case MAX_LEVEL -> {
+                // Max-Level erreicht → Tier-Upgrade versuchen
+                GeneratorManager.TierUpgradeResult tierResult = plugin.getGeneratorManager().tierUpgrade(player, gen);
+                switch (tierResult) {
+                    case SUCCESS -> {
+                        player.sendMessage(MM.deserialize(
+                                "<green>✔ Generator aufgewertet zu " + gen.getType().getDisplayName() + "! <gray>(Level zurück auf 1)"));
+                        open(player);
+                    }
+                    case NO_NEXT_TIER -> player.sendMessage(MM.deserialize(
+                            "<red>Maximales Tier erreicht! Kein weiteres Upgrade möglich."));
+                    case NO_MONEY -> {
+                        de.pinkhorizon.generators.GeneratorType nextTier = gen.getType().getNextTier();
+                        long cost = nextTier != null ? nextTier.getBuyPrice() : 0;
+                        player.sendMessage(MM.deserialize(
+                                "<red>Nicht genug Geld für Tier-Upgrade! Benötigt: $" + cost
+                                        + " | Du hast: $" + data.getMoney()));
+                    }
+                    default -> {}
+                }
+            }
             case NO_MONEY -> player.sendMessage(MM.deserialize(
                     "<red>Nicht genug Geld! Benötigt: $" + gen.upgradeCost()
                             + " | Du hast: $" + data.getMoney()));
@@ -156,6 +175,8 @@ public class UpgradeGUI implements Listener {
         List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
         lore.add(MM.deserialize("<gray>Level: <white>" + level + "<gray>/" + maxLevel));
         lore.add(MM.deserialize("<gray>Einkommen: <green>$" + String.format("%.1f", income) + "/s"));
+        de.pinkhorizon.generators.GeneratorType nextTier = gen.getType().getNextTier();
+
         if (!isMax) {
             lore.add(MM.deserialize("<gray>Nach Upgrade: <aqua>$" + String.format("%.1f", nextIncome) + "/s"));
             lore.add(MM.deserialize((canAfford ? "<green>" : "<red>") + "Upgrade-Kosten: $" + upgCost));
@@ -164,8 +185,16 @@ public class UpgradeGUI implements Listener {
             if (plugin.getAfkRewardManager().hasUpgradeToken(player(data))) {
                 lore.add(MM.deserialize("<aqua>Rechtsklick → Token verwenden (kostenlos)"));
             }
-        } else {
+        } else if (nextTier != null) {
+            long tierCost = nextTier.getBuyPrice();
+            boolean canAffordTier = data.getMoney() >= tierCost;
             lore.add(MM.deserialize("<green><bold>★ MAX LEVEL ★</bold></green>"));
+            lore.add(MM.deserialize("<gray>Nächstes Tier: " + nextTier.getDisplayName()));
+            lore.add(MM.deserialize((canAffordTier ? "<green>" : "<red>") + "Tier-Upgrade: $" + tierCost));
+            lore.add(MM.deserialize(""));
+            lore.add(MM.deserialize("<yellow>Linksklick → Tier-Upgrade"));
+        } else {
+            lore.add(MM.deserialize("<gold><bold>★ MAX TIER ★</bold></gold>"));
             lore.add(MM.deserialize("<gray>Mache Prestige für mehr Level!"));
         }
         lore.add(MM.deserialize("<dark_gray>" + gen.getWorld() + " " + gen.getX() + "," + gen.getY() + "," + gen.getZ()));

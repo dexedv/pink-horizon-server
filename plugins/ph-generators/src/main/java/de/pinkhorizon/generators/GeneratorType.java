@@ -82,6 +82,21 @@ public enum GeneratorType {
     }
 
     /**
+     * Gibt das nächste normale Tier zurück (z.B. COBBLESTONE → IRON).
+     * Null wenn kein höheres Tier existiert.
+     */
+    public GeneratorType getNextTier() {
+        return switch (this) {
+            case COBBLESTONE -> IRON;
+            case IRON        -> GOLD;
+            case GOLD        -> LAPIS;
+            case LAPIS       -> DIAMOND;
+            case DIAMOND     -> NETHERITE;
+            default          -> null; // NETHERITE und Mega-Typen haben kein nächstes Tier
+        };
+    }
+
+    /**
      * Gibt den Mega-Typ für diesen normalen Typ zurück.
      * Null wenn schon Mega oder seasonal.
      */

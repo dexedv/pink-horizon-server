@@ -164,6 +164,42 @@ public class GeneratorManager {
         return UpgradeResult.SUCCESS;
     }
 
+    // ── Tier-Upgrade ─────────────────────────────────────────────────────────
+
+    /**
+     * Wertet einen Generator auf das nächste Tier auf (z.B. Cobblestone → Iron).
+     * Nur möglich wenn der Generator maxLevel erreicht hat.
+     * Kosten = Kaufpreis des Ziel-Tiers. Level wird auf 1 zurückgesetzt.
+     */
+    public TierUpgradeResult tierUpgrade(Player player, PlacedGenerator gen) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) return TierUpgradeResult.NO_DATA;
+        if (!gen.getOwnerUUID().equals(player.getUniqueId())) return TierUpgradeResult.NOT_OWNER;
+
+        int maxLevel = data.maxGeneratorLevel();
+        if (gen.getLevel() < maxLevel) return TierUpgradeResult.NOT_MAX_LEVEL;
+
+        GeneratorType nextTier = gen.getType().getNextTier();
+        if (nextTier == null) return TierUpgradeResult.NO_NEXT_TIER;
+
+        long cost = nextTier.getBuyPrice();
+        if (!data.takeMoney(cost)) return TierUpgradeResult.NO_MONEY;
+
+        gen.setType(nextTier);
+        gen.setLevel(1);
+
+        // Block in der Welt auf das neue Material aktualisieren
+        org.bukkit.World world = org.bukkit.Bukkit.getWorld(gen.getWorld());
+        if (world != null) {
+            world.getBlockAt(gen.getX(), gen.getY(), gen.getZ()).setType(nextTier.getBlock());
+        }
+
+        plugin.getRepository().updateGeneratorLevel(gen);
+        plugin.getHologramManager().updateHologram(gen, data);
+        plugin.getSynergyManager().recalculate(gen, data);
+        return TierUpgradeResult.SUCCESS;
+    }
+
     // ── Fusion ───────────────────────────────────────────────────────────────
 
     /**
@@ -277,6 +313,10 @@ public class GeneratorManager {
 
     public enum UpgradeResult {
         SUCCESS, NO_DATA, NOT_OWNER, MAX_LEVEL, NO_MONEY
+    }
+
+    public enum TierUpgradeResult {
+        SUCCESS, NO_DATA, NOT_OWNER, NOT_MAX_LEVEL, NO_NEXT_TIER, NO_MONEY
     }
 
     public enum FuseResult {
