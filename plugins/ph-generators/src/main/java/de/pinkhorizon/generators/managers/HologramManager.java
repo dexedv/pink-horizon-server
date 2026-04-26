@@ -402,14 +402,17 @@ public class HologramManager {
 
         // Schritt 3
         if (hasUpgraded && !hasThreeGen) {
-            sb.append("<yellow><bold>➤ Schritt 3: Mehr Generatoren</bold></yellow>\n");
-            sb.append("<gray>  Kaufe weitere Typen im Shop:\n");
-            sb.append("<gray>  <yellow>/gen shop\n");
-            sb.append("<dark_gray>  ↳ Iron, Gold, Lapis … bis Netherite\n");
+            sb.append("<yellow><bold>➤ Schritt 3: Synergien nutzen</bold></yellow>\n");
+            sb.append("<gray>  Kaufe verschiedene Typen – wenn\n");
+            sb.append("<gray>  du <white>2 passende Typen <gray>besitzt,\n");
+            sb.append("<gray>  bekommst du einen <green>Synergie-Bonus<gray>!\n");
+            sb.append("<dark_gray>  ↳ Cobble+Iron <white>+10%\n");
+            sb.append("<dark_gray>  ↳ Iron+Gold / Gold+Diamond <white>+15%\n");
+            sb.append("<gray>  Shop: <yellow>/gen shop\n");
         } else if (!hasUpgraded) {
-            sb.append("<dark_gray>○ Schritt 3: Mehr Generatoren kaufen\n");
+            sb.append("<dark_gray>○ Schritt 3: Synergien nutzen\n");
         } else {
-            sb.append("<green>✔ <white>Schritt 3: <green>3+ Generatoren aktiv!\n");
+            sb.append("<green>✔ <white>Schritt 3: <green>Synergien aktiv!\n");
         }
         sb.append("<dark_gray>───────────────────────\n");
 
