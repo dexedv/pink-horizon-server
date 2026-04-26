@@ -224,8 +224,6 @@ public class IslandWorldManager {
             }, 3L);
         }
 
-        player.sendMessage(MM.deserialize(
-                "<green>✔ Willkommen auf deiner Insel! <gray>| <yellow>/gen shop"));
     }
 
     // ── Template kopieren ─────────────────────────────────────────────────────

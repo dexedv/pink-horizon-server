@@ -112,11 +112,6 @@ public class PlayerListener implements Listener {
                 // Insel laden und Spieler teleportieren
                 plugin.getIslandWorldManager().loadAndTeleport(player);
 
-                player.sendMessage(MM.deserialize(
-                        "<light_purple>IdleForge <gray>| <yellow>Guthaben: $"
-                                + MoneyManager.formatMoney(finalData.getMoney())
-                                + " <gray>| <aqua>Prestige: " + finalData.getPrestige()
-                                + " <gray>| <green>/gen shop"));
             });
         });
     }
