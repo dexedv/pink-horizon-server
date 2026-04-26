@@ -7,14 +7,12 @@ servers/*/paper-*.jar
 proxy/velocity-*.jar
 proxy/server.jar
 
-# ── Welten (Lobby-Welt wird bewusst getrackt!) ────────────────────────
-servers/survival/world/
+# ── Welten ────────────────────────────────────────────────────────────
+# Survival + Skyblock werden getrackt für Disaster-Recovery
 servers/survival/world_nether/
 servers/survival/world_the_end/
-servers/skyblock/world/
 servers/skyblock/world_nether/
 servers/skyblock/world_the_end/
-servers/skyblock/skyblock_world/
 servers/minigames/world_nether/
 servers/minigames/world_the_end/
 servers/lobby/world_nether/
@@ -22,8 +20,12 @@ servers/lobby/world_the_end/
 servers/lobby/world_backup/
 
 # ── Automatisch generierte World-Metadaten (ändern sich bei jedem Start) ──
-**/level.dat
-**/level.dat_old
+# Ausnahme: Survival + Skyblock level.dat wird getrackt (für World-Recovery)
+servers/lobby/world/level.dat
+servers/lobby/world/level.dat_old
+servers/smash/world/level.dat
+servers/smash/world/level.dat_old
+servers/generators/island-template/level.dat_old
 **/level.dat_old_mcr
 **/data/raids.dat
 **/data/random_sequences.nbt
