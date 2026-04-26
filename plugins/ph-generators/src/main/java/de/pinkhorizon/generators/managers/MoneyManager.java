@@ -98,13 +98,14 @@ public class MoneyManager {
                 doAutoUpgrade(data);
             }
 
-            // Auto-Tier-Upgrade (Nexus)
-            if (data.isAutoTierUpgrade()) {
-                doAutoTierUpgrade(data);
-            }
-
             // ActionBar: aktuelles Einkommen anzeigen
             Player player = Bukkit.getPlayer(entry.getKey());
+
+            // Auto-Tier-Upgrade (Nexus oder Admin)
+            if (data.isAutoTierUpgrade() && (data.rankAllowsTierUpgradeAll()
+                    || (player != null && player.hasPermission("ph.generators.admin")))) {
+                doAutoTierUpgrade(data);
+            }
             if (player != null) {
                 String autoTag = data.isAutoUpgrade() ? " <aqua>[AUTO]" : "";
                 String tierTag = data.isAutoTierUpgrade() ? " <gold>[TIER-AUTO]" : "";

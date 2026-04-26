@@ -102,7 +102,9 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             }
             case "tierupgradeall", "tua" -> {
                 PlayerData _d = plugin.getPlayerDataMap().get(player.getUniqueId());
-                if (_d != null && !_d.rankAllowsTierUpgradeAll()) {
+                boolean allowed = player.hasPermission("ph.generators.admin")
+                        || (_d != null && _d.rankAllowsTierUpgradeAll());
+                if (!allowed) {
                     player.sendMessage(MM.deserialize("<red>Auto-Tier-Upgrade ist exklusiv für den <dark_red>Nexus<red>-Rang!"));
                 } else { toggleAutoTierUpgrade(player); }
                 yield true;
