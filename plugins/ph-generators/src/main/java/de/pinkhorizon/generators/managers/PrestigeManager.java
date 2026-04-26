@@ -46,6 +46,11 @@ public class PrestigeManager {
         // Prestige-Effekte
         applyPrestigeEffects(player, newPrestige);
 
+        // Talent-Punkt vergeben
+        if (plugin.getTalentManager() != null) {
+            plugin.getTalentManager().onPrestige(data);
+        }
+
         // Achievement-Tracking
         plugin.getAchievementManager().track(data, "prestige_1", newPrestige);
         plugin.getAchievementManager().track(data, "prestige_10", newPrestige);

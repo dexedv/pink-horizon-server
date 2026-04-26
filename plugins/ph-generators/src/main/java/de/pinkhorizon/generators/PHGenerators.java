@@ -6,8 +6,10 @@ import de.pinkhorizon.generators.database.GenDatabaseManager;
 import de.pinkhorizon.generators.database.GeneratorRepository;
 import de.pinkhorizon.generators.gui.BlockShopGUI;
 import de.pinkhorizon.generators.gui.BorderShopGUI;
+import de.pinkhorizon.generators.gui.MarketGUI;
 import de.pinkhorizon.generators.gui.NavigatorGUI;
 import de.pinkhorizon.generators.gui.ShopGUI;
+import de.pinkhorizon.generators.gui.TalentsGUI;
 import de.pinkhorizon.generators.gui.UpgradeGUI;
 import de.pinkhorizon.generators.listeners.GeneratorBlockListener;
 import de.pinkhorizon.generators.listeners.PlayerListener;
@@ -44,6 +46,12 @@ public class PHGenerators extends JavaPlugin {
     private AfkRewardManager  afkRewardManager;
     private LeaderboardManager leaderboardManager;
     private TutorialManager   tutorialManager;
+    private DailyBonusManager dailyBonusManager;
+    private MilestoneManager  milestoneManager;
+    private EventManager      eventManager;
+    private TalentManager     talentManager;
+    private MarketManager     marketManager;
+    private SeasonalLeaderboardManager seasonalLeaderboardManager;
 
     // GUIs
     private ShopGUI       shopGUI;
@@ -51,6 +59,8 @@ public class PHGenerators extends JavaPlugin {
     private BlockShopGUI  blockShopGUI;
     private NavigatorGUI  navigatorGUI;
     private BorderShopGUI borderShopGUI;
+    private TalentsGUI    talentsGUI;
+    private MarketGUI     marketGUI;
 
     // Border
     private WorldBorderManager worldBorderManager;
@@ -86,6 +96,13 @@ public class PHGenerators extends JavaPlugin {
         afkRewardManager  = new AfkRewardManager(this);
         leaderboardManager = new LeaderboardManager(this);
         tutorialManager   = new TutorialManager(this);
+        dailyBonusManager = new DailyBonusManager(this);
+        milestoneManager  = new MilestoneManager(this);
+        eventManager      = new EventManager(this);
+        talentManager     = new TalentManager(this);
+        marketManager     = new MarketManager(this);
+        seasonalLeaderboardManager = new SeasonalLeaderboardManager(this);
+        seasonalLeaderboardManager.init();
 
         // ── GUIs ──────────────────────────────────────────────────────────────
         shopGUI       = new ShopGUI(this);
@@ -93,6 +110,8 @@ public class PHGenerators extends JavaPlugin {
         blockShopGUI  = new BlockShopGUI(this);
         navigatorGUI  = new NavigatorGUI(this);
         borderShopGUI = new BorderShopGUI(this);
+        talentsGUI    = new TalentsGUI(this);
+        marketGUI     = new MarketGUI(this);
         scoreboardManager = new ScoreboardManager(this);
 
         // ── Starten ───────────────────────────────────────────────────────────
@@ -117,6 +136,8 @@ public class PHGenerators extends JavaPlugin {
         getServer().getPluginManager().registerEvents(blockShopGUI, this);
         getServer().getPluginManager().registerEvents(navigatorGUI, this);
         getServer().getPluginManager().registerEvents(borderShopGUI, this);
+        getServer().getPluginManager().registerEvents(talentsGUI, this);
+        getServer().getPluginManager().registerEvents(marketGUI, this);
 
         getLogger().info("PH-Generators (IdleForge) gestartet!");
     }
@@ -165,12 +186,20 @@ public class PHGenerators extends JavaPlugin {
     public AfkRewardManager  getAfkRewardManager()       { return afkRewardManager; }
     public LeaderboardManager getLeaderboardManager()    { return leaderboardManager; }
     public TutorialManager   getTutorialManager()        { return tutorialManager; }
+    public DailyBonusManager getDailyBonusManager()     { return dailyBonusManager; }
+    public MilestoneManager  getMilestoneManager()       { return milestoneManager; }
+    public EventManager      getEventManager()           { return eventManager; }
+    public TalentManager     getTalentManager()          { return talentManager; }
+    public MarketManager     getMarketManager()          { return marketManager; }
+    public SeasonalLeaderboardManager getSeasonalLeaderboardManager() { return seasonalLeaderboardManager; }
 
     public ShopGUI       getShopGUI()                    { return shopGUI; }
     public UpgradeGUI    getUpgradeGUI()                 { return upgradeGUI; }
     public BlockShopGUI  getBlockShopGUI()               { return blockShopGUI; }
     public NavigatorGUI  getNavigatorGUI()               { return navigatorGUI; }
     public BorderShopGUI getBorderShopGUI()              { return borderShopGUI; }
+    public TalentsGUI    getTalentsGUI()                 { return talentsGUI; }
+    public MarketGUI     getMarketGUI()                  { return marketGUI; }
     public WorldBorderManager getWorldBorderManager()    { return worldBorderManager; }
     public ScoreboardManager getScoreboardManager()      { return scoreboardManager; }
 

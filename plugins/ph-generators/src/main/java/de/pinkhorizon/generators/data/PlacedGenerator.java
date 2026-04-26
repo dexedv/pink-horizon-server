@@ -19,6 +19,9 @@ public class PlacedGenerator {
     /** DB-ID, -1 wenn noch nicht in DB gespeichert */
     private int dbId = -1;
 
+    /** Enchant: "FORTUNE", "EFFICIENCY", "HASTE", "SYNERGY" oder null */
+    private String enchant = null;
+
     public PlacedGenerator(UUID ownerUUID, String world, int x, int y, int z,
                            GeneratorType type, int level) {
         this.ownerUUID = ownerUUID;
@@ -33,16 +36,21 @@ public class PlacedGenerator {
     // ── Einkommen ────────────────────────────────────────────────────────────
 
     /**
-     * Einkommen pro Sekunde inkl. Level-Bonus.
+     * Einkommen pro Sekunde inkl. Level-Bonus und Enchant-Bonus.
      * Prestige-/Booster-Multiplikatoren werden im MoneyManager angewendet.
      */
     public double incomePerSecond() {
-        return type.incomeAt(level);
+        double base = type.incomeAt(level);
+        if ("FORTUNE".equals(enchant)) return base * 1.25;
+        if ("HASTE".equals(enchant))   return base * 1.10;
+        return base;
     }
 
-    /** Upgrade-Kosten für nächstes Level */
+    /** Upgrade-Kosten für nächstes Level (EFFICIENCY reduziert um 20%) */
     public long upgradeCost() {
-        return type.upgradeCostAt(level);
+        long base = type.upgradeCostAt(level);
+        if ("EFFICIENCY".equals(enchant)) return Math.round(base * 0.80);
+        return base;
     }
 
     // ── Location Helper ──────────────────────────────────────────────────────
@@ -70,4 +78,7 @@ public class PlacedGenerator {
     public void setType(GeneratorType type) { this.type = type; }
     public void setLevel(int level)         { this.level = level; }
     public void setDbId(int dbId)           { this.dbId = dbId; }
+    public String getEnchant()              { return enchant; }
+    public void setEnchant(String enchant)  { this.enchant = enchant; }
+    public boolean hasEnchant()             { return enchant != null; }
 }

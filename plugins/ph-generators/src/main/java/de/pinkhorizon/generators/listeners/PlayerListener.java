@@ -91,10 +91,19 @@ public class PlayerListener implements Listener {
                     }
                 }
 
+                // Talente laden
+                plugin.getTalentManager().loadTalents(finalData);
+
                 // Tutorial für neue Spieler starten
                 if (isNewPlayer || !finalData.isTutorialDone()) {
                     plugin.getTutorialManager().startTutorial(player);
                 }
+
+                // Täglicher Bonus
+                plugin.getDailyBonusManager().checkDailyBonus(player, finalData);
+
+                // Milestone-Check
+                plugin.getMilestoneManager().check(uuid, finalData);
 
                 // Insel laden und Spieler teleportieren
                 plugin.getIslandWorldManager().loadAndTeleport(player);

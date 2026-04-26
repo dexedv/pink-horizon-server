@@ -106,14 +106,29 @@ public class GeneratorManager {
                 type, Math.max(1, level)
         );
 
+        // Enchant-Roll (5% + Talent-Bonus + Event-Bonus)
+        double enchantChance = 0.05;
+        if (plugin.getTalentManager() != null)
+            enchantChance += plugin.getTalentManager().getEnchantChanceBonus(data);
+        if (plugin.getEventManager() != null)
+            enchantChance += plugin.getEventManager().getEnchantChanceBonus();
+
+        if (Math.random() < enchantChance) {
+            String[] enchants = {"FORTUNE", "EFFICIENCY", "HASTE", "SYNERGY"};
+            String enchant = enchants[(int) (Math.random() * enchants.length)];
+            gen.setEnchant(enchant);
+        }
+
         data.getGenerators().add(gen);
         byLocation.put(gen.locationKey(), gen);
         plugin.getRepository().insertGenerator(gen);
         plugin.getHologramManager().spawnHologram(gen);
         plugin.getSynergyManager().recalculate(gen, data);
 
+        String enchantMsg = gen.hasEnchant()
+                ? " <light_purple>✨ Enchant: " + gen.getEnchant() + "!" : "";
         player.sendMessage(MiniMessage.miniMessage().deserialize(
-                "<green>✔ <white>" + type.getDisplayName() + " <green>platziert!"));
+                "<green>✔ <white>" + type.getDisplayName() + " <green>platziert!" + enchantMsg));
 
         plugin.getAchievementManager().track(data, "first_generator", 1);
         return true;
@@ -170,7 +185,12 @@ public class GeneratorManager {
         int maxLevel = data.maxGeneratorLevel();
         if (gen.getLevel() >= maxLevel) return UpgradeResult.MAX_LEVEL;
 
-        long cost = gen.upgradeCost();
+        double eventCostMult = plugin.getEventManager() != null
+                ? plugin.getEventManager().getUpgradeCostMultiplier() : 1.0;
+        double talentCostMult = plugin.getTalentManager() != null
+                ? plugin.getTalentManager().getUpgradeCostMultiplier(data) : 1.0;
+
+        long cost = Math.round(gen.upgradeCost() * eventCostMult * talentCostMult);
         if (!data.takeMoney(cost)) return UpgradeResult.NO_MONEY;
 
         gen.setLevel(gen.getLevel() + 1);
@@ -179,6 +199,59 @@ public class GeneratorManager {
         plugin.getHologramManager().updateHologram(gen, data);
         plugin.getAchievementManager().track(data, "upgrade_100", 1);
         return UpgradeResult.SUCCESS;
+    }
+
+    /**
+     * Upgrade mit Upgrade-Token (kostenlos, ignoriert Geld-Kosten).
+     */
+    public UpgradeResult upgradeWithToken(Player player, PlacedGenerator gen) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) return UpgradeResult.NO_DATA;
+        if (!gen.getOwnerUUID().equals(player.getUniqueId())) return UpgradeResult.NOT_OWNER;
+
+        int maxLevel = data.maxGeneratorLevel();
+        if (gen.getLevel() >= maxLevel) return UpgradeResult.MAX_LEVEL;
+        if (!data.useUpgradeToken()) return UpgradeResult.NO_MONEY; // Missbrauch als "no token"
+
+        gen.setLevel(gen.getLevel() + 1);
+        data.incrementUpgrades();
+        plugin.getRepository().updateGeneratorLevel(gen);
+        plugin.getHologramManager().updateHologram(gen, data);
+        return UpgradeResult.SUCCESS;
+    }
+
+    /**
+     * Bulk-Upgrade: upgraded alle (oder alle eines Typs) Generatoren einmal,
+     * solange Geld vorhanden. Gibt Anzahl erfolgreicher Upgrades zurück.
+     */
+    public int upgradeAll(Player player, GeneratorType filterType) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) return 0;
+
+        int maxLevel = data.maxGeneratorLevel();
+        double eventCostMult = plugin.getEventManager() != null
+                ? plugin.getEventManager().getUpgradeCostMultiplier() : 1.0;
+        double talentCostMult = plugin.getTalentManager() != null
+                ? plugin.getTalentManager().getUpgradeCostMultiplier(data) : 1.0;
+
+        int count = 0;
+        for (PlacedGenerator gen : data.getGenerators()) {
+            if (filterType != null && gen.getType() != filterType) continue;
+            if (gen.getLevel() >= maxLevel) continue;
+
+            long cost = Math.round(gen.upgradeCost() * eventCostMult * talentCostMult);
+            if (!data.takeMoney(cost)) continue;
+
+            gen.setLevel(gen.getLevel() + 1);
+            data.incrementUpgrades();
+            plugin.getRepository().updateGeneratorLevel(gen);
+            plugin.getHologramManager().updateHologram(gen, data);
+            count++;
+        }
+        if (count > 0) {
+            plugin.getAchievementManager().track(data, "upgrade_100", count);
+        }
+        return count;
     }
 
     // ── Tier-Upgrade ─────────────────────────────────────────────────────────

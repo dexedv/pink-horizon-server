@@ -52,6 +52,16 @@ default-booster-duration: 60
 # Serverweiter Event-Booster Multiplikator
 server-booster-multiplier: 2.0
 
+# Basis Enchant-Chance bei Platzierung (5%)
+enchant-base-chance: 0.05
+
+# Auto-Upgrade: Tick-Intervall in Sekunden (separat vom Income-Ticker, hier im Income-Ticker integriert)
+# Community-Goal für Server-Booster (in Dollar)
+community-goal: 1000000000000
+
+# Marktplatz aktiv?
+market-enabled: true
+
 # Seasonal Events (Generatoren die zeitlich begrenzt kaufbar sind)
 seasonal-events:
   halloween:

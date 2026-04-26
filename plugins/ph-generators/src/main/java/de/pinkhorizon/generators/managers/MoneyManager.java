@@ -46,8 +46,19 @@ public class MoneyManager {
 
     // ── Income-Tick ──────────────────────────────────────────────────────────
 
+    /** Akkumuliertes Einkommen für Income-Log (UUID → earned since last log flush) */
+    private final Map<UUID, Long> incomeAccumulator = new java.util.concurrent.ConcurrentHashMap<>();
+    private long lastLogFlushHour = 0;
+
     private void tickIncome() {
         double serverMult = getServerBoosterMultiplier();
+        long nowHour = System.currentTimeMillis() / 3_600_000L;
+
+        // Flush income log every hour
+        if (nowHour > lastLogFlushHour) {
+            flushIncomeLog();
+            lastLogFlushHour = nowHour;
+        }
 
         for (Map.Entry<UUID, PlayerData> entry : plugin.getPlayerDataMap().entrySet()) {
             PlayerData data = entry.getValue();
@@ -56,21 +67,82 @@ public class MoneyManager {
             double income = calcIncome(data);
             if (income <= 0) continue;
 
+            double eventMult = plugin.getEventManager() != null
+                    ? plugin.getEventManager().getIncomeMultiplier() : 1.0;
+            double talentMult = plugin.getTalentManager() != null
+                    ? plugin.getTalentManager().getIncomeMultiplier(data) : 1.0;
+            double guildMult = plugin.getGuildManager().getGuildPerkMultiplier(entry.getKey());
+
             double totalMult = data.prestigeMultiplier()
                     * data.effectiveBoosterMultiplier()
                     * serverMult
-                    * plugin.getSynergyManager().getTotalSynergyMultiplier(data);
+                    * plugin.getSynergyManager().getTotalSynergyMultiplier(data)
+                    * eventMult
+                    * talentMult
+                    * guildMult;
 
             long earned = Math.max(1, Math.round(income * totalMult));
             data.addMoney(earned);
 
+            // Accumulate for income log
+            incomeAccumulator.merge(entry.getKey(), earned, Long::sum);
+
+            // Milestone-Check
+            if (plugin.getMilestoneManager() != null) {
+                plugin.getMilestoneManager().check(entry.getKey(), data);
+            }
+
+            // Auto-Upgrade
+            if (data.isAutoUpgrade()) {
+                doAutoUpgrade(data);
+            }
+
             // ActionBar: aktuelles Einkommen anzeigen
             Player player = Bukkit.getPlayer(entry.getKey());
             if (player != null) {
+                String enchantHint = "";
+                String autoTag = data.isAutoUpgrade() ? " <aqua>[AUTO]" : "";
                 player.sendActionBar(MiniMessage.miniMessage().deserialize(
-                        "<green>+$" + formatMoney(earned) + "/s <dark_gray>| <gold>Guthaben: $" + formatMoney(data.getMoney())));
+                        "<green>+$" + formatMoney(earned) + "/s" + autoTag + " <dark_gray>| <gold>$" + formatMoney(data.getMoney())));
             }
         }
+    }
+
+    private void doAutoUpgrade(PlayerData data) {
+        // Find cheapest upgradeable generator and upgrade it once
+        PlacedGenerator cheapest = null;
+        long lowestCost = Long.MAX_VALUE;
+        int maxLevel = data.maxGeneratorLevel();
+        for (PlacedGenerator gen : data.getGenerators()) {
+            if (gen.getLevel() >= maxLevel) continue;
+            long cost = gen.upgradeCost();
+            if (cost < lowestCost && data.getMoney() >= cost) {
+                lowestCost = cost;
+                cheapest = gen;
+            }
+        }
+        if (cheapest != null) {
+            data.takeMoney(lowestCost);
+            cheapest.setLevel(cheapest.getLevel() + 1);
+            data.incrementUpgrades();
+            final PlacedGenerator g = cheapest;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                plugin.getRepository().updateGeneratorLevel(g);
+                plugin.getHologramManager().updateHologram(g, data);
+            });
+        }
+    }
+
+    private void flushIncomeLog() {
+        if (incomeAccumulator.isEmpty()) return;
+        long hour = System.currentTimeMillis() / 3_600_000L;
+        Map<UUID, Long> snapshot = new java.util.HashMap<>(incomeAccumulator);
+        incomeAccumulator.clear();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            for (Map.Entry<UUID, Long> e : snapshot.entrySet()) {
+                plugin.getRepository().addIncomeLog(e.getKey(), hour, e.getValue());
+            }
+        });
     }
 
     private double calcIncome(PlayerData data) {
@@ -151,9 +223,10 @@ public class MoneyManager {
     // ── Hilfsmethoden ────────────────────────────────────────────────────────
 
     public static String formatMoney(long amount) {
-        if (amount >= 1_000_000_000L) return String.format("%.1fB", amount / 1_000_000_000.0);
-        if (amount >= 1_000_000L) return String.format("%.1fM", amount / 1_000_000.0);
-        if (amount >= 1_000L) return String.format("%.1fK", amount / 1_000.0);
+        if (amount >= 1_000_000_000_000L) return String.format("%.1fT", amount / 1_000_000_000_000.0);
+        if (amount >= 1_000_000_000L)     return String.format("%.1fB", amount / 1_000_000_000.0);
+        if (amount >= 1_000_000L)         return String.format("%.1fM", amount / 1_000_000.0);
+        if (amount >= 1_000L)             return String.format("%.1fK", amount / 1_000.0);
         return String.valueOf(amount);
     }
 }

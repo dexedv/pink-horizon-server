@@ -55,6 +55,13 @@ public class GeneratorRepository {
                 if (lbhw != null && !lbhw.isEmpty()) {
                     data.setLbHoloLocation(lbhw, rs.getInt("lb_holo_x"), rs.getInt("lb_holo_y"), rs.getInt("lb_holo_z"));
                 }
+                // New fields (default 0/false if column doesn't exist yet)
+                try { data.setLastDaily(rs.getLong("last_daily")); } catch (SQLException ignored) {}
+                try { data.setDailyStreak(rs.getInt("daily_streak")); } catch (SQLException ignored) {}
+                try { data.setAutoUpgrade(rs.getInt("auto_upgrade") == 1); } catch (SQLException ignored) {}
+                try { data.setUpgradeTokens(rs.getInt("upgrade_tokens")); } catch (SQLException ignored) {}
+                try { data.setTalentPoints(rs.getInt("talent_points")); } catch (SQLException ignored) {}
+                try { data.setMilestoneReached(rs.getInt("milestone_reached")); } catch (SQLException ignored) {}
                 return data;
             }
         } catch (SQLException e) {
@@ -68,21 +75,26 @@ public class GeneratorRepository {
         if (db.getDbType().equals("mysql")) {
             sql = """
                 INSERT INTO gen_players (uuid, name, money, prestige, total_earned, total_upgrades,
-                    afk_boxes_opened, booster_expiry, booster_mult, last_seen, border_size)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                    afk_boxes_opened, booster_expiry, booster_mult, last_seen, border_size,
+                    last_daily, daily_streak, auto_upgrade, upgrade_tokens, talent_points, milestone_reached)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON DUPLICATE KEY UPDATE
                     name=VALUES(name), money=VALUES(money), prestige=VALUES(prestige),
                     total_earned=VALUES(total_earned), total_upgrades=VALUES(total_upgrades),
                     afk_boxes_opened=VALUES(afk_boxes_opened), booster_expiry=VALUES(booster_expiry),
                     booster_mult=VALUES(booster_mult), last_seen=VALUES(last_seen),
-                    border_size=VALUES(border_size)
+                    border_size=VALUES(border_size), last_daily=VALUES(last_daily),
+                    daily_streak=VALUES(daily_streak), auto_upgrade=VALUES(auto_upgrade),
+                    upgrade_tokens=VALUES(upgrade_tokens), talent_points=VALUES(talent_points),
+                    milestone_reached=VALUES(milestone_reached)
             """;
         } else {
             sql = """
                 INSERT OR REPLACE INTO gen_players (uuid, name, money, prestige, total_earned,
                     total_upgrades, afk_boxes_opened, booster_expiry, booster_mult, last_seen,
-                    border_size)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                    border_size, last_daily, daily_streak, auto_upgrade, upgrade_tokens,
+                    talent_points, milestone_reached)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         }
         try (Connection con = db.getConnection();
@@ -98,6 +110,12 @@ public class GeneratorRepository {
             stmt.setDouble(9, data.getBoosterMultiplier());
             stmt.setLong(10, data.getLastSeen());
             stmt.setInt(11, data.getBorderSize());
+            stmt.setLong(12, data.getLastDaily());
+            stmt.setInt(13, data.getDailyStreak());
+            stmt.setInt(14, data.isAutoUpgrade() ? 1 : 0);
+            stmt.setInt(15, data.getUpgradeTokens());
+            stmt.setInt(16, data.getTalentPoints());
+            stmt.setInt(17, data.getMilestoneReached());
             stmt.executeUpdate();
         } catch (SQLException e) {
             log.warning("[GenRepo] savePlayer: " + e.getMessage());
@@ -217,6 +235,10 @@ public class GeneratorRepository {
                         rs.getInt("level")
                 );
                 gen.setDbId(rs.getInt("id"));
+                try {
+                    String enc = rs.getString("enchant");
+                    if (enc != null && !enc.isBlank()) gen.setEnchant(enc);
+                } catch (SQLException ignored) {}
                 list.add(gen);
             }
         } catch (SQLException e) {
@@ -227,8 +249,8 @@ public class GeneratorRepository {
 
     public void insertGenerator(PlacedGenerator gen) {
         String sql = """
-            INSERT INTO gen_generators (uuid, world, x, y, z, tier, level)
-            VALUES (?,?,?,?,?,?,?)
+            INSERT INTO gen_generators (uuid, world, x, y, z, tier, level, enchant)
+            VALUES (?,?,?,?,?,?,?,?)
         """;
         try (Connection con = db.getConnection();
              PreparedStatement stmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -239,11 +261,25 @@ public class GeneratorRepository {
             stmt.setInt(5, gen.getZ());
             stmt.setString(6, gen.getType().name());
             stmt.setInt(7, gen.getLevel());
+            stmt.setString(8, gen.getEnchant());
             stmt.executeUpdate();
             ResultSet keys = stmt.getGeneratedKeys();
             if (keys.next()) gen.setDbId(keys.getInt(1));
         } catch (SQLException e) {
             log.warning("[GenRepo] insertGenerator: " + e.getMessage());
+        }
+    }
+
+    public void updateGeneratorEnchant(PlacedGenerator gen) {
+        if (gen.getDbId() < 0) return;
+        String sql = "UPDATE gen_generators SET enchant=? WHERE id=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, gen.getEnchant());
+            stmt.setInt(2, gen.getDbId());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] updateGeneratorEnchant: " + e.getMessage());
         }
     }
 
@@ -415,6 +451,267 @@ public class GeneratorRepository {
                 "SELECT * FROM gen_achievements WHERE uuid=?");
         stmt.setString(1, uuid.toString());
         return stmt.executeQuery();
+    }
+
+    // ── Talents ──────────────────────────────────────────────────────────────
+
+    public java.util.Set<String> loadTalents(UUID uuid) {
+        java.util.Set<String> set = new java.util.HashSet<>();
+        String sql = "SELECT talent_id FROM gen_talents WHERE uuid=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) set.add(rs.getString("talent_id"));
+        } catch (SQLException e) {
+            log.warning("[GenRepo] loadTalents: " + e.getMessage());
+        }
+        return set;
+    }
+
+    public void saveTalent(UUID uuid, String talentId) {
+        String sql;
+        if (db.getDbType().equals("mysql")) {
+            sql = "INSERT IGNORE INTO gen_talents (uuid, talent_id) VALUES (?,?)";
+        } else {
+            sql = "INSERT OR IGNORE INTO gen_talents (uuid, talent_id) VALUES (?,?)";
+        }
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.setString(2, talentId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] saveTalent: " + e.getMessage());
+        }
+    }
+
+    // ── Income Log ───────────────────────────────────────────────────────────
+
+    public void addIncomeLog(UUID uuid, long hour, long earned) {
+        String sql;
+        if (db.getDbType().equals("mysql")) {
+            sql = """
+                INSERT INTO gen_income_log (uuid, hour, earned) VALUES (?,?,?)
+                ON DUPLICATE KEY UPDATE earned = earned + VALUES(earned)
+            """;
+        } else {
+            sql = """
+                INSERT INTO gen_income_log (uuid, hour, earned) VALUES (?,?,?)
+                ON CONFLICT(uuid, hour) DO UPDATE SET earned = earned + excluded.earned
+            """;
+        }
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.setLong(2, hour);
+            stmt.setLong(3, earned);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] addIncomeLog: " + e.getMessage());
+        }
+    }
+
+    /** Letzte 24 Stunden Einkommen-Log */
+    public List<long[]> getIncomeHistory(UUID uuid, int hours) {
+        List<long[]> list = new ArrayList<>();
+        long nowHour = System.currentTimeMillis() / 3_600_000L;
+        String sql = "SELECT hour, earned FROM gen_income_log WHERE uuid=? AND hour >= ? ORDER BY hour ASC";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.setLong(2, nowHour - hours);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) list.add(new long[]{rs.getLong("hour"), rs.getLong("earned")});
+        } catch (SQLException e) {
+            log.warning("[GenRepo] getIncomeHistory: " + e.getMessage());
+        }
+        return list;
+    }
+
+    // ── Season Leaderboard ───────────────────────────────────────────────────
+
+    public void saveSeasonEntry(int seasonNo, int rank, String name, long money, int prestige) {
+        String sql;
+        if (db.getDbType().equals("mysql")) {
+            sql = """
+                INSERT INTO gen_seasons (season_no, rank_pos, name, money, prestige, snapshot_at)
+                VALUES (?,?,?,?,?,?)
+            """;
+        } else {
+            sql = "INSERT INTO gen_seasons (season_no, rank_pos, name, money, prestige, snapshot_at) VALUES (?,?,?,?,?,?)";
+        }
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setInt(1, seasonNo);
+            stmt.setInt(2, rank);
+            stmt.setString(3, name);
+            stmt.setLong(4, money);
+            stmt.setInt(5, prestige);
+            stmt.setLong(6, System.currentTimeMillis() / 1000);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] saveSeasonEntry: " + e.getMessage());
+        }
+    }
+
+    public List<String[]> getSeasonLeaderboard(int seasonNo) {
+        List<String[]> list = new ArrayList<>();
+        String sql = "SELECT rank_pos, name, money, prestige FROM gen_seasons WHERE season_no=? ORDER BY rank_pos ASC";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setInt(1, seasonNo);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(new String[]{
+                    String.valueOf(rs.getInt("rank_pos")),
+                    rs.getString("name"),
+                    String.valueOf(rs.getLong("money")),
+                    String.valueOf(rs.getInt("prestige"))
+                });
+            }
+        } catch (SQLException e) {
+            log.warning("[GenRepo] getSeasonLeaderboard: " + e.getMessage());
+        }
+        return list;
+    }
+
+    public int getMaxSeasonNo() {
+        String sql = "SELECT MAX(season_no) FROM gen_seasons";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) return Math.max(0, rs.getInt(1));
+        } catch (SQLException e) {
+            log.warning("[GenRepo] getMaxSeasonNo: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    // ── Marketplace ──────────────────────────────────────────────────────────
+
+    public int insertMarketListing(UUID seller, String itemType, long price) {
+        String sql;
+        if (db.getDbType().equals("mysql")) {
+            sql = "INSERT INTO gen_market (seller_uuid, item_type, price, listed_at) VALUES (?,?,?,?)";
+        } else {
+            sql = "INSERT INTO gen_market (seller_uuid, item_type, price, listed_at) VALUES (?,?,?,?)";
+        }
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, seller.toString());
+            stmt.setString(2, itemType);
+            stmt.setLong(3, price);
+            stmt.setLong(4, System.currentTimeMillis() / 1000);
+            stmt.executeUpdate();
+            ResultSet keys = stmt.getGeneratedKeys();
+            if (keys.next()) return keys.getInt(1);
+        } catch (SQLException e) {
+            log.warning("[GenRepo] insertMarketListing: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    public void deleteMarketListing(int id) {
+        String sql = "DELETE FROM gen_market WHERE id=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] deleteMarketListing: " + e.getMessage());
+        }
+    }
+
+    /** Gibt alle Marktplatz-Listings zurück: [id, seller_uuid, item_type, price, listed_at] */
+    public List<Object[]> getMarketListings() {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT id, seller_uuid, item_type, price, listed_at FROM gen_market ORDER BY listed_at DESC LIMIT 100";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(new Object[]{
+                    rs.getInt("id"),
+                    rs.getString("seller_uuid"),
+                    rs.getString("item_type"),
+                    rs.getLong("price"),
+                    rs.getLong("listed_at")
+                });
+            }
+        } catch (SQLException e) {
+            log.warning("[GenRepo] getMarketListings: " + e.getMessage());
+        }
+        return list;
+    }
+
+    // ── Guild Upgrades ────────────────────────────────────────────────────────
+
+    public int getGuildUpgradeLevel(int guildId, String upgradeId) {
+        String sql = "SELECT level FROM gen_guild_upgrades WHERE guild_id=? AND upgrade_id=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setInt(1, guildId);
+            stmt.setString(2, upgradeId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) return rs.getInt("level");
+        } catch (SQLException e) {
+            log.warning("[GenRepo] getGuildUpgradeLevel: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    public void setGuildUpgradeLevel(int guildId, String upgradeId, int level) {
+        String sql;
+        if (db.getDbType().equals("mysql")) {
+            sql = """
+                INSERT INTO gen_guild_upgrades (guild_id, upgrade_id, level) VALUES (?,?,?)
+                ON DUPLICATE KEY UPDATE level=VALUES(level)
+            """;
+        } else {
+            sql = "INSERT OR REPLACE INTO gen_guild_upgrades (guild_id, upgrade_id, level) VALUES (?,?,?)";
+        }
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setInt(1, guildId);
+            stmt.setString(2, upgradeId);
+            stmt.setInt(3, level);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] setGuildUpgradeLevel: " + e.getMessage());
+        }
+    }
+
+    // ── Meta ──────────────────────────────────────────────────────────────────
+
+    public String getMeta(String key) {
+        String sql = "SELECT val FROM gen_meta WHERE key_name=?";
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, key);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) return rs.getString("val");
+        } catch (SQLException e) {
+            log.warning("[GenRepo] getMeta: " + e.getMessage());
+        }
+        return null;
+    }
+
+    public void setMeta(String key, String value) {
+        String sql;
+        if (db.getDbType().equals("mysql")) {
+            sql = "INSERT INTO gen_meta (key_name, val) VALUES (?,?) ON DUPLICATE KEY UPDATE val=VALUES(val)";
+        } else {
+            sql = "INSERT OR REPLACE INTO gen_meta (key_name, val) VALUES (?,?)";
+        }
+        try (Connection con = db.getConnection();
+             PreparedStatement stmt = con.prepareStatement(sql)) {
+            stmt.setString(1, key);
+            stmt.setString(2, value);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.warning("[GenRepo] setMeta: " + e.getMessage());
+        }
     }
 
     // ── AFK ──────────────────────────────────────────────────────────────────

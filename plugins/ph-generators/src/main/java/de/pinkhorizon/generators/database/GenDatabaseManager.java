@@ -173,6 +173,118 @@ public class GenDatabaseManager {
                 )
             """).execute();
 
+            // Talent-System
+            con.prepareStatement("""
+                CREATE TABLE IF NOT EXISTS gen_talents (
+                    uuid       VARCHAR(36) NOT NULL,
+                    talent_id  VARCHAR(64) NOT NULL,
+                    PRIMARY KEY (uuid, talent_id)
+                )
+            """).execute();
+
+            // Marktplatz-Listings
+            String marketTable;
+            if (dbType.equals("mysql")) {
+                marketTable = """
+                    CREATE TABLE IF NOT EXISTS gen_market (
+                        id          INT AUTO_INCREMENT PRIMARY KEY,
+                        seller_uuid VARCHAR(36) NOT NULL,
+                        item_type   VARCHAR(32) NOT NULL,
+                        price       BIGINT NOT NULL,
+                        listed_at   BIGINT NOT NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """;
+            } else {
+                marketTable = """
+                    CREATE TABLE IF NOT EXISTS gen_market (
+                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                        seller_uuid VARCHAR(36) NOT NULL,
+                        item_type   VARCHAR(32) NOT NULL,
+                        price       BIGINT NOT NULL,
+                        listed_at   BIGINT NOT NULL
+                    )
+                """;
+            }
+            con.prepareStatement(marketTable).execute();
+
+            // Season-Leaderboard-Snapshots
+            String seasonsTable;
+            if (dbType.equals("mysql")) {
+                seasonsTable = """
+                    CREATE TABLE IF NOT EXISTS gen_seasons (
+                        id          INT AUTO_INCREMENT PRIMARY KEY,
+                        season_no   INT NOT NULL,
+                        rank_pos    INT NOT NULL,
+                        name        VARCHAR(32) NOT NULL,
+                        money       BIGINT NOT NULL,
+                        prestige    INT NOT NULL,
+                        snapshot_at BIGINT NOT NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """;
+            } else {
+                seasonsTable = """
+                    CREATE TABLE IF NOT EXISTS gen_seasons (
+                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                        season_no   INT NOT NULL,
+                        rank_pos    INT NOT NULL,
+                        name        VARCHAR(32) NOT NULL,
+                        money       BIGINT NOT NULL,
+                        prestige    INT NOT NULL,
+                        snapshot_at BIGINT NOT NULL
+                    )
+                """;
+            }
+            con.prepareStatement(seasonsTable).execute();
+
+            // Stündliches Einkommen-Log
+            con.prepareStatement("""
+                CREATE TABLE IF NOT EXISTS gen_income_log (
+                    uuid   VARCHAR(36) NOT NULL,
+                    hour   BIGINT NOT NULL,
+                    earned BIGINT DEFAULT 0,
+                    PRIMARY KEY (uuid, hour)
+                )
+            """).execute();
+
+            // Community Event Progress
+            con.prepareStatement("""
+                CREATE TABLE IF NOT EXISTS gen_event_progress (
+                    event_id VARCHAR(32) PRIMARY KEY,
+                    progress BIGINT DEFAULT 0,
+                    goal     BIGINT DEFAULT 0,
+                    active   TINYINT DEFAULT 0
+                )
+            """).execute();
+
+            // Gildensystem-Upgrades
+            con.prepareStatement("""
+                CREATE TABLE IF NOT EXISTS gen_guild_upgrades (
+                    guild_id   INT NOT NULL,
+                    upgrade_id VARCHAR(64) NOT NULL,
+                    level      INT DEFAULT 1,
+                    PRIMARY KEY (guild_id, upgrade_id)
+                )
+            """).execute();
+
+            // Meta-Tabelle (serverweite Werte, z.B. season_no)
+            String metaTable;
+            if (dbType.equals("mysql")) {
+                metaTable = """
+                    CREATE TABLE IF NOT EXISTS gen_meta (
+                        key_name  VARCHAR(64) PRIMARY KEY,
+                        val       TEXT
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """;
+            } else {
+                metaTable = """
+                    CREATE TABLE IF NOT EXISTS gen_meta (
+                        key_name  VARCHAR(64) PRIMARY KEY,
+                        val       TEXT
+                    )
+                """;
+            }
+            con.prepareStatement(metaTable).execute();
+
             // Migration: lb_holo position
             try { con.prepareStatement(
                     "ALTER TABLE gen_players ADD COLUMN lb_holo_world VARCHAR(64) NULL")
@@ -194,6 +306,38 @@ public class GenDatabaseManager {
             // Migration: tutorial_done
             try { con.prepareStatement(
                     "ALTER TABLE gen_players ADD COLUMN tutorial_done TINYINT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+
+            // Migration: daily bonus + auto upgrade + tokens + talents + milestones
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN last_daily BIGINT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN daily_streak INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN auto_upgrade TINYINT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN upgrade_tokens INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN talent_points INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN milestone_reached INT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+
+            // Migration: Generator-Enchant
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_generators ADD COLUMN enchant VARCHAR(32) NULL")
                     .execute();
             } catch (java.sql.SQLException ignored) {}
 

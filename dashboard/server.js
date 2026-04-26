@@ -1571,6 +1571,52 @@ app.get('/api/generators/guilds', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// ── REST-API: Einkommen-Verlauf ───────────────────────────────────────────
+
+app.get('/api/generators/income-history', auth, async (req, res) => {
+  const { uuid, hours = 24 } = req.query;
+  if (!uuid) return res.status(400).json({ error: 'uuid required' });
+  try {
+    const nowHour = Math.floor(Date.now() / 3_600_000);
+    const fromHour = nowHour - Math.min(168, Math.max(1, parseInt(hours)));
+    const [rows] = await poolGen.query(
+      'SELECT hour, earned FROM gen_income_log WHERE uuid=? AND hour>=? ORDER BY hour ASC',
+      [uuid, fromHour]
+    );
+    // Fill missing hours with 0
+    const map = new Map(rows.map(r => [Number(r.hour), Number(r.earned)]));
+    const filled = [];
+    for (let h = fromHour; h <= nowHour; h++) {
+      filled.push({ hour: h, earned: map.get(h) || 0 });
+    }
+    res.json({ ok: true, data: filled });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/generators/server-income', auth, async (req, res) => {
+  try {
+    const nowHour = Math.floor(Date.now() / 3_600_000);
+    const [rows] = await poolGen.query(
+      'SELECT hour, SUM(earned) AS total FROM gen_income_log WHERE hour>=? GROUP BY hour ORDER BY hour ASC',
+      [nowHour - 24]
+    );
+    res.json({ ok: true, data: rows.map(r => ({ hour: Number(r.hour), total: Number(r.total) })) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/generators/seasons', auth, async (req, res) => {
+  try {
+    const [[{ maxSeason }]] = await poolGen.query('SELECT COALESCE(MAX(season_no),0) AS maxSeason FROM gen_seasons');
+    const season = parseInt(req.query.season || maxSeason);
+    const [rows] = await poolGen.query(
+      'SELECT rank_pos, name, money, prestige FROM gen_seasons WHERE season_no=? ORDER BY rank_pos ASC',
+      [season]
+    );
+    res.json({ ok: true, season, maxSeason: Number(maxSeason),
+      rows: rows.map(r => ({ ...r, money: Number(r.money) })) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── REST-API: Economy-Übersicht ───────────────────────────────────────────
 
 app.get('/api/economy/overview', auth, async (req, res) => {

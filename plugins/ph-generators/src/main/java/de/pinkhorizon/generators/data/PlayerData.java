@@ -1,7 +1,9 @@
 package de.pinkhorizon.generators.data;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -20,6 +22,27 @@ public class PlayerData {
     private long totalEarned;         // gesamtes Geld (ever earned)
     private int totalUpgrades;        // gesamt durchgeführte Upgrades
     private int afkBoxesOpened;       // geöffnete AFK-Boxen
+
+    // Täglicher Bonus
+    private long lastDaily = 0;       // Unix-Timestamp des letzten Daily-Claims
+    private int dailyStreak = 0;      // Aktuelle Streak-Länge
+
+    // Auto-Upgrade
+    private boolean autoUpgrade = false;
+
+    // Upgrade-Tokens (kostenlose Upgrades)
+    private int upgradeTokens = 0;
+
+    // Talent-System
+    private int talentPoints = 0;
+    private final Set<String> unlockedTalents = new HashSet<>();
+
+    // Höchste erreichte Milestone-Stufe
+    private int milestoneReached = 0;
+
+    // Session-only: Rückkehr-Position für /gen visit
+    private transient String returnWorld = null;
+    private transient double returnX, returnY, returnZ;
 
     // Generatoren (in-memory, aus gen_generators geladen)
     private final List<PlacedGenerator> generators = new ArrayList<>();
@@ -132,6 +155,49 @@ public class PlayerData {
     public void setBoosterMultiplier(double m)     { this.boosterMultiplier = m; }
     public int getBorderSize()                     { return borderSize; }
     public void setBorderSize(int borderSize)      { this.borderSize = Math.max(40, borderSize); }
+
+    // ── Daily Bonus ──────────────────────────────────────────────────────────
+    public long getLastDaily()                     { return lastDaily; }
+    public void setLastDaily(long ts)              { this.lastDaily = ts; }
+    public int getDailyStreak()                    { return dailyStreak; }
+    public void setDailyStreak(int s)              { this.dailyStreak = s; }
+
+    // ── Auto-Upgrade ─────────────────────────────────────────────────────────
+    public boolean isAutoUpgrade()                 { return autoUpgrade; }
+    public void setAutoUpgrade(boolean b)          { this.autoUpgrade = b; }
+
+    // ── Upgrade-Tokens ───────────────────────────────────────────────────────
+    public int getUpgradeTokens()                  { return upgradeTokens; }
+    public void setUpgradeTokens(int n)            { this.upgradeTokens = n; }
+    public void addUpgradeTokens(int n)            { this.upgradeTokens += n; }
+    public boolean useUpgradeToken()               {
+        if (upgradeTokens <= 0) return false;
+        upgradeTokens--;
+        return true;
+    }
+
+    // ── Talent-System ────────────────────────────────────────────────────────
+    public int getTalentPoints()                   { return talentPoints; }
+    public void setTalentPoints(int n)             { this.talentPoints = n; }
+    public void addTalentPoints(int n)             { this.talentPoints += n; }
+    public Set<String> getUnlockedTalents()        { return unlockedTalents; }
+    public boolean hasTalent(String id)            { return unlockedTalents.contains(id); }
+    public void unlockTalent(String id)            { unlockedTalents.add(id); }
+
+    // ── Milestones ───────────────────────────────────────────────────────────
+    public int getMilestoneReached()               { return milestoneReached; }
+    public void setMilestoneReached(int n)         { this.milestoneReached = n; }
+
+    // ── Return Location (session-only) ───────────────────────────────────────
+    public boolean hasReturnLocation()             { return returnWorld != null; }
+    public String getReturnWorld()                 { return returnWorld; }
+    public double getReturnX()                     { return returnX; }
+    public double getReturnY()                     { return returnY; }
+    public double getReturnZ()                     { return returnZ; }
+    public void setReturnLocation(String world, double x, double y, double z) {
+        this.returnWorld = world; this.returnX = x; this.returnY = y; this.returnZ = z;
+    }
+    public void clearReturnLocation()              { this.returnWorld = null; }
 
     // ── Stats-Hologramm ──────────────────────────────────────────────────────
 
