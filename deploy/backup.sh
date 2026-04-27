@@ -5,7 +5,7 @@
 #
 # Einrichtung (einmalig auf dem Server):
 #   crontab -e
-#   0 */4 * * * bash /opt/minecraft/deploy/backup.sh >> /var/log/ph-backup.log 2>&1
+#   0 */4 * * * bash /opt/pinkhorizon/deploy/backup.sh >> /var/log/ph-backup.log 2>&1
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -72,8 +72,29 @@ backup_server "ph-skyblock" "skyblock" \
     "servers/skyblock/world" \
     "servers/skyblock/skyblock_world"
 
-backup_server "ph-generators" "generators" \
-    "servers/generators/island-template"
+# ── Generators: island-template + alle island_<UUID> Welten ──────────────────
+log "Sichere generators…"
+if docker ps --format '{{.Names}}' | grep -q "^ph-generators$"; then
+    docker exec ph-generators rcon-cli save-all 2>/dev/null && sleep 3 || true
+else
+    warn "ph-generators läuft nicht – sichere trotzdem Dateien."
+fi
+
+gen_dirs=()
+[ -d "$SCRIPT_DIR/servers/generators/island-template" ] && \
+    gen_dirs+=("servers/generators/island-template")
+for d in "$SCRIPT_DIR/servers/generators/island_"*/; do
+    [ -d "$d" ] && gen_dirs+=("servers/generators/$(basename "$d")")
+done
+
+if [ ${#gen_dirs[@]} -eq 0 ]; then
+    warn "Keine Weltordner gefunden für generators – übersprungen."
+else
+    gen_backup="$BACKUP_DIR/generators_${TIMESTAMP}.tar.gz"
+    tar -czf "$gen_backup" -C "$SCRIPT_DIR" "${gen_dirs[@]}" 2>/dev/null
+    gen_size=$(du -sh "$gen_backup" 2>/dev/null | cut -f1)
+    ok "generators → $(basename "$gen_backup") ($gen_size)  [${#gen_dirs[@]} Welten]"
+fi
 
 # ── Alte Backups löschen ──────────────────────────────────────────────────────
 log "Lösche Backups älter als $KEEP_DAYS Tage…"
