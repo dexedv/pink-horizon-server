@@ -979,9 +979,9 @@ app.post('/api/restore', auth, async (req, res) => {
     return res.status(400).json({ error: 'Unbekannter Server aus Dateiname' });
   }
 
-  const arc        = path.join(BACKUP_DIR, file);
-  const serverData = `/data/${serverName}`;
-  const container  = `ph-${serverName}`;
+  const arc       = path.join(BACKUP_DIR, file);
+  const container = `ph-${serverName}`;
+  const PROJECT_ROOT = '/opt/pinkhorizon';
 
   try {
     await fs.access(arc);
@@ -989,13 +989,22 @@ app.post('/api/restore', auth, async (req, res) => {
     return res.status(404).json({ error: 'Backup-Datei nicht gefunden' });
   }
 
+  // Archiv-Format erkennen: backup.sh legt Pfade wie "servers/smash/world/..." an,
+  // Dashboard-Backups beginnen mit "world/..." relativ zu /data/<server>.
+  const firstEntry = await new Promise((resolve) => {
+    execFile('tar', ['-tzf', arc, '--occurrence=1'], { timeout: 10000 }, (err, stdout) => {
+      resolve(stdout ? stdout.trim().split('\n')[0] : '');
+    });
+  });
+  const extractTo = firstEntry.startsWith('servers/') ? PROJECT_ROOT : `/data/${serverName}`;
+
   try {
     // 1. Server stoppen
     try { await docker.getContainer(container).stop({ t: 10 }); } catch {}
 
     // 2. Backup entpacken (überschreibt Weltdateien)
     await new Promise((resolve, reject) => {
-      execFile('tar', ['-xzf', arc, '-C', serverData], { timeout: 300000 }, (err) => {
+      execFile('tar', ['-xzf', arc, '-C', extractTo], { timeout: 300000 }, (err) => {
         if (err) reject(err); else resolve();
       });
     });
@@ -1005,7 +1014,6 @@ app.post('/api/restore', auth, async (req, res) => {
 
     res.json({ ok: true, message: `${serverName} aus ${file} wiederhergestellt und neu gestartet.` });
   } catch (e) {
-    // Sicherheitshalber Server starten falls er noch gestoppt ist
     try { await docker.getContainer(container).start(); } catch {}
     res.status(500).json({ ok: false, error: e.message });
   }
