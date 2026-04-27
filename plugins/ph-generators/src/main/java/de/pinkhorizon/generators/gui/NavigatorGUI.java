@@ -43,8 +43,9 @@ public class NavigatorGUI implements Listener {
     private final PHGenerators plugin;
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final String TITLE = "✦ IdleForge – Menüs";
-    private static final int NAVIGATOR_SLOT = 8;
-    private static final int PICKER_SLOT    = 7;
+    private static final int NAVIGATOR_SLOT   = 8;
+    private static final int PICKER_SLOT      = 7;
+    private static final int MINING_PICK_SLOT = 6;
 
     public NavigatorGUI(PHGenerators plugin) {
         this.plugin = plugin;
@@ -53,8 +54,10 @@ public class NavigatorGUI implements Listener {
     // ── Items geben ──────────────────────────────────────────────────────────
 
     public void giveCompass(Player player) {
-        player.getInventory().setItem(NAVIGATOR_SLOT, buildNavigator(player));
-        player.getInventory().setItem(PICKER_SLOT,    buildPicker());
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        player.getInventory().setItem(NAVIGATOR_SLOT,   buildNavigator(player));
+        player.getInventory().setItem(PICKER_SLOT,      buildPicker());
+        player.getInventory().setItem(MINING_PICK_SLOT, buildMiningPickaxe(data));
     }
 
     private ItemStack buildNavigator(Player player) {
@@ -63,6 +66,27 @@ public class NavigatorGUI implements Listener {
         meta.setOwningPlayer(player);
         meta.displayName(MM.deserialize("<light_purple><bold>✦ Menü-Navigator</bold>"));
         meta.lore(List.of(MM.deserialize("<gray>Rechtsklick → Alle Menüs")));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public ItemStack buildMiningPickaxe(PlayerData data) {
+        int lvl = data != null ? data.getMiningPickaxeLevel() : 1;
+        double mult = 1.0 + (lvl - 1) * 0.15;
+        double shardBonus = lvl * 1.0;
+        ItemStack item = new ItemStack(Material.DIAMOND_PICKAXE);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(MM.deserialize("<aqua><bold>⛏ Mining-Spitzhacke</bold> <dark_gray>[Lvl " + lvl + "]"));
+        meta.lore(List.of(
+                MM.deserialize("<gray>Für den Mining-Block benutzen"),
+                MM.deserialize(""),
+                MM.deserialize("<gray>Geld-Multiplikator: <green>x" + String.format("%.2f", mult)),
+                MM.deserialize("<gray>Shard-Bonus: <light_purple>+" + (int) shardBonus + "%"),
+                MM.deserialize(""),
+                MM.deserialize("<dark_gray>/gen mining pickaxe upgrade")
+        ));
+        meta.setUnbreakable(true);
+        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
         item.setItemMeta(meta);
         return item;
     }
@@ -160,7 +184,7 @@ public class NavigatorGUI implements Listener {
         if (event.getClickedInventory() != null
                 && event.getClickedInventory() == player.getInventory()) {
             int slot = event.getSlot();
-            if (slot == NAVIGATOR_SLOT || slot == PICKER_SLOT) {
+            if (slot == NAVIGATOR_SLOT || slot == PICKER_SLOT || slot == MINING_PICK_SLOT) {
                 event.setCancelled(true);
             }
         }
@@ -363,7 +387,15 @@ public class NavigatorGUI implements Listener {
         return name.contains("Aufheber");
     }
 
+    public boolean isMiningPickaxe(ItemStack item) {
+        if (item == null || item.getType() != Material.DIAMOND_PICKAXE) return false;
+        if (!item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) return false;
+        String name = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+                .plainText().serialize(item.getItemMeta().displayName());
+        return name.contains("Mining-Spitzhacke");
+    }
+
     private boolean isSpecialItem(ItemStack item) {
-        return isNavigator(item) || isPicker(item);
+        return isNavigator(item) || isPicker(item) || isMiningPickaxe(item);
     }
 }

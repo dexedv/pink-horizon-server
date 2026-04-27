@@ -84,6 +84,14 @@ public class MiningBlockManager implements Listener {
 
         event.setCancelled(true);
 
+        // Mining-Spitzhacke muss in der Hand sein
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (!plugin.getNavigatorGUI().isMiningPickaxe(hand)) {
+            player.sendMessage(MM.deserialize(
+                    "<red>Du brauchst die <aqua>Mining-Spitzhacke <red>(Slot 6) um den Block abzubauen!"));
+            return;
+        }
+
         // Cooldown prüfen
         long cooldownMs = plugin.getConfig().getLong("mining-block.cooldown-ms", 500);
         long now = System.currentTimeMillis();
@@ -94,9 +102,12 @@ public class MiningBlockManager implements Listener {
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return;
 
-        int level = data.getMiningLevel();
+        int level        = data.getMiningLevel();
+        int pickaxeLevel = data.getMiningPickaxeLevel();
+        double pickaxeMult = 1.0 + (pickaxeLevel - 1) * 0.15;
+
         long baseMoney = plugin.getConfig().getLong("mining-block.base-money", 5);
-        long earned = baseMoney * level;
+        long earned = (long) (baseMoney * level * pickaxeMult);
         data.addMoney(earned);
 
         // Partikel + Sound
@@ -106,7 +117,7 @@ public class MiningBlockManager implements Listener {
 
         // Nachricht (nicht jedes Mal – nur wenn shard dropt)
         double shardChance = plugin.getConfig().getDouble("mining-block.shard-chance", 0.10)
-                + (level * 0.005);
+                + (level * 0.005) + (pickaxeLevel * 0.01);
         if (ThreadLocalRandom.current().nextDouble() < shardChance) {
             // Shard droppen
             ItemStack shard = createShardItem(1);
@@ -125,20 +136,41 @@ public class MiningBlockManager implements Listener {
 
     public enum UpgradeResult { SUCCESS, MAX_LEVEL, NOT_ENOUGH_SHARDS }
 
+    /** Upgrade des Mining-Blocks */
     public UpgradeResult upgrade(Player player, PlayerData data) {
         int maxLevel = plugin.getConfig().getInt("mining-block.max-level", 50);
         if (data.getMiningLevel() >= maxLevel) return UpgradeResult.MAX_LEVEL;
 
         int shardsNeeded = data.getMiningLevel()
                 * plugin.getConfig().getInt("mining-block.upgrade-shards", 5);
-
-        // Shards aus Inventar zählen + entfernen
-        int shardsInInv = countShards(player);
-        if (shardsInInv < shardsNeeded) return UpgradeResult.NOT_ENOUGH_SHARDS;
+        if (countShards(player) < shardsNeeded) return UpgradeResult.NOT_ENOUGH_SHARDS;
 
         removeShards(player, shardsNeeded);
         data.setMiningLevel(data.getMiningLevel() + 1);
         return UpgradeResult.SUCCESS;
+    }
+
+    /** Upgrade der Mining-Spitzhacke */
+    public UpgradeResult upgradePickaxe(Player player, PlayerData data) {
+        int maxLevel = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 30);
+        if (data.getMiningPickaxeLevel() >= maxLevel) return UpgradeResult.MAX_LEVEL;
+
+        int shardsNeeded = data.getMiningPickaxeLevel()
+                * plugin.getConfig().getInt("mining-block.pickaxe-upgrade-shards", 8);
+        if (countShards(player) < shardsNeeded) return UpgradeResult.NOT_ENOUGH_SHARDS;
+
+        removeShards(player, shardsNeeded);
+        data.setMiningPickaxeLevel(data.getMiningPickaxeLevel() + 1);
+
+        // Pickaxe im Inventar aktualisieren
+        player.getInventory().setItem(6,
+                plugin.getNavigatorGUI().buildMiningPickaxe(data));
+        return UpgradeResult.SUCCESS;
+    }
+
+    public int shardsNeededForPickaxe(PlayerData data) {
+        return data.getMiningPickaxeLevel()
+                * plugin.getConfig().getInt("mining-block.pickaxe-upgrade-shards", 8);
     }
 
     // ── Shard-Item ───────────────────────────────────────────────────────────
@@ -199,20 +231,24 @@ public class MiningBlockManager implements Listener {
     }
 
     public String getInfo(PlayerData data) {
-        int level     = data.getMiningLevel();
-        int maxLevel  = plugin.getConfig().getInt("mining-block.max-level", 50);
-        long baseMoney = plugin.getConfig().getLong("mining-block.base-money", 5);
-        long earned   = baseMoney * level;
+        int level        = data.getMiningLevel();
+        int maxLevel     = plugin.getConfig().getInt("mining-block.max-level", 50);
+        int pickaxeLvl   = data.getMiningPickaxeLevel();
+        int maxPickaxeLvl = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 30);
+        long baseMoney   = plugin.getConfig().getLong("mining-block.base-money", 5);
+        double pickMult  = 1.0 + (pickaxeLvl - 1) * 0.15;
+        long earned      = (long) (baseMoney * level * pickMult);
         int shardsNeeded = level * plugin.getConfig().getInt("mining-block.upgrade-shards", 5);
+        int pickaxeShards = shardsNeededForPickaxe(data);
         double shardChance = (plugin.getConfig().getDouble("mining-block.shard-chance", 0.10)
-                + (level * 0.005)) * 100;
+                + (level * 0.005) + (pickaxeLvl * 0.01)) * 100;
 
         return "<gold>━━ Mining-Block ━━\n"
-                + "<gray>Level: <white>" + level + " <dark_gray>/ " + maxLevel + "\n"
-                + "<gray>Geld pro Schlag: <green>$" + MoneyManager.formatMoney(earned) + "\n"
+                + "<gray>Block-Level: <white>" + level + " <dark_gray>/ " + maxLevel + "\n"
+                + "<gray>Spitzhacke: <aqua>Lvl " + pickaxeLvl + " <dark_gray>/ " + maxPickaxeLvl + "\n"
+                + "<gray>Geld/Schlag: <green>$" + MoneyManager.formatMoney(earned) + "\n"
                 + "<gray>Shard-Chance: <light_purple>" + String.format("%.1f", shardChance) + "%\n"
-                + (level < maxLevel
-                    ? "<gray>Upgrade-Kosten: <yellow>" + shardsNeeded + " Shards"
-                    : "<gold>MAX LEVEL erreicht!");
+                + (level < maxLevel ? "<gray>Block-Upgrade: <yellow>" + shardsNeeded + " Shards\n" : "<gold>Block MAX!\n")
+                + (pickaxeLvl < maxPickaxeLvl ? "<gray>Spitzhacke-Upgrade: <yellow>" + pickaxeShards + " Shards" : "<gold>Spitzhacke MAX!");
     }
 }

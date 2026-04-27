@@ -560,32 +560,44 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
 
         String sub = args.length >= 2 ? args[1].toLowerCase() : "info";
         switch (sub) {
-            case "upgrade" -> {
-                var result = plugin.getMiningBlockManager().upgrade(player, data);
-                switch (result) {
-                    case SUCCESS -> {
-                        player.sendMessage(MM.deserialize(
-                                "<green>✔ Mining-Block auf <light_purple>Level " + data.getMiningLevel()
-                                + " <green>upgeggraded!"));
-                        Bukkit.getScheduler().runTaskAsynchronously(plugin,
-                                () -> plugin.getRepository().savePlayer(data));
-                    }
-                    case MAX_LEVEL -> player.sendMessage(MM.deserialize(
-                            "<red>Dein Mining-Block ist bereits auf dem maximalen Level!"));
-                    case NOT_ENOUGH_SHARDS -> {
-                        int needed = data.getMiningLevel()
-                                * plugin.getConfig().getInt("mining-block.upgrade-shards", 5);
-                        int have   = plugin.getMiningBlockManager().createShardItem(1) != null
-                                ? countShardsInInv(player) : 0;
-                        player.sendMessage(MM.deserialize(
-                                "<red>Nicht genug Shards! Benötigt: <yellow>" + needed
-                                + " <red>| Im Inventar: <yellow>" + have));
-                    }
+            case "upgrade" -> handleMiningUpgrade(player, data, "block");
+            case "pickaxe" -> {
+                if (args.length >= 3 && args[2].equalsIgnoreCase("upgrade")) {
+                    handleMiningUpgrade(player, data, "pickaxe");
+                } else {
+                    player.sendMessage(MM.deserialize(plugin.getMiningBlockManager().getInfo(data)));
                 }
             }
             default -> player.sendMessage(MM.deserialize(
-                    plugin.getMiningBlockManager().getInfo(data)
-                    + "\n<dark_gray>/gen mining upgrade <gray>– Upgraden"));
+                    plugin.getMiningBlockManager().getInfo(data) + "\n"
+                    + "<dark_gray>/gen mining upgrade <gray>– Block upgraden\n"
+                    + "<dark_gray>/gen mining pickaxe upgrade <gray>– Spitzhacke upgraden"));
+        }
+    }
+
+    private void handleMiningUpgrade(Player player, PlayerData data, String target) {
+        var mgr = plugin.getMiningBlockManager();
+        var result = target.equals("pickaxe") ? mgr.upgradePickaxe(player, data) : mgr.upgrade(player, data);
+        switch (result) {
+            case SUCCESS -> {
+                if (target.equals("pickaxe")) {
+                    player.sendMessage(MM.deserialize(
+                            "<green>✔ Mining-Spitzhacke auf <aqua>Level " + data.getMiningPickaxeLevel() + " <green>upgegraded!"));
+                } else {
+                    player.sendMessage(MM.deserialize(
+                            "<green>✔ Mining-Block auf <light_purple>Level " + data.getMiningLevel() + " <green>upgegraded!"));
+                }
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> plugin.getRepository().savePlayer(data));
+            }
+            case MAX_LEVEL -> player.sendMessage(MM.deserialize("<red>Bereits auf dem maximalen Level!"));
+            case NOT_ENOUGH_SHARDS -> {
+                int needed = target.equals("pickaxe")
+                        ? mgr.shardsNeededForPickaxe(data)
+                        : data.getMiningLevel() * plugin.getConfig().getInt("mining-block.upgrade-shards", 5);
+                player.sendMessage(MM.deserialize(
+                        "<red>Nicht genug Shards! Benötigt: <yellow>" + needed
+                        + " <red>| Im Inventar: <yellow>" + countShardsInInv(player)));
+            }
         }
     }
 

@@ -71,8 +71,9 @@ public class PlayerData {
     private boolean tutorialDone = false;
 
     // Mining-Block
-    private int miningLevel = 1;
-    private int shards      = 0;
+    private int miningLevel        = 1;
+    private int miningPickaxeLevel = 1;
+    private int shards             = 0;
 
     // Stats-Hologramm (Spieler-Selbst-Platzierung)
     private String holoWorld = null;
@@ -330,9 +331,11 @@ public class PlayerData {
 
     // ── Mining-Block ─────────────────────────────────────────────────────────
 
-    public int  getMiningLevel()                 { return miningLevel; }
-    public void setMiningLevel(int n)            { this.miningLevel = Math.max(1, n); }
-    public int  getShards()                      { return shards; }
-    public void setShards(int n)                 { this.shards = Math.max(0, n); }
-    public void addShards(int n)                 { this.shards += n; }
+    public int  getMiningLevel()                    { return miningLevel; }
+    public void setMiningLevel(int n)               { this.miningLevel = Math.max(1, n); }
+    public int  getMiningPickaxeLevel()             { return miningPickaxeLevel; }
+    public void setMiningPickaxeLevel(int n)        { this.miningPickaxeLevel = Math.max(1, n); }
+    public int  getShards()                         { return shards; }
+    public void setShards(int n)                    { this.shards = Math.max(0, n); }
+    public void addShards(int n)                    { this.shards += n; }
 }

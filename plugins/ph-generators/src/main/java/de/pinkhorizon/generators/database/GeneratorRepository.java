@@ -67,6 +67,7 @@ public class GeneratorRepository {
                 try { data.setPrestigeTokens(rs.getInt("prestige_tokens")); } catch (SQLException ignored) {}
                 try { data.setAutoTierUpgrade(rs.getInt("auto_tier_upgrade") == 1); } catch (SQLException ignored) {}
                 try { data.setMiningLevel(rs.getInt("mining_level")); } catch (SQLException ignored) {}
+                try { data.setMiningPickaxeLevel(rs.getInt("mining_pickaxe_level")); } catch (SQLException ignored) {}
                 try { data.setShards(rs.getInt("shards")); } catch (SQLException ignored) {}
                 try {
                     String sbStr = rs.getString("stored_boosters");
@@ -92,8 +93,8 @@ public class GeneratorRepository {
                     afk_boxes_opened, booster_expiry, booster_mult, last_seen, border_size,
                     last_daily, daily_streak, auto_upgrade, upgrade_tokens, talent_points,
                     milestone_reached, stored_boosters, bonus_slots, prestige_tokens, auto_tier_upgrade,
-                    mining_level, shards)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    mining_level, mining_pickaxe_level, shards)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON DUPLICATE KEY UPDATE
                     name=VALUES(name), money=VALUES(money), prestige=VALUES(prestige),
                     total_earned=VALUES(total_earned), total_upgrades=VALUES(total_upgrades),
@@ -106,7 +107,9 @@ public class GeneratorRepository {
                     stored_boosters=VALUES(stored_boosters),
                     bonus_slots=VALUES(bonus_slots), prestige_tokens=VALUES(prestige_tokens),
                     auto_tier_upgrade=VALUES(auto_tier_upgrade),
-                    mining_level=VALUES(mining_level), shards=VALUES(shards)
+                    mining_level=VALUES(mining_level),
+                    mining_pickaxe_level=VALUES(mining_pickaxe_level),
+                    shards=VALUES(shards)
             """;
         } else {
             sql = """
@@ -114,8 +117,8 @@ public class GeneratorRepository {
                     total_upgrades, afk_boxes_opened, booster_expiry, booster_mult, last_seen,
                     border_size, last_daily, daily_streak, auto_upgrade, upgrade_tokens,
                     talent_points, milestone_reached, stored_boosters, bonus_slots, prestige_tokens,
-                    auto_tier_upgrade, mining_level, shards)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    auto_tier_upgrade, mining_level, mining_pickaxe_level, shards)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         }
         try (Connection con = db.getConnection();
@@ -142,7 +145,8 @@ public class GeneratorRepository {
             stmt.setInt(20, data.getPrestigeTokens());
             stmt.setInt(21, data.isAutoTierUpgrade() ? 1 : 0);
             stmt.setInt(22, data.getMiningLevel());
-            stmt.setInt(23, data.getShards());
+            stmt.setInt(23, data.getMiningPickaxeLevel());
+            stmt.setInt(24, data.getShards());
             stmt.executeUpdate();
         } catch (SQLException e) {
             log.warning("[GenRepo] savePlayer: " + e.getMessage());
