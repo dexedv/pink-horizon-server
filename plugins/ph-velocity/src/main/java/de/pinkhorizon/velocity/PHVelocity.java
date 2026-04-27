@@ -47,14 +47,46 @@ public class PHVelocity {
             new HubCommand()
         );
 
-        // Stündlicher Vote-Broadcast
+        // Stündlicher Broadcast (abwechselnd Vote / Discord)
         server.getScheduler()
-            .buildTask(this, this::broadcastVote)
+            .buildTask(this, this::broadcastRotating)
             .delay(1, TimeUnit.HOURS)
             .repeat(1, TimeUnit.HOURS)
             .schedule();
 
         logger.info("PH-Velocity gestartet – /hub + stündlicher Broadcast aktiv.");
+    }
+
+    private int broadcastTick = 0;
+
+    private void broadcastRotating() {
+        if (broadcastTick % 2 == 0) broadcastVote();
+        else                         broadcastDiscord();
+        broadcastTick++;
+    }
+
+    private void broadcastDiscord() {
+        Component line = Component.text("─────────────────────────────────", PINK);
+
+        Component discordLink = Component.text("discord.gg/j5C4h5XaK6", LIGHT_PINK, TextDecoration.BOLD)
+            .clickEvent(ClickEvent.openUrl("https://discord.gg/j5C4h5XaK6"))
+            .hoverEvent(HoverEvent.showText(Component.text("Klicken zum Beitreten!", NamedTextColor.GRAY)));
+
+        Component msg1 = Component.text(" 💬 ", NamedTextColor.WHITE)
+            .append(Component.text("Wir haben einen Discord!", PINK, TextDecoration.BOLD));
+        Component msg2 = Component.text("   Tritt uns bei: ", NamedTextColor.GRAY)
+            .append(discordLink);
+        Component msg3 = Component.text("   ✔ Du kannst dich auch in der ", NamedTextColor.GRAY)
+            .append(Component.text("Lobby", LIGHT_PINK, TextDecoration.BOLD))
+            .append(Component.text(" verifizieren!", NamedTextColor.GRAY));
+
+        for (Player player : server.getAllPlayers()) {
+            player.sendMessage(line);
+            player.sendMessage(msg1);
+            player.sendMessage(msg2);
+            player.sendMessage(msg3);
+            player.sendMessage(line);
+        }
     }
 
     private void broadcastVote() {
