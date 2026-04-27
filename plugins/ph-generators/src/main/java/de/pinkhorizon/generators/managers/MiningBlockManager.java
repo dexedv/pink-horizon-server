@@ -10,6 +10,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -20,8 +21,10 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -38,19 +41,28 @@ public class MiningBlockManager implements Listener {
 
     private final PHGenerators plugin;
     private final NamespacedKey shardKey;
+    private final NamespacedKey relocateKey;
 
     /** Cooldown: UUID → letzter Hit-Timestamp in ms */
     private final Map<UUID, Long> cooldowns = new HashMap<>();
 
+    /** Spieler die gerade ihren Mining-Block umsetzen */
+    private final Set<UUID> pendingRelocate = new HashSet<>();
+
     public MiningBlockManager(PHGenerators plugin) {
         this.plugin = plugin;
-        this.shardKey = new NamespacedKey(plugin, "mining_shard");
+        this.shardKey   = new NamespacedKey(plugin, "mining_shard");
+        this.relocateKey = new NamespacedKey(plugin, "mining_relocate_block");
     }
 
     // ── Block platzieren ─────────────────────────────────────────────────────
 
     public void ensureMiningBlock(World world) {
-        Location loc = getBlockLocation(world);
+        ensureMiningBlock(world, null);
+    }
+
+    public void ensureMiningBlock(World world, UUID ownerUuid) {
+        Location loc = getBlockLocation(world, ownerUuid);
         if (loc == null) return;
         world.loadChunk(loc.getBlockX() >> 4, loc.getBlockZ() >> 4, true);
         if (loc.getBlock().getType() != BLOCK_MATERIAL) {
@@ -72,7 +84,7 @@ public class MiningBlockManager implements Listener {
         // Sneak + Rechtsklick → Upgrade-GUI öffnen
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK && player.isSneaking()) {
             if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) return;
-            Location expected = getBlockLocation(world);
+            Location expected = getBlockLocation(world, player.getUniqueId());
             if (expected == null) return;
             Location clicked = event.getClickedBlock().getLocation();
             if (clicked.getBlockX() != expected.getBlockX()
@@ -89,7 +101,7 @@ public class MiningBlockManager implements Listener {
         if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) return;
 
         // Block muss am erwarteten Ort sein
-        Location expected = getBlockLocation(world);
+        Location expected = getBlockLocation(world, player.getUniqueId());
         if (expected == null) return;
         Location clicked = event.getClickedBlock().getLocation();
         if (clicked.getBlockX() != expected.getBlockX()
@@ -169,7 +181,7 @@ public class MiningBlockManager implements Listener {
         Player player = event.getPlayer();
         World world = player.getWorld();
         if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) return;
-        Location expected = getBlockLocation(world);
+        Location expected = getBlockLocation(world, player.getUniqueId());
         if (expected == null) return;
         Location blockLoc = event.getBlock().getLocation();
         if (blockLoc.getBlockX() != expected.getBlockX()
@@ -196,7 +208,7 @@ public class MiningBlockManager implements Listener {
         org.bukkit.block.Block target = player.getTargetBlockExact(5);
         if (target == null || target.getType() != BLOCK_MATERIAL) return;
 
-        Location expected = getBlockLocation(world);
+        Location expected = getBlockLocation(world, player.getUniqueId());
         if (expected == null) return;
         Location blockLoc = target.getLocation();
         if (blockLoc.getBlockX() != expected.getBlockX()
@@ -265,11 +277,103 @@ public class MiningBlockManager implements Listener {
     // ── Hilfsmethoden ────────────────────────────────────────────────────────
 
     public Location getBlockLocation(World world) {
+        return getBlockLocation(world, null);
+    }
+
+    public Location getBlockLocation(World world, UUID ownerUuid) {
+        if (ownerUuid != null) {
+            de.pinkhorizon.generators.data.PlayerData data = plugin.getPlayerDataMap().get(ownerUuid);
+            if (data != null && data.hasMiningBlockCustomPos()) {
+                return new Location(world, data.getMiningBlockCustomX(), data.getMiningBlockCustomY(), data.getMiningBlockCustomZ());
+            }
+        }
         double spawnX = plugin.getConfig().getDouble("island.spawn-x", 0.5);
         double spawnY = plugin.getConfig().getDouble("island.spawn-y", 64.0);
         double spawnZ = plugin.getConfig().getDouble("island.spawn-z", 0.5);
         int dx = plugin.getConfig().getInt("mining-block.offset-x", 3);
         return new Location(world, (int) spawnX + dx, (int) spawnY, (int) spawnZ);
+    }
+
+    // ── Umsetzen ─────────────────────────────────────────────────────────────
+
+    /**
+     * Gibt dem Spieler einen speziellen Mining-Block zum Platzieren.
+     * Nach dem Platzieren wird der alte Block entfernt und die neue Position gespeichert.
+     */
+    public void startRelocate(Player player) {
+        pendingRelocate.add(player.getUniqueId());
+
+        ItemStack item = new ItemStack(BLOCK_MATERIAL);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(MM.deserialize("<light_purple><bold>⛏ Mining-Block</bold> <gray>(zum Platzieren)"));
+        meta.lore(List.of(
+                MM.deserialize("<gray>Platziere diesen Block auf deiner Insel"),
+                MM.deserialize("<gray>um den Mining-Block umzusetzen."),
+                MM.deserialize(""),
+                MM.deserialize("<red>Abbrechen: <gray>/gen mining cancel")
+        ));
+        meta.getPersistentDataContainer().set(relocateKey, PersistentDataType.BYTE, (byte) 1);
+        item.setItemMeta(meta);
+
+        player.getInventory().addItem(item);
+        player.sendMessage(MM.deserialize(
+                "<aqua>Mining-Block erhalten! <gray>Platziere ihn irgendwo auf deiner Insel.\n"
+                + "<red>Abbrechen: <gray>/gen mining cancel"));
+    }
+
+    public void cancelRelocate(Player player) {
+        if (!pendingRelocate.remove(player.getUniqueId())) return;
+        // Relocate-Item aus Inventar entfernen
+        player.getInventory().forEach(item -> {
+            if (isRelocateItem(item)) item.setType(Material.AIR);
+        });
+        player.sendMessage(MM.deserialize("<gray>Umsetzen abgebrochen."));
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+        if (!pendingRelocate.contains(player.getUniqueId())) return;
+
+        ItemStack hand = event.getItemInHand();
+        if (!isRelocateItem(hand)) return;
+
+        World world = player.getWorld();
+        if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) {
+            player.sendMessage(MM.deserialize("<red>Du kannst den Mining-Block nur auf deiner eigenen Insel platzieren!"));
+            event.setCancelled(true);
+            return;
+        }
+
+        Location newLoc = event.getBlock().getLocation();
+
+        // Alten Block entfernen
+        Location oldLoc = getBlockLocation(world, player.getUniqueId());
+        if (oldLoc != null && oldLoc.getBlock().getType() == BLOCK_MATERIAL) {
+            oldLoc.getBlock().setType(Material.AIR);
+        }
+
+        // Neuen Block setzen (Event erlaubt ihn zu platzieren, Typ ist schon korrekt)
+        // Neue Position in PlayerData speichern
+        de.pinkhorizon.generators.data.PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data != null) {
+            data.setMiningBlockLocation(newLoc.getBlockX(), newLoc.getBlockY(), newLoc.getBlockZ());
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
+                    plugin.getRepository().saveMiningBlockLocation(
+                            player.getUniqueId(), newLoc.getBlockX(), newLoc.getBlockY(), newLoc.getBlockZ()));
+        }
+
+        pendingRelocate.remove(player.getUniqueId());
+
+        player.sendMessage(MM.deserialize("<green>✦ Mining-Block erfolgreich umgesetzt!"));
+        world.spawnParticle(Particle.HAPPY_VILLAGER, newLoc.clone().add(0.5, 1, 0.5), 20, 0.5, 0.5, 0.5, 0);
+        player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 1.2f);
+    }
+
+    private boolean isRelocateItem(ItemStack item) {
+        if (item == null || item.getType() == Material.AIR || !item.hasItemMeta()) return false;
+        return item.getItemMeta().getPersistentDataContainer()
+                .has(relocateKey, PersistentDataType.BYTE);
     }
 
     public String getInfo(PlayerData data) {

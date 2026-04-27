@@ -75,6 +75,10 @@ public class PlayerData {
     private int miningPickaxeLevel = 1;
     private int shards             = 0;
 
+    // Mining-Block custom position (null = default aus config)
+    private boolean miningBlockCustomPos = false;
+    private int miningBlockCustomX, miningBlockCustomY, miningBlockCustomZ;
+
     // Stats-Hologramm (Spieler-Selbst-Platzierung)
     private String holoWorld = null;
     private int holoX, holoY, holoZ;
@@ -338,4 +342,18 @@ public class PlayerData {
     public int  getShards()                         { return shards; }
     public void setShards(int n)                    { this.shards = Math.max(0, n); }
     public void addShards(int n)                    { this.shards += n; }
+
+    // ── Mining-Block custom position ─────────────────────────────────────────
+    public boolean hasMiningBlockCustomPos()        { return miningBlockCustomPos; }
+    public int getMiningBlockCustomX()              { return miningBlockCustomX; }
+    public int getMiningBlockCustomY()              { return miningBlockCustomY; }
+    public int getMiningBlockCustomZ()              { return miningBlockCustomZ; }
+
+    public void setMiningBlockLocation(int x, int y, int z) {
+        this.miningBlockCustomX = x;
+        this.miningBlockCustomY = y;
+        this.miningBlockCustomZ = z;
+        this.miningBlockCustomPos = true;
+    }
+    public void clearMiningBlockLocation()          { this.miningBlockCustomPos = false; }
 }

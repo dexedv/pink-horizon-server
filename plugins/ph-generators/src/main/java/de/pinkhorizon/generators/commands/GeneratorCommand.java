@@ -118,6 +118,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             case "tokens"       -> { showTokens(player); yield true; }
             case "tokenshop", "ts" -> { plugin.getTokenShopGUI().open(player); yield true; }
             case "mining"          -> { handleMining(player, args); yield true; }
+            case "movemining"      -> { plugin.getMiningBlockManager().startRelocate(player); yield true; }
             case "event"        -> {
                 if (player.hasPermission("ph.generators.admin")) handleEvent(player, args);
                 else showHelp(player);
@@ -568,10 +569,12 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage(MM.deserialize(plugin.getMiningBlockManager().getInfo(data)));
                 }
             }
+            case "cancel" -> plugin.getMiningBlockManager().cancelRelocate(player);
             default -> player.sendMessage(MM.deserialize(
                     plugin.getMiningBlockManager().getInfo(data) + "\n"
                     + "<dark_gray>/gen mining upgrade <gray>– Block upgraden\n"
-                    + "<dark_gray>/gen mining pickaxe upgrade <gray>– Spitzhacke upgraden"));
+                    + "<dark_gray>/gen mining pickaxe upgrade <gray>– Spitzhacke upgraden\n"
+                    + "<dark_gray>/gen movemining <gray>– Mining-Block umsetzen"));
         }
     }
 

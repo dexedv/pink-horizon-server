@@ -386,6 +386,20 @@ public class GenDatabaseManager {
                     "ALTER TABLE gen_players ADD COLUMN auto_tier_upgrade TINYINT DEFAULT 0")
                     .execute();
             } catch (java.sql.SQLException ignored) {}
+
+            // Migration: Mining-Block custom position
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN mining_block_x INT NULL")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN mining_block_y INT NULL")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN mining_block_z INT NULL")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
         }
     }
 
