@@ -4,8 +4,10 @@ import de.pinkhorizon.skyblock.commands.GeneratorCommand;
 import de.pinkhorizon.skyblock.database.GeneratorRepository;
 import de.pinkhorizon.skyblock.database.QuestRepository;
 import de.pinkhorizon.skyblock.database.SkyDatabase;
+import de.pinkhorizon.skyblock.economy.SkyVaultEconomy;
 import de.pinkhorizon.skyblock.integration.BentoBoxHook;
 import de.pinkhorizon.skyblock.listeners.BentoBoxListener;
+import de.pinkhorizon.skyblock.listeners.FarmingListener;
 import de.pinkhorizon.skyblock.listeners.GeneratorListener;
 import de.pinkhorizon.skyblock.listeners.GuiListener;
 import de.pinkhorizon.skyblock.listeners.PlayerListener;
@@ -14,6 +16,7 @@ import de.pinkhorizon.skyblock.managers.CoinManager;
 import de.pinkhorizon.skyblock.managers.GeneratorManager;
 import de.pinkhorizon.skyblock.managers.HologramManager;
 import de.pinkhorizon.skyblock.managers.InfoHologramManager;
+import de.pinkhorizon.skyblock.managers.LeaderboardManager;
 import de.pinkhorizon.skyblock.managers.NpcManager;
 import de.pinkhorizon.skyblock.managers.PlayerManager;
 import de.pinkhorizon.skyblock.managers.QuestManager;
@@ -21,6 +24,9 @@ import de.pinkhorizon.skyblock.managers.SkyScoreboardManager;
 import de.pinkhorizon.skyblock.managers.TitleManager;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.Component;
+import net.milkbowl.vault.economy.Economy;
+import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class PHSkyBlock extends JavaPlugin {
@@ -43,6 +49,7 @@ public class PHSkyBlock extends JavaPlugin {
     private TitleManager titleManager;
     private NpcManager npcManager;
     private InfoHologramManager infoHologramManager;
+    private LeaderboardManager leaderboardManager;
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final String PREFIX = "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] <white>";
@@ -69,10 +76,18 @@ public class PHSkyBlock extends JavaPlugin {
         titleManager       = new TitleManager(this, generatorRepository);
         questManager       = new QuestManager(this, questRepository, generatorRepository);
         generatorManager   = new GeneratorManager(this, generatorRepository);
-        npcManager         = new NpcManager(this);
+        npcManager          = new NpcManager(this);
         infoHologramManager = new InfoHologramManager(this);
+        leaderboardManager  = new LeaderboardManager(this);
 
         generatorManager.startTasks();
+
+        // ── Vault Economy registrieren (optional) ─────────────────────────────
+        if (getServer().getPluginManager().getPlugin("Vault") != null) {
+            getServer().getServicesManager().register(
+                Economy.class, new SkyVaultEconomy(this), this, ServicePriority.Normal);
+            getLogger().info("[PH-SkyBlock] Vault Economy registriert (SkyCoins).");
+        }
 
         // NPCs + Hologramme nach Weltlade verzögert starten
         getServer().getScheduler().runTaskLater(this, () -> {
@@ -90,6 +105,7 @@ public class PHSkyBlock extends JavaPlugin {
         pm.registerEvents(new PlayerListener(this), this);
         pm.registerEvents(new GeneratorListener(this), this);
         pm.registerEvents(new GuiListener(this), this);
+        pm.registerEvents(new FarmingListener(this), this);
 
         // BentoBox-Events nur registrieren wenn BentoBox verfügbar
         if (BentoBoxHook.isAvailable()) {
@@ -143,6 +159,7 @@ public class PHSkyBlock extends JavaPlugin {
     // ── Getters ───────────────────────────────────────────────────────────────
 
     public static PHSkyBlock getInstance()              { return instance; }
+    public SkyDatabase getDatabase()                    { return database; }
     public PlayerManager getPlayerManager()             { return playerManager; }
     public GeneratorRepository getGeneratorRepository() { return generatorRepository; }
     public QuestRepository getQuestRepository()         { return questRepository; }
@@ -155,4 +172,5 @@ public class PHSkyBlock extends JavaPlugin {
     public TitleManager getTitleManager()               { return titleManager; }
     public NpcManager getNpcManager()                   { return npcManager; }
     public InfoHologramManager getInfoHologramManager() { return infoHologramManager; }
+    public LeaderboardManager getLeaderboardManager()   { return leaderboardManager; }
 }

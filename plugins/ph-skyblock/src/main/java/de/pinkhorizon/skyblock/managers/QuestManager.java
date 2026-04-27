@@ -148,6 +148,34 @@ public class QuestManager {
         checkCompletions(uuid);
     }
 
+    public void onCropHarvest(UUID uuid, int amount) {
+        forEachActiveQuest(uuid, q -> {
+            if (q.getType() == QuestType.HARVEST_CROPS) q.addProgress(amount);
+        });
+        checkCompletions(uuid);
+    }
+
+    public void onFishCatch(UUID uuid) {
+        forEachActiveQuest(uuid, q -> {
+            if (q.getType() == QuestType.CATCH_FISH) q.addProgress(1);
+        });
+        checkCompletions(uuid);
+    }
+
+    public void onAnimalBreed(UUID uuid) {
+        forEachActiveQuest(uuid, q -> {
+            if (q.getType() == QuestType.BREED_ANIMALS) q.addProgress(1);
+        });
+        checkCompletions(uuid);
+    }
+
+    public void onShopSell(UUID uuid, long coins) {
+        forEachActiveQuest(uuid, q -> {
+            if (q.getType() == QuestType.SELL_ITEMS) q.addProgress(coins);
+        });
+        checkCompletions(uuid);
+    }
+
     // ── Belohnung einlösen ────────────────────────────────────────────────────
 
     public boolean claimReward(Player player, PlayerQuest quest) {

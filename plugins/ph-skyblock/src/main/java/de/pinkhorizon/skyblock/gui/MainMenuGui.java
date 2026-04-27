@@ -20,6 +20,7 @@ public class MainMenuGui extends GuiBase {
 
     private static final int SLOT_ISLAND       = 10;
     private static final int SLOT_GENERATORS   = 11;
+    private static final int SLOT_SHOP         = 12;
     private static final int SLOT_QUESTS       = 13;
     private static final int SLOT_ACHIEVEMENTS = 15;
     private static final int SLOT_TITLES       = 16;
@@ -86,6 +87,16 @@ public class MainMenuGui extends GuiBase {
             genLore.toArray(new String[0])
         ));
 
+        // Shop
+        inventory.setItem(SLOT_SHOP, item(
+            Material.GOLD_INGOT,
+            "<yellow><bold>⚑ Shop",
+            "<gray>Kaufe und verkaufe Items",
+            "<gray>gegen Coins.",
+            " ",
+            "<yellow>Klicke zum Öffnen."
+        ));
+
         // Quests
         List<de.pinkhorizon.skyblock.data.PlayerQuest> quests =
             plugin.getQuestManager().getQuests(uuid);
@@ -141,6 +152,7 @@ public class MainMenuGui extends GuiBase {
                 player.closeInventory();
                 BentoBoxHook.teleportHome(player);
             }
+            case SLOT_SHOP         -> new ShopGui(plugin, player).open(player);
             case SLOT_QUESTS       -> new QuestGui(plugin, player).open(player);
             case SLOT_ACHIEVEMENTS -> new AchievementGui(plugin, player).open(player);
             case SLOT_TITLES       -> new TitleGui(plugin, player).open(player);

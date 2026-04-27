@@ -47,6 +47,12 @@
             <version>2.6.0</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Vault Economy API -->
+        <dependency>
+            <groupId>com.github.MilkBowl</groupId>
+            <artifactId>VaultAPI</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>

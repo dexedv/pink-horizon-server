@@ -15,7 +15,11 @@ public enum QuestType {
     COLLECT_GEN     ("gen_collector",  "§7Generator leeren",         "Leere deinen Generator §e{goal}x.",          Material.CHEST,        new long[]{2, 5, 10, 20}),
     ISLAND_SCORE    ("score_hunter",   "§dInsel-Score erhöhen",      "Erreiche einen Insel-Score von §e{goal}.",   Material.NETHER_STAR,  new long[]{100, 500, 2000, 10000}),
     VISIT_ISLANDS   ("explorer",       "§eInseln besuchen",          "Besuche §e{goal} §everschiedene Inseln.",    Material.COMPASS,      new long[]{2, 5, 10, 25}),
-    MINE_ANCIENT    ("debris_hunter",  "§5Alten Schutt abbauen",     "Baue §e{goal} §5Alten Schutt ab.",           Material.ANCIENT_DEBRIS, new long[]{1, 3, 8, 20});
+    MINE_ANCIENT    ("debris_hunter",  "§5Alten Schutt abbauen",     "Baue §e{goal} §5Alten Schutt ab.",           Material.ANCIENT_DEBRIS,  new long[]{1, 3, 8, 20}),
+    HARVEST_CROPS   ("crop_harvester","§aErnte einfahren",           "Ernte §e{goal} §aGewächse.",                 Material.WHEAT,           new long[]{64, 256, 1000, 5000}),
+    CATCH_FISH      ("fisher",        "§3Fische fangen",             "Fange §e{goal} §3Fische.",                   Material.COD,             new long[]{5, 20, 75, 250}),
+    BREED_ANIMALS   ("breeder",       "§6Tiere züchten",             "Züchte §e{goal} §6Tiere.",                   Material.EGG,             new long[]{3, 10, 30, 100}),
+    SELL_ITEMS      ("merchant",      "§6Items verkaufen",           "Verkaufe für §e{goal} §6Coins im Shop.",      Material.GOLD_NUGGET,     new long[]{500, 2500, 10000, 50000});
 
     private final String id;
     private final String name;

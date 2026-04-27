@@ -5,6 +5,7 @@ import de.pinkhorizon.skyblock.data.Generator;
 import de.pinkhorizon.skyblock.gui.AchievementGui;
 import de.pinkhorizon.skyblock.gui.MainMenuGui;
 import de.pinkhorizon.skyblock.gui.QuestGui;
+import de.pinkhorizon.skyblock.gui.ShopGui;
 import de.pinkhorizon.skyblock.gui.TitleGui;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.Command;
@@ -62,9 +63,10 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             case "titles", "title", "titel", "t" -> {
                 new TitleGui(plugin, player).open(player);
             }
-            case "top" -> {
-                showTop(player);
-            }
+            case "top", "top coins" -> plugin.getLeaderboardManager().showTopCoins(player);
+            case "top quests"       -> plugin.getLeaderboardManager().showTopQuests(player);
+            case "top mined"        -> plugin.getLeaderboardManager().showTopMined(player);
+            case "shop"             -> new ShopGui(plugin, player).open(player);
             case "give" -> {
                 if (!player.hasPermission("skyblock.admin")) {
                     player.sendMessage(MM.deserialize(PREFIX + "<red>Keine Berechtigung."));
@@ -125,9 +127,15 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command,
                                       String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("bal", "quests", "achievements", "titles", "top", "give", "reload", "help")
+            return List.of("bal", "quests", "achievements", "titles", "top", "shop", "give", "reload", "help")
                 .stream()
                 .filter(s -> s.startsWith(args[0].toLowerCase()))
+                .toList();
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("top")) {
+            return List.of("coins", "quests", "mined")
+                .stream()
+                .filter(s -> s.startsWith(args[1].toLowerCase()))
                 .toList();
         }
         return List.of();

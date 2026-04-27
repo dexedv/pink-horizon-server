@@ -15,9 +15,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 public class NavigatorGui extends GuiBase {
 
     private static final int SLOT_SPAWN        = 10;
-    private static final int SLOT_ISLAND       = 12;
-    private static final int SLOT_QUESTS       = 14;
-    private static final int SLOT_ACHIEVEMENTS = 16;
+    private static final int SLOT_ISLAND       = 11;
+    private static final int SLOT_SHOP         = 12;
+    private static final int SLOT_QUESTS       = 13;
+    private static final int SLOT_ACHIEVEMENTS = 14;
     private static final int SLOT_CLOSE        = 22;
 
     private final PHSkyBlock plugin;
@@ -63,6 +64,14 @@ public class NavigatorGui extends GuiBase {
                 "<yellow>» /is create"));
         }
 
+        // Shop
+        inventory.setItem(SLOT_SHOP, item(Material.GOLD_INGOT,
+            "<yellow><bold>⚑ Shop",
+            "<gray>Kaufe und verkaufe Items",
+            "<gray>gegen Coins.",
+            "",
+            "<yellow>» Klicken zum Öffnen"));
+
         // Quests
         inventory.setItem(SLOT_QUESTS, item(Material.BOOK,
             "<aqua><bold>Quests",
@@ -94,6 +103,7 @@ public class NavigatorGui extends GuiBase {
                 player.closeInventory();
                 BentoBoxHook.teleportHome(player);
             }
+            case SLOT_SHOP   -> new ShopGui(plugin, player).open(player);
             case SLOT_QUESTS -> {
                 plugin.getQuestManager().loadPlayer(player.getUniqueId());
                 new QuestGui(plugin, player).open(player);
