@@ -249,8 +249,16 @@ public class NavigatorGui extends GuiBase {
             case SLOT_ACHIEVEMENTS -> new AchievementGui(plugin, player).open(player);
             case SLOT_TITLES       -> new TitleGui(plugin, player).open(player);
             case SLOT_GENERATORS   -> {
-                player.closeInventory();
-                player.performCommand("phsk");
+                java.util.List<de.pinkhorizon.skyblock.data.Generator> gens =
+                    plugin.getGeneratorManager().getGeneratorsOf(player.getUniqueId());
+                if (gens.isEmpty()) {
+                    player.closeInventory();
+                    player.sendMessage(MM.deserialize(
+                        "<dark_gray>[<red><bold>Generatoren</bold></red><dark_gray>] "
+                        + "<gray>Du hast noch keine Generatoren. Kaufe einen im <gold>/shop</gold>."));
+                } else {
+                    new GeneratorGui(plugin, player, gens.get(0)).open(player);
+                }
             }
 
             // ── Reihe 2 ───────────────────────────────────────────────────────
@@ -277,19 +285,27 @@ public class NavigatorGui extends GuiBase {
             // ── Reihe 3 ───────────────────────────────────────────────────────
             case SLOT_COMPANIONS -> {
                 player.closeInventory();
-                player.performCommand("companion list");
+                player.sendMessage(MM.deserialize(
+                    "<dark_gray>[<gold><bold>Begleiter</bold></gold><dark_gray>] "
+                    + "<gray>Begleiter sind noch in Entwicklung. <yellow>Bald verfügbar!"));
             }
             case SLOT_RUNES -> {
                 player.closeInventory();
-                player.performCommand("rune list");
+                player.sendMessage(MM.deserialize(
+                    "<dark_gray>[<light_purple><bold>Runen</bold></light_purple><dark_gray>] "
+                    + "<gray>Das Runen-System ist noch in Entwicklung. <yellow>Bald verfügbar!"));
             }
             case SLOT_DUNGEONS -> {
                 player.closeInventory();
-                player.performCommand("dungeon list");
+                player.sendMessage(MM.deserialize(
+                    "<dark_gray>[<red><bold>Dungeons</bold></red><dark_gray>] "
+                    + "<gray>Dungeons sind noch in Entwicklung. <yellow>Bald verfügbar!"));
             }
             case SLOT_BATTLEPASS -> {
                 player.closeInventory();
-                player.performCommand("bp");
+                player.sendMessage(MM.deserialize(
+                    "<dark_gray>[<gold><bold>Battle Pass</bold></gold><dark_gray>] "
+                    + "<gray>Der Battle Pass ist noch in Entwicklung. <yellow>Bald verfügbar!"));
             }
             case SLOT_WEATHER -> {
                 player.closeInventory();

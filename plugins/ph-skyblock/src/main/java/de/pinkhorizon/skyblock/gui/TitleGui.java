@@ -62,7 +62,7 @@ public class TitleGui extends GuiBase {
             Material.NAME_TAG,
             "<light_purple><bold>Titel auswählen",
             "<gray>Aktiver Titel: " + (active == TitleType.KEIN_TITEL
-                ? "<gray>Kein Titel" : active.getChatPrefix().trim()),
+                ? "<gray>Kein Titel" : active.getChatPrefix().trim().replaceAll("§[0-9a-fA-Fk-oK-OrR]", "")),
             "<gray>Deine Coins: <gold>" + String.format("%,d", coins),
             "<gray>Seite: <white>" + (page + 1) + " / " + totalPages
         ));
@@ -82,7 +82,7 @@ public class TitleGui extends GuiBase {
         boolean tooExpensive = t.isBuyable() && !owned && playerCoins < t.getBuyPrice();
 
         List<String> lore = new ArrayList<>();
-        lore.add("<gray>Vorschau: " + t.getChatPrefix().trim()
+        lore.add("<gray>Vorschau: " + t.getChatPrefix().trim().replaceAll("§[0-9a-fA-Fk-oK-OrR]", "")
             + "<white>Spielername");
         lore.add(" ");
 
