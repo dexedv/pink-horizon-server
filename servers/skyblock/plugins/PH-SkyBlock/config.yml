@@ -21,11 +21,11 @@ island:
 
 spawn:
   world: world
-  x: 40.5
+  x: -19.5
   y: 98.0
-  z: -88.5
-  yaw: 0.0
-  pitch: 0.0
+  z: -85.5
+  yaw: -135.6
+  pitch: 3.9
 
 block-values:
   GRASS_BLOCK: 1
