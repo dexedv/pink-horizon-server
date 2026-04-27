@@ -981,7 +981,8 @@ app.post('/api/restore', auth, async (req, res) => {
 
   const arc       = path.join(BACKUP_DIR, file);
   const container = `ph-${serverName}`;
-  const PROJECT_ROOT = '/opt/pinkhorizon';
+  // /data/servers ist das einzige beschreibbare Mount (./servers:/data/servers:rw)
+  const SERVERS_RW = '/data/servers';
 
   try {
     await fs.access(arc);
@@ -989,14 +990,15 @@ app.post('/api/restore', auth, async (req, res) => {
     return res.status(404).json({ error: 'Backup-Datei nicht gefunden' });
   }
 
-  // Archiv-Format erkennen: backup.sh legt Pfade wie "servers/smash/world/..." an,
-  // Dashboard-Backups beginnen mit "world/..." relativ zu /data/<server>.
+  // Archiv-Format erkennen:
+  //   backup.sh:  "servers/smash/world/..."  → -C /data  (ergibt /data/servers/smash/world/)
+  //   Dashboard:  "world/..."               → -C /data/servers/<server>
   const firstEntry = await new Promise((resolve) => {
     execFile('tar', ['-tzf', arc], { timeout: 30000 }, (err, stdout) => {
       resolve(stdout ? stdout.trim().split('\n')[0] : '');
     });
   });
-  const extractTo = firstEntry.startsWith('servers/') ? PROJECT_ROOT : `/data/${serverName}`;
+  const extractTo = firstEntry.startsWith('servers/') ? '/data' : `${SERVERS_RW}/${serverName}`;
 
   try {
     // 1. Server stoppen

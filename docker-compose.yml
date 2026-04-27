@@ -252,6 +252,7 @@ services:
       - ./servers/smash:/data/smash:ro
       - ./servers/skyblock:/data/skyblock:ro
       - ./servers/generators:/data/generators:ro
+      - ./servers:/data/servers:rw
       - ./data/dashboard:/data/dashboard
       - ./backups:/data/backups
     environment:
