@@ -236,31 +236,31 @@ public class NavigatorGUI implements Listener {
         inv.setItem(4, buildStatsItem(player, data));
 
         // ── Row 1: Haupt-Menüs ────────────────────────────────────────────
-        inv.setItem(10, btn(Material.GOLD_BLOCK,       "<gold>Generator-Shop",
+        inv.setItem(10, btn(Material.GOLD_BLOCK,       2001, "<gold>Generator-Shop",
                 "<gray>Generatoren & Booster kaufen",            "/gen shop"));
-        inv.setItem(12, btn(Material.ANVIL,            "<aqua>Upgrades",
+        inv.setItem(12, btn(Material.ANVIL,            2002, "<aqua>Upgrades",
                 "<gray>Generatoren upgraden",                    "/gen upgrade"));
-        inv.setItem(14, btn(Material.CHEST,            "<yellow>Block-Shop",
+        inv.setItem(14, btn(Material.BARREL,           2003, "<yellow>Block-Shop",
                 "<gray>Inselblöcke kaufen",                      "/gen blockshop"));
-        inv.setItem(16, btn(Material.NETHER_STAR,      "<light_purple>Prestige",
+        inv.setItem(16, btn(Material.NETHER_STAR,      2004, "<light_purple>Prestige",
                 "<gray>Prestige durchführen",                    "/gen prestige"));
 
         // ── Row 2: Fortschritt ────────────────────────────────────────────
-        inv.setItem(19, btn(Material.BOOK,             "<green>Quests",
+        inv.setItem(19, btn(Material.BOOK,             2005, "<green>Quests",
                 "<gray>Tägliche & wöchentliche Aufgaben",        "/gen quests"));
-        inv.setItem(21, btn(Material.TOTEM_OF_UNDYING, "<yellow>Achievements",
+        inv.setItem(21, btn(Material.TOTEM_OF_UNDYING, 2006, "<yellow>Achievements",
                 "<gray>Errungenschaften ansehen",                "/gen achievements"));
-        inv.setItem(23, btn(Material.BLAZE_POWDER,     "<gold>Booster",
+        inv.setItem(23, btn(Material.BLAZE_POWDER,     2007, "<gold>Booster",
                 "<gray>Gespeicherte Booster aktivieren",         "/gen booster"));
-        inv.setItem(25, btn(Material.NETHER_STAR,      "<light_purple>Talente",
+        inv.setItem(25, btn(Material.NETHER_STAR,      2008, "<light_purple>Talente",
                 "<gray>Talent-Baum öffnen",                      "/gen talents"));
 
         // ── Row 3: Extras (zentriert) ─────────────────────────────────────
-        inv.setItem(29, btn(Material.EMERALD,          "<aqua>Token-Shop",
+        inv.setItem(29, btn(Material.EMERALD,          2009, "<aqua>Token-Shop",
                 "<gray>Tokens gegen Geld oder Booster tauschen", "/gen tokenshop"));
-        inv.setItem(31, btn(Material.BEACON,           "<yellow>Meilensteine",
+        inv.setItem(31, btn(Material.GLOWSTONE,        2010, "<yellow>Meilensteine",
                 "<gray>Meilensteine & Belohnungen",              "/gen milestones"));
-        inv.setItem(33, btn(Material.CYAN_CONCRETE,    "<aqua>Insel-Grenze",
+        inv.setItem(33, btn(Material.CYAN_CONCRETE,    2011, "<aqua>Insel-Grenze",
                 "<gray>Spielfeld erweitern",                     "/gen border"));
 
         player.openInventory(inv);
@@ -290,9 +290,10 @@ public class NavigatorGUI implements Listener {
     // ── Item-Builder ─────────────────────────────────────────────────────────
 
     /** Erstellt einen Menü-Button. Die letzte Lore-Zeile enthält den Befehl (versteckt). */
-    private ItemStack btn(Material mat, String name, String desc, String command) {
+    private ItemStack btn(Material mat, int cmd, String name, String desc, String command) {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
+        meta.setCustomModelData(cmd);
         meta.displayName(MM.deserialize(name));
         meta.lore(List.of(
                 MM.deserialize(desc),
@@ -381,6 +382,7 @@ public class NavigatorGUI implements Listener {
     private ItemStack filler() {
         ItemStack item = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta meta = item.getItemMeta();
+        meta.setCustomModelData(2000);
         meta.displayName(MM.deserialize("<gray> "));
         item.setItemMeta(meta);
         return item;
