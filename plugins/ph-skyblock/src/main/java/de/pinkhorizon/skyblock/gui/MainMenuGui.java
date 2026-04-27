@@ -127,7 +127,7 @@ public class MainMenuGui extends GuiBase {
             Material.NAME_TAG,
             "<aqua><bold>✦ Titel",
             "<gray>Aktiver Titel: " + (title == TitleType.KEIN_TITEL
-                ? "<gray>Kein Titel" : title.getChatPrefix().trim().replaceAll("§[0-9a-fA-Fk-oK-OrR]", "")),
+                ? "<gray>Kein Titel" : title.getCleanChatPrefix()),
             " ",
             "<yellow>Klicke für Titel-Auswahl."
         ));

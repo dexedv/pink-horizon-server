@@ -62,7 +62,7 @@ public class TitleGui extends GuiBase {
             Material.NAME_TAG,
             "<light_purple><bold>Titel auswählen",
             "<gray>Aktiver Titel: " + (active == TitleType.KEIN_TITEL
-                ? "<gray>Kein Titel" : active.getChatPrefix().trim().replaceAll("§[0-9a-fA-Fk-oK-OrR]", "")),
+                ? "<gray>Kein Titel" : active.getCleanChatPrefix()),
             "<gray>Deine Coins: <gold>" + String.format("%,d", coins),
             "<gray>Seite: <white>" + (page + 1) + " / " + totalPages
         ));
@@ -82,8 +82,7 @@ public class TitleGui extends GuiBase {
         boolean tooExpensive = t.isBuyable() && !owned && playerCoins < t.getBuyPrice();
 
         List<String> lore = new ArrayList<>();
-        lore.add("<gray>Vorschau: " + t.getChatPrefix().trim().replaceAll("§[0-9a-fA-Fk-oK-OrR]", "")
-            + "<white>Spielername");
+        lore.add("<gray>Vorschau: " + t.getCleanChatPrefix() + "<white>Spielername");
         lore.add(" ");
 
         Material mat;
@@ -91,16 +90,16 @@ public class TitleGui extends GuiBase {
 
         if (isActive) {
             mat = Material.LIME_DYE;
-            nameDisplay = "<green>★ " + t.getDisplayName() + " <gray>[Aktiv]";
+            nameDisplay = "<green>★ " + t.getCleanDisplayName() + " <gray>[Aktiv]";
             lore.add("<green>✔ Aktuell aktiver Titel.");
         } else if (owned) {
             mat = Material.CYAN_DYE;
-            nameDisplay = "<aqua>" + t.getDisplayName();
+            nameDisplay = "<aqua>" + t.getCleanDisplayName();
             lore.add("<green>✔ Du besitzt diesen Titel.");
             lore.add("<yellow>Klicke zum Aktivieren.");
         } else if (t.isBuyable()) {
             mat = canBuy ? Material.YELLOW_DYE : Material.RED_DYE;
-            nameDisplay = (tooExpensive ? "<red>" : "<yellow>") + t.getDisplayName();
+            nameDisplay = (tooExpensive ? "<red>" : "<yellow>") + t.getCleanDisplayName();
             lore.add("<gold>Preis: <yellow>" + String.format("%,d", t.getBuyPrice()) + " Coins");
             if (canBuy) {
                 lore.add("<yellow>Klicke zum Kaufen.");
@@ -110,7 +109,7 @@ public class TitleGui extends GuiBase {
             }
         } else {
             mat = Material.GRAY_DYE;
-            nameDisplay = "<dark_gray>✘ " + t.getDisplayName();
+            nameDisplay = "<dark_gray>✘ " + t.getCleanDisplayName();
             lore.add("<dark_gray>Freischaltbar via Achievement.");
         }
 

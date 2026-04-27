@@ -183,7 +183,7 @@ public class AchievementManager {
         if (type.getTitleReward() != null) {
             player.sendMessage(MM.deserialize(
                 "   <light_purple>Titel freigeschaltet: "
-                + type.getTitleReward().getChatPrefix().trim()));
+                + type.getTitleReward().getCleanChatPrefix()));
         }
         player.sendMessage(MM.deserialize(
             "<dark_gray>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));

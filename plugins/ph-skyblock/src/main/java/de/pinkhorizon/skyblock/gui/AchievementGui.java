@@ -85,7 +85,7 @@ public class AchievementGui extends GuiBase {
             lore.add("<gold>Belohnung: <yellow>" + String.format("%,d", a.getCoinReward()) + " Coins");
         }
         if (a.getTitleReward() != null) {
-            lore.add("<light_purple>Titel: " + a.getTitleReward().getChatPrefix().trim().replaceAll("§[0-9a-fA-Fk-oK-OrR]", ""));
+            lore.add("<light_purple>Titel: " + a.getTitleReward().getCleanChatPrefix());
         }
         lore.add(" ");
         lore.add(done ? "<green>✔ Freigeschaltet!" : "<gray>Noch nicht freigeschaltet.");

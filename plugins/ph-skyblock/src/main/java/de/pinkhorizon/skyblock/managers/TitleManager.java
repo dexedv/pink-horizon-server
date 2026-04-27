@@ -63,7 +63,7 @@ public class TitleManager {
         player.sendMessage(MM.deserialize(
             "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] "
             + "<green>Aktiver Titel gesetzt: "
-            + (title == TitleType.KEIN_TITEL ? "<gray>Kein Titel" : title.getChatPrefix().trim())));
+            + (title == TitleType.KEIN_TITEL ? "<gray>Kein Titel" : title.getCleanChatPrefix())));
         return true;
     }
 
@@ -120,7 +120,7 @@ public class TitleManager {
 
         player.sendMessage(MM.deserialize(
             "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] "
-            + "<green>Titel gekauft: " + title.getChatPrefix().trim()));
+            + "<green>Titel gekauft: " + title.getCleanChatPrefix()));
         player.playSound(player.getLocation(),
             org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.5f);
         return true;

@@ -58,9 +58,15 @@ public enum TitleType {
         this.buyPrice = buyPrice;
     }
 
+    private static final java.util.regex.Pattern LEGACY = java.util.regex.Pattern.compile("§[0-9a-fA-Fk-oK-OrR]");
+
     public String getId()          { return id; }
     public String getChatPrefix()  { return chatPrefix.isEmpty() ? "" : chatPrefix + " "; }
     public String getDisplayName() { return displayName; }
+    /** Gibt den Anzeigenamen ohne Legacy-Farbcodes zurück – für MiniMessage-Kontexte. */
+    public String getCleanDisplayName() { return LEGACY.matcher(displayName).replaceAll(""); }
+    /** Gibt den Chat-Präfix ohne Legacy-Farbcodes zurück – für MiniMessage-Kontexte. */
+    public String getCleanChatPrefix()  { return LEGACY.matcher(chatPrefix).replaceAll("").trim(); }
     public long getBuyPrice()      { return buyPrice; }
     public boolean isBuyable()     { return buyPrice > 0; }
 
