@@ -1,0 +1,12 @@
+{
+  "parent": "item/handheld",
+  "textures": {
+    "layer0": "item/golden_pickaxe"
+  },
+  "overrides": [
+    {
+      "predicate": { "custom_model_data": 1002 },
+      "model": "item/ph_picker"
+    }
+  ]
+}

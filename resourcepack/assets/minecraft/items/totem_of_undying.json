@@ -1,0 +1,1 @@
+{"model":{"type":"minecraft:range_dispatch","property":"minecraft:custom_model_data","fallback":{"type":"minecraft:model","model":"minecraft:item/totem_of_undying"},"entries":[{"threshold":2006,"model":{"type":"minecraft:model","model":"minecraft:item/ph_nav_achievements"}}]}}

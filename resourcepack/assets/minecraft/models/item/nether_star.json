@@ -1,0 +1,1 @@
+{"parent":"item/generated","textures":{"layer0":"item/nether_star"},"overrides":[{"predicate":{"custom_model_data":2004},"model":"item/ph_nav_prestige"},{"predicate":{"custom_model_data":2008},"model":"item/ph_nav_talents"}]}
