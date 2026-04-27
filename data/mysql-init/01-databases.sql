@@ -84,8 +84,7 @@ CREATE TABLE IF NOT EXISTS sb_players (
     uuid            VARCHAR(36)  PRIMARY KEY,
     name            VARCHAR(16)  NOT NULL,
     island_id       INT          DEFAULT NULL COMMENT 'NULL = kein Mitglied einer Insel',
-    language        VARCHAR(5)   NOT NULL DEFAULT 'de',
-    chat_island     TINYINT      NOT NULL DEFAULT 0 COMMENT '1 = Insel-Chat aktiv',
+    island_chat     TINYINT      NOT NULL DEFAULT 0 COMMENT '1 = Insel-Chat aktiv',
     last_seen       BIGINT       NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

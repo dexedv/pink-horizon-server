@@ -74,6 +74,9 @@ servers/skyblock/plugins/PH-SkyBlock/config.yml
 servers/skyblock/plugins/PH-SkyBlock/npcs.yml
 servers/skyblock/plugins/PH-SkyBlock/holograms.yml
 
+# ── MySQL-Datenbankdateien (Laufzeitdaten, nie in Git) ────────────────
+data/mysql/
+
 # ── Secrets ───────────────────────────────────────────────────────────
 .env
 
