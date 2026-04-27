@@ -99,8 +99,12 @@ public class ScoreboardManager {
                         plugin.getConfig().getInt("generator-slot-per-prestige", 2),
                         talentSlots), line--);
         set(obj, "§r§r§r§r§r", line--);
+        double shardPerHour = plugin.getMoneyManager().getShardIncomePerHour(data);
         set(obj, "§5⛏ Mining: §fLvl " + data.getMiningLevel()
                 + "  §d✦ " + data.getShards() + " Shards", line--);
+        if (shardPerHour > 0) {
+            set(obj, "§d  ➜ +" + (int) shardPerHour + " Shards/h", line--);
+        }
         set(obj, "§r§r§r§r§r§r", line--);
         set(obj, "§6🐾 Pet: §fLvl " + data.getPetLevel() + " §7/ 500", line--);
         set(obj, petXpBar, line--);
@@ -116,6 +120,11 @@ public class ScoreboardManager {
 
     public void updateTab(Player player, PlayerData data) {
         // Tab-Kopf/Fuß
+        double shardPerHourTab = plugin.getMoneyManager().getShardIncomePerHour(data);
+        String shardFooter = shardPerHourTab > 0
+                ? " <gray>| <light_purple>✦ " + data.getShards()
+                        + " <dark_gray>(+" + (int) shardPerHourTab + "/h)"
+                : "";
         player.sendPlayerListHeaderAndFooter(
                 MM.deserialize(
                         "\n<light_purple><bold>✦ IdleForge ✦</bold></light_purple>\n"
@@ -123,6 +132,7 @@ public class ScoreboardManager {
                 MM.deserialize(
                         "\n<gray>Prestige: <light_purple>" + data.getPrestige()
                         + " <gray>| Geld: <green>$" + MoneyManager.formatMoney(data.getMoney())
+                        + shardFooter
                         + "\n<dark_gray>play.pinkhorizon.de\n")
         );
 
