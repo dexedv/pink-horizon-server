@@ -37,6 +37,10 @@ db-save-interval: 30
 hologram-update-ticks: 40
 
 # Mining-Block (fester Block neben Insel-Spawn)
+# Mining-Pet
+pet:
+  coins-per-level: 2   # Passives Einkommen pro Pet-Level pro Sekunde (Level 1 = 2/s, Level 500 = 1000/s)
+
 mining-block:
   offset-x: 3           # X-Offset vom Island-Spawn
   base-money: 5          # Geld pro Schlag bei Level 1
