@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -103,6 +104,11 @@ public class MiningBlockManager implements Listener {
             return;
         }
 
+        processMine(player, world, clicked);
+    }
+
+    /** Gemeinsame Mining-Logik für Einzel- und Dauerklick */
+    private void processMine(Player player, World world, Location blockLoc) {
         // Cooldown prüfen
         long cooldownMs = plugin.getConfig().getLong("mining-block.cooldown-ms", 500);
         long now = System.currentTimeMillis();
@@ -122,7 +128,7 @@ public class MiningBlockManager implements Listener {
         data.addMoney(earned);
 
         // Partikel + Sound
-        world.spawnParticle(Particle.BLOCK_CRUMBLE, clicked.clone().add(0.5, 0.5, 0.5), 8,
+        world.spawnParticle(Particle.BLOCK_CRUMBLE, blockLoc.clone().add(0.5, 0.5, 0.5), 8,
                 0.3, 0.3, 0.3, 0, BLOCK_MATERIAL.createBlockData());
         player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 0.6f, 1.0f + (level * 0.02f));
 
@@ -136,6 +142,30 @@ public class MiningBlockManager implements Listener {
                     + " <dark_gray>| <green>+$" + MoneyManager.formatMoney(earned)));
             player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.8f, 1.2f);
         }
+    }
+
+    // ── BlockDamage (Dauerklick / Halten) ────────────────────────────────────
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onBlockDamage(BlockDamageEvent event) {
+        if (event.getBlock().getType() != BLOCK_MATERIAL) return;
+        Player player = event.getPlayer();
+        World world = player.getWorld();
+
+        if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) return;
+
+        Location expected = getBlockLocation(world);
+        if (expected == null) return;
+        Location blockLoc = event.getBlock().getLocation();
+        if (blockLoc.getBlockX() != expected.getBlockX()
+                || blockLoc.getBlockY() != expected.getBlockY()
+                || blockLoc.getBlockZ() != expected.getBlockZ()) return;
+
+        event.setCancelled(true); // Block soll nicht abgebaut werden
+
+        if (!plugin.getNavigatorGUI().isMiningPickaxe(player.getInventory().getItemInMainHand())) return;
+
+        processMine(player, world, blockLoc);
     }
 
     // ── Upgrade ──────────────────────────────────────────────────────────────
