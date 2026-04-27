@@ -215,6 +215,11 @@ public class UpgradeGUI implements Listener {
     // ── Item-Builder ─────────────────────────────────────────────────────────
 
     private ItemStack buildGenUpgradeItem(PlacedGenerator gen, PlayerData data) {
+        // ── Shard-Generator: komplett eigene Anzeige ─────────────────────────
+        if (gen.getType().isShardGenerator()) {
+            return buildShardGenItem(gen, data);
+        }
+
         int level = gen.getLevel();
         int maxLevel = data.maxGeneratorLevel();
         boolean isMax = level >= maxLevel;
@@ -277,6 +282,53 @@ public class UpgradeGUI implements Listener {
             lore.add(MM.deserialize("<gold><bold>✦ ABSOLUTES MAXIMUM ✦</bold></gold>"));
             lore.add(MM.deserialize("<gray>Höchstes Tier & Level erreicht!"));
             lore.add(MM.deserialize("<dark_gray>Mache Prestige für mehr Level."));
+        }
+        lore.add(MM.deserialize(""));
+        lore.add(MM.deserialize("<dark_gray>" + gen.getWorld() + " " + gen.getX() + "," + gen.getY() + "," + gen.getZ()));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack buildShardGenItem(PlacedGenerator gen, PlayerData data) {
+        int level = gen.getLevel();
+        int maxLevel = plugin.getConfig().getInt("shard-generator.max-level", 100);
+        boolean isMax = level >= maxLevel;
+
+        ItemStack item = new ItemStack(isMax ? Material.BEACON : Material.AMETHYST_BLOCK);
+        ItemMeta meta = item.getItemMeta();
+
+        if (isMax) {
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+        }
+        meta.displayName(MM.deserialize(isMax
+                ? "<light_purple><bold>✦ Shard-Generator</bold></light_purple>"
+                : "<light_purple>✦ Shard-Generator</light_purple>"));
+
+        int shardsPerHourNow  = (int) plugin.getMoneyManager().getShardIncomePerHour(data);
+        int maxPerHour        = plugin.getConfig().getInt("shard-generator.max-shards-per-hour", 1000);
+        int shardsPerHourNext = (level + 1) * (maxPerHour / 100);
+        int upgradeCost       = plugin.getGeneratorManager().shardUpgradeCost(level);
+        boolean canAfford     = data.getShards() >= upgradeCost;
+
+        List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+        lore.add(MM.deserialize((isMax ? "<gold>" : "<gray>") + "Level: "
+                + (isMax ? "<bold><gold>" : "<white>") + level
+                + (isMax ? "</gold></bold>" : "<gray>/" + maxLevel)));
+        lore.add(MM.deserialize("<gray>Produziert: <light_purple>" + shardsPerHourNow + " Shards/h"));
+        lore.add(MM.deserialize("<gray>Shards: <light_purple>" + data.getShards()));
+        lore.add(MM.deserialize(""));
+
+        if (!isMax) {
+            lore.add(MM.deserialize("<gray>Nach Upgrade: <aqua>" + shardsPerHourNext + " Shards/h"));
+            lore.add(MM.deserialize((canAfford ? "<green>" : "<red>")
+                    + "Upgrade-Kosten: " + upgradeCost + " Shards"));
+            lore.add(MM.deserialize(""));
+            lore.add(MM.deserialize("<yellow>Linksklick → Upgrade"));
+        } else {
+            lore.add(MM.deserialize("<gold><bold>✦ MAX LEVEL ✦</bold></gold>"));
+            lore.add(MM.deserialize("<light_purple>" + maxPerHour + " Shards/h (Maximum)"));
         }
         lore.add(MM.deserialize(""));
         lore.add(MM.deserialize("<dark_gray>" + gen.getWorld() + " " + gen.getX() + "," + gen.getY() + "," + gen.getZ()));

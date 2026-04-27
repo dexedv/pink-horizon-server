@@ -193,7 +193,9 @@ public class GeneratorManager {
 
         if (!gen.getOwnerUUID().equals(player.getUniqueId())) return UpgradeResult.NOT_OWNER;
 
-        int maxLevel = data.maxGeneratorLevel();
+        int maxLevel = gen.getType().isShardGenerator()
+                ? plugin.getConfig().getInt("shard-generator.max-level", 100)
+                : data.maxGeneratorLevel();
         if (gen.getLevel() >= maxLevel) return UpgradeResult.MAX_LEVEL;
 
         // Shard-Generator: Upgrade kostet Shards statt Geld
