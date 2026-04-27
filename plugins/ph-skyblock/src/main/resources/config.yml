@@ -21,9 +21,9 @@ island:
 
 spawn:
   world: world
-  x: 237.5
+  x: 40.5
   y: 98.0
-  z: 170.5
+  z: -88.5
   yaw: 0.0
   pitch: 0.0
 
