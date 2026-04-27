@@ -233,10 +233,13 @@ public class UpgradeGUI implements Listener {
         String nameSuffix = isMax ? "</bold>" : "";
         meta.displayName(MM.deserialize(namePrefix + gen.getType().getDisplayName() + nameSuffix));
 
-        long upgCost = gen.upgradeCost();
+        double eventMult  = plugin.getEventManager()  != null ? plugin.getEventManager().getUpgradeCostMultiplier()      : 1.0;
+        double talentMult = plugin.getTalentManager() != null ? plugin.getTalentManager().getUpgradeCostMultiplier(data) : 1.0;
+        long upgCost = Math.round(gen.upgradeCost() * eventMult * talentMult);
         double income = gen.incomePerSecond();
         double nextIncome = gen.getType().incomeAt(level + 1);
         boolean canAfford = data.getMoney() >= upgCost;
+        boolean hasDiscount = eventMult < 1.0 || talentMult < 1.0;
 
         List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
         lore.add(MM.deserialize((isMax ? "<gold>" : "<gray>") + "Level: "
@@ -246,7 +249,9 @@ public class UpgradeGUI implements Listener {
 
         if (!isMax) {
             lore.add(MM.deserialize("<gray>Nach Upgrade: <aqua>$" + String.format("%.1f", nextIncome) + "/s"));
-            lore.add(MM.deserialize((canAfford ? "<green>" : "<red>") + "Upgrade-Kosten: $" + upgCost));
+            String costLine = (canAfford ? "<green>" : "<red>") + "Upgrade-Kosten: $" + upgCost;
+            if (hasDiscount) costLine += " <yellow>(SALE!)";
+            lore.add(MM.deserialize(costLine));
             lore.add(MM.deserialize(""));
             lore.add(MM.deserialize("<yellow>Linksklick → Upgrade"));
             if (plugin.getAfkRewardManager().hasUpgradeToken(player(data))) {
