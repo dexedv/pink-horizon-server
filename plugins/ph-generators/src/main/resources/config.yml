@@ -59,6 +59,14 @@ enchant-base-chance: 0.05
 # Community-Goal für Server-Booster (in Dollar)
 community-goal: 1000000000000
 
+# Automatische Community-Events
+auto-events:
+  enabled: true
+  initial-delay-minutes: 15    # Wie lange nach Server-Start bis zum ersten Event
+  cooldown-minutes: 90         # Pause zwischen zwei Events
+  duration-minutes: 30         # Wie lange ein Event läuft
+  announce-before-minutes: 5   # Ankündigung X Minuten vorher
+
 # Marktplatz aktiv?
 market-enabled: true
 

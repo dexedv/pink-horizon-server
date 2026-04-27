@@ -127,6 +127,7 @@ public class PHGenerators extends JavaPlugin {
         afkRewardManager.start();
         leaderboardManager.start();
         scoreboardManager.start();
+        eventManager.start();
 
         // ── Commands registrieren ─────────────────────────────────────────────
         GeneratorCommand cmd = new GeneratorCommand(this);
@@ -155,6 +156,7 @@ public class PHGenerators extends JavaPlugin {
     public void onDisable() {
         // Ticker stoppen
         if (scoreboardManager != null) scoreboardManager.stop();
+        if (eventManager != null) eventManager.stop();
         if (moneyManager != null) moneyManager.stop();
         if (hologramManager != null) hologramManager.stopUpdateTask();
         if (questManager != null) questManager.stop();
