@@ -125,7 +125,10 @@ public class PlayerListener implements Listener {
 
     private void giveNavigator(Player player) {
         ItemStack existing = player.getInventory().getItem(NAV_SLOT);
-        if (isNavigator(existing)) return;
+        // Already up-to-date navigator → skip
+        if (isNavigator(existing) && existing.getType() == Material.NETHER_STAR) return;
+        // Remove old compass-based navigator if present
+        if (isNavigator(existing)) player.getInventory().setItem(NAV_SLOT, null);
 
         if (existing != null && existing.getType() != Material.AIR) {
             var overflow = player.getInventory().addItem(existing);
@@ -133,7 +136,7 @@ public class PlayerListener implements Listener {
                 player.getWorld().dropItemNaturally(player.getLocation(), leftover));
         }
 
-        ItemStack nav = new ItemStack(Material.COMPASS);
+        ItemStack nav = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta = nav.getItemMeta();
         meta.displayName(MM.deserialize(
             "<gradient:#ff69b4:#da70d6><bold>⭐ Navigator</bold></gradient>").decoration(
@@ -144,7 +147,7 @@ public class PlayerListener implements Listener {
             MM.deserialize("<dark_gray>• Kann nicht gedroppt werden").decoration(
                 net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
         ));
-        meta.setCustomModelData(1001);
+        meta.setCustomModelData(2099);
         meta.getPersistentDataContainer().set(NAV_KEY, PersistentDataType.BYTE, (byte) 1);
         nav.setItemMeta(meta);
         player.getInventory().setItem(NAV_SLOT, nav);
