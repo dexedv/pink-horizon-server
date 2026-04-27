@@ -60,7 +60,9 @@ CREATE TABLE IF NOT EXISTS sb_islands (
     warp_enabled    TINYINT      NOT NULL DEFAULT 0,
     warp_name       VARCHAR(32)  DEFAULT NULL,
     created_at      BIGINT       NOT NULL DEFAULT 0,
-    last_active     BIGINT       NOT NULL DEFAULT 0
+    last_active     BIGINT       NOT NULL DEFAULT 0,
+    INDEX idx_score (score DESC),
+    INDEX idx_level (level DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS sb_island_members (
@@ -85,7 +87,8 @@ CREATE TABLE IF NOT EXISTS sb_players (
     name            VARCHAR(16)  NOT NULL,
     island_id       INT          DEFAULT NULL COMMENT 'NULL = kein Mitglied einer Insel',
     island_chat     TINYINT      NOT NULL DEFAULT 0 COMMENT '1 = Insel-Chat aktiv',
-    last_seen       BIGINT       NOT NULL DEFAULT 0
+    last_seen       BIGINT       NOT NULL DEFAULT 0,
+    INDEX idx_island (island_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS sb_upgrades (
@@ -104,9 +107,7 @@ CREATE TABLE IF NOT EXISTS sb_missions (
     PRIMARY KEY (island_id, mission_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS idx_sb_islands_score   ON sb_islands(score DESC);
-CREATE INDEX IF NOT EXISTS idx_sb_islands_level   ON sb_islands(level DESC);
-CREATE INDEX IF NOT EXISTS idx_sb_players_island  ON sb_players(island_id);
+-- Indexes sind bereits inline in den CREATE TABLE Definitionen enthalten
 
 -- ── ph_skyblock: SkyBlock Feature-Tabellen (ph-skyblock Plugin) ─────────────
 
