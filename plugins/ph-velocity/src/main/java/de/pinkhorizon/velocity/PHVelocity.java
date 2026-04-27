@@ -66,8 +66,11 @@ public class PHVelocity {
     private int broadcastTick = 0;
 
     private void broadcastRotating() {
-        if (broadcastTick % 2 == 0) broadcastVote();
-        else                         broadcastDiscord();
+        switch (broadcastTick % 3) {
+            case 0 -> broadcastVote();
+            case 1 -> broadcastDiscord();
+            case 2 -> broadcastBugs();
+        }
         broadcastTick++;
     }
 
@@ -91,6 +94,26 @@ public class PHVelocity {
             player.sendMessage(msg1);
             player.sendMessage(msg2);
             player.sendMessage(msg3);
+            player.sendMessage(line);
+        }
+    }
+
+    private void broadcastBugs() {
+        Component line = Component.text("─────────────────────────────────", PINK);
+
+        Component discordLink = Component.text("discord.gg/j5C4h5XaK6", LIGHT_PINK, TextDecoration.BOLD)
+            .clickEvent(ClickEvent.openUrl("https://discord.gg/j5C4h5XaK6"))
+            .hoverEvent(HoverEvent.showText(Component.text("Klicken zum Beitreten!", NamedTextColor.GRAY)));
+
+        Component msg1 = Component.text(" 🐛 ", NamedTextColor.WHITE)
+            .append(Component.text("Bugs, Fehler oder Ideen?", PINK, TextDecoration.BOLD));
+        Component msg2 = Component.text("   Melde dich bei uns im Discord: ", NamedTextColor.GRAY)
+            .append(discordLink);
+
+        for (Player player : server.getAllPlayers()) {
+            player.sendMessage(line);
+            player.sendMessage(msg1);
+            player.sendMessage(msg2);
             player.sendMessage(line);
         }
     }
