@@ -299,11 +299,14 @@ public class HologramManager {
         sb.append("<gray>✦ Prestige ").append(data.getPrestige())
           .append(": <green>+").append((int)((data.prestigeMultiplier()-1)*100)).append("%\n");
 
+        long petCoinsPerLevel = plugin.getConfig().getLong("pet.coins-per-level", 2);
+        long petPassiveCoins  = data.getPetPassiveIncome(petCoinsPerLevel);
         int petIncPct  = (int)((data.getPetIncomeMultiplier()      - 1.0) * 100);
         int petCostPct = (int)((1.0 - data.getPetUpgradeCostMultiplier()) * 100);
         sb.append("<gold>🐾 Pet Lvl ").append(data.getPetLevel())
           .append(": <green>+").append(petIncPct).append("% <gray>| <red>-")
           .append(petCostPct).append("% Kosten\n");
+        sb.append("<gold>   ↳ Passiv: <aqua>$").append(MoneyManager.formatMoney(petPassiveCoins)).append("/s\n");
 
         if (talentIncomeMult > 1.0) {
             sb.append("<aqua>🎓 Talent: <green>+")

@@ -391,6 +391,9 @@ public class PlayerData {
     /** Bonus auf Coin-Drop-Chance (+0.03% pro Level → max +15% bei Lvl 500) */
     public double getPetCoinBonus()                 { return (petLevel - 1) * 0.0003; }
 
+    /** Passives Einkommen des Pets pro Sekunde (level × coinsPerLevel aus Config) */
+    public long getPetPassiveIncome(long coinsPerLevel) { return (long) petLevel * coinsPerLevel; }
+
     // ── Mining-Block custom position ─────────────────────────────────────────
     public boolean hasMiningBlockCustomPos()        { return miningBlockCustomPos; }
     public int getMiningBlockCustomX()              { return miningBlockCustomX; }

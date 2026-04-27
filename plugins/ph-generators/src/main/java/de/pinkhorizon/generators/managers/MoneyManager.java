@@ -60,8 +60,15 @@ public class MoneyManager {
             lastLogFlushHour = nowHour;
         }
 
+        long petCoinsPerLevel = plugin.getConfig().getLong("pet.coins-per-level", 2);
+
         for (Map.Entry<UUID, PlayerData> entry : plugin.getPlayerDataMap().entrySet()) {
             PlayerData data = entry.getValue();
+
+            // Pet passives Einkommen (unabhängig von Generatoren)
+            long petPassive = data.getPetPassiveIncome(petCoinsPerLevel);
+            if (petPassive > 0) data.addMoney(petPassive);
+
             if (data.getGenerators().isEmpty()) continue;
 
             double income = calcIncome(data);

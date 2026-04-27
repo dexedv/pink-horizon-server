@@ -59,6 +59,10 @@ enchant-base-chance: 0.05
 # Community-Goal für Server-Booster (in Dollar)
 community-goal: 1000000000000
 
+# Mining-Pet
+pet:
+  coins-per-level: 2   # Passives Einkommen pro Pet-Level pro Sekunde (Level 1 = 2/s, Level 500 = 1000/s)
+
 # Mining-Block (fester Block neben Insel-Spawn)
 mining-block:
   offset-x: 3           # X-Offset vom Island-Spawn

@@ -263,7 +263,10 @@ public class MiningUpgradeGUI implements Listener {
         } else {
             lore.add(MM.deserialize("<gold><bold>MAX LEVEL!</bold>"));
         }
+        long coinsPerLevel = plugin.getConfig().getLong("pet.coins-per-level", 2);
+        long petPassive    = data.getPetPassiveIncome(coinsPerLevel);
         lore.add(MM.deserialize(""));
+        lore.add(MM.deserialize("<gray>Passives Einkommen: <aqua>$" + de.pinkhorizon.generators.managers.MoneyManager.formatMoney(petPassive) + "/s"));
         lore.add(MM.deserialize("<gray>Generator-Einkommen: <green>+" + String.format("%.0f", (data.getPetIncomeMultiplier() - 1) * 100) + "%"));
         lore.add(MM.deserialize("<gray>Upgrade-Rabatt: <aqua>-" + String.format("%.0f", (1 - data.getPetUpgradeCostMultiplier()) * 100) + "%"));
         lore.add(MM.deserialize("<gray>Shard-Bonus: <light_purple>+" + String.format("%.1f", data.getPetShardBonus() * 100) + "%"));
