@@ -353,7 +353,6 @@ public class MiningBlockManager implements Listener {
             oldLoc.getBlock().setType(Material.AIR);
         }
 
-        // Neuen Block setzen (Event erlaubt ihn zu platzieren, Typ ist schon korrekt)
         // Neue Position in PlayerData speichern
         de.pinkhorizon.generators.data.PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data != null) {
@@ -361,6 +360,8 @@ public class MiningBlockManager implements Listener {
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
                     plugin.getRepository().saveMiningBlockLocation(
                             player.getUniqueId(), newLoc.getBlockX(), newLoc.getBlockY(), newLoc.getBlockZ()));
+            // Hologramm an neue Position setzen
+            plugin.getHologramManager().setMiningHolo(player.getUniqueId(), world, data);
         }
 
         pendingRelocate.remove(player.getUniqueId());

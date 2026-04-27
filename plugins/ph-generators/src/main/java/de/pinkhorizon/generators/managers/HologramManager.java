@@ -513,7 +513,7 @@ public class HologramManager {
      */
     public void setMiningHolo(UUID uuid, World world, PlayerData data) {
         removeMiningHolo(uuid);
-        Location blockLoc = plugin.getMiningBlockManager().getBlockLocation(world);
+        Location blockLoc = plugin.getMiningBlockManager().getBlockLocation(world, uuid);
         if (blockLoc == null) return;
         Location holoLoc = blockLoc.clone().add(0.5, 1.8, 0.5);
 
