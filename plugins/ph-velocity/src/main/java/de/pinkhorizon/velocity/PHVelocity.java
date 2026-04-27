@@ -47,6 +47,12 @@ public class PHVelocity {
             new HubCommand()
         );
 
+        // /discord Command
+        server.getCommandManager().register(
+            server.getCommandManager().metaBuilder("discord").plugin(this).build(),
+            new DiscordCommand()
+        );
+
         // Stündlicher Broadcast (abwechselnd Vote / Discord)
         server.getScheduler()
             .buildTask(this, this::broadcastRotating)
@@ -119,6 +125,34 @@ public class PHVelocity {
             player.sendMessage(msg3);
             player.sendMessage(msg4);
             player.sendMessage(line);
+        }
+    }
+
+    private class DiscordCommand implements SimpleCommand {
+        @Override
+        public void execute(Invocation invocation) {
+            Component line = Component.text("─────────────────────────────────", PINK);
+
+            Component discordLink = Component.text("discord.gg/j5C4h5XaK6", LIGHT_PINK, TextDecoration.BOLD)
+                .clickEvent(ClickEvent.openUrl("https://discord.gg/j5C4h5XaK6"))
+                .hoverEvent(HoverEvent.showText(Component.text("Klicken zum Beitreten!", NamedTextColor.GRAY)));
+
+            Component hubCmd = Component.text("/hub", LIGHT_PINK, TextDecoration.BOLD)
+                .clickEvent(ClickEvent.runCommand("/hub"))
+                .hoverEvent(HoverEvent.showText(Component.text("Zur Lobby teleportieren!", NamedTextColor.GRAY)));
+
+            invocation.source().sendMessage(line);
+            invocation.source().sendMessage(
+                Component.text(" 💬 ", NamedTextColor.WHITE)
+                    .append(Component.text("Pink Horizon Discord", PINK, TextDecoration.BOLD)));
+            invocation.source().sendMessage(
+                Component.text("   Tritt uns bei: ", NamedTextColor.GRAY).append(discordLink));
+            invocation.source().sendMessage(
+                Component.text("   ✔ Verifizierung in der ", NamedTextColor.GRAY)
+                    .append(Component.text("Lobby", LIGHT_PINK, TextDecoration.BOLD))
+                    .append(Component.text(" möglich → ", NamedTextColor.GRAY))
+                    .append(hubCmd));
+            invocation.source().sendMessage(line);
         }
     }
 
