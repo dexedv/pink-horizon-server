@@ -108,6 +108,234 @@ CREATE INDEX IF NOT EXISTS idx_sb_islands_score   ON sb_islands(score DESC);
 CREATE INDEX IF NOT EXISTS idx_sb_islands_level   ON sb_islands(level DESC);
 CREATE INDEX IF NOT EXISTS idx_sb_players_island  ON sb_players(island_id);
 
+-- ── ph_skyblock: SkyBlock Feature-Tabellen (ph-skyblock Plugin) ─────────────
+
+-- Coins / Wirtschaft
+CREATE TABLE IF NOT EXISTS sky_coin_accounts (
+    uuid     VARCHAR(36) PRIMARY KEY,
+    balance  BIGINT      DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Island-DNA
+CREATE TABLE IF NOT EXISTS sky_island_dna (
+    island_uuid       VARCHAR(36)  PRIMARY KEY,
+    genes             VARCHAR(512) NOT NULL,
+    combinations_used INT          DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS sky_dna_fragments (
+    uuid        VARCHAR(36) NOT NULL,
+    fragment_id VARCHAR(64) NOT NULL,
+    amount      INT         DEFAULT 0,
+    PRIMARY KEY (uuid, fragment_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Rituale
+CREATE TABLE IF NOT EXISTS sky_rituals (
+    island_uuid VARCHAR(36) NOT NULL,
+    ritual_id   VARCHAR(64) NOT NULL,
+    last_used   BIGINT      NOT NULL,
+    PRIMARY KEY (island_uuid, ritual_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Sternschnuppen
+CREATE TABLE IF NOT EXISTS sky_stars (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    island_uuid VARCHAR(36)  NOT NULL,
+    tier        VARCHAR(32)  NOT NULL,
+    dropped_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    collected   TINYINT      DEFAULT 0,
+    INDEX idx_island (island_uuid),
+    INDEX idx_tier   (tier)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Blueprints
+CREATE TABLE IF NOT EXISTS sky_blueprints (
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    owner_uuid   VARCHAR(36)  NOT NULL,
+    name         VARCHAR(64)  NOT NULL,
+    description  VARCHAR(256),
+    blocks_json  MEDIUMTEXT   NOT NULL,
+    width        INT          DEFAULT 64,
+    height       INT          DEFAULT 64,
+    depth        INT          DEFAULT 64,
+    shared       TINYINT      DEFAULT 0,
+    approved     TINYINT      DEFAULT 0,
+    created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY owner_name (owner_uuid, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Kontrakte / Auftrags-Brett
+CREATE TABLE IF NOT EXISTS sky_contracts (
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    creator      VARCHAR(36)  NOT NULL,
+    type         VARCHAR(32)  NOT NULL,
+    requirement  VARCHAR(256) NOT NULL,
+    reward_coins BIGINT       DEFAULT 0,
+    goal         BIGINT       DEFAULT 1,
+    progress     BIGINT       DEFAULT 0,
+    deadline     BIGINT       NOT NULL,
+    completed    TINYINT      DEFAULT 0,
+    INDEX idx_type    (type),
+    INDEX idx_creator (creator)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS sky_contract_participants (
+    contract_id  BIGINT      NOT NULL,
+    uuid         VARCHAR(36) NOT NULL,
+    contribution BIGINT      DEFAULT 0,
+    PRIMARY KEY (contract_id, uuid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Story / Nyx
+CREATE TABLE IF NOT EXISTS sky_story_progress (
+    player_uuid   VARCHAR(36) PRIMARY KEY,
+    chapter       INT         DEFAULT 0,
+    nyx_fragments INT         DEFAULT 0,
+    updated_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS sky_nyx_event (
+    id            INT       PRIMARY KEY DEFAULT 1,
+    progress      INT       DEFAULT 0,
+    active        TINYINT   DEFAULT 0,
+    completed_at  TIMESTAMP NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO sky_nyx_event (id) VALUES (1);
+
+-- Island Chronicles
+CREATE TABLE IF NOT EXISTS sky_chronicles (
+    island_uuid VARCHAR(36)  NOT NULL,
+    entry_id    INT          NOT NULL AUTO_INCREMENT,
+    type        VARCHAR(32)  NOT NULL DEFAULT 'auto',
+    message     VARCHAR(512) NOT NULL,
+    created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (entry_id),
+    INDEX idx_island (island_uuid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── ph_skyblock: Companions (ph-companions Plugin) ────────────────────────────
+
+CREATE TABLE IF NOT EXISTS sky_companions (
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    player_uuid    VARCHAR(36) NOT NULL,
+    companion_type VARCHAR(32) NOT NULL,
+    level          INT         DEFAULT 1,
+    xp             BIGINT      DEFAULT 0,
+    hunger         INT         DEFAULT 72000,
+    active         TINYINT     DEFAULT 0,
+    UNIQUE KEY one_type (player_uuid, companion_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── ph_skyblock: Runen (ph-runes Plugin) ──────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS sky_player_runes (
+    player_uuid VARCHAR(36) NOT NULL,
+    rune_type   VARCHAR(64) NOT NULL,
+    amount      INT         DEFAULT 1,
+    PRIMARY KEY (player_uuid, rune_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── ph_skyblock: Dungeons (ph-dungeons Plugin) ────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS sky_dungeon_runs (
+    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    player_uuid      VARCHAR(36) NOT NULL,
+    dungeon_id       VARCHAR(64) NOT NULL,
+    tier             INT         NOT NULL,
+    duration_seconds INT,
+    rank             CHAR(1),
+    completed_at     TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_player (player_uuid),
+    INDEX idx_dungeon (dungeon_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── ph_skyblock: Battle Pass (ph-battlepass Plugin) ───────────────────────────
+
+CREATE TABLE IF NOT EXISTS sky_battlepass (
+    player_uuid VARCHAR(36) NOT NULL,
+    season      INT         NOT NULL,
+    bp_xp       BIGINT      DEFAULT 0,
+    level       INT         DEFAULT 0,
+    premium     TINYINT     DEFAULT 0,
+    PRIMARY KEY (player_uuid, season)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS sky_bp_challenges (
+    player_uuid   VARCHAR(36) NOT NULL,
+    season        INT         NOT NULL,
+    challenge_key VARCHAR(64) NOT NULL,
+    progress      INT         DEFAULT 0,
+    completed     TINYINT     DEFAULT 0,
+    reset_date    DATE,
+    PRIMARY KEY (player_uuid, season, challenge_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS sky_bp_claimed (
+    player_uuid     VARCHAR(36) NOT NULL,
+    season          INT         NOT NULL,
+    level           INT         NOT NULL,
+    premium_claimed TINYINT     DEFAULT 0,
+    PRIMARY KEY (player_uuid, season, level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── ph_skyblock: Skills (ph-skills Plugin) ────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS sky_skills (
+    uuid     VARCHAR(36) NOT NULL,
+    skill_id VARCHAR(32) NOT NULL,
+    xp       BIGINT      DEFAULT 0,
+    level    INT         DEFAULT 0,
+    PRIMARY KEY (uuid, skill_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── ph_skyblock: Research (ph-research Plugin) ────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS sky_research (
+    uuid         VARCHAR(36) NOT NULL,
+    research_id  VARCHAR(64) NOT NULL,
+    started_at   TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP   NULL,
+    PRIMARY KEY (uuid, research_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── ph_skyblock: Maschinen (ph-machines Plugin) ───────────────────────────────
+
+CREATE TABLE IF NOT EXISTS sky_machines (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    island_uuid  VARCHAR(36) NOT NULL,
+    world        VARCHAR(64) NOT NULL,
+    x            INT         NOT NULL,
+    y            INT         NOT NULL,
+    z            INT         NOT NULL,
+    type         VARCHAR(64) NOT NULL,
+    config       TEXT,
+    energy_stored INT        DEFAULT 0,
+    active       TINYINT     DEFAULT 1,
+    UNIQUE KEY pos (world, x, y, z),
+    INDEX idx_island (island_uuid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── ph_skyblock: Auktionshaus (ph-auction Plugin) ─────────────────────────────
+
+CREATE TABLE IF NOT EXISTS sky_auctions (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    seller          VARCHAR(36)  NOT NULL,
+    seller_name     VARCHAR(16),
+    item_nbt        MEDIUMTEXT   NOT NULL,
+    item_name       VARCHAR(128),
+    start_price     BIGINT       DEFAULT 0,
+    bin_price       BIGINT,
+    highest_bid     BIGINT       DEFAULT 0,
+    highest_bidder  VARCHAR(36),
+    ends_at         TIMESTAMP    NOT NULL,
+    sold            TINYINT      DEFAULT 0,
+    INDEX idx_seller  (seller),
+    INDEX idx_ends_at (ends_at),
+    INDEX idx_sold    (sold)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ── ph_generators Tabellen ───────────────────────────────────────────────────
 
 USE ph_generators;
