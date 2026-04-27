@@ -73,7 +73,10 @@ public class PHVelocity {
         Component msg2 = Component.text("   Nutze ", NamedTextColor.GRAY)
             .append(voteCmd)
             .append(Component.text(" und verdiene VoteCoins!", NamedTextColor.GRAY));
-        Component msg3 = Component.text("   Nicht in der Lobby? Komm mit ", NamedTextColor.GRAY)
+        Component msg3 = Component.text("   ⚠ Voten ist nur in der ", NamedTextColor.YELLOW)
+            .append(Component.text("Lobby", LIGHT_PINK, TextDecoration.BOLD))
+            .append(Component.text(" möglich!", NamedTextColor.YELLOW));
+        Component msg4 = Component.text("   Nicht in der Lobby? Komm mit ", NamedTextColor.GRAY)
             .append(hubCmd)
             .append(Component.text(" zurück!", NamedTextColor.GRAY));
 
@@ -82,6 +85,7 @@ public class PHVelocity {
             player.sendMessage(msg1);
             player.sendMessage(msg2);
             player.sendMessage(msg3);
+            player.sendMessage(msg4);
             player.sendMessage(line);
         }
     }
