@@ -147,9 +147,10 @@ public class MiningBlockManager implements Listener {
             player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.8f, 1.0f + (shards * 0.1f));
         }
 
-        // Coin-Drop durch Spitzhacken-Level (1% bei Lvl 1 → 10% bei Lvl 50)
+        // Coin-Drop durch Spitzhacken-Level (1% bei Lvl 1 → 10% bei Lvl 50, quadratische Kurve)
         int maxPickaxe = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 50);
-        double coinChance = 0.01 + (pickaxeLevel - 1) / (double)(maxPickaxe - 1) * 0.09;
+        double t = (pickaxeLevel - 1) / (double)(maxPickaxe - 1);
+        double coinChance = 0.01 + t * t * 0.09;
         if (ThreadLocalRandom.current().nextDouble() < coinChance) {
             long coins = 1 + ThreadLocalRandom.current().nextLong(10000);
             data.addMoney(coins);
@@ -293,7 +294,8 @@ public class MiningBlockManager implements Listener {
                 : level < 60 ? " <dark_gray>→ Triple bei Lvl 60"
                 : level < 90 ? " <dark_gray>→ 4× bei Lvl 90"
                 : "";
-        double coinChance = (0.01 + (pickaxeLvl - 1) / (double)(maxPickaxeLvl - 1) * 0.09) * 100;
+        double tCoin = (pickaxeLvl - 1) / (double)(maxPickaxeLvl - 1);
+        double coinChance = (0.01 + tCoin * tCoin * 0.09) * 100;
 
         return "<gold>━━ Mining-Block ━━\n"
                 + "<gray>Block-Level: <white>" + level + " <dark_gray>/ " + maxLevel + "\n"
