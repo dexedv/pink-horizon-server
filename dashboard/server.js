@@ -967,6 +967,50 @@ app.post('/api/backup/:server', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Backup wiederherstellen
+app.post('/api/restore', auth, async (req, res) => {
+  const { file } = req.body;
+  if (!file || typeof file !== 'string' || !file.endsWith('.tar.gz') || file.includes('/') || file.includes('..')) {
+    return res.status(400).json({ error: 'Ungültige Datei' });
+  }
+
+  const serverName = file.split('_')[0];
+  if (!SERVER_WORLD_DIRS[serverName]) {
+    return res.status(400).json({ error: 'Unbekannter Server aus Dateiname' });
+  }
+
+  const arc        = path.join(BACKUP_DIR, file);
+  const serverData = `/data/${serverName}`;
+  const container  = `ph-${serverName}`;
+
+  try {
+    await fs.access(arc);
+  } catch {
+    return res.status(404).json({ error: 'Backup-Datei nicht gefunden' });
+  }
+
+  try {
+    // 1. Server stoppen
+    try { await docker.getContainer(container).stop({ t: 10 }); } catch {}
+
+    // 2. Backup entpacken (überschreibt Weltdateien)
+    await new Promise((resolve, reject) => {
+      execFile('tar', ['-xzf', arc, '-C', serverData], { timeout: 300000 }, (err) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+
+    // 3. Server wieder starten
+    try { await docker.getContainer(container).start(); } catch {}
+
+    res.json({ ok: true, message: `${serverName} aus ${file} wiederhergestellt und neu gestartet.` });
+  } catch (e) {
+    // Sicherheitshalber Server starten falls er noch gestoppt ist
+    try { await docker.getContainer(container).start(); } catch {}
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ── REST-API: MOTD ────────────────────────────────────────────────────────
 
 app.get('/api/servers/:name/motd', auth, async (req, res) => {

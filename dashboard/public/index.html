@@ -2745,11 +2745,13 @@ async function loadBackupList() {
           <th style="padding:.25rem .5rem">Datei</th>
           <th style="padding:.25rem .5rem">Größe</th>
           <th style="padding:.25rem .5rem">Erstellt</th>
+          <th style="padding:.25rem .5rem"></th>
         </tr></thead>
         <tbody>${items.map(b=>`<tr style="border-top:1px solid var(--border)">
           <td style="padding:.25rem .5rem;font-family:var(--mono);font-size:.78rem;color:var(--muted)">${b.name}</td>
           <td style="padding:.25rem .5rem;font-size:.83rem">${fmtBytes(b.size)}</td>
           <td style="padding:.25rem .5rem;font-size:.83rem">${new Date(b.mtime).toLocaleString('de-DE')}</td>
+          <td style="padding:.25rem .5rem"><button class="btn btn-sm" style="background:var(--red,#c0392b);color:#fff;border-color:var(--red,#c0392b)" onclick="confirmRestore('${b.name}')">↩ Wiederherstellen</button></td>
         </tr>`).join('')}</tbody>
       </table>
     </div>`).join('');
@@ -2792,6 +2794,46 @@ async function doBackup(srv) {
   }
   showToast(d?.ok ? `✓ Backup (${srv}) erstellt` : `✗ Backup (${srv}) fehlgeschlagen`, d?.ok);
   if (d?.ok) loadBackupList();
+}
+
+function confirmRestore(file) {
+  const srv = file.split('_')[0];
+  const modal = document.createElement('div');
+  modal.id = 'restore-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:440px;width:90%;box-shadow:0 8px 32px #0008">
+      <div style="font-size:1.1rem;font-weight:700;color:var(--pink);margin-bottom:.75rem">↩ Backup wiederherstellen</div>
+      <p style="font-size:.87rem;margin-bottom:.5rem">Du bist dabei, folgendes Backup einzuspielen:</p>
+      <div style="font-family:var(--mono);font-size:.8rem;color:var(--muted);background:var(--bg);padding:.5rem .75rem;border-radius:6px;margin-bottom:.75rem;word-break:break-all">${file}</div>
+      <p style="font-size:.84rem;color:#e67e22;margin-bottom:1rem">⚠️ Der Server <strong>${srv}</strong> wird dafür kurz gestoppt. Aktuelle Welt-Daten werden überschrieben!</p>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end">
+        <button class="btn btn-sm" onclick="document.getElementById('restore-modal').remove()">Abbrechen</button>
+        <button class="btn btn-sm" id="restore-confirm-btn" style="background:#c0392b;color:#fff;border-color:#c0392b" onclick="doRestore('${file}')">↩ Jetzt wiederherstellen</button>
+      </div>
+      <div id="restore-modal-status" style="margin-top:.75rem;font-size:.83rem"></div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function doRestore(file) {
+  const btn = document.getElementById('restore-confirm-btn');
+  const st  = document.getElementById('restore-modal-status');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Wird wiederhergestellt…'; }
+  if (st)  { st.textContent = 'Server wird gestoppt, Backup wird entpackt…'; st.style.color = 'var(--muted)'; }
+
+  const r = await apiFetch('/api/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file }) });
+  const d = r ? await r.json() : null;
+
+  if (d?.ok) {
+    if (st) { st.textContent = '✓ ' + (d.message || 'Erfolgreich wiederhergestellt!'); st.style.color = 'var(--green,#27ae60)'; }
+    showToast('✓ Backup wiederhergestellt', true);
+    setTimeout(() => { document.getElementById('restore-modal')?.remove(); loadBackupList(); }, 2500);
+  } else {
+    if (btn) { btn.disabled = false; btn.textContent = '↩ Jetzt wiederherstellen'; }
+    if (st)  { st.textContent = '✗ ' + (d?.error || 'Fehler'); st.style.color = '#c0392b'; }
+    showToast('✗ Wiederherstellung fehlgeschlagen', false);
+  }
 }
 
 // ── SQL-Konsole ───────────────────────────────────────────────────────────
