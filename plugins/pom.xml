@@ -21,6 +21,15 @@
         <module>ph-smash</module>
         <module>ph-vote</module>
         <module>ph-generators</module>
+        <!-- SkyBlock Feature-Module -->
+        <module>ph-skills</module>
+        <module>ph-auction</module>
+        <module>ph-research</module>
+        <module>ph-machines</module>
+        <module>ph-companions</module>
+        <module>ph-runes</module>
+        <module>ph-dungeons</module>
+        <module>ph-battlepass</module>
     </modules>
 
     <properties>
