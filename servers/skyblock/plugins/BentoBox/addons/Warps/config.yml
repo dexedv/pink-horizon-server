@@ -1,0 +1,17 @@
+# Warps Addon - Pink Horizon SkyBlock
+
+gamemodes:
+  - BSkyBlock
+
+# Cooldown zwischen Warp-Nutzungen in Sekunden
+warp-cooldown: 5
+
+# Teleport-Verzögerung in Sekunden
+teleport-delay: 3
+
+# Zeigt Warps aller Spieler in der Liste
+show-all-warps: true
+
+# Warp-Signs aktivieren (Schild mit [WARP] Text)
+warp-sign-enabled: true
+warp-sign-line: "[WARP]"

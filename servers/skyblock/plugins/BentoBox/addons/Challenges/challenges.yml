@@ -1,0 +1,303 @@
+# Pink Horizon SkyBlock – Challenges
+# Kategorien: Anfänger, Erkundung, Bergbau, Überleben, Meister
+
+challenges:
+  # ══════════════════════════════════════════════════════
+  # KATEGORIE: ANFÄNGER
+  # ══════════════════════════════════════════════════════
+
+  erste_schritte:
+    uniqueId: "erste_schritte"
+    friendlyName: "&a&lErste Schritte"
+    description:
+      - "&7Platziere deinen ersten"
+      - "&7Cobblestone-Block."
+    icon: COBBLESTONE
+    level: beginner
+    type: INVENTORY
+    requiredItems:
+      COBBLESTONE: 1
+    removeItems: false
+    reward:
+      commands: []
+      items:
+        BREAD: 16
+      exp: 50
+      text: "&aGut gemacht! Du hast deine ersten Schritte gemacht!"
+
+  erste_insel:
+    uniqueId: "erste_insel"
+    friendlyName: "&a&lInselbewohner"
+    description:
+      - "&7Baue eine Hütte aus"
+      - "&764 Cobblestone-Blöcken."
+    icon: OAK_PLANKS
+    level: beginner
+    type: INVENTORY
+    requiredItems:
+      COBBLESTONE: 64
+    removeItems: false
+    reward:
+      items:
+        OAK_LOG: 32
+        OAK_PLANKS: 32
+      exp: 100
+      text: "&aDeine Insel nimmt Form an!"
+
+  erster_ofen:
+    uniqueId: "erster_ofen"
+    friendlyName: "&6Schmelzmeister"
+    description:
+      - "&7Baue deinen ersten Ofen."
+    icon: FURNACE
+    level: beginner
+    type: INVENTORY
+    requiredItems:
+      FURNACE: 1
+    removeItems: false
+    reward:
+      items:
+        COAL: 16
+        RAW_IRON: 8
+      exp: 75
+      text: "&aJetzt kannst du schmelzen!"
+
+  holzfaeller:
+    uniqueId: "holzfaeller"
+    friendlyName: "&2Holzfäller"
+    description:
+      - "&7Sammle 64 Holzblöcke."
+    icon: OAK_LOG
+    level: beginner
+    type: INVENTORY
+    requiredItems:
+      OAK_LOG: 32
+    removeItems: false
+    repeatable: true
+    maxTimes: 10
+    reward:
+      items:
+        OAK_SAPLING: 4
+        APPLE: 8
+      exp: 50
+      text: "&aHolz! Mhhh!"
+
+  # ══════════════════════════════════════════════════════
+  # KATEGORIE: BERGBAU
+  # ══════════════════════════════════════════════════════
+
+  eisensammler:
+    uniqueId: "eisensammler"
+    friendlyName: "&7Eisensammler"
+    description:
+      - "&7Sammle 32 Eisenerz."
+    icon: IRON_ORE
+    level: normal
+    type: INVENTORY
+    requiredItems:
+      RAW_IRON: 32
+    removeItems: false
+    reward:
+      items:
+        IRON_INGOT: 16
+        IRON_PICKAXE: 1
+      exp: 200
+      text: "&aEisen ist das Fundament!"
+
+  goldgräber:
+    uniqueId: "goldgräber"
+    friendlyName: "&6Goldgräber"
+    description:
+      - "&7Sammle 16 Golderz."
+    icon: GOLD_ORE
+    level: normal
+    type: INVENTORY
+    requiredItems:
+      RAW_GOLD: 16
+    removeItems: false
+    reward:
+      items:
+        GOLD_INGOT: 8
+        GOLDEN_APPLE: 1
+      exp: 300
+      text: "&6Goldrausch!"
+
+  diamantfieber:
+    uniqueId: "diamantfieber"
+    friendlyName: "&bDiamantfieber"
+    description:
+      - "&7Sammle 7 Diamanten."
+    icon: DIAMOND
+    level: hard
+    type: INVENTORY
+    requiredItems:
+      DIAMOND: 7
+    removeItems: false
+    reward:
+      items:
+        DIAMOND: 3
+        ENCHANTED_BOOK: 1
+      exp: 500
+      text: "&bDiamanten! Der Traum jedes Bergmanns!"
+
+  # ══════════════════════════════════════════════════════
+  # KATEGORIE: ÜBERLEBEN
+  # ══════════════════════════════════════════════════════
+
+  nahrungsversorgung:
+    uniqueId: "nahrungsversorgung"
+    friendlyName: "&aNahrungsversorgung"
+    description:
+      - "&7Baue eine Farm mit"
+      - "&764 Weizenkörnern."
+    icon: WHEAT
+    level: beginner
+    type: INVENTORY
+    requiredItems:
+      WHEAT: 64
+    removeItems: false
+    reward:
+      items:
+        BREAD: 32
+        GOLDEN_CARROT: 4
+      exp: 150
+      text: "&aKein Hunger mehr!"
+
+  tierfarm:
+    uniqueId: "tierfarm"
+    friendlyName: "&aTierfarm"
+    description:
+      - "&7Sammle je 16 Leder,"
+      - "&7Federn und Wolle."
+    icon: LEATHER
+    level: normal
+    type: INVENTORY
+    requiredItems:
+      LEATHER: 16
+      FEATHER: 16
+      WHITE_WOOL: 16
+    removeItems: false
+    reward:
+      items:
+        LEATHER_CHESTPLATE: 1
+        SADDLE: 1
+      exp: 250
+      text: "&aDeine Farm blüht auf!"
+
+  # ══════════════════════════════════════════════════════
+  # KATEGORIE: MEISTER
+  # ══════════════════════════════════════════════════════
+
+  nether_abenteuer:
+    uniqueId: "nether_abenteuer"
+    friendlyName: "&cNether-Abenteuer"
+    description:
+      - "&7Sammle 8 Netherrack,"
+      - "&74 Quartz und 1 Magmacreme."
+    icon: NETHERRACK
+    level: hard
+    type: INVENTORY
+    requiredItems:
+      NETHERRACK: 8
+      NETHER_QUARTZ_ORE: 4
+      MAGMA_CREAM: 1
+    removeItems: false
+    reward:
+      items:
+        BLAZE_ROD: 4
+        NETHER_BRICK: 16
+      exp: 600
+      text: "&cDu hast den Nether bezwungen!"
+
+  smaragd_könig:
+    uniqueId: "smaragd_könig"
+    friendlyName: "&aSmaragd-König"
+    description:
+      - "&7Sammle 16 Smaragde."
+    icon: EMERALD
+    level: hard
+    type: INVENTORY
+    requiredItems:
+      EMERALD: 16
+    removeItems: false
+    reward:
+      items:
+        EMERALD_BLOCK: 2
+        EXPERIENCE_BOTTLE: 8
+      exp: 800
+      text: "&aDu bist reich wie ein König!"
+
+  netherit_legende:
+    uniqueId: "netherit_legende"
+    friendlyName: "&5&lNetherit-Legende"
+    description:
+      - "&7Sammle 4 Netherite Ingots."
+      - "&5Das ultimative Ziel!"
+    icon: NETHERITE_INGOT
+    level: expert
+    type: INVENTORY
+    requiredItems:
+      NETHERITE_INGOT: 4
+    removeItems: false
+    reward:
+      items:
+        NETHERITE_INGOT: 1
+        NETHERITE_UPGRADE_SMITHING_TEMPLATE: 1
+      exp: 2000
+      text: "&5Legende! Nur wenige erreichen dieses Ziel!"
+
+levels:
+  beginner:
+    uniqueId: "beginner"
+    friendlyName: "&a&lAnfänger"
+    description:
+      - "&7Die ersten Schritte"
+      - "&7auf deiner Insel."
+    icon: OAK_SAPLING
+    order: 1
+    awardText: "&aAnfänger-Stufe abgeschlossen!"
+    reward:
+      items:
+        BREAD: 16
+      exp: 100
+
+  normal:
+    uniqueId: "normal"
+    friendlyName: "&e&lFortgeschritten"
+    description:
+      - "&7Du kennst dich aus!"
+    icon: IRON_SWORD
+    order: 2
+    awardText: "&eFortgeschritten-Stufe abgeschlossen!"
+    reward:
+      items:
+        IRON_SWORD: 1
+        IRON_PICKAXE: 1
+      exp: 300
+
+  hard:
+    uniqueId: "hard"
+    friendlyName: "&c&lExperte"
+    description:
+      - "&7Für echte SkyBlock-Profis."
+    icon: DIAMOND_SWORD
+    order: 3
+    awardText: "&cExperten-Stufe abgeschlossen!"
+    reward:
+      items:
+        DIAMOND_SWORD: 1
+        DIAMOND_PICKAXE: 1
+      exp: 750
+
+  expert:
+    uniqueId: "expert"
+    friendlyName: "&5&lLegende"
+    description:
+      - "&5Das höchste aller Ziele."
+    icon: NETHERITE_SWORD
+    order: 4
+    awardText: "&5Legende! Du hast alles erreicht!"
+    reward:
+      items:
+        NETHERITE_SWORD: 1
+      exp: 2000

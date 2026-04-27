@@ -21,7 +21,7 @@ public class BentoBoxListener implements Listener {
         this.plugin = plugin;
     }
 
-    /** Neue Insel erstellt → Inselbesitzer-Titel vergeben */
+    /** Neue Insel erstellt → Inselbesitzer-Titel vergeben + Starter-Generator */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onIslandCreated(IslandCreatedEvent e) {
         var uuid = e.getPlayerUUID();
@@ -35,7 +35,16 @@ public class BentoBoxListener implements Listener {
             }
             // Scoreboard für diesen Spieler updaten
             var player = plugin.getServer().getPlayer(uuid);
-            if (player != null) plugin.getScoreboardManager().update(player);
+            if (player != null) {
+                plugin.getScoreboardManager().update(player);
+                // Starter-Generator ins Inventar
+                var genItem = plugin.getGeneratorManager().createGeneratorItem();
+                player.getInventory().addItem(genItem);
+                player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
+                    .deserialize("<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] "
+                        + "<green>Willkommen! Du hast einen <gold><bold>Generator</bold></green> erhalten. "
+                        + "<gray>Platziere ihn auf deiner Insel!"));
+            }
         }, 20L);
     }
 

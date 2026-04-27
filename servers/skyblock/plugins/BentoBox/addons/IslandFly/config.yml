@@ -1,0 +1,22 @@
+# IslandFly Addon - Pink Horizon SkyBlock
+
+gamemodes:
+  - BSkyBlock
+
+# Flug wird deaktiviert wenn Spieler die Insel verlässt
+disable-on-leave-island: true
+
+# Warnung vor Deaktivierung in Sekunden
+fly-timeout: 10
+
+# Flug bei Combat deaktivieren
+disable-in-combat: true
+
+# Combat-Cooldown in Sekunden
+combat-timeout: 5
+
+# Erlaubt Fliegen auch auf Team-Inseln
+allow-in-visited-island: false
+
+# Permission für Flug: skyblock.island.fly
+# (wird über LuckPerms vergeben)

@@ -1,0 +1,83 @@
+# Level Addon - Pink Horizon SkyBlock
+
+gamemodes:
+  - BSkyBlock
+
+# Tod-Strafe: Keine (wir verwenden Coins als Progression)
+deathpenalty: 0
+
+# Kurzschreibweise für große Zahlen (z.B. 1.2k statt 1200)
+shorthand: true
+
+# Unterwasser-Blöcke weniger wert
+underWaterMultiplier: 1.0
+
+# Summe aller Blöcke für Level-Berechnung
+sumteamdeaths: false
+
+# Wie oft das Level in Sekunden gecacht wird
+levelcachetime: 60
+
+# Log-Level
+loglevel: WARNING
+
+# Blöcke und ihre Werte (Punkte pro Block)
+# Seltenere/teurere Blöcke = mehr Punkte
+blockvalues:
+  # Basis-Blöcke
+  COBBLESTONE: 1
+  STONE: 1
+  GRAVEL: 1
+  DIRT: 1
+  SAND: 1
+  ANDESITE: 1
+  DIORITE: 1
+  GRANITE: 1
+  # Holz
+  OAK_LOG: 2
+  BIRCH_LOG: 2
+  SPRUCE_LOG: 2
+  JUNGLE_LOG: 2
+  ACACIA_LOG: 2
+  DARK_OAK_LOG: 2
+  # Erze
+  COAL_ORE: 4
+  IRON_ORE: 8
+  GOLD_ORE: 16
+  LAPIS_ORE: 12
+  REDSTONE_ORE: 8
+  DIAMOND_ORE: 100
+  EMERALD_ORE: 150
+  ANCIENT_DEBRIS: 500
+  DEEPSLATE_COAL_ORE: 5
+  DEEPSLATE_IRON_ORE: 10
+  DEEPSLATE_GOLD_ORE: 20
+  DEEPSLATE_LAPIS_ORE: 15
+  DEEPSLATE_REDSTONE_ORE: 10
+  DEEPSLATE_DIAMOND_ORE: 120
+  DEEPSLATE_EMERALD_ORE: 180
+  # Verarbeitete Blöcke
+  IRON_BLOCK: 50
+  GOLD_BLOCK: 100
+  DIAMOND_BLOCK: 900
+  EMERALD_BLOCK: 1300
+  NETHERITE_BLOCK: 5000
+  LAPIS_BLOCK: 80
+  REDSTONE_BLOCK: 50
+  # Farm-Blöcke
+  FARMLAND: 2
+  PUMPKIN: 4
+  MELON: 4
+  WHEAT: 1
+  SUGAR_CANE: 1
+  CACTUS: 1
+  # Sonstige
+  OBSIDIAN: 20
+  CRYING_OBSIDIAN: 30
+  END_STONE: 15
+  NETHERRACK: 2
+  NETHER_BRICKS: 5
+  BOOKSHELF: 10
+  ENCHANTING_TABLE: 300
+  BEACON: 10000
+  CONDUIT: 5000

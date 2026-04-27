@@ -1,0 +1,22 @@
+# Visit Addon - Pink Horizon SkyBlock
+
+gamemodes:
+  - BSkyBlock
+
+# Spieler können ihre Insel für Besuche öffnen
+default-open: false
+
+# Spieler können Inseln bewerten (1-5 Sterne)
+allow-ratings: true
+
+# Maximale Anzahl an Ratings pro Spieler pro Insel
+max-ratings: 1
+
+# Cooldown zwischen Besuchen in Sekunden (0 = kein Cooldown)
+visit-cooldown: 0
+
+# Teleport-Verzögerung in Sekunden (0 = sofort)
+teleport-delay: 3
+
+# Insel-Vorschau im GUI zeigen
+show-island-stats: true

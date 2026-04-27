@@ -1,0 +1,188 @@
+# MagicCobblestoneGenerator – Tiers für Pink Horizon SkyBlock
+# Tiers schalten sich je nach Island-Level frei.
+# Prozentwerte müssen je Tier zusammen 100 ergeben.
+
+tiers:
+  # ── Tier 1: Starter (Level 0) ──────────────────────────────────────────────
+  starter:
+    uniqueId: "starter"
+    friendlyName: "&7&lStarter Generator"
+    description:
+      - "&7Der Basis-Generator jeder Insel."
+      - "&7Produziert hauptsächlich Cobblestone."
+    icon: COBBLESTONE
+    isDefault: true
+    priority: 1
+    requiredMinIslandLevel: 0
+    generators:
+      COBBLESTONE: 95
+      GRAVEL: 4
+      FLINT: 1
+
+  # ── Tier 2: Stone (Level 10) ───────────────────────────────────────────────
+  stone:
+    uniqueId: "stone"
+    friendlyName: "&fStein Generator"
+    description:
+      - "&7Freigeschaltet ab &fInsel-Level 10&7."
+      - "&7Etwas Stein und Kohle erspürbar."
+    icon: STONE
+    priority: 2
+    requiredMinIslandLevel: 10
+    generators:
+      COBBLESTONE: 70
+      STONE: 20
+      GRAVEL: 7
+      COAL_ORE: 3
+
+  # ── Tier 3: Coal (Level 25) ────────────────────────────────────────────────
+  coal:
+    uniqueId: "coal"
+    friendlyName: "&8Kohle Generator"
+    description:
+      - "&7Freigeschaltet ab &8Insel-Level 25&7."
+      - "&7Kohle und Kieselstein häufiger."
+    icon: COAL_ORE
+    priority: 3
+    requiredMinIslandLevel: 25
+    generators:
+      COBBLESTONE: 55
+      STONE: 25
+      GRAVEL: 8
+      COAL_ORE: 10
+      DEEPSLATE: 2
+
+  # ── Tier 4: Iron (Level 50) ────────────────────────────────────────────────
+  iron:
+    uniqueId: "iron"
+    friendlyName: "&7Eisen Generator"
+    description:
+      - "&7Freigeschaltet ab &7Insel-Level 50&7."
+      - "&aEisen-Erz erscheint!"
+    icon: IRON_ORE
+    priority: 4
+    requiredMinIslandLevel: 50
+    generators:
+      COBBLESTONE: 45
+      STONE: 25
+      GRAVEL: 8
+      COAL_ORE: 12
+      IRON_ORE: 7
+      DEEPSLATE: 3
+
+  # ── Tier 5: Gold (Level 100) ───────────────────────────────────────────────
+  gold:
+    uniqueId: "gold"
+    friendlyName: "&6Gold Generator"
+    description:
+      - "&7Freigeschaltet ab &6Insel-Level 100&7."
+      - "&6Gold-Erz erscheint!"
+    icon: GOLD_ORE
+    priority: 5
+    requiredMinIslandLevel: 100
+    generators:
+      COBBLESTONE: 40
+      STONE: 22
+      GRAVEL: 6
+      COAL_ORE: 12
+      IRON_ORE: 10
+      GOLD_ORE: 5
+      DEEPSLATE: 4
+      ANDESITE: 1
+
+  # ── Tier 6: Lapis (Level 200) ──────────────────────────────────────────────
+  lapis:
+    uniqueId: "lapis"
+    friendlyName: "&9Lapislazuli Generator"
+    description:
+      - "&7Freigeschaltet ab &9Insel-Level 200&7."
+      - "&9Lapis und seltene Erze erscheinen!"
+    icon: LAPIS_ORE
+    priority: 6
+    requiredMinIslandLevel: 200
+    generators:
+      COBBLESTONE: 33
+      STONE: 20
+      GRAVEL: 6
+      COAL_ORE: 12
+      IRON_ORE: 10
+      GOLD_ORE: 7
+      LAPIS_ORE: 5
+      REDSTONE_ORE: 4
+      DEEPSLATE: 3
+
+  # ── Tier 7: Diamond (Level 500) ────────────────────────────────────────────
+  diamond:
+    uniqueId: "diamond"
+    friendlyName: "&bDiamant Generator"
+    description:
+      - "&7Freigeschaltet ab &bInsel-Level 500&7."
+      - "&bDiamanten erscheinen – sehr selten!"
+    icon: DIAMOND_ORE
+    priority: 7
+    requiredMinIslandLevel: 500
+    generators:
+      COBBLESTONE: 30
+      STONE: 18
+      GRAVEL: 5
+      COAL_ORE: 12
+      IRON_ORE: 10
+      GOLD_ORE: 7
+      LAPIS_ORE: 6
+      REDSTONE_ORE: 5
+      DEEPSLATE_DIAMOND_ORE: 3
+      DIAMOND_ORE: 2
+      DEEPSLATE: 2
+
+  # ── Tier 8: Emerald (Level 1000) ───────────────────────────────────────────
+  emerald:
+    uniqueId: "emerald"
+    friendlyName: "&aSmaragd Generator"
+    description:
+      - "&7Freigeschaltet ab &aInsel-Level 1000&7."
+      - "&aSmaragde und Diamanten erscheinen!"
+    icon: EMERALD_ORE
+    priority: 8
+    requiredMinIslandLevel: 1000
+    generators:
+      COBBLESTONE: 25
+      STONE: 15
+      GRAVEL: 5
+      COAL_ORE: 10
+      IRON_ORE: 10
+      GOLD_ORE: 8
+      LAPIS_ORE: 7
+      REDSTONE_ORE: 6
+      DEEPSLATE_DIAMOND_ORE: 4
+      DIAMOND_ORE: 3
+      EMERALD_ORE: 3
+      DEEPSLATE: 2
+      CALCITE: 2
+
+  # ── Tier 9: Netherite (Level 2500) ─────────────────────────────────────────
+  netherite:
+    uniqueId: "netherite"
+    friendlyName: "&5&lNetherit Generator"
+    description:
+      - "&7Freigeschaltet ab &5Insel-Level 2500&7."
+      - "&5Das ultimative Tier!"
+      - "&4Ancient Debris erscheint!"
+    icon: NETHERITE_BLOCK
+    priority: 9
+    requiredMinIslandLevel: 2500
+    generators:
+      COBBLESTONE: 20
+      STONE: 12
+      GRAVEL: 5
+      COAL_ORE: 8
+      IRON_ORE: 9
+      GOLD_ORE: 8
+      LAPIS_ORE: 7
+      REDSTONE_ORE: 7
+      DEEPSLATE_DIAMOND_ORE: 6
+      DIAMOND_ORE: 5
+      EMERALD_ORE: 5
+      DEEPSLATE_GOLD_ORE: 4
+      ANCIENT_DEBRIS: 2
+      CALCITE: 1
+      DEEPSLATE: 1

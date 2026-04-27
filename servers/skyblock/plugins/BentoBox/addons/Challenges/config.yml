@@ -1,0 +1,29 @@
+# Challenges Addon - Pink Horizon SkyBlock
+
+# Addon aktiviert
+enabled: true
+
+# GameModes die Challenges nutzen
+gamemodes:
+  - BSkyBlock
+
+# Challenges GUI Einstellungen
+gui-settings:
+  # Zeigt abgeschlossene Challenges ausgegraut an
+  show-completed: true
+  # Zeigt Challenges die noch nicht freigeschaltet sind
+  show-not-unlocked: true
+
+# Belohnungs-Einstellungen
+reward-settings:
+  # Broadcast wenn jemand eine Challenge abschließt
+  broadcast-first-completion: true
+  broadcast-message: "&d[Pink Horizon] &f{player} &7hat die Challenge &e{challenge} &7abgeschlossen!"
+
+# Wiederhol-Challenges
+repeatable:
+  # Können Challenges wiederholt werden?
+  enabled: true
+
+# Free-Challenges (ohne Kosten)
+free-challenges: true

@@ -1,0 +1,16 @@
+# Border Addon - Pink Horizon SkyBlock
+
+gamemodes:
+  - BSkyBlock
+
+# Border-Farbe (RED = Rot für Pink Horizon Theme)
+color: RED
+
+# Barrier-Offset: Wie weit ausserhalb der Protection-Range die Border ist
+barrier-offset: 0
+
+# Border beim Einloggen anzeigen
+show-on-login: true
+
+# Border beim Wechsel auf die Insel anzeigen
+show-on-island-enter: true

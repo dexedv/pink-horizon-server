@@ -1,0 +1,21 @@
+# MagicCobblestoneGenerator - Pink Horizon SkyBlock
+# Konfiguration für den Cobblestone-Generator-Upgrade-Modus
+
+# Aktiviert das Addon
+enabled: true
+
+# Zeigt den aktiven Tier im Generator-Hologramm an
+show-tier-name: true
+
+# Spieler können ihren aktiven Tier wählen (wenn mehrere verfügbar)
+active-generator-count: 1
+
+# Offline-Generierung: Generatoren produzieren auch wenn Spieler offline
+offline-generation: true
+
+# Cooldown zwischen Tier-Wechseln in Sekunden
+tier-switch-cooldown: 0
+
+# Welche GameModes (BentoBox-Addons) nutzen dieses Addon
+gamemodes:
+  - BSkyBlock
