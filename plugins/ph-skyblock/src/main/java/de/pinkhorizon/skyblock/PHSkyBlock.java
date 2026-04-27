@@ -16,6 +16,7 @@ import de.pinkhorizon.skyblock.managers.AchievementManager;
 import de.pinkhorizon.skyblock.managers.CoinManager;
 import de.pinkhorizon.skyblock.managers.GeneratorManager;
 import de.pinkhorizon.skyblock.managers.HologramManager;
+import de.pinkhorizon.skyblock.managers.InfoHologramManager;
 import de.pinkhorizon.skyblock.managers.IslandManager;
 import de.pinkhorizon.skyblock.managers.IslandScoreManager;
 import de.pinkhorizon.skyblock.managers.NpcManager;
@@ -51,6 +52,7 @@ public class PHSkyBlock extends JavaPlugin {
     private AchievementManager achievementManager;
     private TitleManager titleManager;
     private NpcManager npcManager;
+    private InfoHologramManager infoHologramManager;
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final String PREFIX = "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] <white>";
@@ -79,18 +81,24 @@ public class PHSkyBlock extends JavaPlugin {
         achievementManager = new AchievementManager(this, generatorRepository);
         titleManager       = new TitleManager(this, generatorRepository);
         questManager       = new QuestManager(this, questRepository, generatorRepository);
-        generatorManager   = new GeneratorManager(this, generatorRepository);
-        npcManager         = new NpcManager(this);
+        generatorManager      = new GeneratorManager(this, generatorRepository);
+        npcManager            = new NpcManager(this);
+        infoHologramManager   = new InfoHologramManager(this);
 
         // Generator-Ticks starten
         generatorManager.startTasks();
 
-        // NPCs nach einer kurzen Verzögerung laden (Welt muss geladen sein)
-        getServer().getScheduler().runTaskLater(this, () -> npcManager.reloadNpcs(), 60L);
+        // NPCs und Info-Hologramme nach einer kurzen Verzögerung laden (Welt muss geladen sein)
+        getServer().getScheduler().runTaskLater(this, () -> {
+            npcManager.reloadNpcs();
+            infoHologramManager.reloadAll();
+        }, 60L);
 
         // ── Kommandos ─────────────────────────────────────────────────────────
         getCommand("island").setExecutor(new IslandCommand(this));
-        getCommand("isadmin").setExecutor(new IslandAdminCommand(this));
+        var adminCmd = new IslandAdminCommand(this);
+        getCommand("isadmin").setExecutor(adminCmd);
+        getCommand("isadmin").setTabCompleter(adminCmd);
         var genCmd = new GeneratorCommand(this);
         getCommand("phsk").setExecutor(genCmd);
         getCommand("phsk").setTabCompleter(genCmd);
@@ -109,7 +117,8 @@ public class PHSkyBlock extends JavaPlugin {
     @Override
     public void onDisable() {
         // Alle Hologramme entfernen
-        if (hologramManager != null) hologramManager.removeAll();
+        if (hologramManager != null)     hologramManager.removeAll();
+        if (infoHologramManager != null) infoHologramManager.removeAll();
 
         // Generatoren speichern
         if (generatorManager != null) generatorManager.saveAll();
@@ -220,4 +229,5 @@ public class PHSkyBlock extends JavaPlugin {
     public AchievementManager getAchievementManager()   { return achievementManager; }
     public TitleManager getTitleManager()               { return titleManager; }
     public NpcManager getNpcManager()                   { return npcManager; }
+    public InfoHologramManager getInfoHologramManager() { return infoHologramManager; }
 }

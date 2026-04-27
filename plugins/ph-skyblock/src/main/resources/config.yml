@@ -27,42 +27,10 @@ spawn:
   yaw: 0.0
   pitch: 0.0
 
-# ── NPCs ─────────────────────────────────────────────────────────
-# Positionen im Lobby-Spawn (TradingPost Map)
-# Passe x/y/z an die tatsächlichen Spawn-Positionen an!
-npcs:
-  generator-shop:
-    world: world
-    x: 22.5
-    y: 149.0
-    z: -26.5
-    yaw: 180.0
-    name: "§6⚙ §e§lGenerator-Shop"
-    skin: plains
-  quest-master:
-    world: world
-    x: 26.5
-    y: 149.0
-    z: -24.5
-    yaw: 135.0
-    name: "§a✦ §2§lQuest-Meister"
-    skin: swamp
-  achievement-master:
-    world: world
-    x: 30.5
-    y: 149.0
-    z: -24.5
-    yaw: 225.0
-    name: "§d★ §5§lAchievement-Meister"
-    skin: taiga
-  title-shop:
-    world: world
-    x: 34.5
-    y: 149.0
-    z: -26.5
-    yaw: 180.0
-    name: "§b✦ §3§lTitel-Shop"
-    skin: savanna
+# NPCs und Hologramme werden in-game gesetzt:
+#   /isadmin npc set <id> [name]
+#   /isadmin holo add <id> <text>
+# Gespeichert in: plugins/PH-SkyBlock/npcs.yml + holograms.yml
 
 # ── Block-Werte (für Insel-Score) ────────────────────────────────
 block-values:
