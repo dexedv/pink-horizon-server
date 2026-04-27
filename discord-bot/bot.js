@@ -84,11 +84,14 @@ async function getDb() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const state = {
-  statusChannelId:      null,
-  statusMessageId:      null,
-  memberCountChannelId: null,
-  ingameCountChannelId: null,
+  statusChannelId:           null,
+  statusMessageId:           null,
+  memberCountChannelId:      null,
+  ingameCountChannelId:      null,
+  leaderboardMessageId:      null,  // Smash-Rangliste – wird editiert, nicht neu gepostet
 };
+
+const SMASH_LEADERBOARD_CHANNEL_ID = '1498256403377160245';
 
 // ticket channel id → { userId, userName, category, number, claimedBy }
 const tickets = new Map();
@@ -1173,6 +1176,11 @@ client.once('ready', async () => {
     const smashGuideCh = guild.channels.cache.get(SMASH_GUIDE_CHANNEL_ID);
     if (smashGuideCh) postSmashGuide(smashGuideCh, false).catch(() => {});
 
+    // Smash Rangliste: vorhandene Nachricht suchen, dann starten
+    await initLeaderboardMessage(guild);
+    updateSmashLeaderboard(guild).catch(() => {});
+    setInterval(() => updateSmashLeaderboard(guild), 5 * 60_000); // alle 5 Minuten
+
     // Thread-only Kanäle: keine normalen Nachrichten, nur Threads
     const THREAD_ONLY_CHANNELS = ['1497212103671550155', '1497212066950283395'];
     for (const chId of THREAD_ONLY_CHANNELS) {
@@ -1605,6 +1613,104 @@ client.on('interactionCreate', async interaction => {
     }
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Smash the Boss – Rangliste (edit-in-place)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function buildSmashLeaderboardEmbed() {
+  const pool = await getDb();
+  const updatedAt = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });
+
+  if (!pool) {
+    return new EmbedBuilder()
+      .setTitle('🏆 Smash the Boss – Rangliste')
+      .setColor(0xFF5555)
+      .setDescription('❌ Datenbank nicht erreichbar.')
+      .setFooter({ text: `Zuletzt aktualisiert: ${updatedAt} Uhr` });
+  }
+
+  try {
+    const [rows] = await pool.query(`
+      SELECT
+        p.name,
+        p.kills,
+        p.boss_level,
+        p.total_damage,
+        COALESCE(pr.prestige, 0) AS prestige
+      FROM smash_players p
+      LEFT JOIN smash_prestige pr ON pr.uuid = p.uuid
+      ORDER BY p.kills DESC
+      LIMIT 10
+    `);
+
+    const medals = ['🥇', '🥈', '🥉'];
+    const lines = rows.length === 0
+      ? ['*Noch keine Einträge.*']
+      : rows.map((r, i) => {
+          const medal  = medals[i] ?? `**#${i + 1}**`;
+          const dmg    = formatDmg(r.total_damage);
+          const prest  = r.prestige > 0 ? ` ✦${r.prestige}` : '';
+          return `${medal} **${r.name}**${prest} · ☠️ ${r.kills} Kills · Boss Lvl ${r.boss_level} · ⚡ ${dmg}`;
+        });
+
+    return new EmbedBuilder()
+      .setTitle('🏆 Smash the Boss – Rangliste')
+      .setColor(0xFF5555)
+      .setDescription(lines.join('\n'))
+      .setFooter({ text: `Zuletzt aktualisiert: ${updatedAt} Uhr · Pink Horizon` })
+      .setTimestamp();
+
+  } catch (e) {
+    console.error('[Leaderboard]', e.message);
+    return new EmbedBuilder()
+      .setTitle('🏆 Smash the Boss – Rangliste')
+      .setColor(0xFF5555)
+      .setDescription('❌ Fehler beim Laden der Rangliste.')
+      .setFooter({ text: `Zuletzt aktualisiert: ${updatedAt} Uhr` });
+  }
+}
+
+/** Sucht beim Start die vorhandene Bot-Nachricht im Kanal und speichert die ID. */
+async function initLeaderboardMessage(guild) {
+  const ch = guild.channels.cache.get(SMASH_LEADERBOARD_CHANNEL_ID);
+  if (!ch) return;
+  try {
+    const msgs = await ch.messages.fetch({ limit: 20 });
+    const existing = msgs.find(m => m.author.id === client.user.id
+      && m.embeds?.[0]?.title?.includes('Rangliste'));
+    if (existing) {
+      state.leaderboardMessageId = existing.id;
+      console.log('[Leaderboard] Vorhandene Nachricht gefunden:', existing.id);
+    }
+  } catch (e) {
+    console.error('[Leaderboard] initLeaderboardMessage:', e.message);
+  }
+}
+
+/** Aktualisiert die Rangliste – editiert vorhandene Nachricht oder erstellt neue. */
+async function updateSmashLeaderboard(guild) {
+  const ch = guild.channels.cache.get(SMASH_LEADERBOARD_CHANNEL_ID);
+  if (!ch) return;
+
+  const embed = await buildSmashLeaderboardEmbed();
+
+  try {
+    if (state.leaderboardMessageId) {
+      const msg = await ch.messages.fetch(state.leaderboardMessageId).catch(() => null);
+      if (msg) {
+        await msg.edit({ embeds: [embed] });
+        return;
+      }
+      // Nachricht nicht mehr vorhanden → neu erstellen
+      state.leaderboardMessageId = null;
+    }
+    const sent = await ch.send({ embeds: [embed] });
+    state.leaderboardMessageId = sent.id;
+  } catch (e) {
+    console.error('[Leaderboard] updateSmashLeaderboard:', e.message);
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Smash the Boss Guide
