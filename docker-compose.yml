@@ -224,6 +224,7 @@ services:
       RCON_PORT: "25577"
       RCON_PASSWORD: "${RCON_PASSWORD}"
       SERVER_PORT: "25568"
+      MODRINTH_DOWNLOADS: "P1OZGk5p"   # ViaVersion
       TZ: Europe/Berlin
     ports:
       - "25581:25577"             # RCON
