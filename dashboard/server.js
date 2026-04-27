@@ -992,7 +992,7 @@ app.post('/api/restore', auth, async (req, res) => {
   // Archiv-Format erkennen: backup.sh legt Pfade wie "servers/smash/world/..." an,
   // Dashboard-Backups beginnen mit "world/..." relativ zu /data/<server>.
   const firstEntry = await new Promise((resolve) => {
-    execFile('tar', ['-tzf', arc, '--occurrence=1'], { timeout: 10000 }, (err, stdout) => {
+    execFile('tar', ['-tzf', arc], { timeout: 30000 }, (err, stdout) => {
       resolve(stdout ? stdout.trim().split('\n')[0] : '');
     });
   });
