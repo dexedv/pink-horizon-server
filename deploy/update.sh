@@ -50,6 +50,8 @@ fi
 
 # ── 1. Git Pull ───────────────────────────────────────────────────────────────
 step "Git Pull" "[1/5]"
+# server.properties wird von mc-image-helper bei jedem Start verändert → vor Pull zurücksetzen
+git checkout servers/generators/server.properties 2>/dev/null || true
 OUTPUT=$(git pull 2>&1)
 if echo "$OUTPUT" | grep -q "Already up to date"; then
   ok "Bereits aktuell – keine Änderungen"
