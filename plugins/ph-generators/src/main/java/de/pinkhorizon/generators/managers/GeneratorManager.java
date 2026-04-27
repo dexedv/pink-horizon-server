@@ -196,6 +196,19 @@ public class GeneratorManager {
         int maxLevel = data.maxGeneratorLevel();
         if (gen.getLevel() >= maxLevel) return UpgradeResult.MAX_LEVEL;
 
+        // Shard-Generator: Upgrade kostet Shards statt Geld
+        if (gen.getType().isShardGenerator()) {
+            int shardCost = shardUpgradeCost(gen.getLevel());
+            if (data.getShards() < shardCost) return UpgradeResult.NO_SHARDS;
+            data.setShards(data.getShards() - shardCost);
+            gen.setLevel(gen.getLevel() + 1);
+            data.incrementUpgrades();
+            plugin.getRepository().updateGeneratorLevel(gen);
+            plugin.getHologramManager().updateHologram(gen, data);
+            plugin.getAchievementManager().track(data, "upgrade_100", 1);
+            return UpgradeResult.SUCCESS;
+        }
+
         double eventCostMult = plugin.getEventManager() != null
                 ? plugin.getEventManager().getUpgradeCostMultiplier() : 1.0;
         double talentCostMult = plugin.getTalentManager() != null
@@ -446,8 +459,14 @@ public class GeneratorManager {
 
     // ── Ergebnis-Enums ───────────────────────────────────────────────────────
 
+    /** Shard-Kosten für ein Level-Upgrade des Shard-Generators: level × shardsPerLevel */
+    public int shardUpgradeCost(int level) {
+        int base = plugin.getConfig().getInt("shard-generator.upgrade-shards-per-level", 10);
+        return level * base;
+    }
+
     public enum UpgradeResult {
-        SUCCESS, NO_DATA, NOT_OWNER, MAX_LEVEL, NO_MONEY
+        SUCCESS, NO_DATA, NOT_OWNER, MAX_LEVEL, NO_MONEY, NO_SHARDS
     }
 
     public enum TierUpgradeResult {

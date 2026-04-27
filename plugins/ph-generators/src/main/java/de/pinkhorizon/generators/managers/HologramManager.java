@@ -627,9 +627,10 @@ public class HologramManager {
             String levelText = isMax
                     ? "<gold><bold>" + gen.getLevel() + "</bold></gold>"
                     : "<white>" + gen.getLevel();
+            int shardCost = plugin.getGeneratorManager().shardUpgradeCost(gen.getLevel());
             String statusLine = isMax
                     ? "\n<gold><bold>★ MAX LEVEL ★</bold></gold>"
-                    : "\n<gray>⬆ Upgrade: <yellow>$" + MoneyManager.formatMoney(gen.upgradeCost());
+                    : "\n<gray>⬆ Upgrade: <light_purple>" + shardCost + " Shards";
             return gen.getType().getDisplayName()
                     + "\n<gray>Level: " + levelText
                     + statusLine

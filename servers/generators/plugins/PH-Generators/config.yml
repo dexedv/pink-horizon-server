@@ -37,6 +37,10 @@ db-save-interval: 30
 hologram-update-ticks: 40
 
 # Mining-Block (fester Block neben Insel-Spawn)
+# Shard-Generator
+shard-generator:
+  upgrade-shards-per-level: 10   # Shard-Kosten pro Upgrade: level × dieser Wert (Lvl 1→2 = 10, Lvl 10→11 = 100)
+
 # Mining-Pet
 pet:
   coins-per-level: 2   # Passives Einkommen pro Pet-Level pro Sekunde (Level 1 = 2/s, Level 500 = 1000/s)

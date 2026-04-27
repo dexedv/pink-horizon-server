@@ -202,6 +202,12 @@ public class UpgradeGUI implements Listener {
             case NO_MONEY -> player.sendMessage(MM.deserialize(
                     "<red>Nicht genug Geld! Benötigt: $" + gen.upgradeCost()
                             + " | Du hast: $" + data.getMoney()));
+            case NO_SHARDS -> {
+                int needed = plugin.getGeneratorManager().shardUpgradeCost(gen.getLevel());
+                player.sendMessage(MM.deserialize(
+                        "<red>Nicht genug Shards! Benötigt: <light_purple>" + needed
+                        + " <red>| Du hast: <light_purple>" + data.getShards()));
+            }
             default -> {}
         }
     }

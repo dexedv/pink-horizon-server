@@ -59,6 +59,10 @@ enchant-base-chance: 0.05
 # Community-Goal für Server-Booster (in Dollar)
 community-goal: 1000000000000
 
+# Shard-Generator
+shard-generator:
+  upgrade-shards-per-level: 10   # Shard-Kosten pro Upgrade: level × dieser Wert (Lvl 1→2 = 10, Lvl 10→11 = 100)
+
 # Mining-Pet
 pet:
   coins-per-level: 2   # Passives Einkommen pro Pet-Level pro Sekunde (Level 1 = 2/s, Level 500 = 1000/s)
