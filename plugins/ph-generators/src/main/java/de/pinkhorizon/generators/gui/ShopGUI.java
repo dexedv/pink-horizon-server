@@ -313,9 +313,11 @@ public class ShopGUI implements Listener {
         meta.displayName(MM.deserialize(type.getDisplayName()));
 
         List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+        int maxPerHour = plugin.getConfig().getInt("shard-generator.max-shards-per-hour", 1000);
         lore.add(MM.deserialize("<gray>Produziert <light_purple>Mining-Shards</light_purple> <gray>passiv"));
-        lore.add(MM.deserialize("<gray>Basis: <light_purple>1.0 Shard/s"));
-        lore.add(MM.deserialize("<gray>Skaliert mit Level & Prestige"));
+        lore.add(MM.deserialize("<gray>Level 1: <light_purple>" + (maxPerHour / 100) + " Shards/h"));
+        lore.add(MM.deserialize("<gray>Level 100: <light_purple>" + maxPerHour + " Shards/h <gray>(max)"));
+        lore.add(MM.deserialize("<gray>Upgrade kostet <light_purple>Shards</light_purple>"));
         lore.add(MM.deserialize(""));
         lore.add(MM.deserialize("<yellow>⚠ Max. <white>1 <yellow>pro Spieler"));
         lore.add(MM.deserialize(""));

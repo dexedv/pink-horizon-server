@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,6 +24,9 @@ public class MoneyManager {
     /** Serverweiter Booster (Multiplier + Ablauf-Timestamp) */
     private double serverBoosterMultiplier = 1.0;
     private long serverBoosterExpiry = 0;
+
+    /** Fraktions-Akkumulator für Shard-Generator (sub-1-shard-per-second Raten) */
+    private final Map<UUID, Double> shardAccumulator = new HashMap<>();
 
     public MoneyManager(PHGenerators plugin) {
         this.plugin = plugin;
@@ -69,11 +73,14 @@ public class MoneyManager {
             long petPassive = data.getPetPassiveIncome(petCoinsPerLevel);
             if (petPassive > 0) data.addMoney(petPassive);
 
-            // Shard-Generator Income (prestige-skaliert, keine weiteren Multiplikatoren)
+            // Shard-Generator Income (level-basiert, Akkumulator für sub-1/s Raten)
             double shardIncome = calcShardIncome(data);
             if (shardIncome > 0) {
-                int shardsEarned = (int) Math.max(1, Math.round(shardIncome * data.prestigeMultiplier()));
-                data.addShards(shardsEarned);
+                UUID uuid = entry.getKey();
+                double acc = shardAccumulator.getOrDefault(uuid, 0.0) + shardIncome;
+                int whole = (int) acc;
+                shardAccumulator.put(uuid, acc - whole);
+                if (whole > 0) data.addShards(whole);
             }
 
             if (data.getGenerators().isEmpty()) continue;
@@ -200,9 +207,28 @@ public class MoneyManager {
         return sum;
     }
 
-    /** Shards/s des Shard-Generators (rein, keine Multiplikatoren) */
+    /**
+     * Shards/s des Shard-Generators.
+     * Formel: level × (maxShardsPerHour / 100) / 3600
+     * → Level 100 = maxShardsPerHour/h, Level 1 = maxShardsPerHour/100/h
+     */
     private double calcShardIncome(PlayerData data) {
-        return data.shardGeneratorIncome();
+        PlacedGenerator shardGen = data.getGenerators().stream()
+                .filter(g -> g.getType().isShardGenerator())
+                .findFirst().orElse(null);
+        if (shardGen == null) return 0;
+        int maxPerHour = plugin.getConfig().getInt("shard-generator.max-shards-per-hour", 1000);
+        return shardGen.getLevel() * (maxPerHour / 100.0) / 3600.0;
+    }
+
+    /** Shards/Stunde für Anzeige in GUI/Holo */
+    public double getShardIncomePerHour(PlayerData data) {
+        PlacedGenerator shardGen = data.getGenerators().stream()
+                .filter(g -> g.getType().isShardGenerator())
+                .findFirst().orElse(null);
+        if (shardGen == null) return 0;
+        int maxPerHour = plugin.getConfig().getInt("shard-generator.max-shards-per-hour", 1000);
+        return shardGen.getLevel() * (maxPerHour / 100.0);
     }
 
     // ── Offline-Einkommen ────────────────────────────────────────────────────

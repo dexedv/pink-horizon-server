@@ -621,8 +621,7 @@ public class HologramManager {
     private String buildHologramText(PlacedGenerator gen, PlayerData data) {
         // ── Shard-Generator: eigene Anzeige ──────────────────────────────────
         if (gen.getType().isShardGenerator()) {
-            double shardsPerSec = gen.incomePerSecond()
-                    * (data != null ? data.prestigeMultiplier() : 1.0);
+            double shardsPerHour = plugin.getMoneyManager().getShardIncomePerHour(data);
             boolean isMax = data != null && gen.getLevel() >= data.maxGeneratorLevel();
             String levelText = isMax
                     ? "<gold><bold>" + gen.getLevel() + "</bold></gold>"
@@ -634,7 +633,7 @@ public class HologramManager {
             return gen.getType().getDisplayName()
                     + "\n<gray>Level: " + levelText
                     + statusLine
-                    + "\n<light_purple>" + String.format("%.2f", shardsPerSec) + " Shards/s"
+                    + "\n<light_purple>" + String.format("%.0f", shardsPerHour) + " Shards/h"
                     + "\n<dark_gray>★ Nur 1 pro Spieler";
         }
 
