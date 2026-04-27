@@ -1139,7 +1139,12 @@ client.once('ready', async () => {
 
   client.user.setActivity('Pink Horizon wird geladen...', { type: ActivityType.Watching });
 
-  const guild = client.guilds.cache.get(GUILD_ID);
+  let guild = client.guilds.cache.get(GUILD_ID);
+  if (!guild) {
+    console.log('[Bot] Guild nicht im Cache, lade via fetch...');
+    guild = await client.guilds.fetch(GUILD_ID).catch(e => { console.error('[Bot] Guild fetch Fehler:', e.message); return null; });
+  }
+  console.log(guild ? `[Bot] Guild: ${guild.name}` : '[Bot] Guild nicht gefunden! GUILD_ID korrekt?');
   if (guild) {
     // Auto-find existing channels
     const statusCh  = guild.channels.cache.find(c => c.name === 'server-status');
