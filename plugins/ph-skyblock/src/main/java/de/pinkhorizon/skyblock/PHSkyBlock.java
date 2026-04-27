@@ -10,6 +10,7 @@ import de.pinkhorizon.skyblock.listeners.PlayerListener;
 import de.pinkhorizon.skyblock.managers.IslandManager;
 import de.pinkhorizon.skyblock.managers.IslandScoreManager;
 import de.pinkhorizon.skyblock.managers.PlayerManager;
+import de.pinkhorizon.skyblock.managers.SkyScoreboardManager;
 import de.pinkhorizon.skyblock.managers.WorldManager;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.Component;
@@ -24,6 +25,7 @@ public class PHSkyBlock extends JavaPlugin {
     private PlayerManager playerManager;
     private IslandManager islandManager;
     private IslandScoreManager scoreManager;
+    private SkyScoreboardManager scoreboardManager;
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
 
@@ -43,7 +45,8 @@ public class PHSkyBlock extends JavaPlugin {
         worldManager  = new WorldManager(this);
         playerManager = new PlayerManager(this, islandRepository);
         islandManager = new IslandManager(this, islandRepository, worldManager);
-        scoreManager  = new IslandScoreManager(this);
+        scoreManager       = new IslandScoreManager(this);
+        scoreboardManager  = new SkyScoreboardManager(this);
 
         // Kommandos
         getCommand("island").setExecutor(new IslandCommand(this));
@@ -154,4 +157,5 @@ public class PHSkyBlock extends JavaPlugin {
     public WorldManager getWorldManager()          { return worldManager; }
     public IslandScoreManager getScoreManager()    { return scoreManager; }
     public IslandRepository getIslandRepository()  { return islandRepository; }
+    public SkyScoreboardManager getScoreboardManager() { return scoreboardManager; }
 }
