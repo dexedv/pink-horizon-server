@@ -203,6 +203,7 @@ public class NpcManager {
 
     private String legacyToMini(String s) {
         if (s == null) return "";
+        s = s.replace('&', '§'); // & und § beide akzeptieren
         return s
             .replace("§0","<black>").replace("§1","<dark_blue>").replace("§2","<dark_green>")
             .replace("§3","<dark_aqua>").replace("§4","<dark_red>").replace("§5","<dark_purple>")
