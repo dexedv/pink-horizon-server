@@ -84,13 +84,15 @@ public class MiningUpgradeGUI implements Listener {
         inv.setItem(4, shardsItem);
 
         // Slot 6 – Spitzhacke-Info
+        double coinChance = (0.01 + (pickLevel - 1) / (double)(maxPickLvl - 1) * 0.09) * 100;
         ItemStack pickInfo = new ItemStack(Material.DIAMOND_PICKAXE);
         ItemMeta pm = pickInfo.getItemMeta();
         pm.displayName(MM.deserialize("<aqua><bold>⛏ Mining-Spitzhacke</bold>"));
         pm.lore(List.of(
                 MM.deserialize("<gray>Level: <white>" + pickLevel + " <dark_gray>/ " + maxPickLvl),
                 MM.deserialize("<gray>Multiplikator: <green>x" + String.format("%.2f", pickMult)),
-                MM.deserialize("<gray>Shard-Bonus: <light_purple>+" + pickLevel + "%")
+                MM.deserialize("<gray>Shard-Bonus: <light_purple>+" + pickLevel + "%"),
+                MM.deserialize("<gray>Coin-Drop: <gold>" + String.format("%.1f", coinChance) + "% <dark_gray>(1–$10k)")
         ));
         pm.setUnbreakable(true);
         pm.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
