@@ -1635,11 +1635,12 @@ async function buildSmashLeaderboardEmbed() {
       SELECT
         p.name,
         p.kills,
-        p.boss_level,
+        p.personal_level AS boss_level,
         p.total_damage,
         COALESCE(pr.prestige, 0) AS prestige
-      FROM smash_players p
-      LEFT JOIN smash_prestige pr ON pr.uuid = p.uuid
+      FROM ph_smash.smash_players p
+      LEFT JOIN ph_smash.smash_prestige pr ON pr.uuid = p.uuid
+      WHERE p.name IS NOT NULL
       ORDER BY p.kills DESC
       LIMIT 10
     `);
@@ -1662,11 +1663,11 @@ async function buildSmashLeaderboardEmbed() {
       .setTimestamp();
 
   } catch (e) {
-    console.error('[Leaderboard]', e.message);
+    console.error('[Leaderboard] SQL-Fehler:', e.message);
     return new EmbedBuilder()
       .setTitle('🏆 Smash the Boss – Rangliste')
       .setColor(0xFF5555)
-      .setDescription('❌ Fehler beim Laden der Rangliste.')
+      .setDescription(`❌ Fehler: \`${e.message}\``)
       .setFooter({ text: `Zuletzt aktualisiert: ${updatedAt} Uhr` });
   }
 }
