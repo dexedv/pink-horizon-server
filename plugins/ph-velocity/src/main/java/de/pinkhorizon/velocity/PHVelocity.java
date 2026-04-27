@@ -66,11 +66,13 @@ public class PHVelocity {
     private int broadcastTick = 0;
 
     private void broadcastRotating() {
-        switch (broadcastTick % 4) {
+        switch (broadcastTick % 6) {
             case 0 -> broadcastVote();
             case 1 -> broadcastDiscord();
             case 2 -> broadcastBugs();
             case 3 -> broadcastShop();
+            case 4 -> broadcastIP();
+            case 5 -> broadcastGamemodes();
         }
         broadcastTick++;
     }
@@ -89,6 +91,57 @@ public class PHVelocity {
         Component msg3 = Component.text("   ✔ Du kannst dich auch in der ", NamedTextColor.GRAY)
             .append(Component.text("Lobby", LIGHT_PINK, TextDecoration.BOLD))
             .append(Component.text(" verifizieren!", NamedTextColor.GRAY));
+
+        for (Player player : server.getAllPlayers()) {
+            player.sendMessage(line);
+            player.sendMessage(msg1);
+            player.sendMessage(msg2);
+            player.sendMessage(msg3);
+            player.sendMessage(line);
+        }
+    }
+
+    private void broadcastIP() {
+        Component line = Component.text("─────────────────────────────────", PINK);
+
+        Component ip = Component.text("play.pinkhorizon.fun", LIGHT_PINK, TextDecoration.BOLD)
+            .clickEvent(ClickEvent.copyToClipboard("play.pinkhorizon.fun"))
+            .hoverEvent(HoverEvent.showText(Component.text("Klicken zum Kopieren!", NamedTextColor.GRAY)));
+
+        Component msg1 = Component.text(" 🌐 ", NamedTextColor.WHITE)
+            .append(Component.text("Magst du Pink Horizon?", PINK, TextDecoration.BOLD));
+        Component msg2 = Component.text("   Teile unsere IP mit deinen Freunden: ", NamedTextColor.GRAY)
+            .append(ip);
+        Component msg3 = Component.text("   Je mehr Spieler, desto mehr Spaß! 💖", NamedTextColor.GRAY);
+
+        for (Player player : server.getAllPlayers()) {
+            player.sendMessage(line);
+            player.sendMessage(msg1);
+            player.sendMessage(msg2);
+            player.sendMessage(msg3);
+            player.sendMessage(line);
+        }
+    }
+
+    private void broadcastGamemodes() {
+        Component line = Component.text("─────────────────────────────────", PINK);
+
+        Component hubCmd = Component.text("/hub", LIGHT_PINK, TextDecoration.BOLD)
+            .clickEvent(ClickEvent.runCommand("/hub"))
+            .hoverEvent(HoverEvent.showText(Component.text("Zur Lobby teleportieren!", NamedTextColor.GRAY)));
+
+        Component msg1 = Component.text(" 🎮 ", NamedTextColor.WHITE)
+            .append(Component.text("Entdecke unsere Spielmodi!", PINK, TextDecoration.BOLD));
+        Component msg2 = Component.text("   ⚔ ", NamedTextColor.WHITE)
+            .append(Component.text("Survival", LIGHT_PINK, TextDecoration.BOLD))
+            .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
+            .append(Component.text("💥 ", NamedTextColor.WHITE))
+            .append(Component.text("Smash the Boss", LIGHT_PINK, TextDecoration.BOLD))
+            .append(Component.text("  |  ", NamedTextColor.DARK_GRAY))
+            .append(Component.text("⚙ ", NamedTextColor.WHITE))
+            .append(Component.text("IdleForge", LIGHT_PINK, TextDecoration.BOLD));
+        Component msg3 = Component.text("   Wähle deinen Modus in der Lobby → ", NamedTextColor.GRAY)
+            .append(hubCmd);
 
         for (Player player : server.getAllPlayers()) {
             player.sendMessage(line);
