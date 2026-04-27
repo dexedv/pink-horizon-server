@@ -35,10 +35,9 @@ import java.util.List;
  * Layout (54 Slots):
  *   Row 0: [fill][fill][fill][fill][STATS][fill][fill][fill][fill]
  *   Row 1: [fill][SHOP][fill][UPGR][fill][BLKS][fill][PRST][fill]
- *   Row 2: [fill][QUST][fill][ACHV][fill][LDRB][fill][GILD][fill]
- *   Row 3: [fill][BLST][fill][TLNT][fill][MRKT][fill][MILS][fill]
- *   Row 4: [fill][SASN][fill][SYNG][fill][BRDR][fill][fill][fill]
- *   Row 5: all filler
+ *   Row 2: [fill][QUST][fill][ACHV][fill][BLST][fill][TLNT][fill]
+ *   Row 3: [fill][fill][TKSH][fill][MILS][fill][BORD][fill][fill]
+ *   Row 4-5: all filler
  */
 public class NavigatorGUI implements Listener {
 
@@ -236,47 +235,31 @@ public class NavigatorGUI implements Listener {
 
         // ── Row 1: Haupt-Menüs ────────────────────────────────────────────
         inv.setItem(10, btn(Material.GOLD_BLOCK,       "<gold>Generator-Shop",
-                "<gray>Generatoren & Booster kaufen",          "/gen shop"));
+                "<gray>Generatoren & Booster kaufen",            "/gen shop"));
         inv.setItem(12, btn(Material.ANVIL,            "<aqua>Upgrades",
-                "<gray>Generatoren upgraden",                  "/gen upgrade"));
+                "<gray>Generatoren upgraden",                    "/gen upgrade"));
         inv.setItem(14, btn(Material.CHEST,            "<yellow>Block-Shop",
-                "<gray>Inselblöcke kaufen",                    "/gen blockshop"));
+                "<gray>Inselblöcke kaufen",                      "/gen blockshop"));
         inv.setItem(16, btn(Material.NETHER_STAR,      "<light_purple>Prestige",
-                "<gray>Prestige durchführen",                  "/gen prestige"));
+                "<gray>Prestige durchführen",                    "/gen prestige"));
 
-        // ── Row 2: Fortschritt & Social ──────────────────────────────────
+        // ── Row 2: Fortschritt ────────────────────────────────────────────
         inv.setItem(19, btn(Material.BOOK,             "<green>Quests",
-                "<gray>Tägliche & wöchentliche Aufgaben",      "/gen quests"));
+                "<gray>Tägliche & wöchentliche Aufgaben",        "/gen quests"));
         inv.setItem(21, btn(Material.TOTEM_OF_UNDYING, "<yellow>Achievements",
-                "<gray>Errungenschaften ansehen",              "/gen achievements"));
-        inv.setItem(23, btn(Material.DIAMOND,          "<aqua>Leaderboard",
-                "<gray>Top-10 nach Geld",                      "/gen top"));
-        inv.setItem(25, btn(Material.SHIELD,           "<blue>Gilde",
-                "<gray>Gilde verwalten / beitreten",           "/gen guild"));
+                "<gray>Errungenschaften ansehen",                "/gen achievements"));
+        inv.setItem(23, btn(Material.BLAZE_POWDER,     "<gold>Booster",
+                "<gray>Gespeicherte Booster aktivieren",         "/gen booster"));
+        inv.setItem(25, btn(Material.NETHER_STAR,      "<light_purple>Talente",
+                "<gray>Talent-Baum öffnen",                      "/gen talents"));
 
-        // ── Row 3: Extras ────────────────────────────────────────────────
-        inv.setItem(28, btn(Material.BLAZE_POWDER,     "<gold>Booster",
-                "<gray>Gespeicherte Booster aktivieren",       "/gen booster"));
-        inv.setItem(30, btn(Material.NETHER_STAR,      "<light_purple>Talente",
-                "<gray>Talent-Baum öffnen",                    "/gen talents"));
-        inv.setItem(32, btn(Material.EMERALD,           "<aqua>Token-Shop",
+        // ── Row 3: Extras (zentriert) ─────────────────────────────────────
+        inv.setItem(29, btn(Material.EMERALD,          "<aqua>Token-Shop",
                 "<gray>Tokens gegen Geld oder Booster tauschen", "/gen tokenshop"));
-        inv.setItem(34, btn(Material.BEACON,           "<aqua>Meilensteine",
-                "<gray>Meilensteine & Belohnungen",            "/gen milestones"));
-
-        // ── Row 4: Verwaltung ────────────────────────────────────────────
-        inv.setItem(37, btn(Material.CLOCK,            "<white>Saison-LB",
-                "<gray>Saison-Rangliste anzeigen",             "/gen season"));
-        inv.setItem(39, btn(Material.COMPARATOR,       "<gray>Synergien",
-                "<gray>Aktive Generator-Synergien",            "/gen synergy"));
-        inv.setItem(41, btn(Material.CYAN_CONCRETE,    "<cyan>Insel-Grenze",
-                "<gray>Spielfeld erweitern",                   "/gen border"));
-        inv.setItem(43, btn(Material.PLAYER_HEAD,      "<white>Spieler besuchen",
-                "<gray>Insel eines Spielers besuchen",         "/gen visit "));
-        inv.setItem(46, btn(Material.AMETHYST_BLOCK,   "<light_purple>Mining-Block",
-                "<gray>Schlag & verdiene Geld + Shards",       "/gen mining"));
-        inv.setItem(48, btn(Material.ARMADILLO_SPAWN_EGG, "<gold>Mining-Pet",
-                "<gray>Pet leveln & Boni ansehen",             "/gen mining"));
+        inv.setItem(31, btn(Material.BEACON,           "<yellow>Meilensteine",
+                "<gray>Meilensteine & Belohnungen",              "/gen milestones"));
+        inv.setItem(33, btn(Material.CYAN_CONCRETE,    "<aqua>Insel-Grenze",
+                "<gray>Spielfeld erweitern",                     "/gen border"));
 
         player.openInventory(inv);
     }
@@ -297,14 +280,6 @@ public class NavigatorGUI implements Listener {
                 .plainText().serialize(lore.get(lore.size() - 1));
 
         if (!cmd.startsWith("/")) return;
-
-        // Besuchen braucht noch einen Spielernamen → Inventar schließen und Chat öffnen
-        if (cmd.trim().equals("/gen visit")) {
-            player.closeInventory();
-            player.sendMessage(MM.deserialize(
-                    "<yellow>Gib den Spielernamen ein: <white>/gen visit <spielername>"));
-            return;
-        }
 
         player.closeInventory();
         Bukkit.getScheduler().runTask(plugin, () -> player.performCommand(cmd.substring(1).trim()));
