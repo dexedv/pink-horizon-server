@@ -138,11 +138,13 @@ public class MiningBlockManager implements Listener {
         double shardChance = plugin.getConfig().getDouble("mining-block.shard-chance", 0.10)
                 + (level * 0.005) + (pickaxeLevel * 0.01);
         if (ThreadLocalRandom.current().nextDouble() < shardChance) {
-            data.addShards(1);
+            int shards = level >= 90 ? 4 : level >= 60 ? 3 : level >= 30 ? 2 : 1;
+            data.addShards(shards);
+            String shardsLabel = shards == 1 ? "+1" : (shards == 2 ? "✦✦ +2" : shards == 3 ? "✦✦✦ +3" : "✦✦✦✦ +4");
             player.sendMessage(MM.deserialize(
-                    "<light_purple>✦ Mining-Shard +1! <gray>(" + data.getShards() + " total)"
+                    "<light_purple>" + shardsLabel + " Mining-Shard! <gray>(" + data.getShards() + " total)"
                     + " <dark_gray>| <green>+$" + MoneyManager.formatMoney(earned)));
-            player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.8f, 1.2f);
+            player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.8f, 1.0f + (shards * 0.1f));
         }
     }
 
@@ -270,11 +272,22 @@ public class MiningBlockManager implements Listener {
         double shardChance = (plugin.getConfig().getDouble("mining-block.shard-chance", 0.10)
                 + (level * 0.005) + (pickaxeLvl * 0.01)) * 100;
 
+        int shardMult = level >= 90 ? 4 : level >= 60 ? 3 : level >= 30 ? 2 : 1;
+        String shardMultLabel = shardMult == 1 ? "<gray>(normal)"
+                : shardMult == 2 ? "<yellow>✦✦ Double (ab Lvl 30)"
+                : shardMult == 3 ? "<gold>✦✦✦ Triple (ab Lvl 60)"
+                : "<light_purple>✦✦✦✦ Quadruple (ab Lvl 90)";
+        String nextBonus = level < 30 ? " <dark_gray>→ Double bei Lvl 30"
+                : level < 60 ? " <dark_gray>→ Triple bei Lvl 60"
+                : level < 90 ? " <dark_gray>→ 4× bei Lvl 90"
+                : "";
+
         return "<gold>━━ Mining-Block ━━\n"
                 + "<gray>Block-Level: <white>" + level + " <dark_gray>/ " + maxLevel + "\n"
                 + "<gray>Spitzhacke: <aqua>Lvl " + pickaxeLvl + " <dark_gray>/ " + maxPickaxeLvl + "\n"
                 + "<gray>Geld/Schlag: <green>$" + MoneyManager.formatMoney(earned) + "\n"
                 + "<gray>Shard-Chance: <light_purple>" + String.format("%.1f", shardChance) + "%\n"
+                + "<gray>Shard/Drop: " + shardMultLabel + nextBonus + "\n"
                 + "<gray>✦ Shards: <light_purple>" + data.getShards() + "\n"
                 + (level < maxLevel ? "<gray>Block-Upgrade: <yellow>" + shardsNeeded + " Shards\n" : "<gold>Block MAX!\n")
                 + (pickaxeLvl < maxPickaxeLvl ? "<gray>Spitzhacke-Upgrade: <yellow>" + pickaxeShards + " Shards" : "<gold>Spitzhacke MAX!");
