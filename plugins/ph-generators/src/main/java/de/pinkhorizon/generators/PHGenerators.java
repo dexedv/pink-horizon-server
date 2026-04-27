@@ -7,6 +7,7 @@ import de.pinkhorizon.generators.database.GeneratorRepository;
 import de.pinkhorizon.generators.gui.BlockShopGUI;
 import de.pinkhorizon.generators.gui.BoosterGUI;
 import de.pinkhorizon.generators.gui.BorderShopGUI;
+import de.pinkhorizon.generators.gui.TokenShopGUI;
 import de.pinkhorizon.generators.gui.MarketGUI;
 import de.pinkhorizon.generators.gui.NavigatorGUI;
 import de.pinkhorizon.generators.gui.ShopGUI;
@@ -63,6 +64,7 @@ public class PHGenerators extends JavaPlugin {
     private TalentsGUI    talentsGUI;
     private MarketGUI     marketGUI;
     private BoosterGUI    boosterGUI;
+    private TokenShopGUI  tokenShopGUI;
 
     // Border
     private WorldBorderManager worldBorderManager;
@@ -115,6 +117,7 @@ public class PHGenerators extends JavaPlugin {
         talentsGUI    = new TalentsGUI(this);
         marketGUI     = new MarketGUI(this);
         boosterGUI    = new BoosterGUI(this);
+        tokenShopGUI  = new TokenShopGUI(this);
         scoreboardManager = new ScoreboardManager(this);
 
         // ── Starten ───────────────────────────────────────────────────────────
@@ -143,6 +146,7 @@ public class PHGenerators extends JavaPlugin {
         getServer().getPluginManager().registerEvents(talentsGUI, this);
         getServer().getPluginManager().registerEvents(marketGUI, this);
         getServer().getPluginManager().registerEvents(boosterGUI, this);
+        getServer().getPluginManager().registerEvents(tokenShopGUI, this);
 
         getLogger().info("PH-Generators (IdleForge) gestartet!");
     }
@@ -206,6 +210,7 @@ public class PHGenerators extends JavaPlugin {
     public TalentsGUI    getTalentsGUI()                 { return talentsGUI; }
     public MarketGUI     getMarketGUI()                  { return marketGUI; }
     public BoosterGUI    getBoosterGUI()                 { return boosterGUI; }
+    public TokenShopGUI  getTokenShopGUI()               { return tokenShopGUI; }
     public WorldBorderManager getWorldBorderManager()    { return worldBorderManager; }
     public ScoreboardManager getScoreboardManager()      { return scoreboardManager; }
 

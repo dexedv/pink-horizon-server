@@ -224,6 +224,23 @@ public class NavigatorGUI implements Listener {
         inv.setItem(43, btn(Material.PLAYER_HEAD,      "<white>Spieler besuchen",
                 "<gray>Insel eines Spielers besuchen",         "/gen visit "));
 
+        // ── Row 5: Token-Shop ─────────────────────────────────────────────
+        int tokens = data != null ? data.getUpgradeTokens() : 0;
+        ItemStack tokenBtn = new ItemStack(Material.EMERALD);
+        {
+            ItemMeta m = tokenBtn.getItemMeta();
+            m.displayName(MM.deserialize("<aqua><b>✦ Token-Shop"));
+            m.lore(List.of(
+                MM.deserialize("<gray>Tokens gegen Geld oder Booster tauschen"),
+                MM.deserialize("<aqua>Deine Tokens: <white>" + tokens),
+                MM.deserialize(""),
+                MM.deserialize("<yellow>▶ Klick zum Öffnen"),
+                MM.deserialize("<dark_gray>/gen tokenshop")
+            ));
+            tokenBtn.setItemMeta(m);
+        }
+        inv.setItem(49, tokenBtn);
+
         player.openInventory(inv);
     }
 

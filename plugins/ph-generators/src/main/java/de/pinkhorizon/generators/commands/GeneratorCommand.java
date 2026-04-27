@@ -115,6 +115,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             case "market"       -> { handleMarket(player, args); yield true; }
             case "milestones", "ms" -> { showMilestones(player); yield true; }
             case "tokens"       -> { showTokens(player); yield true; }
+            case "tokenshop", "ts" -> { plugin.getTokenShopGUI().open(player); yield true; }
             case "event"        -> {
                 if (player.hasPermission("ph.generators.admin")) handleEvent(player, args);
                 else showHelp(player);
