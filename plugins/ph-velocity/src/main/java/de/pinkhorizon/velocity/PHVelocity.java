@@ -66,10 +66,11 @@ public class PHVelocity {
     private int broadcastTick = 0;
 
     private void broadcastRotating() {
-        switch (broadcastTick % 3) {
+        switch (broadcastTick % 4) {
             case 0 -> broadcastVote();
             case 1 -> broadcastDiscord();
             case 2 -> broadcastBugs();
+            case 3 -> broadcastShop();
         }
         broadcastTick++;
     }
@@ -88,6 +89,28 @@ public class PHVelocity {
         Component msg3 = Component.text("   ✔ Du kannst dich auch in der ", NamedTextColor.GRAY)
             .append(Component.text("Lobby", LIGHT_PINK, TextDecoration.BOLD))
             .append(Component.text(" verifizieren!", NamedTextColor.GRAY));
+
+        for (Player player : server.getAllPlayers()) {
+            player.sendMessage(line);
+            player.sendMessage(msg1);
+            player.sendMessage(msg2);
+            player.sendMessage(msg3);
+            player.sendMessage(line);
+        }
+    }
+
+    private void broadcastShop() {
+        Component line = Component.text("─────────────────────────────────", PINK);
+
+        Component buyCmd = Component.text("/buy", LIGHT_PINK, TextDecoration.BOLD)
+            .clickEvent(ClickEvent.runCommand("/buy"))
+            .hoverEvent(HoverEvent.showText(Component.text("Shop öffnen!", NamedTextColor.GRAY)));
+
+        Component msg1 = Component.text(" 🛒 ", NamedTextColor.WHITE)
+            .append(Component.text("Gefällt dir unser Server?", PINK, TextDecoration.BOLD));
+        Component msg2 = Component.text("   Besuche unseren Shop mit ", NamedTextColor.GRAY)
+            .append(buyCmd);
+        Component msg3 = Component.text("   Mit jedem Kauf unterstützt du uns – danke! 💖", NamedTextColor.GRAY);
 
         for (Player player : server.getAllPlayers()) {
             player.sendMessage(line);
