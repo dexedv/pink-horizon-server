@@ -209,8 +209,8 @@ public class NavigatorGUI implements Listener {
                 "<gray>Gespeicherte Booster aktivieren",       "/gen booster"));
         inv.setItem(30, btn(Material.NETHER_STAR,      "<light_purple>Talente",
                 "<gray>Talent-Baum öffnen",                    "/gen talents"));
-        inv.setItem(32, btn(Material.GOLD_NUGGET,      "<yellow>Marktplatz",
-                "<gray>Upgrade-Tokens handeln",                "/gen market"));
+        inv.setItem(32, btn(Material.EMERALD,           "<aqua>Token-Shop",
+                "<gray>Tokens gegen Geld oder Booster tauschen", "/gen tokenshop"));
         inv.setItem(34, btn(Material.BEACON,           "<aqua>Meilensteine",
                 "<gray>Meilensteine & Belohnungen",            "/gen milestones"));
 
@@ -223,23 +223,6 @@ public class NavigatorGUI implements Listener {
                 "<gray>Spielfeld erweitern",                   "/gen border"));
         inv.setItem(43, btn(Material.PLAYER_HEAD,      "<white>Spieler besuchen",
                 "<gray>Insel eines Spielers besuchen",         "/gen visit "));
-
-        // ── Row 5: Token-Shop ─────────────────────────────────────────────
-        int tokens = data != null ? data.getUpgradeTokens() : 0;
-        ItemStack tokenBtn = new ItemStack(Material.EMERALD);
-        {
-            ItemMeta m = tokenBtn.getItemMeta();
-            m.displayName(MM.deserialize("<aqua><b>✦ Token-Shop"));
-            m.lore(List.of(
-                MM.deserialize("<gray>Tokens gegen Geld oder Booster tauschen"),
-                MM.deserialize("<aqua>Deine Tokens: <white>" + tokens),
-                MM.deserialize(""),
-                MM.deserialize("<yellow>▶ Klick zum Öffnen"),
-                MM.deserialize("<dark_gray>/gen tokenshop")
-            ));
-            tokenBtn.setItemMeta(m);
-        }
-        inv.setItem(49, tokenBtn);
 
         player.openInventory(inv);
     }
