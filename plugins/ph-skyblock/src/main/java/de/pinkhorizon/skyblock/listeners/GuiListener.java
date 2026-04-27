@@ -55,7 +55,7 @@ public class GuiListener implements Listener {
 
     // ── NPC-Interaktion ───────────────────────────────────────────────────────
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onNpcInteract(PlayerInteractEntityEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (!(event.getRightClicked() instanceof Villager villager)) return;
