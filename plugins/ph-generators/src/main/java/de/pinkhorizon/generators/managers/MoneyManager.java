@@ -69,6 +69,13 @@ public class MoneyManager {
             long petPassive = data.getPetPassiveIncome(petCoinsPerLevel);
             if (petPassive > 0) data.addMoney(petPassive);
 
+            // Shard-Generator Income (prestige-skaliert, keine weiteren Multiplikatoren)
+            double shardIncome = calcShardIncome(data);
+            if (shardIncome > 0) {
+                int shardsEarned = (int) Math.max(1, Math.round(shardIncome * data.prestigeMultiplier()));
+                data.addShards(shardsEarned);
+            }
+
             if (data.getGenerators().isEmpty()) continue;
 
             double income = calcIncome(data);
@@ -188,9 +195,14 @@ public class MoneyManager {
     private double calcIncome(PlayerData data) {
         double sum = 0;
         for (PlacedGenerator gen : data.getGenerators()) {
-            sum += gen.incomePerSecond();
+            if (!gen.getType().isShardGenerator()) sum += gen.incomePerSecond();
         }
         return sum;
+    }
+
+    /** Shards/s des Shard-Generators (rein, keine Multiplikatoren) */
+    private double calcShardIncome(PlayerData data) {
+        return data.shardGeneratorIncome();
     }
 
     // ── Offline-Einkommen ────────────────────────────────────────────────────

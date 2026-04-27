@@ -394,6 +394,19 @@ public class PlayerData {
     /** Passives Einkommen des Pets pro Sekunde (level × coinsPerLevel aus Config) */
     public long getPetPassiveIncome(long coinsPerLevel) { return (long) petLevel * coinsPerLevel; }
 
+    /** True wenn der Spieler bereits einen Shard-Generator besitzt */
+    public boolean hasShardGenerator() {
+        return generators.stream().anyMatch(g -> g.getType().isShardGenerator());
+    }
+
+    /** Shards/s des Shard-Generators (0 wenn keiner vorhanden) */
+    public double shardGeneratorIncome() {
+        return generators.stream()
+                .filter(g -> g.getType().isShardGenerator())
+                .mapToDouble(g -> g.incomePerSecond())
+                .sum();
+    }
+
     // ── Mining-Block custom position ─────────────────────────────────────────
     public boolean hasMiningBlockCustomPos()        { return miningBlockCustomPos; }
     public int getMiningBlockCustomX()              { return miningBlockCustomX; }

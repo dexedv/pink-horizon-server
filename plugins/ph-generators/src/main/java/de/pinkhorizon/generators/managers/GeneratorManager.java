@@ -83,14 +83,23 @@ public class GeneratorManager {
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return false;
 
-        int baseSlots = plugin.getConfig().getInt("max-generators", 10);
-        int perPrestige = plugin.getConfig().getInt("generator-slot-per-prestige", 2);
-        int talentSlots = plugin.getTalentManager() != null
-                ? plugin.getTalentManager().getExtraGeneratorSlots(data) : 0;
-        if (data.getGenerators().size() >= data.maxGeneratorSlots(baseSlots, perPrestige, talentSlots)) {
-            player.sendMessage(MiniMessage.miniMessage().deserialize(
-                    "<red>Du hast dein Generator-Limit erreicht! Mache mehr Prestige für mehr Slots."));
-            return false;
+        // Shard-Generator: max 1 pro Spieler, zählt nicht zum normalen Slot-Limit
+        if (type.isShardGenerator()) {
+            if (data.hasShardGenerator()) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize(
+                        "<red>Du kannst nur <light_purple>einen</light_purple> <red>Shard-Generator besitzen!"));
+                return false;
+            }
+        } else {
+            int baseSlots = plugin.getConfig().getInt("max-generators", 10);
+            int perPrestige = plugin.getConfig().getInt("generator-slot-per-prestige", 2);
+            int talentSlots = plugin.getTalentManager() != null
+                    ? plugin.getTalentManager().getExtraGeneratorSlots(data) : 0;
+            if (data.getGenerators().size() >= data.maxGeneratorSlots(baseSlots, perPrestige, talentSlots)) {
+                player.sendMessage(MiniMessage.miniMessage().deserialize(
+                        "<red>Du hast dein Generator-Limit erreicht! Mache mehr Prestige für mehr Slots."));
+                return false;
+            }
         }
 
         String generatorWorld = plugin.getConfig().getString("generator-world", "");

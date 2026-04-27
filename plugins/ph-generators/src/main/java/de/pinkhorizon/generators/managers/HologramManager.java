@@ -619,6 +619,25 @@ public class HologramManager {
     // ── Text-Generierung ─────────────────────────────────────────────────────
 
     private String buildHologramText(PlacedGenerator gen, PlayerData data) {
+        // ── Shard-Generator: eigene Anzeige ──────────────────────────────────
+        if (gen.getType().isShardGenerator()) {
+            double shardsPerSec = gen.incomePerSecond()
+                    * (data != null ? data.prestigeMultiplier() : 1.0);
+            boolean isMax = data != null && gen.getLevel() >= data.maxGeneratorLevel();
+            String levelText = isMax
+                    ? "<gold><bold>" + gen.getLevel() + "</bold></gold>"
+                    : "<white>" + gen.getLevel();
+            String statusLine = isMax
+                    ? "\n<gold><bold>★ MAX LEVEL ★</bold></gold>"
+                    : "\n<gray>⬆ Upgrade: <yellow>$" + MoneyManager.formatMoney(gen.upgradeCost());
+            return gen.getType().getDisplayName()
+                    + "\n<gray>Level: " + levelText
+                    + statusLine
+                    + "\n<light_purple>" + String.format("%.2f", shardsPerSec) + " Shards/s"
+                    + "\n<dark_gray>★ Nur 1 pro Spieler";
+        }
+
+        // ── Normaler Generator ────────────────────────────────────────────────
         String megaPrefix = gen.getType().isMega() ? "<bold>" : "";
         String megaSuffix = gen.getType().isMega() ? "</bold>" : "";
 

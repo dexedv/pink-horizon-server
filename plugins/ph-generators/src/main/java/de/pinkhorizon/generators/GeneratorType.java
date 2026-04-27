@@ -33,6 +33,9 @@ public enum GeneratorType {
     ULTRA_DIAMOND    (Material.SEA_LANTERN,   "<aqua><bold>◆ Ultra-Diamond</bold></aqua>",                   1_600.0,  -1L,   28_800L, true, false),
     ULTRA_NETHERITE  (Material.BEACON,        "<yellow><bold>◆ Ultra-Netherite</bold></yellow>",             8_000.0,  -1L,  144_000L, true, false),
 
+    // ── Shard-Generator (max 1 pro Spieler, produziert Mining-Shards) ────────
+    SHARD_GENERATOR(Material.AMETHYST_BLOCK, "<light_purple><bold>✦ Shard-Generator</bold></light_purple>", 1.0, 500_000L, 2_500L, false, false),
+
     // ── God-Tiers (3× Ultra, nicht kaufbar) ───────────────────────────────
     GOD_COBBLESTONE(Material.GILDED_BLACKSTONE, "<gold><bold>★ God-Cobblestone</bold></gold>",              64.0,  -1L,    1_152L, true, false),
     GOD_IRON       (Material.CRYING_OBSIDIAN,   "<light_purple><bold>★ God-Iron</bold></light_purple>",    320.0,  -1L,    5_760L, true, false),
@@ -208,9 +211,10 @@ public enum GeneratorType {
         };
     }
 
-    public boolean isUltra() { return name().startsWith("ULTRA_"); }
-    public boolean isGod()   { return name().startsWith("GOD_"); }
-    public boolean isTitan() { return name().startsWith("TITAN_"); }
+    public boolean isUltra()          { return name().startsWith("ULTRA_"); }
+    public boolean isGod()            { return name().startsWith("GOD_"); }
+    public boolean isTitan()          { return name().startsWith("TITAN_"); }
+    public boolean isShardGenerator() { return this == SHARD_GENERATOR; }
 
     // ── Getter ───────────────────────────────────────────────────────────────
 

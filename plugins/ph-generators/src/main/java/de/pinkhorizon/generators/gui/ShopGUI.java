@@ -70,6 +70,11 @@ public class ShopGUI implements Listener {
             inv.setItem(GEN_SLOTS[i], buildGenItem(type, canAfford, data));
         }
 
+        // ── Sektion: Shard-Generator ─────────────────────────────────────────
+        ItemStack shardHeader = filler(Material.PURPLE_STAINED_GLASS_PANE, "<light_purple>── Spezial-Generator ──");
+        for (int i = 18; i <= 26; i++) inv.setItem(i, shardHeader);
+        inv.setItem(22, buildShardGenItem(data));
+
         // ── Sektion: Booster ─────────────────────────────────────────────────
         ItemStack boostHeader = filler(Material.ORANGE_STAINED_GLASS_PANE, "<gold>── Booster kaufen ──");
         for (int i = 27; i <= 35; i++) inv.setItem(i, boostHeader);
@@ -132,6 +137,13 @@ public class ShopGUI implements Listener {
             }
         }
 
+        // Shard-Generator kaufen
+        if (slot == 22) {
+            buyGenerator(player, data, GeneratorType.SHARD_GENERATOR);
+            open(player);
+            return;
+        }
+
         // Booster kaufen
         for (int i = 0; i < BOOSTER_SLOTS.length; i++) {
             if (slot == BOOSTER_SLOTS[i]) {
@@ -144,6 +156,10 @@ public class ShopGUI implements Listener {
     // ── Logik ────────────────────────────────────────────────────────────────
 
     private void buyGenerator(Player player, PlayerData data, GeneratorType type) {
+        if (type.isShardGenerator() && data.hasShardGenerator()) {
+            player.sendMessage(MM.deserialize("<red>Du besitzt bereits einen Shard-Generator!"));
+            return;
+        }
         if (type.getBuyPrice() == 0) {
             player.getInventory().addItem(plugin.getGeneratorManager().createGeneratorItem(type, 1));
             player.sendMessage(MM.deserialize("<green>✔ " + type.getDisplayName() + " <green>erhalten!"));
@@ -282,6 +298,36 @@ public class ShopGUI implements Listener {
             lore.add(MM.deserialize("<aqua>✔ Auto-Upgrade aktiv"));
         if (group.equals("default"))
             lore.add(MM.deserialize("<dark_gray>Ränge gibt es im Tebex-Shop!"));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack buildShardGenItem(PlayerData data) {
+        GeneratorType type = GeneratorType.SHARD_GENERATOR;
+        boolean owned    = data != null && data.hasShardGenerator();
+        boolean canAfford = data != null && data.getMoney() >= type.getBuyPrice();
+
+        ItemStack item = new ItemStack(type.getBlock());
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(MM.deserialize(type.getDisplayName()));
+
+        List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+        lore.add(MM.deserialize("<gray>Produziert <light_purple>Mining-Shards</light_purple> <gray>passiv"));
+        lore.add(MM.deserialize("<gray>Basis: <light_purple>1.0 Shard/s"));
+        lore.add(MM.deserialize("<gray>Skaliert mit Level & Prestige"));
+        lore.add(MM.deserialize(""));
+        lore.add(MM.deserialize("<yellow>⚠ Max. <white>1 <yellow>pro Spieler"));
+        lore.add(MM.deserialize(""));
+        if (owned) {
+            lore.add(MM.deserialize("<green>✔ Bereits besessen"));
+        } else {
+            lore.add(MM.deserialize((canAfford ? "<green>" : "<red>") + "Preis: $"
+                    + MoneyManager.formatMoney(type.getBuyPrice())));
+            if (!canAfford) lore.add(MM.deserialize("<red>Nicht genug Geld"));
+            lore.add(MM.deserialize(""));
+            lore.add(MM.deserialize("<yellow>▶ Klick zum Kaufen"));
+        }
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
