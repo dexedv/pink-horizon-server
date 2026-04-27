@@ -1139,6 +1139,11 @@ const COMMANDS = [
     .setName('post-idleforge-guide')
     .setDescription('Postet die IdleForge Spielanleitung + Befehle (Admin)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName('post-survival-guide')
+    .setDescription('Postet die Survival Spielanleitung + Befehle (Admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 ].map(c => c.toJSON());
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1195,6 +1200,10 @@ client.once('ready', async () => {
     // IdleForge Guide posten wenn Kanal leer
     const idleforgeGuideCh = guild.channels.cache.get(IDLEFORGE_GUIDE_CHANNEL_ID);
     if (idleforgeGuideCh) postIdleForgeGuide(idleforgeGuideCh, false).catch(() => {});
+
+    // Survival Guide posten wenn Kanal leer
+    const survivalGuideCh = guild.channels.cache.get(SURVIVAL_GUIDE_CHANNEL_ID);
+    if (survivalGuideCh) postSurvivalGuide(survivalGuideCh, false).catch(() => {});
 
     // Thread-only Kanäle: keine normalen Nachrichten, nur Threads
     const THREAD_ONLY_CHANNELS = ['1497212103671550155', '1497212066950283395'];
@@ -1571,6 +1580,12 @@ client.on('interactionCreate', async interaction => {
       if (!ch) { await interaction.editReply('❌ Kanal nicht gefunden!'); return; }
       await postIdleForgeGuide(ch, true);
       await interaction.editReply(`✅ IdleForge Guide in <#${IDLEFORGE_GUIDE_CHANNEL_ID}> gepostet.`);
+
+    } else if (commandName === 'post-survival-guide') {
+      const ch = guild.channels.cache.get(SURVIVAL_GUIDE_CHANNEL_ID);
+      if (!ch) { await interaction.editReply('❌ Kanal nicht gefunden!'); return; }
+      await postSurvivalGuide(ch, true);
+      await interaction.editReply(`✅ Survival Guide in <#${SURVIVAL_GUIDE_CHANNEL_ID}> gepostet.`);
 
     } else if (commandName === 'status') {
       await interaction.editReply({ embeds: [await buildStatusEmbed()] });
@@ -1967,6 +1982,169 @@ async function postIdleForgeGuide(channel, force = false) {
   }
   for (const embed of buildIdleForgeGuideEmbeds()) {
     await channel.send({ embeds: [embed] }).catch(e => console.error('[IdleForge Guide]', e.message));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Survival – Guide
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SURVIVAL_GUIDE_CHANNEL_ID = '1498258193766416477';
+
+function buildSurvivalGuideEmbeds() {
+  const overview = new EmbedBuilder()
+    .setTitle('⛏️ Survival – Spielanleitung & Tipps')
+    .setColor(0x2ECC71)
+    .setDescription([
+      '**Survival** auf Pink Horizon ist ein klassischer Überlebensmodus',
+      'mit eigener Wirtschaft, Claims, Jobs und vielem mehr.',
+      '',
+      '**Tipp:** Nutze `/rtp` um in der Wildnis zu starten und claime',
+      'dein Land mit `/claim` bevor du baust!',
+    ].join('\n'))
+    .addFields(
+      {
+        name: '🚀 Einstieg – Schritt für Schritt',
+        value: [
+          '1. Mit `/rtp` zufällig in die Welt teleportieren',
+          '2. Ressourcen sammeln & einen sicheren Ort finden',
+          '3. Mit `/claim` deinen Chunk sichern',
+          '4. Mit `/sethome <name>` einen Home-Punkt setzen',
+          '5. Einen **Job** wählen (`/jobs`) für passives Einkommen',
+          '6. Im **Shop** (`/shop`) Items kaufen & verkaufen',
+          '7. Geld auf der **Bank** sichern (`/bank deposit`)',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '💡 Tipps',
+        value: [
+          '• Chunks **clamen** schützt deine Basis vor anderen Spielern',
+          '• **Jobs** geben Erfahrung + Coins für alltägliche Aktionen',
+          '• Mit `/ah sell <Preis>` Items im Auktionshaus verkaufen',
+          '• Stirbst du, erscheint eine **Todeskiste** – hol deine Sachen!',
+          '• `/back` bringt dich nach dem Tod zurück zum Todesort',
+          '• Mit `/trade <Spieler>` sicher mit anderen handeln',
+          '• Mit `/sell hand` oder `/sell all` schnell Items verkaufen',
+          '• `/rtp` hat einen Cooldown – setze zuerst einen Home',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '💼 Jobs-Übersicht',
+        value: [
+          '⛏️ **Miner** – Abbau von Erzen',
+          '🌲 **Lumberjack** – Holz fällen',
+          '🌾 **Farmer** – Ernten & Ackerbau',
+          '⚔️ **Hunter** – Monster töten',
+          '🎣 **Fisher** – Angeln',
+          '🧪 **Brewer** – Tränke brauen',
+          '🏗️ **Builder** – Blöcke platzieren',
+          '✨ **Enchanter** – Gegenstände verzaubern',
+          '🔨 **Weaponsmith** – Waffen reparieren',
+        ].join('\n'),
+        inline: false,
+      },
+    )
+    .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' });
+
+  const commands = new EmbedBuilder()
+    .setTitle('📋 Befehle – Survival')
+    .setColor(0x27AE60)
+    .addFields(
+      {
+        name: '🏠 Homes & Teleport',
+        value: [
+          '`/sethome <name>` – Home setzen',
+          '`/home <name>` – Zu Home teleportieren',
+          '`/homes` – Alle Homes anzeigen',
+          '`/delhome <name>` – Home löschen',
+          '`/spawn` – Zum Spawn teleportieren',
+          '`/rtp` – Zufällig in die Wildnis',
+          '`/back` – Zurück zum letzten Standort / Todesort',
+          '`/tpa <Spieler>` – Teleport-Anfrage senden',
+          '`/tpaccept` – Teleport-Anfrage annehmen',
+          '`/tpdeny` – Teleport-Anfrage ablehnen',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '🔒 Claims',
+        value: [
+          '`/claim` – Aktuellen Chunk claimen',
+          '`/unclaim` – Claim entfernen',
+          '`/claimlist` – Alle eigenen Claims anzeigen',
+          '`/claimmap` – Claim-Karte öffnen',
+          '`/claimtrust <Spieler>` – Spieler zu Claim einladen',
+          '`/claimadd <Spieler>` – Spieler zum Claim hinzufügen',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '💰 Wirtschaft',
+        value: [
+          '`/balance` – Kontostand anzeigen',
+          '`/baltop` – Reichsten Spieler anzeigen',
+          '`/pay <Spieler> <Betrag>` – Geld senden',
+          '`/bank` – Bank-Guthaben anzeigen',
+          '`/bank deposit <Betrag>` – Geld einzahlen',
+          '`/bank withdraw <Betrag>` – Geld abheben',
+          '`/sell hand` – Item in der Hand verkaufen',
+          '`/sell all` – Alle verkaufbaren Items verkaufen',
+          '`/shop` – Server-Shop öffnen',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '🏪 Auktionshaus & Handel',
+        value: [
+          '`/ah` – Auktionshaus öffnen',
+          '`/ah sell <Preis>` – Item in der Hand einstellen',
+          '`/trade <Spieler>` – Handelsanfrage senden',
+          '`/trade accept <Spieler>` – Handel annehmen',
+          '`/trade deny <Spieler>` – Handel ablehnen',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '💼 Jobs & Quests',
+        value: [
+          '`/jobs` – Job-Menü öffnen',
+          '`/quests` – Tägliche Quests anzeigen',
+          '`/achievements` – Achievements anzeigen',
+          '`/stats` – Eigene Statistiken',
+          '`/rank` – Serverrang anzeigen',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '👥 Soziales',
+        value: [
+          '`/friend add <Spieler>` – Freundschaftsanfrage senden',
+          '`/friend accept <Spieler>` – Anfrage annehmen',
+          '`/friend deny <Spieler>` – Anfrage ablehnen',
+          '`/friend list` – Freundesliste',
+          '`/friend remove <Spieler>` – Freund entfernen',
+          '`/mail send <Spieler> <Nachricht>` – Nachricht senden',
+          '`/mail read` – Nachrichten lesen',
+          '`/report <Spieler> <Grund>` – Spieler melden',
+        ].join('\n'),
+        inline: false,
+      },
+    )
+    .setFooter({ text: 'Pink Horizon · Survival · play.pinkhorizon.fun' });
+
+  return [overview, commands];
+}
+
+async function postSurvivalGuide(channel, force = false) {
+  if (!channel) return;
+  if (!force) {
+    const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+    if (msgs && msgs.size > 0) return;
+  }
+  for (const embed of buildSurvivalGuideEmbeds()) {
+    await channel.send({ embeds: [embed] }).catch(e => console.error('[Survival Guide]', e.message));
   }
 }
 
