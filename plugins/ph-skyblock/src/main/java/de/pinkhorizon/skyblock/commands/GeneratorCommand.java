@@ -87,7 +87,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             }
             default -> {
                 player.sendMessage(MM.deserialize(
-                    PREFIX + "<red>Unbekannter Befehl. Nutze <yellow>/gen help</yellow>."));
+                    PREFIX + "<red>Unbekannter Befehl. Nutze <yellow>/phsk help</yellow>."));
             }
         }
         return true;

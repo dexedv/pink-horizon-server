@@ -92,8 +92,8 @@ public class PHSkyBlock extends JavaPlugin {
         getCommand("island").setExecutor(new IslandCommand(this));
         getCommand("isadmin").setExecutor(new IslandAdminCommand(this));
         var genCmd = new GeneratorCommand(this);
-        getCommand("gen").setExecutor(genCmd);
-        getCommand("gen").setTabCompleter(genCmd);
+        getCommand("phsk").setExecutor(genCmd);
+        getCommand("phsk").setTabCompleter(genCmd);
 
         // ── Listener ──────────────────────────────────────────────────────────
         var pm = getServer().getPluginManager();

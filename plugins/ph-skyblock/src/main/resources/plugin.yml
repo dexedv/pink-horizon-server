@@ -14,10 +14,10 @@ commands:
   isadmin:
     description: SkyBlock Admin-Befehle
     usage: /isadmin <tp|reload|setspawn|delete|info>
-  gen:
+  phsk:
     description: Generator & Coins Verwaltung
-    usage: /gen [bal|quests|achievements|titles|top|give|reload]
-    aliases: [ generator, coins ]
+    usage: /phsk [bal|quests|achievements|titles|top|give|reload]
+    aliases: [ skygen, skycoins ]
 
 permissions:
   skyblock.island:
