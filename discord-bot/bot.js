@@ -1125,6 +1125,11 @@ const COMMANDS = [
     .setName('stats')
     .setDescription('Zeigt Smash-the-Boss Statistiken eines Spielers')
     .addStringOption(o => o.setName('spieler').setDescription('Minecraft-Name').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('post-smash-guide')
+    .setDescription('Postet die Smash the Boss Spielanleitung + Befehle (Admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 ].map(c => c.toJSON());
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1163,6 +1168,10 @@ client.once('ready', async () => {
     // Neue Kanäle + Rollen automatisch beim Start erstellen
     console.log('[AutoSetup] Guild gefunden:', guild.name, '– starte in 3s...');
     setTimeout(() => runSetupGenerators(guild, null).catch(e => console.error('[AutoSetup] CRASH:', e.message, e.stack)), 3000);
+
+    // Smash Guide automatisch posten wenn Kanal leer
+    const smashGuideCh = guild.channels.cache.get(SMASH_GUIDE_CHANNEL_ID);
+    if (smashGuideCh) postSmashGuide(smashGuideCh, false).catch(() => {});
 
     // Thread-only Kanäle: keine normalen Nachrichten, nur Threads
     const THREAD_ONLY_CHANNELS = ['1497212103671550155', '1497212066950283395'];
@@ -1528,6 +1537,12 @@ client.on('interactionCreate', async interaction => {
       });
       await interaction.editReply('✅ Regeln + Verifikations-Button gepostet.');
 
+    } else if (commandName === 'post-smash-guide') {
+      const ch = guild.channels.cache.get(SMASH_GUIDE_CHANNEL_ID);
+      if (!ch) { await interaction.editReply('❌ Kanal nicht gefunden!'); return; }
+      await postSmashGuide(ch, true);
+      await interaction.editReply(`✅ Smash the Boss Guide in <#${SMASH_GUIDE_CHANNEL_ID}> gepostet.`);
+
     } else if (commandName === 'status') {
       await interaction.editReply({ embeds: [await buildStatusEmbed()] });
 
@@ -1590,6 +1605,119 @@ client.on('interactionCreate', async interaction => {
     }
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Smash the Boss Guide
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SMASH_GUIDE_CHANNEL_ID = '1497212081282224129';
+
+function buildSmashGuideEmbeds() {
+  const overview = new EmbedBuilder()
+    .setTitle('⚔️ Smash the Boss – Spielanleitung')
+    .setColor(0xFF5555)
+    .setDescription([
+      '**Smash the Boss** ist ein solo-basierter Kampfmodus auf Pink Horizon.',
+      'Jeder Spieler hat seine eigene **persönliche Arena** mit einem Boss, der',
+      'genau auf sein Level zugeschnitten ist.',
+      '',
+      '**Ziel:** Besiege deinen Boss, sammle Münzen, kaufe Upgrades und steige',
+      'immer weiter auf – bis zum Prestige!',
+    ].join('\n'))
+    .addFields(
+      {
+        name: '🎮 Wie funktioniert es?',
+        value: [
+          '1. Betritt mit `/stb join` deine Arena',
+          '2. Besiege den Boss, der auf deinem Level basiert',
+          '3. Sammle **Münzen** durch Boss-Kills',
+          '4. Kaufe **Upgrades** (mehr HP, Schaden, Speed …)',
+          '5. Schalte **Fähigkeiten** und **Talente** frei',
+          '6. Erledige **Tages-Quests** für Bonus-Münzen',
+          '7. Prestige bei Boss-Level 100 für permanente Boni',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '⚡ Fortschritt',
+        value: [
+          '**Boss-Level** steigt mit jedem Kill automatisch',
+          '**Combo-System** – töte schnell hintereinander für Schadensbonus',
+          '**Prestige** – setzt Level zurück, gibt aber +50% Schaden permanent',
+          '**Bestiary** – entdecke alle Boss-Typen und schalte Boni frei',
+          '**Forge** – verzaubere deine Ausrüstung für extra Effekte',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '😴 AFK-Farm',
+        value: [
+          'Durch Boss-Kills sammelst du **AFK-Zeit** (30s + Boss-Level pro Kill, max 5 Min).',
+          'Mit `/stb afkfarm` aktivierst du die Farm – danach kannst du offline gehen',
+          'und erhältst beim nächsten Login deine gesammelten Belohnungen.',
+        ].join('\n'),
+        inline: false,
+      },
+    )
+    .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' });
+
+  const commands = new EmbedBuilder()
+    .setTitle('📋 Befehle – Smash the Boss')
+    .setColor(0xFF3333)
+    .addFields(
+      {
+        name: '⚔️ Arena',
+        value: [
+          '`/stb join` – Betritt deine persönliche Arena',
+          '`/stb leave` – Verlasse die Arena',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '📊 Statistiken & Info',
+        value: [
+          '`/stb stats` – Deine Stats (Boss-Level, Kills, Schaden)',
+          '`/stb coins` – Münzkonto anzeigen',
+          '`/stb weekly` – Wöchentliches Turnier & Rangliste',
+          '`/stb bounty` – Heutiges Tages-Kopfgeld anzeigen',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '⚙️ Upgrades & Ausrüstung',
+        value: [
+          '`/stb upgrades` – Upgrade-Menü öffnen (HP, Schaden, Speed …)',
+          '`/stb abilities` – Fähigkeiten-Menü öffnen',
+          '`/stb forge` – Forge-Menü (Ausrüstung verzaubern)',
+          '`/stb bestiary` – Bestiary (alle Boss-Typen & Boni)',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '🏆 Prestige & AFK',
+        value: [
+          '`/stb prestige` – Prestige durchführen (ab Boss-Level 100)',
+          '`/stb afkfarm` – AFK-Farm starten / Status anzeigen',
+        ].join('\n'),
+        inline: false,
+      },
+    )
+    .setFooter({ text: 'Pink Horizon · Smash the Boss · /stb <Befehl>' });
+
+  return [overview, commands];
+}
+
+async function postSmashGuide(channel, force = false) {
+  if (!channel) return;
+  if (!force) {
+    const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+    if (msgs && msgs.size > 0) return; // bereits Nachrichten vorhanden
+  }
+  const embeds = buildSmashGuideEmbeds();
+  for (const embed of embeds) {
+    await channel.send({ embeds: [embed] }).catch(e => console.error('[SmashGuide]', e.message));
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
