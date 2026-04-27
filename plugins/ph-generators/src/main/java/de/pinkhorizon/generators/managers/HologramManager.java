@@ -260,20 +260,26 @@ public class HologramManager {
     }
 
     private String buildStatsText(PlayerData data) {
-        // Gesamteinkommen berechnen
         double talentIncomeMult = plugin.getTalentManager() != null
                 ? plugin.getTalentManager().getIncomeMultiplier(data) : 1.0;
+        double talentCostMult = plugin.getTalentManager() != null
+                ? plugin.getTalentManager().getUpgradeCostMultiplier(data) : 1.0;
         int talentSlots = plugin.getTalentManager() != null
                 ? plugin.getTalentManager().getExtraGeneratorSlots(data) : 0;
+        double synergyMult   = plugin.getSynergyManager().getTotalSynergyMultiplier(data);
+        double serverBooster = plugin.getMoneyManager().getServerBoosterMultiplier();
+        double rankMult      = data.getRankMultiplier();
+
         double totalIncome = 0;
         for (PlacedGenerator gen : data.getGenerators()) {
             totalIncome += gen.incomePerSecond()
                     * data.prestigeMultiplier()
                     * data.effectiveBoosterMultiplier()
-                    * plugin.getMoneyManager().getServerBoosterMultiplier()
-                    * plugin.getSynergyManager().getTotalSynergyMultiplier(data)
+                    * serverBooster
+                    * synergyMult
                     * talentIncomeMult
-                    * data.getRankMultiplier();
+                    * rankMult
+                    * data.getPetIncomeMultiplier();
         }
         int maxSlots = data.maxGeneratorSlots(
                 plugin.getConfig().getInt("max-generators", 10),
@@ -284,20 +290,50 @@ public class HologramManager {
         sb.append("<gold><bold>⚙ ").append(data.getName()).append("</bold></gold>\n");
         sb.append("<dark_gray>──────────────────</dark_gray>\n");
         sb.append("<gray>💰 Geld: <green>$").append(MoneyManager.formatMoney(data.getMoney())).append("\n");
-        sb.append("<gray>✦ Prestige: <light_purple>").append(data.getPrestige())
-          .append(" <gray>(+").append((int)((data.prestigeMultiplier()-1)*100)).append("%)\n");
-        sb.append("<gray>⚙ Generatoren: <white>").append(data.getGenerators().size()).append("<gray>/").append(maxSlots).append("\n");
         sb.append("<gray>📈 Einkommen: <aqua>$").append(MoneyManager.formatMoney(Math.round(totalIncome))).append("/s\n");
-        sb.append("<gray>🏆 Gesamt: <yellow>$").append(MoneyManager.formatMoney(data.getTotalEarned())).append("\n");
-        sb.append("<gray>🌍 Border: <white>").append(data.getBorderSize()).append("×").append(data.getBorderSize()).append("\n");
+        sb.append("<gray>⚙ Generatoren: <white>").append(data.getGenerators().size())
+          .append("<dark_gray>/").append(maxSlots).append("\n");
         sb.append("<dark_gray>──────────────────</dark_gray>\n");
+
+        // Alle aktiven Boni
+        sb.append("<gray>✦ Prestige ").append(data.getPrestige())
+          .append(": <green>+").append((int)((data.prestigeMultiplier()-1)*100)).append("%\n");
+
+        int petIncPct  = (int)((data.getPetIncomeMultiplier()      - 1.0) * 100);
+        int petCostPct = (int)((1.0 - data.getPetUpgradeCostMultiplier()) * 100);
+        sb.append("<gold>🐾 Pet Lvl ").append(data.getPetLevel())
+          .append(": <green>+").append(petIncPct).append("% <gray>| <red>-")
+          .append(petCostPct).append("% Kosten\n");
+
+        if (talentIncomeMult > 1.0) {
+            sb.append("<aqua>🎓 Talent: <green>+")
+              .append(String.format("%.0f", (talentIncomeMult - 1.0) * 100)).append("%\n");
+        }
+        if (talentCostMult < 1.0) {
+            sb.append("<aqua>🎓 Talent Rabatt: <red>-")
+              .append(String.format("%.0f", (1.0 - talentCostMult) * 100)).append("% Kosten\n");
+        }
+        if (synergyMult > 1.0) {
+            sb.append("<light_purple>🔗 Synergie: <green>+")
+              .append(String.format("%.1f", (synergyMult - 1.0) * 100)).append("%\n");
+        }
+        if (rankMult > 1.0) {
+            sb.append("<yellow>⚔ Rang: <green>+")
+              .append(String.format("%.0f", (rankMult - 1.0) * 100)).append("%\n");
+        }
         if (data.hasActiveBooster()) {
             long remaining = (data.getBoosterExpiry() - System.currentTimeMillis() / 1000) / 60;
-            sb.append("<yellow>⚡ x").append(data.getBoosterMultiplier())
-              .append(" Booster <gray>(").append(remaining).append(" Min)");
-        } else {
-            sb.append("<dark_gray>Kein Booster aktiv");
+            sb.append("<yellow>⚡ Booster: <green>x").append(data.getBoosterMultiplier())
+              .append(" <dark_gray>(").append(remaining).append(" Min)\n");
         }
+        if (serverBooster > 1.0) {
+            sb.append("<gold>⚡ Server-Boost: <green>x")
+              .append(String.format("%.1f", serverBooster)).append("\n");
+        }
+
+        sb.append("<dark_gray>──────────────────</dark_gray>\n");
+        sb.append("<gray>🏆 Gesamt: <yellow>$").append(MoneyManager.formatMoney(data.getTotalEarned())).append("\n");
+        sb.append("<gray>🌍 Border: <white>").append(data.getBorderSize()).append("×").append(data.getBorderSize());
         return sb.toString();
     }
 
