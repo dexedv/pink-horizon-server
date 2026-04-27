@@ -1152,7 +1152,8 @@ client.once('ready', async () => {
     startMonitor(guild);
 
     // Neue Kanäle + Rollen automatisch beim Start erstellen
-    setTimeout(() => runSetupGenerators(guild, null).catch(e => console.error('[AutoSetup]', e.message)), 5000);
+    console.log('[AutoSetup] Guild gefunden:', guild.name, '– starte in 3s...');
+    setTimeout(() => runSetupGenerators(guild, null).catch(e => console.error('[AutoSetup] CRASH:', e.message, e.stack)), 3000);
 
     // Thread-only Kanäle: keine normalen Nachrichten, nur Threads
     const THREAD_ONLY_CHANNELS = ['1497212103671550155', '1497212066950283395'];
