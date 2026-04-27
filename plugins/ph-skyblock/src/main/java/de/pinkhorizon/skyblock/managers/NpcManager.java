@@ -201,6 +201,23 @@ public class NpcManager {
         spawnedNpcs.clear();
     }
 
+    /**
+     * Spawnt einen temporären Händler-NPC auf der Spieler-Insel.
+     * Wird vom RitualManager (Händler-Geist) aufgerufen.
+     */
+    public void spawnTemporaryTrader(org.bukkit.entity.Player player, Location loc, long durationTicks) {
+        if (loc.getWorld() == null) return;
+        UUID uid = spawnNpc(loc.getWorld(), "tmp_trader_" + player.getUniqueId(),
+            loc.getX(), loc.getY() + 0.1, loc.getZ(), loc.getYaw(),
+            "<gold>✦ <bold>Mystischer Händler", "SWAMP");
+        if (uid == null) return;
+        // Auto-Remove nach durationTicks
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            Entity e = plugin.getServer().getEntity(uid);
+            if (e != null) e.remove();
+        }, durationTicks);
+    }
+
     private String legacyToMini(String s) {
         if (s == null) return "";
         s = s.replace('&', '§'); // & und § beide akzeptieren

@@ -1,5 +1,5 @@
 name: PH-SkyBlock
-version: '2.2.0'
+version: '3.0.0'
 main: de.pinkhorizon.skyblock.PHSkyBlock
 api-version: '1.21'
 description: SkyBlock Custom-Features fuer Pink Horizon (BentoBox Companion)
@@ -10,8 +10,36 @@ softdepend: [ Vault, Level, Challenges, Visit, Warps, IslandFly, Border, Chat, T
 commands:
   phsk:
     description: Generator & Coins Verwaltung
-    usage: /phsk [bal|quests|achievements|titles|top|give|reload]
+    usage: /phsk [bal|quests|achievements|titles|top|give|reload|dna|rituals|chronicle|weather|contracts]
     aliases: [ skygen, skycoins ]
+  skycontract:
+    description: Auftrags-Brett
+    usage: /skycontract [list|create|accept]
+    aliases: [ contract ]
+  skychronicle:
+    description: Insel-Chronik
+    usage: /skychronicle
+    aliases: [ chronicle ]
+  skyrituals:
+    description: Ritual-Uebersicht
+    usage: /skyrituals
+    aliases: [ rituals ]
+  skyweather:
+    description: Wetter-Info
+    usage: /skyweather
+    aliases: [ skyw ]
+  skydna:
+    description: Insel-DNA anzeigen
+    usage: /skydna
+    aliases: [ dna ]
+  skystory:
+    description: Story-Fortschritt anzeigen
+    usage: /skystory
+    aliases: [ story, nyx ]
+  blueprint:
+    description: Insel-Blueprints speichern und laden
+    usage: /blueprint [save <name> | load <name> | share <name> | list]
+    aliases: [ bp-island, islandblueprint ]
 
 permissions:
   skyblock.admin:

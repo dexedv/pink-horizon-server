@@ -50,7 +50,7 @@ public class DnaGui extends GuiBase {
             return;
         }
 
-        UUID islandUuid = islandOpt.get().getUniqueId();
+        UUID islandUuid = UUID.fromString(islandOpt.get().getUniqueId());
         IslandDnaManager dnaManager = plugin.getIslandDnaManager();
         IslandDna dna = dnaManager.getDna(islandUuid);
 

@@ -42,7 +42,7 @@ public class RitualGui extends GuiBase {
         this.plugin = plugin;
         this.player = player;
         var islandOpt = BentoBoxHook.getIsland(player.getUniqueId());
-        this.islandUuid = islandOpt.map(i -> i.getUniqueId()).orElse(null);
+        this.islandUuid = islandOpt.map(i -> UUID.fromString(i.getUniqueId())).orElse(null);
         build();
     }
 
@@ -99,7 +99,7 @@ public class RitualGui extends GuiBase {
                 RitualType[] types = RitualType.values();
                 if (i < types.length) {
                     p.closeInventory();
-                    plugin.getRitualManager().activateRitual(p, types[i]);
+                    plugin.getRitualManager().activateRitual(p, islandUuid, types[i], p.getLocation());
                 }
                 return;
             }

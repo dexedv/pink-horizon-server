@@ -94,7 +94,7 @@ public class RitualManager {
     public void checkRitual(Player player, Location placedBlock) {
         var islandOpt = BentoBoxHook.getIsland(player.getUniqueId());
         if (islandOpt.isEmpty()) return;
-        UUID islandUuid = islandOpt.get().getUniqueId();
+        UUID islandUuid = UUID.fromString(islandOpt.get().getUniqueId());
 
         for (RitualType ritual : RitualType.values()) {
             if (isPatternComplete(ritual, placedBlock) && !isOnCooldown(islandUuid, player, ritual)) {
@@ -168,7 +168,7 @@ public class RitualManager {
 
     // ── Ritual-Aktivierung ────────────────────────────────────────────────────
 
-    private void activateRitual(Player player, UUID islandUuid, RitualType ritual, Location loc) {
+    public void activateRitual(Player player, UUID islandUuid, RitualType ritual, Location loc) {
         // Cooldown setzen
         long now = System.currentTimeMillis() / 1000;
         cooldowns.computeIfAbsent(islandUuid, k -> new HashMap<>()).put(ritual, now);

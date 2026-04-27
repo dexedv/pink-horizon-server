@@ -139,7 +139,7 @@ public class ContractManager {
         } else {
             for (Contract ct : contracts) {
                 String deadline = new SimpleDateFormat("dd.MM HH:mm")
-                    .format(new Date(ct.deadline()));
+                    .format(new java.util.Date(ct.deadline()));
                 String progress = ct.type() == ContractType.COMMUNITY
                     ? ct.progress() + "/" + ct.goal()
                     : "";

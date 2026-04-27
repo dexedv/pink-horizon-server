@@ -44,11 +44,11 @@ public class StoryManager {
             "<white>Eine uralte Stimme flüstert aus den Tiefen unter deiner Insel...",
             "<gray>",
             "<italic><light_purple>„Ich bin Nyx. Die Leere ist mein Traum,",
-            "<italic><light_purple>und eure Inseln sind meine Gedanken."",
+            "<italic><light_purple>und eure Inseln sind meine Gedanken.\"",
             "<gray>",
             "<yellow>Suche den <white>Alten Seher <yellow>auf der Spawn-Insel.",
             "<dark_purple>═══════════════════════════════════════"
-        }),
+        });
         put(2, new String[]{
             "<dark_purple>═══════════════════════════════════════",
             "<light_purple>  ✧ Kapitel II: Das erste Ritual ✧",
@@ -56,11 +56,11 @@ public class StoryManager {
             "<gray>",
             "<white>Der Alte Seher hat dir das Wissen der Rituale übergeben.",
             "<italic><light_purple>„Die Rituale sind Nyxs Sprache.",
-            "<italic><light_purple>Führe sie durch – sie wird zuhören."",
+            "<italic><light_purple>Führe sie durch – sie wird zuhören.\"",
             "<gray>",
             "<yellow>Führe dein erstes Ritual auf deiner Insel durch.",
             "<dark_purple>═══════════════════════════════════════"
-        }),
+        });
         put(3, new String[]{
             "<dark_purple>═══════════════════════════════════════",
             "<light_purple>  ✧ Kapitel III: Der Drachenpakt ✧",
@@ -68,11 +68,11 @@ public class StoryManager {
             "<gray>",
             "<white>Die Leere zieht sich zusammen. Nyx träumt lebhafter.",
             "<italic><light_purple>„Ein Drache wacht über meinen tiefsten Traum.",
-            "<italic><light_purple>Besiege ihn – und du wirst die Wahrheit kennen."",
+            "<italic><light_purple>Besiege ihn – und du wirst die Wahrheit kennen.\"",
             "<gray>",
             "<yellow>Aktiviere das <white>Drachenpakt-Ritual <yellow>auf deiner Insel.",
             "<dark_purple>═══════════════════════════════════════"
-        }),
+        });
         put(4, new String[]{
             "<dark_purple>═══════════════════════════════════════",
             "<light_purple>  ✧ Kapitel IV: Nyx' Botschaft ✧",
@@ -80,11 +80,11 @@ public class StoryManager {
             "<gray>",
             "<white>Sternschnuppen fallen auf deine Insel – Nyxs Botschaften.",
             "<italic><light_purple>„Du hast die erste Prestige-Grenze überschritten.",
-            "<italic><light_purple>Ich sehe dich nun. Bald erwache ich vollständig."",
+            "<italic><light_purple>Ich sehe dich nun. Bald erwache ich vollständig.\"",
             "<gray>",
             "<yellow>Sammle <white>10 Sternschnuppen <yellow>um die letzte Phase einzuleiten.",
             "<dark_purple>═══════════════════════════════════════"
-        }),
+        });
         put(5, new String[]{
             "<dark_purple>═════════════════════════════════════════════",
             "<light_purple>  ✧ Kapitel V: NYX ERWACHT ✧",
@@ -96,7 +96,7 @@ public class StoryManager {
             "<gray>",
             "<red><bold>SERVER-WEITER BOSS-KAMPF GESTARTET!",
             "<dark_purple>═════════════════════════════════════════════"
-        })
+        });
     }};
 
     public StoryManager(PHSkyBlock plugin) {
@@ -106,7 +106,7 @@ public class StoryManager {
     }
 
     private void createTable() {
-        try (Connection c = plugin.getDataSource().getConnection();
+        try (Connection c = plugin.getDatabase().getConnection();
              Statement s = c.createStatement()) {
             s.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS sky_story_progress (
@@ -132,7 +132,7 @@ public class StoryManager {
     }
 
     private void loadChapters() {
-        try (Connection c = plugin.getDataSource().getConnection();
+        try (Connection c = plugin.getDatabase().getConnection();
              PreparedStatement ps = c.prepareStatement("SELECT player_uuid, chapter FROM sky_story_progress")) {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -144,7 +144,7 @@ public class StoryManager {
         }
 
         // Nyx-Fortschritt laden
-        try (Connection c = plugin.getDataSource().getConnection();
+        try (Connection c = plugin.getDatabase().getConnection();
              PreparedStatement ps = c.prepareStatement("SELECT progress, active FROM sky_nyx_event WHERE id=1")) {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -239,7 +239,7 @@ public class StoryManager {
         // Alle Spieler die Kapitel 5 freischalten
         for (Player online : Bukkit.getOnlinePlayers()) {
             unlockChapter(online, 5);
-            online.playSound(online.getLocation(), Sound.ENDER_DRAGON_GROWL, 1f, 0.5f);
+            online.playSound(online.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1f, 0.5f);
         }
 
         // Nyx-Boss spawnen (Platzhalter – muss auf Arena-Insel gesetzt werden)
@@ -297,7 +297,7 @@ public class StoryManager {
 
     private void saveChapter(UUID uuid, int chapter) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = plugin.getDataSource().getConnection();
+            try (Connection c = plugin.getDatabase().getConnection();
                  PreparedStatement ps = c.prepareStatement(
                      "INSERT INTO sky_story_progress (player_uuid, chapter) VALUES(?,?) "
                    + "ON DUPLICATE KEY UPDATE chapter=?")) {
@@ -313,7 +313,7 @@ public class StoryManager {
 
     private void saveNyxProgress() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = plugin.getDataSource().getConnection();
+            try (Connection c = plugin.getDatabase().getConnection();
                  PreparedStatement ps = c.prepareStatement(
                      "UPDATE sky_nyx_event SET progress=?, active=? WHERE id=1")) {
                 ps.setInt(1, nyxAwakeningProgress);

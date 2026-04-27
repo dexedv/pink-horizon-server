@@ -30,7 +30,7 @@ public class BlueprintManager {
     }
 
     private void createTable() {
-        try (Connection c = plugin.getDataSource().getConnection();
+        try (Connection c = plugin.getDatabase().getConnection();
              Statement s = c.createStatement()) {
             s.executeUpdate("""
                 CREATE TABLE IF NOT EXISTS sky_blueprints (
@@ -88,8 +88,9 @@ public class BlueprintManager {
 
                 // In DB speichern
                 String blocksJson = sb.toString();
+                final int savedCount = count;
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                    try (Connection c = plugin.getDataSource().getConnection();
+                    try (Connection c = plugin.getDatabase().getConnection();
                          PreparedStatement ps = c.prepareStatement(
                              "INSERT INTO sky_blueprints (owner_uuid, name, blocks_json) VALUES(?,?,?) "
                            + "ON DUPLICATE KEY UPDATE blocks_json=?")) {
@@ -101,7 +102,7 @@ public class BlueprintManager {
                         Bukkit.getScheduler().runTask(plugin, () ->
                             player.sendMessage(MM.deserialize(
                                 "<green>Blueprint <white>" + name + " <green>gespeichert! ("
-                                + count + " Blöcke)")));
+                                + savedCount + " Blöcke)")));
                     } catch (SQLException e) {
                         Bukkit.getScheduler().runTask(plugin, () ->
                             player.sendMessage(MM.deserialize("<red>Fehler beim Speichern: " + e.getMessage())));
@@ -116,7 +117,7 @@ public class BlueprintManager {
 
     public void loadBlueprint(Player player, String name) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = plugin.getDataSource().getConnection();
+            try (Connection c = plugin.getDatabase().getConnection();
                  PreparedStatement ps = c.prepareStatement(
                      "SELECT blocks_json FROM sky_blueprints WHERE (owner_uuid=? OR shared=1) AND name=?")) {
                 ps.setString(1, player.getUniqueId().toString());
@@ -179,7 +180,7 @@ public class BlueprintManager {
     /** Lädt alle Blueprint-Metadaten für einen Spieler (asynchron möglich, aber Aufrufer muss beachten). */
     public List<BlueprintMeta> getBlueprints(UUID ownerUuid) {
         List<BlueprintMeta> result = new ArrayList<>();
-        try (Connection c = plugin.getDataSource().getConnection();
+        try (Connection c = plugin.getDatabase().getConnection();
              PreparedStatement ps = c.prepareStatement(
                  "SELECT name, description, shared, approved FROM sky_blueprints " +
                  "WHERE owner_uuid=? ORDER BY created_at DESC LIMIT 50")) {
@@ -210,7 +211,7 @@ public class BlueprintManager {
 
     public void shareBlueprint(Player player, String name) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection c = plugin.getDataSource().getConnection();
+            try (Connection c = plugin.getDatabase().getConnection();
                  PreparedStatement ps = c.prepareStatement(
                      "UPDATE sky_blueprints SET shared=1 WHERE owner_uuid=? AND name=?")) {
                 ps.setString(1, player.getUniqueId().toString());
