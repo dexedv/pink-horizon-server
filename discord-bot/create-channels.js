@@ -52,6 +52,7 @@ async function main() {
     { name: 'Survival-Fan',  color: 0x2ECC71 },
     { name: 'Smash-Fan',     color: 0xFF5555 },
     { name: 'IdleForge-Fan', color: 0xFFAA00 },
+    { name: 'SkyBlock-Fan',  color: 0xFF69B4 },
   ];
   const roleMap = {};
   for (const def of newRoleDefs) {
@@ -132,7 +133,106 @@ async function main() {
     }
   }
 
-  // ── 4. Spielmodus-Panel posten ─────────────────────────────────────────────
+  // ── 4. SKYBLOCK Kategorie ─────────────────────────────────────────────────
+  const skyblockCatPerms = [
+    { id: everyone.id, type: 0, deny: '1024' },
+    ...(adminRole                ? [{ id: adminRole.id,                type: 0, allow: '1024' }] : []),
+    ...(modRole                  ? [{ id: modRole.id,                  type: 0, allow: '1024' }] : []),
+    ...(suppRole                 ? [{ id: suppRole.id,                 type: 0, allow: '1024' }] : []),
+    ...(roleMap['SkyBlock-Fan']  ? [{ id: roleMap['SkyBlock-Fan'].id,  type: 0, allow: '1024' }] : []),
+  ];
+
+  let skyblockCat = cat('🏝️ SKYBLOCK');
+  if (!skyblockCat) {
+    console.log('  ➕ Erstelle Kategorie 🏝️ SKYBLOCK...');
+    skyblockCat = await api('POST', `/guilds/${GUILD_ID}/channels`, {
+      name: '🏝️ SKYBLOCK', type: 4, permission_overwrites: skyblockCatPerms,
+    });
+    await sleep(3000);
+  } else {
+    console.log('  ✓ 🏝️ SKYBLOCK existiert bereits');
+  }
+
+  for (const chName of ['skyblock-allgemein', 'skyblock-inseln']) {
+    if (!channel(chName, skyblockCat.id)) {
+      console.log(`  ➕ Erstelle #${chName}...`);
+      await api('POST', `/guilds/${GUILD_ID}/channels`, {
+        name: chName, type: 0, parent_id: skyblockCat.id,
+        permission_overwrites: skyblockCatPerms,
+      });
+      await sleep(3000);
+    } else {
+      console.log(`  ✓ #${chName} existiert bereits`);
+    }
+  }
+
+  // Tipps-Kanal (nur Admins/Mods können schreiben)
+  let skyTipsCh = channel('skyblock-tipps', skyblockCat.id);
+  if (!skyTipsCh) {
+    console.log('  ➕ Erstelle #skyblock-tipps...');
+    skyTipsCh = await api('POST', `/guilds/${GUILD_ID}/channels`, {
+      name: 'skyblock-tipps', type: 0, parent_id: skyblockCat.id,
+      permission_overwrites: [
+        { id: everyone.id, type: 0, deny: '2048' },
+        ...(adminRole ? [{ id: adminRole.id, type: 0, allow: '2048' }] : []),
+        ...(modRole   ? [{ id: modRole.id,   type: 0, allow: '2048' }] : []),
+        ...(verifRole ? [{ id: verifRole.id, type: 0, allow: '1024' }] : []),
+      ],
+    });
+    await sleep(3000);
+  } else {
+    console.log('  ✓ #skyblock-tipps existiert bereits');
+  }
+
+  // Tipps-Embed posten (falls noch leer)
+  const skyTipsMsgs = await api('GET', `/channels/${skyTipsCh.id}/messages?limit=5`);
+  if (!skyTipsMsgs || skyTipsMsgs.length === 0) {
+    console.log('  📩 Poste SkyBlock-Tipps...');
+    await api('POST', `/channels/${skyTipsCh.id}/messages`, {
+      embeds: [{
+        title: '🏝️ SkyBlock – Befehle & Tipps',
+        color: 0xFF69B4,
+        description: [
+          '## 🔧 Insel-Befehle',
+          '`/is create` – Insel erstellen',
+          '`/is home` – Zu deiner Insel teleportieren',
+          '`/is spawn` – Zum Spawn teleportieren',
+          '`/is sethome` – Insel-Home setzen',
+          '`/is info` – Insel-Informationen anzeigen',
+          '`/is open` – Insel für andere öffnen/schließen',
+          '`/is warp <Spieler>` – Zu einem Insel-Warp teleportieren',
+          '`/is setwarp` – Warp für andere aktivieren',
+          '`/is reset` – Insel zurücksetzen ⚠️',
+          '',
+          '## 👥 Mitglieder',
+          '`/is invite <Spieler>` – Spieler einladen',
+          '`/is accept` – Einladung annehmen',
+          '`/is kick <Spieler>` – Spieler von der Insel entfernen',
+          '`/is ban <Spieler>` – Spieler sperren',
+          '`/is unban <Spieler>` – Spieler entsperren',
+          '',
+          '## 📊 Fortschritt',
+          '`/is top` – Top 10 Inseln anzeigen',
+          '`/is level` – Insel-Level berechnen',
+          '`/is upgrade` – Insel upgraden (Größe/Mitglieder)',
+          '',
+          '## 💬 Chat & Misc',
+          '`/is chat` – Insel-Chat ein/ausschalten',
+          '`/phsk bal` – Coin-Guthaben anzeigen',
+          '`/phsk quests` – Tagesquests anzeigen',
+          '`/phsk achievements` – Achievements anzeigen',
+          '`/phsk titles` – Titel verwalten',
+          '`/phsk top` – Top-Spieler Coins-Rangliste',
+        ].join('\n'),
+        footer: { text: 'Pink Horizon · play.pinkhorizon.fun · SkyBlock' },
+        timestamp: new Date().toISOString(),
+      }],
+    });
+  } else {
+    console.log('  ✓ Tipps-Embed existiert bereits');
+  }
+
+  // ── 5. Spielmodus-Panel posten ─────────────────────────────────────────────
   const msgs = await api('GET', `/channels/${selfroleCh.id}/messages?limit=5`);
   if (!msgs || msgs.length === 0) {
     console.log('  📩 Poste Spielmodus-Panel...');
@@ -147,19 +247,28 @@ async function main() {
           '**⛏️ Survival** – Erkunde die Welt, Claims & Economy',
           '**🎮 Smash the Boss** – Besiege Bosse, Upgrades & Prestige',
           '**⚙️ IdleForge** – Generatoren, passives Einkommen & Prestige',
+          '**🏝️ SkyBlock** – Baue deine eigene Insel in der Leere',
           '',
           '*Klicke erneut auf eine Rolle um sie zu entfernen.*',
         ].join('\n'),
         footer: { text: 'Pink Horizon · play.pinkhorizon.fun' },
       }],
-      components: [{
-        type: 1,
-        components: [
-          { type: 2, style: 3, label: '⛏️ Survival',       custom_id: 'selfrole_survival'  },
-          { type: 2, style: 4, label: '🎮 Smash the Boss', custom_id: 'selfrole_smash'     },
-          { type: 2, style: 1, label: '⚙️ IdleForge',      custom_id: 'selfrole_idleforge' },
-        ],
-      }],
+      components: [
+        {
+          type: 1,
+          components: [
+            { type: 2, style: 3, label: '⛏️ Survival',       custom_id: 'selfrole_survival'  },
+            { type: 2, style: 4, label: '🎮 Smash the Boss', custom_id: 'selfrole_smash'     },
+            { type: 2, style: 1, label: '⚙️ IdleForge',      custom_id: 'selfrole_idleforge' },
+          ],
+        },
+        {
+          type: 1,
+          components: [
+            { type: 2, style: 2, label: '🏝️ SkyBlock',        custom_id: 'selfrole_skyblock'  },
+          ],
+        },
+      ],
     });
   } else {
     console.log('  ✓ Panel existiert bereits');

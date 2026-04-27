@@ -82,6 +82,12 @@ const SERVERS = {
     container: 'ph-generators',
     color:     '#FFD700',
     rcon:      { host: process.env.GENERATORS_RCON_HOST || 'generators', port: 25575, password: process.env.RCON_PASSWORD || 'ph-admin-2024' }
+  },
+  skyblock: {
+    label:     'SkyBlock',
+    container: 'ph-skyblock',
+    color:     '#FF69B4',
+    rcon:      { host: process.env.SKYBLOCK_RCON_HOST || 'skyblock', port: 25577, password: process.env.RCON_PASSWORD || 'ph-admin-2024' }
   }
 };
 
@@ -139,6 +145,12 @@ const poolSmash = mysql.createPool({
 const poolGen = mysql.createPool({
   host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
   database: 'ph_generators', waitForConnections: true,
+  connectionLimit: 5, connectTimeout: 5000
+});
+
+const poolSkyBlock = mysql.createPool({
+  host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASS,
+  database: 'ph_skyblock', waitForConnections: true,
   connectionLimit: 5, connectTimeout: 5000
 });
 
@@ -657,13 +669,14 @@ app.post('/api/players/unban', strictLimit, auth, async (req, res) => {
 
 app.get('/api/databases', auth, async (req, res) => {
   const checkTable = async (pool, query) => { try { await pool.execute(query); return true; } catch { return false; } };
-  const [ctr, ph, sv, mg, sm, gn, vt, dc] = await Promise.allSettled([
+  const [ctr, ph, sv, mg, sm, gn, sk, vt, dc] = await Promise.allSettled([
     getContainerStatus('ph-mysql'),
     checkDb(poolCore),
     checkDb(poolSv),
     checkDb(poolMg),
     checkDb(poolSmash),
     checkDb(poolGen),
+    checkDb(poolSkyBlock),
     checkTable(poolCore, 'SELECT 1 FROM vote_coins LIMIT 1'),
     checkTable(poolCore, 'SELECT 1 FROM discord_sync LIMIT 1')
   ]);
@@ -674,9 +687,40 @@ app.get('/api/databases', auth, async (req, res) => {
     ph_minigames:  mg.status  === 'fulfilled' ? mg.value  : false,
     ph_smash:      sm.status  === 'fulfilled' ? sm.value  : false,
     ph_generators: gn.status  === 'fulfilled' ? gn.value  : false,
+    ph_skyblock:   sk.status  === 'fulfilled' ? sk.value  : false,
     ph_vote:       vt.status  === 'fulfilled' ? vt.value  : false,
     discord_sync:  dc.status  === 'fulfilled' ? dc.value  : false
   });
+});
+
+// ── REST-API: SkyBlock ────────────────────────────────────────────────────
+
+app.get('/api/skyblock/islands', auth, async (req, res) => {
+  try {
+    const [rows] = await poolSkyBlock.execute(
+      `SELECT owner_name, level, score, size, max_members, created_at
+       FROM sb_islands ORDER BY score DESC LIMIT 20`
+    );
+    res.json({ islands: rows.map((r, i) => ({
+      rank: i + 1, owner: r.owner_name, level: r.level,
+      score: Number(r.score), size: r.size, members: r.max_members,
+      created: r.created_at
+    })) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/skyblock/stats', auth, async (req, res) => {
+  try {
+    const [[totals]] = await poolSkyBlock.execute(
+      `SELECT COUNT(*) AS total_islands, SUM(score) AS total_score,
+              MAX(level) AS max_level, MAX(score) AS max_score
+       FROM sb_islands`
+    );
+    const [[players]] = await poolSkyBlock.execute(
+      `SELECT COUNT(*) AS total_players FROM sb_players`
+    );
+    res.json({ ...totals, total_players: players.total_players });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── REST-API: Wirtschaft ──────────────────────────────────────────────────
@@ -996,7 +1040,7 @@ app.post('/api/db/query', auth, async (req, res) => {
   const { query, database } = req.body;
   if (!query?.trim()) return res.status(400).json({ error: 'Keine Abfrage' });
   if (!/^\s*SELECT\s/i.test(query)) return res.status(400).json({ error: 'Nur SELECT-Abfragen erlaubt' });
-  if (!/^(pinkhorizon|ph_survival|ph_smash|ph_generators|ph_minigames)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
+  if (!/^(pinkhorizon|ph_survival|ph_smash|ph_generators|ph_minigames|ph_skyblock)$/.test(database)) return res.status(400).json({ error: 'Unbekannte Datenbank' });
   try {
     const pool = database === 'pinkhorizon' ? poolCore
       : database === 'ph_smash'      ? poolSmash
@@ -1047,7 +1091,7 @@ app.get('/api/permissions/groups', auth, async (req, res) => {
 
 // ── REST-API: Rechteverwaltung ────────────────────────────────────────────
 
-const MANAGED_SERVERS = ['lobby', 'survival', 'smash'];
+const MANAGED_SERVERS = ['lobby', 'survival', 'smash', 'skyblock', 'generators'];
 
 app.get('/api/servers/:name/ops', auth, async (req, res) => {
   const name = req.params.name;

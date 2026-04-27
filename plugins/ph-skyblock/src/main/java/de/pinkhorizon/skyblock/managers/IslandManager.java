@@ -4,6 +4,7 @@ import de.pinkhorizon.skyblock.PHSkyBlock;
 import de.pinkhorizon.skyblock.data.Island;
 import de.pinkhorizon.skyblock.data.SkyPlayer;
 import de.pinkhorizon.skyblock.database.IslandRepository;
+import de.pinkhorizon.skyblock.enums.TitleType;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -64,6 +65,12 @@ public class IslandManager {
             islandByOwner.put(player.getUniqueId(), loaded);
             islandById.put(loaded.getId(), loaded);
         });
+
+        // Inselbesitzer-Titel automatisch vergeben
+        plugin.getAchievementManager().grantTitleOwnership(player.getUniqueId(), TitleType.INSELBESITZER);
+        if (plugin.getTitleManager().getActiveTitle(player.getUniqueId()) == TitleType.KEIN_TITEL) {
+            plugin.getTitleManager().silentSetActiveTitle(player.getUniqueId(), TitleType.INSELBESITZER);
+        }
 
         return islandByOwner.get(player.getUniqueId());
     }

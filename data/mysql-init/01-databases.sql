@@ -1,6 +1,11 @@
 -- Pink Horizon MySQL Init-Script
 -- Wird beim ersten Start des MySQL-Containers automatisch ausgeführt
 
+-- Netzwerk-Datenbank (LuckPerms, geteilte Daten)
+CREATE DATABASE IF NOT EXISTS pinkhorizon
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
 -- Survival-Datenbank anlegen
 CREATE DATABASE IF NOT EXISTS ph_survival
     CHARACTER SET utf8mb4

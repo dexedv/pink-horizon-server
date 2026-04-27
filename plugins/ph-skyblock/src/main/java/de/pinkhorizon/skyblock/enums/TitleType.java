@@ -5,6 +5,9 @@ public enum TitleType {
     // Standard (immer verfügbar)
     KEIN_TITEL      ("none",           "",                          "§8Kein Titel",              0),
 
+    // Automatisch bei Insel-Erstellung vergeben
+    INSELBESITZER   ("inselbesitzer",  "§a[Inselbesitzer]",         "§aInselbesitzer",           0),
+
     // Anfänger
     ANFAENGER       ("anfaenger",      "§7[Anfänger]",              "§7Anfänger",                0),
     SCHUERFER       ("schuerfer",      "§7[Schürfer]",              "§7Schürfer",                0),

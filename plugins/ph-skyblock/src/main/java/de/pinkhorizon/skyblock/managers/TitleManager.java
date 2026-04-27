@@ -68,6 +68,15 @@ public class TitleManager {
     }
 
     /**
+     * Setzt den aktiven Titel ohne Ownership-Check und ohne Nachricht.
+     * Für automatische Vergabe (z.B. Inselbesitzer beim Login/Erstellung).
+     */
+    public void silentSetActiveTitle(UUID uuid, TitleType title) {
+        activeCache.put(uuid, title);
+        repo.setActiveTitle(uuid, title.getId());
+    }
+
+    /**
      * Chat-Präfix für den Spieler: "§d[PinkStar] §fSpielername: Nachricht"
      * Gibt einen leeren String zurück wenn kein Titel aktiv.
      */

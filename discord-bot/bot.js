@@ -55,6 +55,7 @@ const SERVERS = [
   { label: '🎮 Smash the Boss', container: 'ph-smash'      },
   { label: '⛏️ Survival',       container: 'ph-survival'   },
   { label: '⚙️ IdleForge',      container: 'ph-generators' },
+  { label: '🏝️ SkyBlock',        container: 'ph-skyblock'   },
   { label: '🏠 Lobby',          container: 'ph-lobby'      },
 ];
 const PROXY_HOST        = process.env.PROXY_HOST || 'velocity';
@@ -624,6 +625,7 @@ const ROLE_DEFS = [
   { name: 'Survival-Fan',  color: 0x2ECC71, hoist: false, mentionable: false },
   { name: 'Smash-Fan',     color: 0xFF5555, hoist: false, mentionable: false },
   { name: 'IdleForge-Fan', color: 0xFFAA00, hoist: false, mentionable: false },
+  { name: 'SkyBlock-Fan',  color: 0xFF69B4, hoist: false, mentionable: false },
 ];
 
 async function apiCall(fn) {
@@ -877,20 +879,16 @@ async function postDefaultContent(guild, createdChannels) {
             '*Klicke erneut auf eine Rolle um sie zu entfernen.*',
           ].join('\n'))
           .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' })],
-        components: [new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('selfrole_survival')
-            .setLabel('⛏️ Survival')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId('selfrole_smash')
-            .setLabel('🎮 Smash the Boss')
-            .setStyle(ButtonStyle.Danger),
-          new ButtonBuilder()
-            .setCustomId('selfrole_idleforge')
-            .setLabel('⚙️ IdleForge')
-            .setStyle(ButtonStyle.Primary),
-        )],
+        components: [
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('selfrole_survival').setLabel('⛏️ Survival').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('selfrole_smash').setLabel('🎮 Smash the Boss').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId('selfrole_idleforge').setLabel('⚙️ IdleForge').setStyle(ButtonStyle.Primary),
+          ),
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('selfrole_skyblock').setLabel('🏝️ SkyBlock').setStyle(ButtonStyle.Secondary),
+          ),
+        ],
       });
     }
   }
@@ -952,6 +950,7 @@ async function runSetupGenerators(guild, interaction) {
       { name: 'Survival-Fan',  color: 0x2ECC71 },
       { name: 'Smash-Fan',     color: 0xFF5555 },
       { name: 'IdleForge-Fan', color: 0xFFAA00 },
+      { name: 'SkyBlock-Fan',  color: 0xFF69B4 },
     ];
     const roleMap = {};
     for (const def of newRoles) {
@@ -1363,6 +1362,7 @@ const GAME_ROLE_MAP = {
   selfrole_survival:  'Survival-Fan',
   selfrole_smash:     'Smash-Fan',
   selfrole_idleforge: 'IdleForge-Fan',
+  selfrole_skyblock:  'SkyBlock-Fan',
 };
 
 async function toggleGameRole(interaction) {
@@ -1629,7 +1629,7 @@ client.on('interactionCreate', async interaction => {
     if (id === 'verify') {
       await verifyMember(interaction);
 
-    } else if (id === 'selfrole_survival' || id === 'selfrole_smash' || id === 'selfrole_idleforge') {
+    } else if (GAME_ROLE_MAP[id]) {
       await toggleGameRole(interaction);
 
     } else if (id === 'ticket_open') {
