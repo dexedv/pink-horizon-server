@@ -5,7 +5,7 @@ config-version = "2.7"
 bind = "0.0.0.0:25565"
 
 # Servername (im Multiplayer-Menue angezeigt)
-motd = "<gradient:light_purple:dark_purple><bold>✦ Pink Horizon</bold></gradient> <dark_gray>» <red><bold>BETA</bold></red>  <dark_gray>│  <gold>[1.9 – 1.21.4]</gold>\n<light_purple>⚔ Survival  <dark_gray>│  <light_purple>Smash  <dark_gray>│  <light_purple>⚙ IdleForge</light_purple>"
+motd = "<gradient:light_purple:dark_purple>✦ Pink Horizon</gradient> <dark_gray>» <red><bold>BETA</bold></red>  <dark_gray>│  <gold>[1.9 – 1.21.4]</gold>\n<light_purple>⚔ Survival  <dark_gray>│  <light_purple>Smash  <dark_gray>│  <light_purple>⚙ IdleForge</light_purple>"
 
 # Maximale Spieleranzahl (0 = unbegrenzt)
 show-max-players = 100
