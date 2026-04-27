@@ -204,6 +204,9 @@ public class IslandWorldManager {
         player.teleport(spawn);
         player.setGameMode(GameMode.SURVIVAL);
 
+        // Mining-Block sicherstellen
+        plugin.getMiningBlockManager().ensureMiningBlock(world);
+
         // World-Border setzen
         de.pinkhorizon.generators.data.PlayerData borderData =
                 plugin.getPlayerDataMap().get(player.getUniqueId());

@@ -223,6 +223,8 @@ public class NavigatorGUI implements Listener {
                 "<gray>Spielfeld erweitern",                   "/gen border"));
         inv.setItem(43, btn(Material.PLAYER_HEAD,      "<white>Spieler besuchen",
                 "<gray>Insel eines Spielers besuchen",         "/gen visit "));
+        inv.setItem(46, btn(Material.AMETHYST_BLOCK,   "<light_purple>Mining-Block",
+                "<gray>Schlag & verdiene Geld + Shards",       "/gen mining"));
 
         player.openInventory(inv);
     }

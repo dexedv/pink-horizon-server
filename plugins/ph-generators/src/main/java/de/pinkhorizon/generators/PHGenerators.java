@@ -54,6 +54,7 @@ public class PHGenerators extends JavaPlugin {
     private TalentManager     talentManager;
     private MarketManager     marketManager;
     private SeasonalLeaderboardManager seasonalLeaderboardManager;
+    private MiningBlockManager miningBlockManager;
 
     // GUIs
     private ShopGUI       shopGUI;
@@ -106,6 +107,7 @@ public class PHGenerators extends JavaPlugin {
         talentManager     = new TalentManager(this);
         marketManager     = new MarketManager(this);
         seasonalLeaderboardManager = new SeasonalLeaderboardManager(this);
+        miningBlockManager = new MiningBlockManager(this);
         seasonalLeaderboardManager.init();
 
         // ── GUIs ──────────────────────────────────────────────────────────────
@@ -148,6 +150,7 @@ public class PHGenerators extends JavaPlugin {
         getServer().getPluginManager().registerEvents(marketGUI, this);
         getServer().getPluginManager().registerEvents(boosterGUI, this);
         getServer().getPluginManager().registerEvents(tokenShopGUI, this);
+        getServer().getPluginManager().registerEvents(miningBlockManager, this);
 
         getLogger().info("PH-Generators (IdleForge) gestartet!");
     }
@@ -203,6 +206,7 @@ public class PHGenerators extends JavaPlugin {
     public TalentManager     getTalentManager()          { return talentManager; }
     public MarketManager     getMarketManager()          { return marketManager; }
     public SeasonalLeaderboardManager getSeasonalLeaderboardManager() { return seasonalLeaderboardManager; }
+    public MiningBlockManager getMiningBlockManager()   { return miningBlockManager; }
 
     public ShopGUI       getShopGUI()                    { return shopGUI; }
     public UpgradeGUI    getUpgradeGUI()                 { return upgradeGUI; }

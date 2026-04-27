@@ -59,6 +59,15 @@ enchant-base-chance: 0.05
 # Community-Goal für Server-Booster (in Dollar)
 community-goal: 1000000000000
 
+# Mining-Block (fester Block neben Insel-Spawn)
+mining-block:
+  offset-x: 3           # X-Offset vom Island-Spawn
+  base-money: 5          # Geld pro Schlag bei Level 1
+  shard-chance: 0.10     # Basis-Chance für Shard-Drop (10%)
+  upgrade-shards: 5      # Shards pro Level für Upgrade (level × dieser Wert)
+  max-level: 50
+  cooldown-ms: 500       # Mindestzeit zwischen Schlägen in ms
+
 # Automatische Community-Events
 auto-events:
   enabled: true

@@ -1,6 +1,7 @@
 package de.pinkhorizon.generators.commands;
 
 import de.pinkhorizon.generators.GeneratorType;
+import org.bukkit.inventory.ItemStack;
 import de.pinkhorizon.generators.PHGenerators;
 import org.bukkit.Bukkit;
 import de.pinkhorizon.generators.data.PlacedGenerator;
@@ -116,6 +117,7 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
             case "milestones", "ms" -> { showMilestones(player); yield true; }
             case "tokens"       -> { showTokens(player); yield true; }
             case "tokenshop", "ts" -> { plugin.getTokenShopGUI().open(player); yield true; }
+            case "mining"          -> { handleMining(player, args); yield true; }
             case "event"        -> {
                 if (player.hasPermission("ph.generators.admin")) handleEvent(player, args);
                 else showHelp(player);
@@ -550,6 +552,49 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
                 + "<dark_gray>• /gen market sell <preis> <gray>(verkaufen)\n"
                 + "<aqua>✦ Talent-Punkte: <white>" + data.getTalentPoints() + "\n"
                 + "<dark_gray>• /gen talents <gray>(Talente freischalten)"));
+    }
+
+    private void handleMining(Player player, String[] args) {
+        PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
+        if (data == null) return;
+
+        String sub = args.length >= 2 ? args[1].toLowerCase() : "info";
+        switch (sub) {
+            case "upgrade" -> {
+                var result = plugin.getMiningBlockManager().upgrade(player, data);
+                switch (result) {
+                    case SUCCESS -> {
+                        player.sendMessage(MM.deserialize(
+                                "<green>✔ Mining-Block auf <light_purple>Level " + data.getMiningLevel()
+                                + " <green>upgeggraded!"));
+                        Bukkit.getScheduler().runTaskAsynchronously(plugin,
+                                () -> plugin.getRepository().savePlayer(data));
+                    }
+                    case MAX_LEVEL -> player.sendMessage(MM.deserialize(
+                            "<red>Dein Mining-Block ist bereits auf dem maximalen Level!"));
+                    case NOT_ENOUGH_SHARDS -> {
+                        int needed = data.getMiningLevel()
+                                * plugin.getConfig().getInt("mining-block.upgrade-shards", 5);
+                        int have   = plugin.getMiningBlockManager().createShardItem(1) != null
+                                ? countShardsInInv(player) : 0;
+                        player.sendMessage(MM.deserialize(
+                                "<red>Nicht genug Shards! Benötigt: <yellow>" + needed
+                                + " <red>| Im Inventar: <yellow>" + have));
+                    }
+                }
+            }
+            default -> player.sendMessage(MM.deserialize(
+                    plugin.getMiningBlockManager().getInfo(data)
+                    + "\n<dark_gray>/gen mining upgrade <gray>– Upgraden"));
+        }
+    }
+
+    private int countShardsInInv(Player player) {
+        int count = 0;
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (plugin.getMiningBlockManager().isShard(item)) count += item.getAmount();
+        }
+        return count;
     }
 
     private void handleEvent(Player player, String[] args) {

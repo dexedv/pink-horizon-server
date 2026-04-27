@@ -70,6 +70,10 @@ public class PlayerData {
     // Tutorial
     private boolean tutorialDone = false;
 
+    // Mining-Block
+    private int miningLevel = 1;
+    private int shards      = 0;
+
     // Stats-Hologramm (Spieler-Selbst-Platzierung)
     private String holoWorld = null;
     private int holoX, holoY, holoZ;
@@ -323,4 +327,12 @@ public class PlayerData {
 
     public boolean isTutorialDone()              { return tutorialDone; }
     public void setTutorialDone(boolean done)    { this.tutorialDone = done; }
+
+    // ── Mining-Block ─────────────────────────────────────────────────────────
+
+    public int  getMiningLevel()                 { return miningLevel; }
+    public void setMiningLevel(int n)            { this.miningLevel = Math.max(1, n); }
+    public int  getShards()                      { return shards; }
+    public void setShards(int n)                 { this.shards = Math.max(0, n); }
+    public void addShards(int n)                 { this.shards += n; }
 }
