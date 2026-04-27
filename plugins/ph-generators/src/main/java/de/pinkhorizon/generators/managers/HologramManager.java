@@ -35,6 +35,8 @@ public class HologramManager {
     private final Map<UUID, TextDisplay> lbHolograms = new HashMap<>();
     /** uuid → TextDisplay (Spawn-Info-Hologramme – auto-platziert neben dem Insel-Spawnpunkt) */
     private final Map<UUID, TextDisplay> spawnHolos = new HashMap<>();
+    /** uuid → TextDisplay (Mining-Block-Hologramm über dem Amethyst-Block) */
+    private final Map<UUID, TextDisplay> miningHolos = new HashMap<>();
     /** UUIDs whose spawn-holo is currently in preview-mode (frozen at step 1) */
     private final java.util.Set<UUID> previewMode = new java.util.HashSet<>();
     private BukkitTask updateTask;
@@ -54,6 +56,7 @@ public class HologramManager {
         removeAllStatsHolos();
         removeAllLbHolos();
         removeAllSpawnHolos();
+        removeAllMiningHolos();
     }
 
     // ── Hologramm-Verwaltung ─────────────────────────────────────────────────
@@ -136,6 +139,10 @@ public class HologramManager {
             // Spawn-Info-Hologramm aktualisieren (falls gesetzt)
             if (spawnHolos.containsKey(entry.getKey())) {
                 updateSpawnHolo(entry.getKey(), data);
+            }
+            // Mining-Block-Hologramm aktualisieren (falls gesetzt)
+            if (miningHolos.containsKey(entry.getKey())) {
+                updateMiningHolo(entry.getKey(), data);
             }
         }
     }
@@ -496,6 +503,74 @@ public class HologramManager {
         sb.append("<dark_gray>💡 <gray>/gen <dark_gray>→ Hauptmenü öffnen");
 
         return sb.toString();
+    }
+
+    // ── Mining-Block-Hologramm ───────────────────────────────────────────────
+
+    /**
+     * Spawnt oder aktualisiert das Hologramm über dem Mining-Block des Spielers.
+     * Position: getBlockLocation(world) + (0.5, 1.8, 0.5)
+     */
+    public void setMiningHolo(UUID uuid, World world, PlayerData data) {
+        removeMiningHolo(uuid);
+        Location blockLoc = plugin.getMiningBlockManager().getBlockLocation(world);
+        if (blockLoc == null) return;
+        Location holoLoc = blockLoc.clone().add(0.5, 1.8, 0.5);
+
+        TextDisplay display = world.spawn(holoLoc, TextDisplay.class, entity -> {
+            entity.setBillboard(Display.Billboard.CENTER);
+            entity.setDefaultBackground(false);
+            entity.setShadowed(true);
+            entity.setPersistent(false);
+            entity.setTransformation(new Transformation(
+                    new Vector3f(0, 0, 0), new AxisAngle4f(0, 0, 0, 1),
+                    new Vector3f(0.9f, 0.9f, 0.9f), new AxisAngle4f(0, 0, 0, 1)));
+            if (data != null) entity.text(MM.deserialize(buildMiningHoloText(data)));
+        });
+        miningHolos.put(uuid, display);
+    }
+
+    public void removeMiningHolo(UUID uuid) {
+        TextDisplay d = miningHolos.remove(uuid);
+        if (d != null && !d.isDead()) d.remove();
+    }
+
+    public void removeAllMiningHolos() {
+        miningHolos.values().forEach(d -> { if (d != null && !d.isDead()) d.remove(); });
+        miningHolos.clear();
+    }
+
+    private void updateMiningHolo(UUID uuid, PlayerData data) {
+        TextDisplay display = miningHolos.get(uuid);
+        if (display == null || display.isDead()) {
+            // Neu spawnen
+            World world = Bukkit.getWorld(plugin.getIslandWorldManager().getWorldName(uuid));
+            if (world == null) return;
+            setMiningHolo(uuid, world, data);
+            return;
+        }
+        display.text(MM.deserialize(buildMiningHoloText(data)));
+    }
+
+    private String buildMiningHoloText(PlayerData data) {
+        int blockLvl   = data.getMiningLevel();
+        int maxBlock   = plugin.getConfig().getInt("mining-block.max-level", 50);
+        int pickLvl    = data.getMiningPickaxeLevel();
+        int maxPick    = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 30);
+        long baseMoney = plugin.getConfig().getLong("mining-block.base-money", 5);
+        double pickMult = 1.0 + (pickLvl - 1) * 0.15;
+        long incomeHit  = (long) (baseMoney * blockLvl * pickMult);
+        double shardPct = (plugin.getConfig().getDouble("mining-block.shard-chance", 0.10)
+                + (blockLvl * 0.005) + (pickLvl * 0.01)) * 100;
+
+        return "<light_purple><bold>⛏ Mining-Block</bold>\n"
+                + "<dark_gray>─────────────────\n"
+                + "<gray>Block: <white>" + blockLvl + "<dark_gray>/" + maxBlock
+                + "  <gray>Spitzhacke: <aqua>" + pickLvl + "<dark_gray>/" + maxPick + "\n"
+                + "<gray>Geld/Schlag: <green>$" + MoneyManager.formatMoney(incomeHit) + "\n"
+                + "<gray>Shard-Chance: <light_purple>" + String.format("%.1f", shardPct) + "%\n"
+                + "<light_purple>✦ Shards: <white>" + data.getShards() + "\n"
+                + "<dark_gray>Sneak+Rechtsklick → Upgrade";
     }
 
     // ── Text-Generierung ─────────────────────────────────────────────────────

@@ -53,7 +53,7 @@ public class MiningUpgradeGUI implements Listener {
         int pickLevel    = data.getMiningPickaxeLevel();
         int maxBlockLvl  = plugin.getConfig().getInt("mining-block.max-level", 50);
         int maxPickLvl   = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 30);
-        int shards       = countShards(player);
+        int shards       = data.getShards();
 
         long baseMoney   = plugin.getConfig().getLong("mining-block.base-money", 5);
         double pickMult  = 1.0 + (pickLevel - 1) * 0.15;
@@ -226,11 +226,4 @@ public class MiningUpgradeGUI implements Listener {
         return item;
     }
 
-    private int countShards(Player player) {
-        int count = 0;
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (plugin.getMiningBlockManager().isShard(item)) count += item.getAmount();
-        }
-        return count;
-    }
 }

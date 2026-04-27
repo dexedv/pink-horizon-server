@@ -224,6 +224,8 @@ public class IslandWorldManager {
                 plugin.getGeneratorManager().loadHolograms(data);
                 // Spawn-Info-Hologramm 4 Blöcke neben dem Spawnpunkt setzen
                 plugin.getHologramManager().setSpawnHolo(player.getUniqueId(), spawnLoc);
+                // Mining-Block-Hologramm über dem Amethyst-Block setzen
+                plugin.getHologramManager().setMiningHolo(player.getUniqueId(), world, data);
             }, 3L);
         }
 

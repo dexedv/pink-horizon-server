@@ -596,18 +596,11 @@ public class GeneratorCommand implements CommandExecutor, TabCompleter {
                         : data.getMiningLevel() * plugin.getConfig().getInt("mining-block.upgrade-shards", 5);
                 player.sendMessage(MM.deserialize(
                         "<red>Nicht genug Shards! Benötigt: <yellow>" + needed
-                        + " <red>| Im Inventar: <yellow>" + countShardsInInv(player)));
+                        + " <red>| Vorhanden: <yellow>" + data.getShards()));
             }
         }
     }
 
-    private int countShardsInInv(Player player) {
-        int count = 0;
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (plugin.getMiningBlockManager().isShard(item)) count += item.getAmount();
-        }
-        return count;
-    }
 
     private void handleEvent(Player player, String[] args) {
         if (args.length < 2) {

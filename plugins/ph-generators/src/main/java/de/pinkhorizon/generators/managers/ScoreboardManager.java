@@ -81,6 +81,9 @@ public class ScoreboardManager {
                         plugin.getConfig().getInt("generator-slot-per-prestige", 2),
                         talentSlots), line--);
         set(obj, "§r§r§r§r§r", line--);
+        set(obj, "§5⛏ Mining: §fLvl " + data.getMiningLevel()
+                + "  §d✦ " + data.getShards() + " Shards", line--);
+        set(obj, "§r§r§r§r§r§r", line--);
         set(obj, "§7play.pinkhorizon.de", line--);
 
         player.setScoreboard(board);

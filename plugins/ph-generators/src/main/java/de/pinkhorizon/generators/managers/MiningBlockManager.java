@@ -24,8 +24,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Mining-Block: fester AMETHYST_BLOCK neben dem Insel-Spawn.
- * Spieler schlagen drauf → verdienen Geld + zufällige Shard-Drops.
- * Shards können für Upgrades verwendet werden (/gen mining upgrade).
+ * Spieler schlagen drauf → verdienen Geld + virtuelle Shards (in PlayerData, nicht im Inventar).
+ * Shards können für Upgrades verwendet werden (Sneak+Rechtsklick → GUI).
  */
 public class MiningBlockManager implements Listener {
 
@@ -46,10 +46,6 @@ public class MiningBlockManager implements Listener {
 
     // ── Block platzieren ─────────────────────────────────────────────────────
 
-    /**
-     * Stellt sicher, dass der Mining-Block auf der Insel existiert.
-     * Wird nach dem Teleportieren des Spielers aufgerufen.
-     */
     public void ensureMiningBlock(World world) {
         Location loc = getBlockLocation(world);
         if (loc == null) return;
@@ -71,7 +67,7 @@ public class MiningBlockManager implements Listener {
         World world = player.getWorld();
 
         // Sneak + Rechtsklick → Upgrade-GUI öffnen
-        if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) && player.isSneaking()) {
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && player.isSneaking()) {
             if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) return;
             Location expected = getBlockLocation(world);
             if (expected == null) return;
@@ -126,22 +122,17 @@ public class MiningBlockManager implements Listener {
         data.addMoney(earned);
 
         // Partikel + Sound
-        world.spawnParticle(Particle.BLOCK_CRUMBLE, clicked.add(0.5, 0.5, 0.5), 8,
+        world.spawnParticle(Particle.BLOCK_CRUMBLE, clicked.clone().add(0.5, 0.5, 0.5), 8,
                 0.3, 0.3, 0.3, 0, BLOCK_MATERIAL.createBlockData());
         player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 0.6f, 1.0f + (level * 0.02f));
 
-        // Nachricht (nicht jedes Mal – nur wenn shard dropt)
+        // Shard-Drop (virtuell, kein Inventar-Item)
         double shardChance = plugin.getConfig().getDouble("mining-block.shard-chance", 0.10)
                 + (level * 0.005) + (pickaxeLevel * 0.01);
         if (ThreadLocalRandom.current().nextDouble() < shardChance) {
-            // Shard droppen
-            ItemStack shard = createShardItem(1);
-            var leftover = player.getInventory().addItem(shard);
-            if (!leftover.isEmpty()) {
-                player.getWorld().dropItemNaturally(player.getLocation(), leftover.values().iterator().next());
-            }
+            data.addShards(1);
             player.sendMessage(MM.deserialize(
-                    "<light_purple>✦ Mining-Shard erhalten! <gray>(" + data.getShards() + " total)"
+                    "<light_purple>✦ Mining-Shard +1! <gray>(" + data.getShards() + " total)"
                     + " <dark_gray>| <green>+$" + MoneyManager.formatMoney(earned)));
             player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.8f, 1.2f);
         }
@@ -151,16 +142,16 @@ public class MiningBlockManager implements Listener {
 
     public enum UpgradeResult { SUCCESS, MAX_LEVEL, NOT_ENOUGH_SHARDS }
 
-    /** Upgrade des Mining-Blocks */
+    /** Upgrade des Mining-Blocks (Shards werden aus PlayerData abgezogen) */
     public UpgradeResult upgrade(Player player, PlayerData data) {
         int maxLevel = plugin.getConfig().getInt("mining-block.max-level", 50);
         if (data.getMiningLevel() >= maxLevel) return UpgradeResult.MAX_LEVEL;
 
         int shardsNeeded = data.getMiningLevel()
                 * plugin.getConfig().getInt("mining-block.upgrade-shards", 5);
-        if (countShards(player) < shardsNeeded) return UpgradeResult.NOT_ENOUGH_SHARDS;
+        if (data.getShards() < shardsNeeded) return UpgradeResult.NOT_ENOUGH_SHARDS;
 
-        removeShards(player, shardsNeeded);
+        data.setShards(data.getShards() - shardsNeeded);
         data.setMiningLevel(data.getMiningLevel() + 1);
         return UpgradeResult.SUCCESS;
     }
@@ -172,9 +163,9 @@ public class MiningBlockManager implements Listener {
 
         int shardsNeeded = data.getMiningPickaxeLevel()
                 * plugin.getConfig().getInt("mining-block.pickaxe-upgrade-shards", 8);
-        if (countShards(player) < shardsNeeded) return UpgradeResult.NOT_ENOUGH_SHARDS;
+        if (data.getShards() < shardsNeeded) return UpgradeResult.NOT_ENOUGH_SHARDS;
 
-        removeShards(player, shardsNeeded);
+        data.setShards(data.getShards() - shardsNeeded);
         data.setMiningPickaxeLevel(data.getMiningPickaxeLevel() + 1);
 
         // Pickaxe im Inventar aktualisieren
@@ -188,56 +179,24 @@ public class MiningBlockManager implements Listener {
                 * plugin.getConfig().getInt("mining-block.pickaxe-upgrade-shards", 8);
     }
 
-    // ── Shard-Item ───────────────────────────────────────────────────────────
+    // ── Shard-Item (nur für GUI-Anzeige, wird NICHT ins Inventar gegeben) ────
 
     public ItemStack createShardItem(int amount) {
         ItemStack item = new ItemStack(SHARD_MATERIAL, amount);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(MM.deserialize("<light_purple>✦ Mining-Shard"));
         meta.lore(List.of(
-                MM.deserialize("<gray>Upgrade deinen Mining-Block"),
-                MM.deserialize("<dark_gray>/gen mining upgrade")
+                MM.deserialize("<gray>Schlag den Mining-Block um Shards zu sammeln"),
+                MM.deserialize("<dark_gray>Sneak + Rechtsklick → Upgrade-Menü")
         ));
         meta.getPersistentDataContainer().set(shardKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return item;
     }
 
-    public boolean isShard(ItemStack item) {
-        if (item == null || item.getType() != SHARD_MATERIAL) return false;
-        if (!item.hasItemMeta()) return false;
-        return item.getItemMeta().getPersistentDataContainer()
-                .has(shardKey, PersistentDataType.BYTE);
-    }
-
-    private int countShards(Player player) {
-        int count = 0;
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (isShard(item)) count += item.getAmount();
-        }
-        return count;
-    }
-
-    private void removeShards(Player player, int amount) {
-        int remaining = amount;
-        ItemStack[] contents = player.getInventory().getContents();
-        for (int i = 0; i < contents.length && remaining > 0; i++) {
-            ItemStack item = contents[i];
-            if (!isShard(item)) continue;
-            if (item.getAmount() <= remaining) {
-                remaining -= item.getAmount();
-                contents[i] = null;
-            } else {
-                item.setAmount(item.getAmount() - remaining);
-                remaining = 0;
-            }
-        }
-        player.getInventory().setContents(contents);
-    }
-
     // ── Hilfsmethoden ────────────────────────────────────────────────────────
 
-    private Location getBlockLocation(World world) {
+    public Location getBlockLocation(World world) {
         double spawnX = plugin.getConfig().getDouble("island.spawn-x", 0.5);
         double spawnY = plugin.getConfig().getDouble("island.spawn-y", 64.0);
         double spawnZ = plugin.getConfig().getDouble("island.spawn-z", 0.5);
@@ -246,14 +205,14 @@ public class MiningBlockManager implements Listener {
     }
 
     public String getInfo(PlayerData data) {
-        int level        = data.getMiningLevel();
-        int maxLevel     = plugin.getConfig().getInt("mining-block.max-level", 50);
-        int pickaxeLvl   = data.getMiningPickaxeLevel();
+        int level         = data.getMiningLevel();
+        int maxLevel      = plugin.getConfig().getInt("mining-block.max-level", 50);
+        int pickaxeLvl    = data.getMiningPickaxeLevel();
         int maxPickaxeLvl = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 30);
-        long baseMoney   = plugin.getConfig().getLong("mining-block.base-money", 5);
-        double pickMult  = 1.0 + (pickaxeLvl - 1) * 0.15;
-        long earned      = (long) (baseMoney * level * pickMult);
-        int shardsNeeded = level * plugin.getConfig().getInt("mining-block.upgrade-shards", 5);
+        long baseMoney    = plugin.getConfig().getLong("mining-block.base-money", 5);
+        double pickMult   = 1.0 + (pickaxeLvl - 1) * 0.15;
+        long earned       = (long) (baseMoney * level * pickMult);
+        int shardsNeeded  = level * plugin.getConfig().getInt("mining-block.upgrade-shards", 5);
         int pickaxeShards = shardsNeededForPickaxe(data);
         double shardChance = (plugin.getConfig().getDouble("mining-block.shard-chance", 0.10)
                 + (level * 0.005) + (pickaxeLvl * 0.01)) * 100;
@@ -263,6 +222,7 @@ public class MiningBlockManager implements Listener {
                 + "<gray>Spitzhacke: <aqua>Lvl " + pickaxeLvl + " <dark_gray>/ " + maxPickaxeLvl + "\n"
                 + "<gray>Geld/Schlag: <green>$" + MoneyManager.formatMoney(earned) + "\n"
                 + "<gray>Shard-Chance: <light_purple>" + String.format("%.1f", shardChance) + "%\n"
+                + "<gray>✦ Shards: <light_purple>" + data.getShards() + "\n"
                 + (level < maxLevel ? "<gray>Block-Upgrade: <yellow>" + shardsNeeded + " Shards\n" : "<gold>Block MAX!\n")
                 + (pickaxeLvl < maxPickaxeLvl ? "<gray>Spitzhacke-Upgrade: <yellow>" + pickaxeShards + " Shards" : "<gold>Spitzhacke MAX!");
     }
