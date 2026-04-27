@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -124,6 +125,12 @@ public class MiningUpgradeGUI implements Listener {
             ));
         }
 
+        // Slot 8 – Pet-Info
+        inv.setItem(8, buildPetInfoItem(data));
+
+        // Slot 17 – Pet füttern
+        inv.setItem(17, buildPetFeedItem(data));
+
         // Slot 22 – Schließen
         ItemStack close = new ItemStack(Material.BARRIER);
         ItemMeta cm = close.getItemMeta();
@@ -155,6 +162,17 @@ public class MiningUpgradeGUI implements Listener {
 
         PlayerData data = plugin.getPlayerDataMap().get(player.getUniqueId());
         if (data == null) return;
+
+        if (name.contains("Pet füttern")) {
+            int shardsToUse = event.isRightClick() ? 50 : 10;
+            var res = plugin.getMiningBlockManager().feedPet(player, data, shardsToUse);
+            switch (res) {
+                case SUCCESS          -> Bukkit.getScheduler().runTaskLater(plugin, () -> open(player), 1L);
+                case MAX_LEVEL        -> player.sendMessage(MM.deserialize("<yellow>✦ Dein Pet ist bereits auf Max-Level!"));
+                case NOT_ENOUGH_SHARDS -> player.sendMessage(MM.deserialize("<red>✦ Nicht genug Shards!"));
+            }
+            return;
+        }
 
         if (name.contains("Block upgraden")) {
             MiningBlockManager.UpgradeResult res = plugin.getMiningBlockManager().upgrade(player, data);
@@ -217,6 +235,57 @@ public class MiningUpgradeGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.displayName(MM.deserialize(label));
         meta.lore(List.of(MM.deserialize("<gray>Maximales Level erreicht!")));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack buildPetInfoItem(de.pinkhorizon.generators.data.PlayerData data) {
+        int petLvl   = data.getPetLevel();
+        int petMax   = data.getPetMaxLevel();
+        long petXp   = data.getPetXp();
+        long xpNeeded = data.isPetMaxLevel() ? 0 : data.petXpToNextLevel();
+
+        // XP-Fortschrittsbalken (10 Zeichen)
+        String bar = "";
+        if (!data.isPetMaxLevel()) {
+            int filled = (int) Math.round((double) petXp / xpNeeded * 10);
+            bar = "<green>" + "█".repeat(filled) + "<dark_gray>" + "█".repeat(10 - filled);
+        }
+
+        ItemStack item = new ItemStack(org.bukkit.Material.ARMADILLO_SPAWN_EGG);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(MM.deserialize("<gold><bold>🐾 Mining-Pet</bold>"));
+        List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+        lore.add(MM.deserialize("<gray>Level: <white>" + petLvl + " <dark_gray>/ " + petMax));
+        if (!data.isPetMaxLevel()) {
+            lore.add(MM.deserialize("<gray>XP: <white>" + petXp + " <dark_gray>/ " + xpNeeded));
+            lore.add(MM.deserialize(bar));
+        } else {
+            lore.add(MM.deserialize("<gold><bold>MAX LEVEL!</bold>"));
+        }
+        lore.add(MM.deserialize(""));
+        lore.add(MM.deserialize("<gray>Generator-Einkommen: <green>+" + String.format("%.0f", (data.getPetIncomeMultiplier() - 1) * 100) + "%"));
+        lore.add(MM.deserialize("<gray>Upgrade-Rabatt: <aqua>-" + String.format("%.0f", (1 - data.getPetUpgradeCostMultiplier()) * 100) + "%"));
+        lore.add(MM.deserialize("<gray>Shard-Bonus: <light_purple>+" + String.format("%.1f", data.getPetShardBonus() * 100) + "%"));
+        lore.add(MM.deserialize("<gray>Coin-Bonus: <gold>+" + String.format("%.1f", data.getPetCoinBonus() * 100) + "%"));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack buildPetFeedItem(de.pinkhorizon.generators.data.PlayerData data) {
+        if (data.isPetMaxLevel()) return maxItem("<gold>Pet: MAX erreicht!");
+        ItemStack item = new ItemStack(org.bukkit.Material.AMETHYST_SHARD);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(MM.deserialize("<light_purple>Pet füttern"));
+        meta.lore(List.of(
+                MM.deserialize("<gray>Shards verfüttern für Pet-XP"),
+                MM.deserialize(""),
+                MM.deserialize("<yellow>Linksklick <gray>→ 10 Shards <dark_gray>(+200 XP)"),
+                MM.deserialize("<yellow>Rechtsklick <gray>→ 50 Shards <dark_gray>(+1000 XP)"),
+                MM.deserialize(""),
+                MM.deserialize("<gray>Deine Shards: <light_purple>" + data.getShards())
+        ));
         item.setItemMeta(meta);
         return item;
     }

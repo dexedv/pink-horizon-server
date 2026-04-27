@@ -235,11 +235,11 @@ public class UpgradeGUI implements Listener {
 
         double eventMult  = plugin.getEventManager()  != null ? plugin.getEventManager().getUpgradeCostMultiplier()      : 1.0;
         double talentMult = plugin.getTalentManager() != null ? plugin.getTalentManager().getUpgradeCostMultiplier(data) : 1.0;
-        long upgCost = Math.round(gen.upgradeCost() * eventMult * talentMult);
+        long upgCost = Math.round(gen.upgradeCost() * eventMult * talentMult * data.getPetUpgradeCostMultiplier());
         double income = gen.incomePerSecond();
         double nextIncome = gen.getType().incomeAt(level + 1);
         boolean canAfford = data.getMoney() >= upgCost;
-        boolean hasDiscount = eventMult < 1.0 || talentMult < 1.0;
+        boolean hasDiscount = eventMult < 1.0 || talentMult < 1.0 || data.getPetUpgradeCostMultiplier() < 1.0;
 
         List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
         lore.add(MM.deserialize((isMax ? "<gold>" : "<gray>") + "Level: "

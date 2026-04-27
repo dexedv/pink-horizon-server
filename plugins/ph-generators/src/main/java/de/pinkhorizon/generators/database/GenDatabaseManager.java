@@ -387,6 +387,16 @@ public class GenDatabaseManager {
                     .execute();
             } catch (java.sql.SQLException ignored) {}
 
+            // Migration: Mining-Pet
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN pet_level INT DEFAULT 1")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+            try { con.prepareStatement(
+                    "ALTER TABLE gen_players ADD COLUMN pet_xp BIGINT DEFAULT 0")
+                    .execute();
+            } catch (java.sql.SQLException ignored) {}
+
             // Migration: Mining-Block custom position
             try { con.prepareStatement(
                     "ALTER TABLE gen_players ADD COLUMN mining_block_x INT NULL")

@@ -69,6 +69,8 @@ public class GeneratorRepository {
                 try { data.setMiningLevel(rs.getInt("mining_level")); } catch (SQLException ignored) {}
                 try { data.setMiningPickaxeLevel(rs.getInt("mining_pickaxe_level")); } catch (SQLException ignored) {}
                 try { data.setShards(rs.getInt("shards")); } catch (SQLException ignored) {}
+                try { data.setPetLevel(rs.getInt("pet_level")); } catch (SQLException ignored) {}
+                try { data.setPetXp(rs.getLong("pet_xp")); } catch (SQLException ignored) {}
                 try {
                     int mbx = rs.getInt("mining_block_x");
                     if (!rs.wasNull()) {
@@ -99,8 +101,9 @@ public class GeneratorRepository {
                     afk_boxes_opened, booster_expiry, booster_mult, last_seen, border_size,
                     last_daily, daily_streak, auto_upgrade, upgrade_tokens, talent_points,
                     milestone_reached, stored_boosters, bonus_slots, prestige_tokens, auto_tier_upgrade,
-                    mining_level, mining_pickaxe_level, shards, mining_block_x, mining_block_y, mining_block_z)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    mining_level, mining_pickaxe_level, shards, mining_block_x, mining_block_y, mining_block_z,
+                    pet_level, pet_xp)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON DUPLICATE KEY UPDATE
                     name=VALUES(name), money=VALUES(money), prestige=VALUES(prestige),
                     total_earned=VALUES(total_earned), total_upgrades=VALUES(total_upgrades),
@@ -118,7 +121,9 @@ public class GeneratorRepository {
                     shards=VALUES(shards),
                     mining_block_x=VALUES(mining_block_x),
                     mining_block_y=VALUES(mining_block_y),
-                    mining_block_z=VALUES(mining_block_z)
+                    mining_block_z=VALUES(mining_block_z),
+                    pet_level=VALUES(pet_level),
+                    pet_xp=VALUES(pet_xp)
             """;
         } else {
             sql = """
@@ -127,8 +132,8 @@ public class GeneratorRepository {
                     border_size, last_daily, daily_streak, auto_upgrade, upgrade_tokens,
                     talent_points, milestone_reached, stored_boosters, bonus_slots, prestige_tokens,
                     auto_tier_upgrade, mining_level, mining_pickaxe_level, shards,
-                    mining_block_x, mining_block_y, mining_block_z)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    mining_block_x, mining_block_y, mining_block_z, pet_level, pet_xp)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
         }
         try (Connection con = db.getConnection();
@@ -166,6 +171,8 @@ public class GeneratorRepository {
                 stmt.setNull(26, java.sql.Types.INTEGER);
                 stmt.setNull(27, java.sql.Types.INTEGER);
             }
+            stmt.setInt(28, data.getPetLevel());
+            stmt.setLong(29, data.getPetXp());
             stmt.executeUpdate();
         } catch (SQLException e) {
             log.warning("[GenRepo] savePlayer: " + e.getMessage());

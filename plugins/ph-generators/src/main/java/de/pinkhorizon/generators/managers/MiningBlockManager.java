@@ -141,14 +141,17 @@ public class MiningBlockManager implements Listener {
         long earned = (long) (baseMoney * level * pickaxeMult);
         data.addMoney(earned);
 
+        // Pet-XP: +1 pro Schlag
+        awardPetXp(player, data, 1);
+
         // Partikel + Sound
         world.spawnParticle(Particle.BLOCK_CRUMBLE, blockLoc.clone().add(0.5, 0.5, 0.5), 8,
                 0.3, 0.3, 0.3, 0, BLOCK_MATERIAL.createBlockData());
         player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 0.6f, 1.0f + (level * 0.02f));
 
-        // Shard-Drop (virtuell, kein Inventar-Item)
+        // Shard-Drop (virtuell, kein Inventar-Item) — inkl. Pet-Bonus
         double shardChance = plugin.getConfig().getDouble("mining-block.shard-chance", 0.10)
-                + (level * 0.005) + (pickaxeLevel * 0.01);
+                + (level * 0.005) + (pickaxeLevel * 0.01) + data.getPetShardBonus();
         if (ThreadLocalRandom.current().nextDouble() < shardChance) {
             int shards = level >= 90 ? 4 : level >= 60 ? 3 : level >= 30 ? 2 : 1;
             data.addShards(shards);
@@ -157,12 +160,14 @@ public class MiningBlockManager implements Listener {
                     "<light_purple>" + shardsLabel + " Mining-Shard! <gray>(" + data.getShards() + " total)"
                     + " <dark_gray>| <green>+$" + MoneyManager.formatMoney(earned)));
             player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.8f, 1.0f + (shards * 0.1f));
+            // Pet-XP: +30 pro Shard-Drop
+            awardPetXp(player, data, 30);
         }
 
-        // Coin-Drop durch Spitzhacken-Level (1% bei Lvl 1 → 10% bei Lvl 50, quadratische Kurve)
+        // Coin-Drop durch Spitzhacken-Level (1% bei Lvl 1 → 10% bei Lvl 50, quadratische Kurve) — inkl. Pet-Bonus
         int maxPickaxe = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 50);
         double t = (pickaxeLevel - 1) / (double)(maxPickaxe - 1);
-        double coinChance = 0.01 + t * t * 0.09;
+        double coinChance = 0.01 + t * t * 0.09 + data.getPetCoinBonus();
         if (ThreadLocalRandom.current().nextDouble() < coinChance) {
             long coins = 1 + ThreadLocalRandom.current().nextLong(10000);
             data.addMoney(coins);
@@ -170,6 +175,8 @@ public class MiningBlockManager implements Listener {
                     "<gold>⚡ Coin-Drop! <yellow>+$" + MoneyManager.formatMoney(coins)
                     + " <dark_gray>| <gray>Spitzhacke Lvl " + pickaxeLevel));
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 1.3f);
+            // Pet-XP: +15 pro Coin-Drop
+            awardPetXp(player, data, 15);
         }
     }
 
@@ -233,6 +240,8 @@ public class MiningBlockManager implements Listener {
 
         data.setShards(data.getShards() - shardsNeeded);
         data.setMiningLevel(data.getMiningLevel() + 1);
+        // Pet-XP: +200 bei Block-Level-Up
+        awardPetXp(player, data, 200);
         return UpgradeResult.SUCCESS;
     }
 
@@ -247,6 +256,8 @@ public class MiningBlockManager implements Listener {
 
         data.setShards(data.getShards() - shardsNeeded);
         data.setMiningPickaxeLevel(data.getMiningPickaxeLevel() + 1);
+        // Pet-XP: +500 bei Spitzhacke-Level-Up
+        awardPetXp(player, data, 500);
 
         // Pickaxe im Inventar aktualisieren
         player.getInventory().setItem(6,
@@ -369,6 +380,36 @@ public class MiningBlockManager implements Listener {
         player.sendMessage(MM.deserialize("<green>✦ Mining-Block erfolgreich umgesetzt!"));
         world.spawnParticle(Particle.HAPPY_VILLAGER, newLoc.clone().add(0.5, 1, 0.5), 20, 0.5, 0.5, 0.5, 0);
         player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 1.2f);
+    }
+
+    // ── Pet-XP ───────────────────────────────────────────────────────────────
+
+    private void awardPetXp(Player player, PlayerData data, long amount) {
+        if (data.isPetMaxLevel()) return;
+        int levelsUp = data.addPetXp(amount);
+        if (levelsUp > 0) {
+            player.sendMessage(MM.deserialize(
+                    "<gold>✦ Dein Mining-Pet ist auf <yellow>Level " + data.getPetLevel()
+                    + " <gold>aufgestiegen!"));
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.5f);
+        }
+    }
+
+    public enum FeedResult { SUCCESS, NOT_ENOUGH_SHARDS, MAX_LEVEL }
+
+    /** Spieler verfüttert Shards an das Pet (5 Shards = 100 XP) */
+    public FeedResult feedPet(Player player, PlayerData data, int shardsToUse) {
+        if (data.isPetMaxLevel()) return FeedResult.MAX_LEVEL;
+        if (data.getShards() < shardsToUse) return FeedResult.NOT_ENOUGH_SHARDS;
+        data.setShards(data.getShards() - shardsToUse);
+        int levelsUp = data.addPetXp((long) shardsToUse * 20);
+        if (levelsUp > 0) {
+            player.sendMessage(MM.deserialize(
+                    "<gold>✦ Dein Mining-Pet ist auf <yellow>Level " + data.getPetLevel()
+                    + " <gold>aufgestiegen!"));
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.5f);
+        }
+        return FeedResult.SUCCESS;
     }
 
     private boolean isRelocateItem(ItemStack item) {

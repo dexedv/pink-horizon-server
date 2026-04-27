@@ -80,7 +80,8 @@ public class MoneyManager {
                     * eventMult
                     * talentMult
                     * guildMult
-                    * data.getRankMultiplier();
+                    * data.getRankMultiplier()
+                    * data.getPetIncomeMultiplier();
 
             long earned = Math.max(1, Math.round(income * totalMult));
             data.addMoney(earned);

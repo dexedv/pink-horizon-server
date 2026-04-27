@@ -192,7 +192,7 @@ public class GeneratorManager {
         double talentCostMult = plugin.getTalentManager() != null
                 ? plugin.getTalentManager().getUpgradeCostMultiplier(data) : 1.0;
 
-        long cost = Math.round(gen.upgradeCost() * eventCostMult * talentCostMult);
+        long cost = Math.round(gen.upgradeCost() * eventCostMult * talentCostMult * data.getPetUpgradeCostMultiplier());
         if (!data.takeMoney(cost)) return UpgradeResult.NO_MONEY;
 
         gen.setLevel(gen.getLevel() + 1);
@@ -241,7 +241,7 @@ public class GeneratorManager {
             if (filterType != null && gen.getType() != filterType) continue;
             if (gen.getLevel() >= maxLevel) continue;
 
-            long cost = Math.round(gen.upgradeCost() * eventCostMult * talentCostMult);
+            long cost = Math.round(gen.upgradeCost() * eventCostMult * talentCostMult * data.getPetUpgradeCostMultiplier());
             if (!data.takeMoney(cost)) continue;
 
             gen.setLevel(gen.getLevel() + 1);
