@@ -91,7 +91,16 @@ const SERVERS = {
   }
 };
 
-const VALID_RANKS = ['spieler', 'siedler', 'krieger', 'legende', 'vip', 'supporter', 'moderator', 'dev', 'admin', 'owner'];
+const VALID_RANKS = [
+  // Normale Spieler-Ränge
+  'spieler', 'siedler', 'krieger', 'legende',
+  // Premium-Ränge
+  'vip', 'vip_plus',
+  // Staff-Ränge
+  'supporter', 'moderator', 'senior_moderator', 'dev', 'admin', 'owner',
+  // SkyBlock-Prestige-Ränge
+  'skyblock_pioneer', 'skyblock_veteran', 'skyblock_legend'
+];
 
 // ── Auth-Middleware ───────────────────────────────────────────────────────
 
@@ -1046,6 +1055,7 @@ app.post('/api/db/query', auth, async (req, res) => {
       : database === 'ph_smash'      ? poolSmash
       : database === 'ph_generators' ? poolGen
       : database === 'ph_minigames'  ? poolMg
+      : database === 'ph_skyblock'   ? poolSkyBlock
       : poolSv;
     const lq = /\blimit\b/i.test(query) ? query.trimEnd().replace(/;$/, '') : `${query.trimEnd().replace(/;$/, '')} LIMIT 200`;
     const [rows, fields] = await pool.execute(lq);
@@ -1992,7 +2002,7 @@ app.get('/api/network/events', auth, async (req, res) => {
 
 app.get('/api/db/tables', auth, async (req, res) => {
   const db = req.query.database;
-  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames'];
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames', 'ph_skyblock'];
   if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
   try {
     // ph_vote ist ein Alias auf pinkhorizon (vote_coins-Tabellen liegen dort)
@@ -2000,6 +2010,7 @@ app.get('/api/db/tables', auth, async (req, res) => {
       : db === 'ph_smash'      ? poolSmash
       : db === 'ph_generators' ? poolGen
       : db === 'ph_minigames'  ? poolMg
+      : db === 'ph_skyblock'   ? poolSkyBlock
       : poolCore;
     const schemaDb = db === 'ph_vote' ? 'pinkhorizon' : db;
     const [rows] = await pool.execute(`
@@ -2015,7 +2026,7 @@ app.get('/api/db/tables', auth, async (req, res) => {
 
 app.get('/api/db/table', auth, async (req, res) => {
   const { database: db, table, page = 0, limit = 50, search = '', sort = '', dir = 'ASC' } = req.query;
-  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames'];
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames', 'ph_skyblock'];
   if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
   if (!/^[a-zA-Z0-9_]+$/.test(table)) return res.status(400).json({ error: 'Invalid table' });
   const safeDir = dir === 'DESC' ? 'DESC' : 'ASC';
@@ -2024,6 +2035,7 @@ app.get('/api/db/table', auth, async (req, res) => {
       : db === 'ph_smash'      ? poolSmash
       : db === 'ph_generators' ? poolGen
       : db === 'ph_minigames'  ? poolMg
+      : db === 'ph_skyblock'   ? poolSkyBlock
       : poolCore;
     // Spalten ermitteln
     const [cols] = await pool.execute(`SHOW COLUMNS FROM \`${table}\``);
@@ -2066,7 +2078,7 @@ app.get('/api/db/table', auth, async (req, res) => {
 
 app.put('/api/db/row', auth, async (req, res) => {
   const { database: db, table, pk, pkValue, updates } = req.body;
-  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames'];
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames', 'ph_skyblock'];
   if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
   if (!/^[a-zA-Z0-9_]+$/.test(table) || !/^[a-zA-Z0-9_]+$/.test(pk)) return res.status(400).json({ error: 'Invalid params' });
   try {
@@ -2074,6 +2086,7 @@ app.put('/api/db/row', auth, async (req, res) => {
       : db === 'ph_smash'      ? poolSmash
       : db === 'ph_generators' ? poolGen
       : db === 'ph_minigames'  ? poolMg
+      : db === 'ph_skyblock'   ? poolSkyBlock
       : poolCore;
     const setClauses = Object.keys(updates).map(k => `\`${k}\` = ?`).join(', ');
     const values = [...Object.values(updates), pkValue];
@@ -2087,7 +2100,7 @@ app.put('/api/db/row', auth, async (req, res) => {
 
 app.delete('/api/db/row', auth, async (req, res) => {
   const { database: db, table, pk, pkValue } = req.body;
-  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames'];
+  const allowed = ['pinkhorizon', 'ph_survival', 'ph_smash', 'ph_vote', 'ph_generators', 'ph_minigames', 'ph_skyblock'];
   if (!allowed.includes(db)) return res.status(400).json({ error: 'Invalid database' });
   if (!/^[a-zA-Z0-9_]+$/.test(table) || !/^[a-zA-Z0-9_]+$/.test(pk)) return res.status(400).json({ error: 'Invalid params' });
   try {
@@ -2095,11 +2108,285 @@ app.delete('/api/db/row', auth, async (req, res) => {
       : db === 'ph_smash'      ? poolSmash
       : db === 'ph_generators' ? poolGen
       : db === 'ph_minigames'  ? poolMg
+      : db === 'ph_skyblock'   ? poolSkyBlock
       : poolCore;
     await pool.execute(`DELETE FROM \`${table}\` WHERE \`${pk}\` = ?`, [pkValue]);
     addAudit('db_delete', table, `${pk}=${pkValue}`);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Skills ────────────────────────────────────────────
+
+app.get('/api/skyblock/skills', auth, async (req, res) => {
+  try {
+    const [rows] = await poolSkyBlock.execute(
+      `SELECT p.name, sk.skill_id, sk.level, sk.xp
+       FROM sky_skills sk
+       JOIN pinkhorizon.players p ON sk.uuid = p.uuid
+       ORDER BY sk.level DESC, sk.xp DESC LIMIT 200`
+    );
+    const playerMap = {};
+    for (const row of rows) {
+      if (!playerMap[row.name]) playerMap[row.name] = { name: row.name, skills: {}, totalLevel: 0 };
+      playerMap[row.name].skills[row.skill_id] = { level: Number(row.level), xp: Number(row.xp) };
+      playerMap[row.name].totalLevel += Number(row.level);
+    }
+    const leaderboard = Object.values(playerMap).sort((a, b) => b.totalLevel - a.totalLevel).slice(0, 20);
+    res.json({ leaderboard });
+  } catch (e) { res.status(500).json({ error: e.message, leaderboard: [] }); }
+});
+
+// ── REST-API: SkyBlock – Companions ────────────────────────────────────────
+
+app.get('/api/skyblock/companions', auth, async (req, res) => {
+  try {
+    const [companions] = await poolSkyBlock.execute(
+      `SELECT p.name, c.companion_type, c.level, c.hunger, c.active
+       FROM sky_companions c
+       JOIN pinkhorizon.players p ON c.player_uuid = p.uuid
+       ORDER BY c.level DESC LIMIT 100`
+    );
+    const [[stats]] = await poolSkyBlock.execute(
+      `SELECT COUNT(*) AS total, COALESCE(SUM(active),0) AS active_count,
+              ROUND(AVG(level),1) AS avg_level, MAX(level) AS max_level
+       FROM sky_companions`
+    );
+    res.json({ companions, stats });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Runes ─────────────────────────────────────────────
+
+app.get('/api/skyblock/runes', auth, async (req, res) => {
+  try {
+    const [top] = await poolSkyBlock.execute(
+      `SELECT p.name, r.rune_type, r.amount
+       FROM sky_player_runes r
+       JOIN pinkhorizon.players p ON r.player_uuid = p.uuid
+       WHERE r.amount > 0
+       ORDER BY r.amount DESC LIMIT 50`
+    );
+    const [distribution] = await poolSkyBlock.execute(
+      `SELECT rune_type, SUM(amount) AS total, COUNT(DISTINCT player_uuid) AS players
+       FROM sky_player_runes WHERE amount > 0
+       GROUP BY rune_type ORDER BY total DESC`
+    );
+    res.json({ top, distribution });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Dungeons ──────────────────────────────────────────
+
+app.get('/api/skyblock/dungeons', auth, async (req, res) => {
+  try {
+    const [recent] = await poolSkyBlock.execute(
+      `SELECT p.name, d.dungeon_id, d.tier, d.duration_seconds, d.rank, d.completed_at
+       FROM sky_dungeon_runs d
+       JOIN pinkhorizon.players p ON d.player_uuid = p.uuid
+       ORDER BY d.completed_at DESC LIMIT 30`
+    );
+    const [leaderboard] = await poolSkyBlock.execute(
+      `SELECT p.name, d.dungeon_id, MIN(d.duration_seconds) AS best_time,
+              COUNT(*) AS total_runs, d.rank
+       FROM sky_dungeon_runs d
+       JOIN pinkhorizon.players p ON d.player_uuid = p.uuid
+       GROUP BY d.player_uuid, d.dungeon_id
+       ORDER BY best_time ASC LIMIT 20`
+    );
+    const [[stats]] = await poolSkyBlock.execute(
+      `SELECT COUNT(*) AS total_runs,
+              COUNT(DISTINCT player_uuid) AS players,
+              COUNT(DISTINCT dungeon_id) AS dungeons
+       FROM sky_dungeon_runs`
+    );
+    res.json({ recent, leaderboard, stats });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Battle Pass ───────────────────────────────────────
+
+app.get('/api/skyblock/battlepass', auth, async (req, res) => {
+  const season = parseInt(req.query.season || '1');
+  try {
+    const [leaderboard] = await poolSkyBlock.execute(
+      `SELECT p.name, b.bp_xp, b.level, b.premium
+       FROM sky_battlepass b
+       JOIN pinkhorizon.players p ON b.player_uuid = p.uuid
+       WHERE b.season = ?
+       ORDER BY b.bp_xp DESC LIMIT 20`, [season]
+    );
+    const [[stats]] = await poolSkyBlock.execute(
+      `SELECT COUNT(*) AS total_players, COALESCE(SUM(premium),0) AS premium_players,
+              ROUND(AVG(level),1) AS avg_level, MAX(level) AS max_level, MAX(bp_xp) AS max_xp
+       FROM sky_battlepass WHERE season = ?`, [season]
+    );
+    res.json({ leaderboard, stats: stats || {}, season });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Story / Nyx ──────────────────────────────────────
+
+app.get('/api/skyblock/story', auth, async (req, res) => {
+  try {
+    const [chapters] = await poolSkyBlock.execute(
+      `SELECT chapter, COUNT(*) AS players FROM sky_story_progress
+       GROUP BY chapter ORDER BY chapter`
+    );
+    const [[nyx]] = await poolSkyBlock.execute(
+      `SELECT progress, active FROM sky_nyx_event WHERE id=1`
+    );
+    const [topChapter] = await poolSkyBlock.execute(
+      `SELECT p.name, s.chapter, s.updated_at
+       FROM sky_story_progress s
+       JOIN pinkhorizon.players p ON s.player_uuid = p.uuid
+       WHERE s.chapter = (SELECT MAX(chapter) FROM sky_story_progress)
+       ORDER BY s.updated_at DESC LIMIT 10`
+    );
+    res.json({ chapters, nyx: nyx || { progress: 0, active: 0 }, topChapter });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Research ─────────────────────────────────────────
+
+app.get('/api/skyblock/research', auth, async (req, res) => {
+  try {
+    const [popular] = await poolSkyBlock.execute(
+      `SELECT research_id, COUNT(*) AS players,
+              COUNT(completed_at) AS completed
+       FROM sky_research GROUP BY research_id ORDER BY players DESC LIMIT 20`
+    );
+    const [[stats]] = await poolSkyBlock.execute(
+      `SELECT COUNT(DISTINCT uuid) AS researchers,
+              COUNT(*) AS total_started,
+              COUNT(completed_at) AS total_completed
+       FROM sky_research`
+    );
+    res.json({ popular, stats: stats || {} });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Machines ─────────────────────────────────────────
+
+app.get('/api/skyblock/machines', auth, async (req, res) => {
+  try {
+    const [byType] = await poolSkyBlock.execute(
+      `SELECT type, COUNT(*) AS count,
+              COALESCE(SUM(active),0) AS active_count,
+              COALESCE(SUM(energy_stored),0) AS total_energy
+       FROM sky_machines GROUP BY type ORDER BY count DESC`
+    );
+    const [[totals]] = await poolSkyBlock.execute(
+      `SELECT COUNT(*) AS total, COALESCE(SUM(active),0) AS active,
+              COALESCE(SUM(energy_stored),0) AS total_energy
+       FROM sky_machines`
+    );
+    res.json({ byType, totals: totals || {} });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – DNA ───────────────────────────────────────────────
+
+app.get('/api/skyblock/dna', auth, async (req, res) => {
+  try {
+    const [islands] = await poolSkyBlock.execute(
+      `SELECT island_uuid, genes, combinations_used
+       FROM sky_island_dna ORDER BY combinations_used DESC LIMIT 20`
+    );
+    const [fragments] = await poolSkyBlock.execute(
+      `SELECT fragment_id, SUM(amount) AS total
+       FROM sky_dna_fragments GROUP BY fragment_id ORDER BY total DESC LIMIT 15`
+    );
+    res.json({ islands, fragments });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Auktionshaus (ph-auction) ────────────────────────
+
+app.get('/api/skyblock/auctions', auth, async (req, res) => {
+  try {
+    const [listings] = await poolSkyBlock.execute(
+      `SELECT id, seller_name, item_name, start_price, bin_price,
+              highest_bid, ends_at, sold
+       FROM sky_auctions ORDER BY ends_at DESC LIMIT 100`
+    );
+    const [[stats]] = await poolSkyBlock.execute(
+      `SELECT COUNT(*) AS total,
+              COALESCE(SUM(sold),0) AS sold_count,
+              COALESCE(SUM(CASE WHEN sold=1 THEN GREATEST(COALESCE(bin_price,0), COALESCE(highest_bid,0)) END),0) AS total_volume,
+              COUNT(CASE WHEN sold=0 AND ends_at > NOW() THEN 1 END) AS active
+       FROM sky_auctions`
+    );
+    res.json({ listings, stats: stats || {} });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/skyblock/auctions/:id', auth, async (req, res) => {
+  const { id } = req.params;
+  if (!id) return res.status(400).json({ error: 'Keine ID' });
+  try {
+    const [result] = await poolSkyBlock.execute('DELETE FROM sky_auctions WHERE id=?', [id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Listing nicht gefunden' });
+    addAudit('sb_auction_delete', id, 'SkyBlock Auktion gelöscht');
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Stars ─────────────────────────────────────────────
+
+app.get('/api/skyblock/stars', auth, async (req, res) => {
+  try {
+    const [recent] = await poolSkyBlock.execute(
+      `SELECT island_uuid, tier, dropped_at, collected
+       FROM sky_stars ORDER BY dropped_at DESC LIMIT 50`
+    );
+    const [byTier] = await poolSkyBlock.execute(
+      `SELECT tier, COUNT(*) AS total, COALESCE(SUM(collected),0) AS collected
+       FROM sky_stars
+       GROUP BY tier ORDER BY FIELD(tier,'LEGENDARY','EPIC','RARE','COMMON')`
+    );
+    res.json({ recent, byTier });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Rituals ───────────────────────────────────────────
+
+app.get('/api/skyblock/rituals', auth, async (req, res) => {
+  try {
+    const [popular] = await poolSkyBlock.execute(
+      `SELECT ritual_id, COUNT(*) AS times_used
+       FROM sky_rituals GROUP BY ritual_id ORDER BY times_used DESC`
+    );
+    const [[stats]] = await poolSkyBlock.execute(
+      `SELECT COUNT(DISTINCT island_uuid) AS islands,
+              COUNT(*) AS total_rituals FROM sky_rituals`
+    );
+    res.json({ popular, stats: stats || {} });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── REST-API: SkyBlock – Komplett-Übersicht ────────────────────────────────
+
+app.get('/api/skyblock/overview', auth, async (req, res) => {
+  try {
+    const [[islands]] = await poolSkyBlock.execute('SELECT COUNT(*) AS cnt FROM sky_island_dna');
+    const [[skills]]  = await poolSkyBlock.execute('SELECT COUNT(DISTINCT uuid) AS cnt FROM sky_skills');
+    const [[runs]]    = await poolSkyBlock.execute('SELECT COUNT(*) AS cnt FROM sky_dungeon_runs');
+    const [[auctions]]= await poolSkyBlock.execute('SELECT COUNT(*) AS cnt FROM sky_auctions WHERE sold=0 AND ends_at > NOW()');
+    const [[machines]]= await poolSkyBlock.execute('SELECT COUNT(*) AS cnt FROM sky_machines WHERE active=1');
+    const [[stars]]   = await poolSkyBlock.execute('SELECT COUNT(*) AS cnt FROM sky_stars WHERE collected=1');
+    const [[nyx]]     = await poolSkyBlock.execute('SELECT progress, active FROM sky_nyx_event WHERE id=1');
+    res.json({
+      islands:      Number(islands?.cnt   || 0),
+      skillPlayers: Number(skills?.cnt    || 0),
+      dungeonRuns:  Number(runs?.cnt      || 0),
+      activeAuctions: Number(auctions?.cnt || 0),
+      activeMachines: Number(machines?.cnt || 0),
+      starsCollected: Number(stars?.cnt   || 0),
+      nyxProgress:  nyx?.progress || 0,
+      nyxActive:    !!(nyx?.active)
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────

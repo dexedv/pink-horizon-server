@@ -424,7 +424,7 @@ let ws = null;
 let conSrv = null;
 let cmdHist = [], histIdx = -1;
 let autoScroll = true;
-const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-smash': [], 'ph-generators': [] };
+const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-smash': [], 'ph-generators': [], 'ph-skyblock': [] };
 let _logFlushTimer = null;
 const _logPending = [];  // {text, cls} – gesammelt bis zum nächsten rAF
 
@@ -448,6 +448,16 @@ const RANK_DEFS = [
     perks:['30 Claims','6 Homes','10 AH-Slots','6% Zinsen (bis 200K)','/nick · /ptime · /pweather'] },
   { id:'siedler',   label:'Siedler',   color:'#55cc55', bg:'rgba(85,204,85,.1)',  border:'rgba(85,204,85,.3)',  icon:'🏡', desc:'Shop-Rang · 10€',
     perks:['20 Claims','4 Homes','7 AH-Slots','4% Zinsen (bis 150K)','/nick · /ptime · /pweather'] },
+  { id:'vip_plus',          label:'VIP+',            color:'#ffdd33', bg:'rgba(255,221,51,.1)',  border:'rgba(255,221,51,.3)',  icon:'🌟', desc:'VIP+ Spieler',
+    perks:['25 Claims','4 Homes','12 AH-Slots','5% Zinsen (bis 250K)','/ptime'] },
+  { id:'senior_moderator', label:'Sr. Moderator',   color:'#5599ff', bg:'rgba(85,153,255,.1)',  border:'rgba(85,153,255,.3)',  icon:'🛡️', desc:'Senior-Moderator',
+    perks:['200 Claims','10 Homes','25 AH-Slots','5% Zinsen (bis 300K)','Kick/Ban/Mute-Rechte','/nick · /ptime · /pweather'] },
+  { id:'skyblock_pioneer',  label:'SB Pioneer',      color:'#44eebb', bg:'rgba(68,238,187,.1)',  border:'rgba(68,238,187,.3)',  icon:'🌴', desc:'SkyBlock Pionier',
+    perks:['SkyBlock: 2 Begleiter','+10% SkyBlock Coins','1 extra Blueprint-Slot'] },
+  { id:'skyblock_veteran',  label:'SB Veteran',      color:'#22ddcc', bg:'rgba(34,221,204,.1)',  border:'rgba(34,221,204,.3)',  icon:'🏝️', desc:'SkyBlock Veteran',
+    perks:['SkyBlock: 3 Begleiter','+20% SkyBlock Coins','3 extra Blueprint-Slots','1 DNA-Fragment/Woche'] },
+  { id:'skyblock_legend',   label:'SB Legende',      color:'#ff69b4', bg:'rgba(255,105,180,.1)', border:'rgba(255,105,180,.3)', icon:'✦', desc:'SkyBlock Legende',
+    perks:['SkyBlock: 4 Begleiter','+35% SkyBlock Coins','5 extra Blueprint-Slots','2 DNA-Fragmente/Woche','Legendärer Void-Stab (Season)'] },
   { id:'spieler',   label:'Spieler',   color:'#888888', bg:'rgba(136,136,136,.1)',border:'rgba(136,136,136,.3)',icon:'🎮', desc:'Standard-Rang',
     perks:['10 Claims','2 Homes','5 AH-Slots','2% Zinsen (bis 100K)'] },
 ];
@@ -504,6 +514,7 @@ const NAV_DEF = [
   { id:'con_survival',   dot:true,  label:'Survival',       srv:'survival'   },
   { id:'con_smash',      dot:true,  label:'Smash the Boss', srv:'smash'      },
   { id:'con_generators', dot:true,  label:'IdleForge',      srv:'generators' },
+  { id:'con_skyblock',   dot:true,  label:'SkyBlock',       srv:'skyblock'   },
   { sec: 'Survival' },
   { id:'survival_dash',icon:'🌿', label:'Survival'        },
   { id:'players',      icon:'👥', label:'Spieler'         },
@@ -512,6 +523,21 @@ const NAV_DEF = [
   { id:'jobs',         icon:'⛏',  label:'Jobs & Level'   },
   { id:'stats',        icon:'📈', label:'Statistiken'     },
   { id:'auction',      icon:'🏪', label:'Auktionshaus'    },
+  { sec: 'SkyBlock' },
+  { id:'skyblock_dash',   icon:'🌴', label:'Übersicht'          },
+  { id:'skyblock_islands',icon:'🏝️', label:'Inseln'             },
+  { id:'skyblock_dna',    icon:'🧬', label:'Insel-DNA'          },
+  { id:'skyblock_skills', icon:'📊', label:'Skills'             },
+  { id:'skyblock_companions',icon:'🤝',label:'Begleiter'        },
+  { id:'skyblock_runes',  icon:'✨', label:'Runen'              },
+  { id:'skyblock_dungeons',icon:'⚔️',label:'Dungeons'           },
+  { id:'skyblock_battlepass',icon:'🎫',label:'Battle Pass'      },
+  { id:'skyblock_story',  icon:'📖', label:'Story / Nyx'        },
+  { id:'skyblock_auction',icon:'🏪', label:'SB-Auktionshaus'    },
+  { id:'skyblock_research',icon:'🔬',label:'Forschung'          },
+  { id:'skyblock_machines',icon:'⚙️',label:'Maschinen'          },
+  { id:'skyblock_stars',  icon:'⭐', label:'Sternschnuppen'     },
+  { id:'skyblock_rituals',icon:'🔮', label:'Rituale'            },
   { sec: 'Smash the Boss' },
   { id:'smash_lb',       icon:'⚔',  label:'Leaderboard'     },
   { sec: 'IdleForge' },
@@ -555,7 +581,7 @@ function buildNav() {
 }
 
 let _autoRefreshTimer = null;
-const AUTO_REFRESH_PAGES = new Set(['gen_dash','smash_lb','dashboard','survival_dash']);
+const AUTO_REFRESH_PAGES = new Set(['gen_dash','smash_lb','dashboard','survival_dash','skyblock_dash']);
 
 function startAutoRefresh(fn, ms = 30000) {
   if (_autoRefreshTimer) clearInterval(_autoRefreshTimer);
@@ -613,6 +639,20 @@ function renderPage() {
   if (PAGE === 'audit')         return renderAudit();
   if (PAGE === 'database')      return renderDatabase();
   if (PAGE === 'survival_dash') return renderSurvivalDash();
+  if (PAGE === 'skyblock_dash')      return renderSkyBlockDash();
+  if (PAGE === 'skyblock_islands')   return renderSkyBlockIslands();
+  if (PAGE === 'skyblock_dna')       return renderSkyBlockDna();
+  if (PAGE === 'skyblock_skills')    return renderSkyBlockSkills();
+  if (PAGE === 'skyblock_companions')return renderSkyBlockCompanions();
+  if (PAGE === 'skyblock_runes')     return renderSkyBlockRunes();
+  if (PAGE === 'skyblock_dungeons')  return renderSkyBlockDungeons();
+  if (PAGE === 'skyblock_battlepass')return renderSkyBlockBattlePass();
+  if (PAGE === 'skyblock_story')     return renderSkyBlockStory();
+  if (PAGE === 'skyblock_auction')   return renderSkyBlockAuction();
+  if (PAGE === 'skyblock_research')  return renderSkyBlockResearch();
+  if (PAGE === 'skyblock_machines')  return renderSkyBlockMachines();
+  if (PAGE === 'skyblock_stars')     return renderSkyBlockStars();
+  if (PAGE === 'skyblock_rituals')   return renderSkyBlockRituals();
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -892,6 +932,7 @@ async function loadDbStatus(elementId = 'db-section') {
     { name:'ph_minigames (DB)',       ok: d.ph_minigames,   detail: d.ph_minigames   ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_smash (DB)',          ok: d.ph_smash,       detail: d.ph_smash       ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_generators (DB)',     ok: d.ph_generators,  detail: d.ph_generators  ? 'Verbunden' : 'Nicht erreichbar' },
+    { name:'ph_skyblock (DB)',       ok: d.ph_skyblock,    detail: d.ph_skyblock    ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'ph_vote (DB)',           ok: d.ph_vote,        detail: d.ph_vote        ? 'Verbunden' : 'Nicht erreichbar' },
     { name:'discord_sync (Tabelle)', ok: d.discord_sync,   detail: d.discord_sync   ? 'Verbunden' : 'Nicht erreichbar' },
   ];
@@ -2769,6 +2810,12 @@ const SQL_HINTS = [
   { db:'ph_generators', q:'SELECT name, money, prestige, total_earned, total_upgrades, border_size FROM gen_players ORDER BY money DESC LIMIT 20' },
   { db:'ph_generators', q:'SELECT tier, level, COUNT(*) AS cnt FROM gen_generators GROUP BY tier, level ORDER BY tier, level DESC' },
   { db:'ph_generators', q:'SELECT g.name, COUNT(m.uuid) AS members, SUM(p.money) AS total FROM gen_guilds g LEFT JOIN gen_guild_members m ON g.id=m.guild_id LEFT JOIN gen_players p ON m.uuid=p.uuid GROUP BY g.id ORDER BY total DESC' },
+  { db:'ph_skyblock',   q:'SELECT p.name, sk.skill_id, sk.level, sk.xp FROM sky_skills sk JOIN pinkhorizon.players p ON sk.uuid=p.uuid ORDER BY sk.level DESC LIMIT 20' },
+  { db:'ph_skyblock',   q:'SELECT island_uuid, genes, combinations_used FROM sky_island_dna ORDER BY combinations_used DESC LIMIT 20' },
+  { db:'ph_skyblock',   q:'SELECT p.name, COUNT(*) AS dungeons, MIN(duration_seconds) AS best FROM sky_dungeon_runs dr JOIN pinkhorizon.players p ON dr.uuid=p.uuid GROUP BY dr.uuid ORDER BY dungeons DESC LIMIT 20' },
+  { db:'ph_skyblock',   q:'SELECT p.name, bp.level, bp.bp_xp, bp.premium FROM sky_battlepass bp JOIN pinkhorizon.players p ON bp.uuid=p.uuid ORDER BY bp.level DESC LIMIT 20' },
+  { db:'ph_skyblock',   q:'SELECT seller, item_name, bin_price, highest_bid, ends_at FROM sky_auctions WHERE sold=0 ORDER BY ends_at ASC LIMIT 30' },
+  { db:'ph_skyblock',   q:'SELECT rune_type, SUM(amount) AS total FROM sky_player_runes GROUP BY rune_type ORDER BY total DESC' },
 ];
 
 async function renderSqlConsole() {
@@ -2784,6 +2831,7 @@ async function renderSqlConsole() {
           <option value="ph_smash">ph_smash</option>
           <option value="ph_generators">ph_generators</option>
           <option value="ph_minigames">ph_minigames</option>
+          <option value="ph_skyblock">ph_skyblock</option>
         </select>
         <span style="color:var(--muted);font-size:.82rem">Nur SELECT erlaubt</span>
       </div>
@@ -3923,7 +3971,7 @@ async function renderDatabase() {
   setHdr('🗄️ Datenbank-Editor', `<button class="btn" onclick="loadDbTables()">↺ Aktualisieren</button>`);
   const c = document.getElementById('page-content');
   c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
-  const DB_LABELS = { pinkhorizon: 'Core / Vote', ph_survival: 'Survival', ph_smash: 'Smash', ph_generators: 'IdleForge', ph_minigames: 'Minigames' };
+  const DB_LABELS = { pinkhorizon: 'Core / Vote', ph_survival: 'Survival', ph_smash: 'Smash', ph_generators: 'IdleForge', ph_minigames: 'Minigames', ph_skyblock: 'SkyBlock' };
   c.innerHTML = `<div class="page" style="display:flex;flex-direction:column;flex:1;min-height:0;padding-bottom:0">
     <div class="db-editor">
       <div class="db-sidebar">
@@ -3946,7 +3994,7 @@ async function dbSetDb(db) {
   dbState.table = null;
   dbState.page = 1;
   document.querySelectorAll('.db-tab').forEach(b => {
-    const map = { 'Core / Vote': 'pinkhorizon', 'Survival': 'ph_survival', 'Smash': 'ph_smash', 'IdleForge': 'ph_generators', 'Minigames': 'ph_minigames' };
+    const map = { 'Core / Vote': 'pinkhorizon', 'Survival': 'ph_survival', 'Smash': 'ph_smash', 'IdleForge': 'ph_generators', 'Minigames': 'ph_minigames', 'SkyBlock': 'ph_skyblock' };
     b.classList.toggle('active', map[b.textContent.trim()] === db);
   });
   const tl = document.getElementById('db-tbl-list');
@@ -4259,6 +4307,589 @@ async function renderSurvivalDash() {
       ahEl.innerHTML = `<div class="card-title">🏷 Auktionshaus</div><div class="empty">Keine Angebote</div>`;
     }
   }
+}
+
+// ── SkyBlock ──────────────────────────────────────────────────────────────
+
+function skySubNav(active) {
+  const tabs = [
+    ['skyblock_dash','📊 Übersicht'],['skyblock_islands','🏝️ Inseln'],['skyblock_dna','🧬 DNA'],
+    ['skyblock_skills','📊 Skills'],['skyblock_companions','🤝 Begleiter'],['skyblock_runes','✨ Runen'],
+    ['skyblock_dungeons','⚔️ Dungeons'],['skyblock_battlepass','🎫 Battle Pass'],['skyblock_story','📖 Story'],
+    ['skyblock_auction','🏪 Auktionen'],['skyblock_research','🔬 Forschung'],['skyblock_machines','⚙️ Maschinen'],
+    ['skyblock_stars','⭐ Sterne'],['skyblock_rituals','🔮 Rituale'],
+  ];
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px">${tabs.map(([id,lbl])=>
+    `<button class="btn${active===id?' btn-p':''}" style="font-size:.75rem;padding:4px 10px" onclick="nav('${id}')">${escH(lbl)}</button>`
+  ).join('')}</div>`;
+}
+
+async function renderSkyBlockDash() {
+  setHdr('🌴 SkyBlock', `<button class="btn" onclick="renderSkyBlockDash()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_dash')}<div class="g4" id="sb-stats"><div class="empty">Lade…</div></div><div class="g2" id="sb-lower"></div></div>`;
+  const r = await apiFetch('/api/skyblock/overview');
+  if (!r?.ok) { document.getElementById('sb-stats').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const st = document.getElementById('sb-stats'); if (!st) return;
+  st.innerHTML = `
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('skyblock_islands')"><span class="stat-icon">🏝️</span><div><div class="stat-lbl">Inseln gesamt</div><div class="stat-val">${d.islands??'—'}</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('skyblock_skills')"><span class="stat-icon">📊</span><div><div class="stat-lbl">Skill-Spieler</div><div class="stat-val">${d.skillPlayers??'—'}</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('skyblock_dungeons')"><span class="stat-icon">⚔️</span><div><div class="stat-lbl">Dungeon-Runs</div><div class="stat-val">${d.dungeonRuns??'—'}</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('skyblock_auction')"><span class="stat-icon">🏪</span><div><div class="stat-lbl">Aktive Auktionen</div><div class="stat-val">${d.activeAuctions??'—'}</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('skyblock_machines')"><span class="stat-icon">⚙️</span><div><div class="stat-lbl">Aktive Maschinen</div><div class="stat-val">${d.activeMachines??'—'}</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('skyblock_stars')"><span class="stat-icon">⭐</span><div><div class="stat-lbl">Sterne gesammelt</div><div class="stat-val">${d.starsCollected??'—'}</div></div></div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('skyblock_story')">
+      <span class="stat-icon">📖</span>
+      <div>
+        <div class="stat-lbl">Nyx-Fortschritt</div>
+        <div class="stat-val" style="font-size:1rem">${d.nyxProgress??0}%${d.nyxActive?` <span style="color:var(--pink);font-size:.75rem">AKTIV!</span>`:''}</div>
+      </div>
+    </div>
+    <div class="card stat-card" style="cursor:pointer" onclick="nav('con_skyblock')"><span class="stat-icon">🖥️</span><div><div class="stat-lbl">Konsole</div><div class="stat-val" style="font-size:1rem;color:var(--pink)">→ Öffnen</div></div></div>
+  `;
+  const lo = document.getElementById('sb-lower'); if (!lo) return;
+  lo.innerHTML = `
+    <div class="card">
+      <div class="card-title">⚡ Quick-Actions (SkyBlock)</div>
+      <div class="qa-bar">
+        <span class="qa-label">Wetter:</span>
+        <button class="qa-btn" onclick="doSkyCmd('skyweather')">🌤 Aktuell</button>
+        <span class="qa-label" style="margin-left:8px">Server:</span>
+        <button class="qa-btn" onclick="doSkyCmd('save-all')">💾 Save all</button>
+        <button class="qa-btn" onclick="nav('skyblock_story')">📖 Story-Status</button>
+        <button class="qa-btn" onclick="nav('skyblock_rituals')">🔮 Rituale</button>
+      </div>
+    </div>
+    <div class="card" id="sb-nyx-card">
+      <div class="card-title">📖 Nyx-Erwachen</div>
+      ${d.nyxActive ? `<div class="badge b-purple" style="margin-bottom:8px">EVENT AKTIV</div>` : ''}
+      <div style="margin-bottom:6px;font-size:.85rem;color:var(--muted)">Server-weiter Fortschritt</div>
+      <div class="res-bar" style="height:12px;margin-bottom:8px"><div class="res-fill rf-cpu" style="width:${d.nyxProgress??0}%"></div></div>
+      <div style="font-size:.8rem">${d.nyxProgress??0}% – ${100-(d.nyxProgress??0)}% bis zum Erwachen</div>
+    </div>
+  `;
+}
+
+async function doSkyCmd(cmd) {
+  const r = await apiFetch('/api/rcon/command', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({server:'skyblock',command:cmd})});
+  toast(r?.ok ? 'Befehl gesendet' : 'Fehler beim Senden', r?.ok);
+}
+
+async function renderSkyBlockIslands() {
+  setHdr('🏝️ SkyBlock – Inseln', `<button class="btn" onclick="renderSkyBlockIslands()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_islands')}<div id="sb-isl-content"><div class="empty">Lade…</div></div></div>`;
+  const [dnaR, starsR] = await Promise.all([apiFetch('/api/skyblock/dna'), apiFetch('/api/skyblock/stars')]);
+  const dna   = dnaR?.ok   ? await dnaR.json()   : null;
+  const stars = starsR?.ok ? await starsR.json() : null;
+  const el = document.getElementById('sb-isl-content'); if (!el) return;
+  const dnaIslands = dna?.islands ?? [];
+  el.innerHTML = `
+    <div class="g3">
+      <div class="card">
+        <div class="card-title">🧬 Inseln mit DNA</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--purple)">${dnaIslands.length}</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-top:4px">Insel-DNAs registriert</div>
+      </div>
+      <div class="card">
+        <div class="card-title">⭐ Sterne (heute)</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--yellow)">${stars?.stats?.today ?? '—'}</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-top:4px">Sternschnuppen gefallen</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🧬 DNA-Fragmente</div>
+        <div class="stat-tbl">
+          ${(dna?.fragments ?? []).slice(0,5).map(f=>`
+            <div class="stat-row">
+              <span class="sl">${escH(f.fragment_id)}</span>
+              <span class="sv">${f.total}</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🧬 Insel-DNA Übersicht (Top 10)</div>
+      <div class="lb-table">
+        ${dnaIslands.slice(0,10).map((d,i)=>`
+          <div class="lb-row">
+            <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+            <span class="lb-name" style="font-size:.8rem">${escH(d.island_uuid.slice(0,18))}…</span>
+            <span class="lb-val" style="color:var(--purple)">${escH(d.genes ?? '—')}</span>
+            <span style="font-size:.74rem;color:var(--muted)">${d.combinations_used}x kombiniert</span>
+          </div>`).join('') || '<div class="empty">Keine DNA-Daten</div>'}
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockDna() {
+  setHdr('🧬 SkyBlock – Insel-DNA', `<button class="btn" onclick="renderSkyBlockDna()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_dna')}<div id="sb-dna-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/dna');
+  if (!r?.ok) { document.getElementById('sb-dna-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-dna-content'); if (!el) return;
+  const GENE_COLORS = { Fruchtbar:'#2ecc71', Magnetisch:'#3498db', Vulkanisch:'#e74c3c', Verzaubert:'#9b59b6', Abyssisch:'#1abc9c', Sonnig:'#f1c40f', Steinreich:'#e67e22', Händlerglück:'#2ecc71', Bergfried:'#e74c3c', Zeitgewirrt:'#9b59b6' };
+  el.innerHTML = `
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">🧬 Gen-Verteilung</div>
+        <div class="stat-tbl">
+          ${(d.genStats ?? []).slice(0,15).map(g=>`
+            <div class="stat-row">
+              <span class="sl" style="color:${GENE_COLORS[g.gene]||'var(--text)'}">${escH(g.gene)}</span>
+              <span class="sv">${g.count} Inseln</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔬 DNA-Fragmente im Umlauf</div>
+        <div class="stat-tbl">
+          ${(d.fragments ?? []).map(f=>`
+            <div class="stat-row">
+              <span class="sl">${escH(f.fragment_id)}</span>
+              <span class="sv" style="color:var(--purple)">${f.total}</span>
+            </div>`).join('') || '<div class="empty">Keine Fragmente</div>'}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏝️ Alle Insel-DNAs (${d.islands?.length ?? 0})</div>
+      <div class="lb-table">
+        ${(d.islands ?? []).map((isl,i)=>`
+          <div class="lb-row">
+            <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+            <span style="font-family:var(--mono);font-size:.76rem;color:var(--muted);flex:1">${escH(isl.island_uuid)}</span>
+            <span style="flex:2;font-size:.8rem">${(isl.genes||'').split(',').map(g=>`<span style="display:inline-block;margin:1px 2px;padding:1px 6px;border-radius:4px;background:rgba(155,89,182,.15);border:1px solid rgba(155,89,182,.3);font-size:.72rem;color:var(--purple)">${escH(g.trim())}</span>`).join('')}</span>
+            <span style="font-size:.74rem;color:var(--muted)">${isl.combinations_used}× DNA</span>
+          </div>`).join('') || '<div class="empty">Keine Inseln</div>'}
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockSkills() {
+  setHdr('📊 SkyBlock – Skills', `<button class="btn" onclick="renderSkyBlockSkills()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_skills')}<div id="sb-sk-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/skills');
+  if (!r?.ok) { document.getElementById('sb-sk-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-sk-content'); if (!el) return;
+  const SKILL_ICONS = { mining:'⛏️', farming:'🌾', fishing:'🎣', combat:'⚔️', crafting:'🔨', enchanting:'✨', alchemy:'⚗️', building:'🏗️' };
+  el.innerHTML = `
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">🏆 Skill-Gesamtranking (nach Total-Level)</div>
+        <div class="lb-table">
+          ${(d.leaderboard ?? []).slice(0,15).map((p,i)=>`
+            <div class="lb-row">
+              <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+              <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),120)">${escH(p.name)}</span>
+              <span class="lb-val">Lvl ${p.totalLevel}</span>
+              <span style="font-size:.74rem;color:var(--muted)">${Number(p.totalXp||0).toLocaleString('de-DE')} XP</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Skill-Verteilung</div>
+        <div class="stat-tbl">
+          ${(d.distribution ?? []).map(s=>`
+            <div class="stat-row">
+              <span class="sl">${SKILL_ICONS[s.skill_id]||'📊'} ${escH(s.skill_id)}</span>
+              <span class="sv">Ø ${Number(s.avgLevel||0).toFixed(1)} · Max ${s.maxLevel}</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockCompanions() {
+  setHdr('🤝 SkyBlock – Begleiter', `<button class="btn" onclick="renderSkyBlockCompanions()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_companions')}<div id="sb-comp-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/companions');
+  if (!r?.ok) { document.getElementById('sb-comp-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-comp-content'); if (!el) return;
+  const COMP_ICONS = { felix:'🌿', gustav:'📦', helga:'⚗️', bert:'⛏️', hanna:'💰', viktor:'🎣' };
+  el.innerHTML = `
+    <div class="g4">
+      <div class="card stat-card"><span class="stat-icon">🤝</span><div><div class="stat-lbl">Begleiter gesamt</div><div class="stat-val">${d.stats?.total ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">✅</span><div><div class="stat-lbl">Aktiv</div><div class="stat-val" style="color:var(--green)">${d.stats?.active ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">⭐</span><div><div class="stat-lbl">Ø Level</div><div class="stat-val">${Number(d.stats?.avgLevel||0).toFixed(1)}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🏆</span><div><div class="stat-lbl">Max Level</div><div class="stat-val">${d.stats?.maxLevel ?? '—'}</div></div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">🤝 Begleiter nach Typ</div>
+        <div class="stat-tbl">
+          ${(d.byType ?? []).map(t=>`
+            <div class="stat-row">
+              <span class="sl">${COMP_ICONS[t.companion_type?.toLowerCase()]||'🤝'} ${escH(t.companion_type)}</span>
+              <span class="sv">${t.count} · Ø Lvl ${Number(t.avgLevel||0).toFixed(1)}</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏆 Top Begleiter (Level)</div>
+        <div class="lb-table">
+          ${(d.topCompanions ?? []).slice(0,10).map((comp,i)=>`
+            <div class="lb-row">
+              <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+              <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(comp.name)}'),120)">${escH(comp.name)}</span>
+              <span style="font-size:.8rem;color:var(--purple)">${COMP_ICONS[comp.companion_type?.toLowerCase()]||'🤝'} ${escH(comp.companion_type)}</span>
+              <span class="lb-val">Lvl ${comp.level}</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockRunes() {
+  setHdr('✨ SkyBlock – Runen', `<button class="btn" onclick="renderSkyBlockRunes()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_runes')}<div id="sb-rune-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/runes');
+  if (!r?.ok) { document.getElementById('sb-rune-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-rune-content'); if (!el) return;
+  el.innerHTML = `
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">✨ Runen-Verteilung (Gesamt im Umlauf)</div>
+        <div class="stat-tbl">
+          ${(d.distribution ?? []).map(rd=>`
+            <div class="stat-row">
+              <span class="sl">${escH(rd.rune_type)}</span>
+              <span class="sv" style="color:var(--purple)">${rd.total}</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏆 Top Runen-Besitzer</div>
+        <div class="lb-table">
+          ${(d.topHolders ?? []).slice(0,10).map((p,i)=>`
+            <div class="lb-row">
+              <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+              <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),120)">${escH(p.name)}</span>
+              <span class="lb-val">${p.totalRunes} Runen</span>
+              <span style="font-size:.74rem;color:var(--muted)">${p.uniqueTypes} Typen</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockDungeons() {
+  setHdr('⚔️ SkyBlock – Dungeons', `<button class="btn" onclick="renderSkyBlockDungeons()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_dungeons')}<div id="sb-dng-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/dungeons');
+  if (!r?.ok) { document.getElementById('sb-dng-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-dng-content'); if (!el) return;
+  const RANK_COLORS = { S:'#FFD700', A:'#2ecc71', B:'#3498db', C:'#888888' };
+  el.innerHTML = `
+    <div class="g4">
+      <div class="card stat-card"><span class="stat-icon">⚔️</span><div><div class="stat-lbl">Gesamt-Runs</div><div class="stat-val">${d.stats?.total ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🏆</span><div><div class="stat-lbl">S-Rang Runs</div><div class="stat-val" style="color:#FFD700">${d.stats?.sRank ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">👥</span><div><div class="stat-lbl">Spieler (heute)</div><div class="stat-val">${d.stats?.today ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">⏱️</span><div><div class="stat-lbl">Beste Zeit</div><div class="stat-val" style="font-size:.9rem">${d.stats?.bestTime ?? '—'}</div></div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">⚔️ Letzte Dungeon-Runs</div>
+        <div class="lb-table">
+          ${(d.recentRuns ?? []).slice(0,10).map(run=>`
+            <div class="lb-row">
+              <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(run.name)}'),120)">${escH(run.name)}</span>
+              <span style="font-size:.8rem;color:var(--muted)">${escH(run.dungeon_id?.replace('_',' '))}</span>
+              <span style="font-size:.8rem;font-weight:700;color:${RANK_COLORS[run.rank]||'var(--text)'}">${run.rank}</span>
+              <span style="font-size:.76rem;color:var(--muted)">${Math.floor((run.duration_seconds||0)/60)}m ${(run.duration_seconds||0)%60}s</span>
+            </div>`).join('') || '<div class="empty">Keine Runs</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏆 Speedrun-Leaderboard</div>
+        <div class="lb-table">
+          ${(d.speedruns ?? []).slice(0,10).map((p,i)=>`
+            <div class="lb-row">
+              <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+              <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),120)">${escH(p.name)}</span>
+              <span style="font-size:.8rem;color:var(--muted)">${escH(p.dungeon_id?.replace('_',' '))}</span>
+              <span class="lb-val">${Math.floor((p.best_time||0)/60)}m ${(p.best_time||0)%60}s</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockBattlePass() {
+  setHdr('🎫 SkyBlock – Battle Pass', `<button class="btn" onclick="renderSkyBlockBattlePass()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_battlepass')}<div id="sb-bp-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/battlepass');
+  if (!r?.ok) { document.getElementById('sb-bp-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-bp-content'); if (!el) return;
+  el.innerHTML = `
+    <div class="g4">
+      <div class="card stat-card"><span class="stat-icon">🎫</span><div><div class="stat-lbl">Aktive Spieler</div><div class="stat-val">${d.stats?.activePlayers ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">⭐</span><div><div class="stat-lbl">Premium-Spieler</div><div class="stat-val" style="color:var(--yellow)">${d.stats?.premiumPlayers ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">📊</span><div><div class="stat-lbl">Ø Level</div><div class="stat-val">${Number(d.stats?.avgLevel||0).toFixed(1)}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🏆</span><div><div class="stat-lbl">Saison</div><div class="stat-val">${d.season ?? '—'}</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 Battle Pass – Top 20</div>
+      <div class="lb-table">
+        ${(d.leaderboard ?? []).slice(0,20).map((p,i)=>`
+          <div class="lb-row">
+            <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+            <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),120)">${escH(p.name)}</span>
+            ${p.premium ? `<span class="badge b-yellow" style="font-size:.68rem">PREMIUM</span>` : `<span class="badge b-blue" style="font-size:.68rem">FREE</span>`}
+            <span class="lb-val">Lvl ${p.level}</span>
+            <span style="font-size:.74rem;color:var(--muted)">${Number(p.bp_xp||0).toLocaleString('de-DE')} XP</span>
+          </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockStory() {
+  setHdr('📖 SkyBlock – Story & Nyx', `<button class="btn" onclick="renderSkyBlockStory()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_story')}<div id="sb-story-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/story');
+  if (!r?.ok) { document.getElementById('sb-story-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-story-content'); if (!el) return;
+  const NYX_CHAPTERS = ['Kapitel 1: Der Alte Seher','Kapitel 2: Das erste Ritual','Kapitel 3: Der Drachenpakt','Kapitel 4: Nyxs Botschaft','Kapitel 5: Nyx erwacht'];
+  el.innerHTML = `
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">📖 Nyx-Erwachen Event</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="font-size:2rem">📖</span>
+          <div>
+            <div style="font-size:1.2rem;font-weight:700">${d.nyxEvent?.active ? '🔥 EVENT AKTIV' : '⏳ Warte auf Gemeinschaft'}</div>
+            <div style="font-size:.82rem;color:var(--muted)">Fortschritt: ${d.nyxEvent?.progress ?? 0}%</div>
+          </div>
+        </div>
+        <div class="res-bar" style="height:14px;margin-bottom:10px"><div class="res-fill rf-cpu" style="width:${d.nyxEvent?.progress ?? 0}%"></div></div>
+        <div style="font-size:.82rem;color:var(--muted)">${d.nyxEvent?.progress ?? 0} / 100 – Void-Rituale zum Erwecken von Nyx</div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Kapitel-Verteilung</div>
+        <div class="stat-tbl">
+          ${NYX_CHAPTERS.map((ch,i)=>{
+            const cnt = (d.chapters??[]).find(c=>c.chapter===(i+1))?.count ?? 0;
+            return `<div class="stat-row"><span class="sl">${escH(ch)}</span><span class="sv">${cnt} Spieler</span></div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 Story-Fortschritt (Top Spieler)</div>
+      <div class="lb-table">
+        ${(d.topPlayers ?? []).slice(0,15).map((p,i)=>`
+          <div class="lb-row">
+            <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+            <span class="lb-name" onclick="nav('players');setTimeout(()=>loadPl('${escH(p.name)}'),120)">${escH(p.name)}</span>
+            <span class="lb-val" style="color:var(--purple)">${NYX_CHAPTERS[(p.chapter||1)-1] ?? 'Kapitel '+p.chapter}</span>
+            <span style="font-size:.74rem;color:var(--muted)">${p.nyx_fragments ?? 0} Nyx-Fragmente</span>
+          </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockAuction() {
+  setHdr('🏪 SkyBlock – Auktionshaus', `<button class="btn" onclick="renderSkyBlockAuction()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_auction')}<div id="sb-auc-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/auctions');
+  if (!r?.ok) { document.getElementById('sb-auc-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-auc-content'); if (!el) return;
+  el.innerHTML = `
+    <div class="g4">
+      <div class="card stat-card"><span class="stat-icon">🏪</span><div><div class="stat-lbl">Aktive Auktionen</div><div class="stat-val">${d.stats?.active ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">💰</span><div><div class="stat-lbl">Gesamtwert (offen)</div><div class="stat-val" style="font-size:.9rem;color:var(--yellow)">${Number(d.stats?.totalValue||0).toLocaleString('de-DE')}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">✅</span><div><div class="stat-lbl">Heute verkauft</div><div class="stat-val">${d.stats?.soldToday ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">👥</span><div><div class="stat-lbl">Aktive Verkäufer</div><div class="stat-val">${d.stats?.sellers ?? '—'}</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏷 Offene Auktionen</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${(d.listings ?? []).slice(0,20).map(a=>`
+          <div class="auc-row">
+            <span class="auc-seller">${escH(a.seller?.slice(0,8))}</span>
+            <span style="flex:2;font-size:.85rem">${escH(a.item_name||'Unbekannt')}</span>
+            <span class="auc-price">${a.bin_price ? Number(a.bin_price).toLocaleString('de-DE')+' BIN' : Number(a.highest_bid||a.start_price||0).toLocaleString('de-DE')}</span>
+            <span class="auc-exp">${new Date(a.ends_at).toLocaleString('de-DE')}</span>
+            <button class="btn-xs" style="color:var(--red);border-color:rgba(231,76,60,.3)" onclick="cancelSkyAuction(${a.id})">✗</button>
+          </div>`).join('') || '<div class="empty">Keine offenen Auktionen</div>'}
+      </div>
+    </div>
+  `;
+}
+
+async function cancelSkyAuction(id) {
+  if (!confirm('Auktion #'+id+' löschen?')) return;
+  const r = await apiFetch('/api/skyblock/auctions/'+id, {method:'DELETE'});
+  toast(r?.ok ? 'Auktion gelöscht' : 'Fehler', r?.ok);
+  if (r?.ok) renderSkyBlockAuction();
+}
+
+async function renderSkyBlockResearch() {
+  setHdr('🔬 SkyBlock – Forschung', `<button class="btn" onclick="renderSkyBlockResearch()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_research')}<div id="sb-res-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/research');
+  if (!r?.ok) { document.getElementById('sb-res-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-res-content'); if (!el) return;
+  el.innerHTML = `
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">🔬 Beliebteste Forschungen</div>
+        <div class="lb-table">
+          ${(d.popular ?? []).slice(0,15).map((res,i)=>`
+            <div class="lb-row">
+              <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+              <span class="lb-name">${escH(res.research_id?.replace(/_/g,' '))}</span>
+              <span class="lb-val">${res.count} Spieler</span>
+              <span style="font-size:.74rem;color:var(--muted)">${res.completed} abgeschlossen</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Forschungsstatistiken</div>
+        <div class="stat-tbl">
+          <div class="stat-row"><span class="sl">Aktive Forschungen</span><span class="sv">${d.stats?.active ?? '—'}</span></div>
+          <div class="stat-row"><span class="sl">Abgeschlossene</span><span class="sv" style="color:var(--green)">${d.stats?.completed ?? '—'}</span></div>
+          <div class="stat-row"><span class="sl">Eindeutige Forscher</span><span class="sv">${d.stats?.uniqueResearchers ?? '—'}</span></div>
+          <div class="stat-row"><span class="sl">Ø Forschungen/Spieler</span><span class="sv">${Number(d.stats?.avgPerPlayer||0).toFixed(1)}</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockMachines() {
+  setHdr('⚙️ SkyBlock – Maschinen', `<button class="btn" onclick="renderSkyBlockMachines()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_machines')}<div id="sb-mach-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/machines');
+  if (!r?.ok) { document.getElementById('sb-mach-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-mach-content'); if (!el) return;
+  const MACH_ICONS = { AUTO_SMELTER_I:'🔥', AUTO_SMELTER_II:'🔥', AUTO_CRAFTER:'⚒️', CROP_HARVESTER_SMALL:'🌾', CROP_HARVESTER_LARGE:'🌾', QUARRY:'⛏️', AUTO_BREWER:'⚗️', SOLAR_PANEL:'☀️', WIND_MILL:'🌬️', ACCUMULATOR:'🔋' };
+  el.innerHTML = `
+    <div class="g4">
+      <div class="card stat-card"><span class="stat-icon">⚙️</span><div><div class="stat-lbl">Maschinen gesamt</div><div class="stat-val">${d.stats?.total ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🏝️</span><div><div class="stat-lbl">Inseln mit Maschinen</div><div class="stat-val">${d.stats?.islandsWithMachines ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🔋</span><div><div class="stat-lbl">Gesamt EU gespeichert</div><div class="stat-val" style="font-size:.9rem">${Number(d.stats?.totalEnergy||0).toLocaleString('de-DE')}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">📊</span><div><div class="stat-lbl">Typen</div><div class="stat-val">${d.byType?.length ?? '—'}</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚙️ Maschinen nach Typ</div>
+      <div class="stat-tbl">
+        ${(d.byType ?? []).map(m=>`
+          <div class="stat-row">
+            <span class="sl">${MACH_ICONS[m.type]||'⚙️'} ${escH(m.type?.replace(/_/g,' '))}</span>
+            <span class="sv">${m.count} Stück</span>
+            <span style="font-size:.78rem;color:var(--purple);margin-left:8px">${Number(m.totalEnergy||0).toLocaleString('de-DE')} EU gespeichert</span>
+          </div>`).join('') || '<div class="empty">Keine Maschinen</div>'}
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockStars() {
+  setHdr('⭐ SkyBlock – Sternschnuppen', `<button class="btn" onclick="renderSkyBlockStars()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_stars')}<div id="sb-star-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/stars');
+  if (!r?.ok) { document.getElementById('sb-star-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-star-content'); if (!el) return;
+  const TIER_COLORS = { common:'#888', rare:'#3498db', epic:'#9b59b6', legendary:'#FFD700' };
+  el.innerHTML = `
+    <div class="g4">
+      <div class="card stat-card"><span class="stat-icon">⭐</span><div><div class="stat-lbl">Sterne gesamt</div><div class="stat-val">${d.stats?.total ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">✅</span><div><div class="stat-lbl">Gesammelt</div><div class="stat-val" style="color:var(--green)">${d.stats?.collected ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">🌟</span><div><div class="stat-lbl">Heute</div><div class="stat-val">${d.stats?.today ?? '—'}</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">👑</span><div><div class="stat-lbl">Legendäre (gesamt)</div><div class="stat-val" style="color:#FFD700">${d.stats?.legendary ?? '—'}</div></div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">📊 Nach Seltenheit</div>
+        <div class="stat-tbl">
+          ${(d.byTier ?? []).map(t=>`
+            <div class="stat-row">
+              <span class="sl" style="color:${TIER_COLORS[t.tier?.toLowerCase()]||'var(--text)'}">${escH(t.tier)}</span>
+              <span class="sv">${t.total} (${t.collected} gesammelt)</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">⭐ Letzte Sternschnuppen</div>
+        <div class="lb-table">
+          ${(d.recent ?? []).slice(0,10).map((s,i)=>`
+            <div class="lb-row">
+              <span style="font-size:.8rem;font-weight:700;color:${TIER_COLORS[s.tier?.toLowerCase()]||'var(--text)'}">${escH(s.tier)}</span>
+              <span style="font-family:var(--mono);font-size:.76rem;color:var(--muted);flex:1">${escH(s.island_uuid?.slice(0,16))}…</span>
+              <span class="badge ${s.collected?'b-green':'b-yellow'}" style="font-size:.68rem">${s.collected?'Gesammelt':'Offen'}</span>
+              <span style="font-size:.74rem;color:var(--muted)">${new Date(s.dropped_at).toLocaleString('de-DE')}</span>
+            </div>`).join('') || '<div class="empty">Keine Sterne</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function renderSkyBlockRituals() {
+  setHdr('🔮 SkyBlock – Rituale', `<button class="btn" onclick="renderSkyBlockRituals()">↺ Aktualisieren</button>`);
+  const c = document.getElementById('page-content');
+  c.innerHTML = `<div class="page">${skySubNav('skyblock_rituals')}<div id="sb-rit-content"><div class="empty">Lade…</div></div></div>`;
+  const r = await apiFetch('/api/skyblock/rituals');
+  if (!r?.ok) { document.getElementById('sb-rit-content').innerHTML='<div class="empty">API nicht verfügbar</div>'; return; }
+  const d = await r.json();
+  const el = document.getElementById('sb-rit-content'); if (!el) return;
+  const RITUAL_ICONS = { SONNENSEGEN:'☀️', ABGRUNDÖFFNUNG:'🌀', DRACHENPAKT:'🐉', STEINGEIST:'⛏️', ERNTE_TANZ:'🌾', STERNE_RUFEN:'⭐', HÄNDLER_GEIST:'💰', VOID_ERWACHEN:'🌌' };
+  el.innerHTML = `
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">🔮 Beliebteste Rituale</div>
+        <div class="lb-table">
+          ${(d.popular ?? []).slice(0,10).map((rit,i)=>`
+            <div class="lb-row">
+              <span class="lb-pos ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span>
+              <span class="lb-name">${RITUAL_ICONS[rit.ritual_id?.toUpperCase()]||'🔮'} ${escH(rit.ritual_id?.replace(/_/g,' '))}</span>
+              <span class="lb-val">${rit.count}×</span>
+              <span style="font-size:.74rem;color:var(--muted)">zuletzt ${new Date(rit.lastUsed).toLocaleString('de-DE')}</span>
+            </div>`).join('') || '<div class="empty">Keine Daten</div>'}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Ritual-Statistiken</div>
+        <div class="stat-tbl">
+          <div class="stat-row"><span class="sl">Rituale gesamt</span><span class="sv">${d.stats?.total ?? '—'}</span></div>
+          <div class="stat-row"><span class="sl">Eindeutige Inseln</span><span class="sv">${d.stats?.uniqueIslands ?? '—'}</span></div>
+          <div class="stat-row"><span class="sl">Heute durchgeführt</span><span class="sv" style="color:var(--purple)">${d.stats?.today ?? '—'}</span></div>
+          <div class="stat-row"><span class="sl">Beliebtestes Ritual</span><span class="sv" style="color:var(--pink)">${d.popular?.[0]?.ritual_id?.replace(/_/g,' ') ?? '—'}</span></div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────
