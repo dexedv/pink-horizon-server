@@ -228,7 +228,8 @@ async function checkAlerts() {
 setInterval(checkAlerts, 20000);
 
 // ── XRay-Alert-Scanner ────────────────────────────────────────────────────
-const xrayAlertCache = new Map(); // uuid → { score, alertedAt }
+const xrayAlertCache   = new Map(); // uuid → { score, alertedAt }
+const xrayDismissed    = new Set(); // uuid → als überprüft markiert (in-memory)
 
 function calcXrayScore(dRate, aRate) {
   let score = 0;
@@ -255,6 +256,7 @@ async function checkXrayAlerts() {
       const aRate  = Number(row.debris)   / total * 1000;
       const score  = calcXrayScore(dRate, aRate);
       if (score < 35) continue;
+      if (xrayDismissed.has(row.player_uuid)) continue;
 
       const cached = xrayAlertCache.get(row.player_uuid);
       // Nur neu melden wenn noch nicht gemeldet oder Score gestiegen oder 1h vergangen
@@ -298,12 +300,23 @@ app.get('/api/survival/xray/alerts', auth, async (req, res) => {
       const dRate = Number(row.diamonds) / total * 1000;
       const aRate = Number(row.debris)   / total * 1000;
       const score = calcXrayScore(dRate, aRate);
-      if (score >= 35) alerts.push({ player: row.name, uuid: row.player_uuid, score, dRate: dRate.toFixed(1), aRate: aRate.toFixed(1), totalBlocks: total });
+      if (score >= 35 && !xrayDismissed.has(row.player_uuid))
+        alerts.push({ player: row.name, uuid: row.player_uuid, score, dRate: dRate.toFixed(1), aRate: aRate.toFixed(1), totalBlocks: total });
     }
     alerts.sort((a, b) => b.score - a.score);
     res.json({ alerts });
   } catch (e) { res.status(500).json({ error: e.message, alerts: [] }); }
 });
+
+app.post('/api/xray/dismiss', auth, strictLimit, async (req, res) => {
+  const { uuid, name } = req.body;
+  if (!uuid) return res.status(400).json({ error: 'uuid required' });
+  xrayDismissed.add(uuid);
+  xrayAlertCache.delete(uuid);
+  addAudit('xray_dismiss', name || uuid, 'Als überprüft markiert');
+  res.json({ ok: true });
+});
+
 setTimeout(checkAlerts, 6000);
 
 // ── RCON-Client ───────────────────────────────────────────────────────────
@@ -458,6 +471,18 @@ app.post('/api/network/cancel', auth, async (req, res) => {
 });
 
 // ── REST-API: Spieler ─────────────────────────────────────────────────────
+
+app.get('/api/players/search', auth, async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.length < 2) return res.json({ players: [] });
+  try {
+    const [rows] = await poolCore.execute(
+      'SELECT name FROM players WHERE name LIKE ? ORDER BY name LIMIT 15',
+      [`%${q}%`]
+    );
+    res.json({ players: rows.map(r => r.name) });
+  } catch { res.json({ players: [] }); }
+});
 
 app.get('/api/players/online', auth, async (req, res) => {
   const serverKey = req.query.server || 'survival';
@@ -1489,6 +1514,25 @@ app.get('/api/smash/weekly-lb', auth, async (req, res) => {
       WHERE w.week_start = ?
       ORDER BY w.kills DESC LIMIT 10`, [weekStart]);
     res.json({ ok: true, rows, weekStart });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/smash/player', auth, async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: 'Kein Name' });
+  try {
+    const [rows] = await poolSmash.query(
+      `SELECT p.uuid, COALESCE(p.name, p.uuid) AS name, p.kills, p.total_damage,
+              p.personal_level, p.best_level,
+              COALESCE(c.coins, 0) AS coins,
+              COALESCE(pr.prestige, 0) AS prestige
+       FROM smash_players p
+       LEFT JOIN smash_coins c    ON c.uuid  = p.uuid
+       LEFT JOIN smash_prestige pr ON pr.uuid = p.uuid
+       WHERE LOWER(p.name) = LOWER(?) LIMIT 1`, [name]
+    );
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Spieler nicht gefunden' });
+    res.json({ ok: true, player: { ...rows[0], kills: Number(rows[0].kills), coins: Number(rows[0].coins) } });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 

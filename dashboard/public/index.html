@@ -554,7 +554,16 @@ function buildNav() {
   }
 }
 
+let _autoRefreshTimer = null;
+const AUTO_REFRESH_PAGES = new Set(['gen_dash','smash_lb','dashboard','survival_dash']);
+
+function startAutoRefresh(fn, ms = 30000) {
+  if (_autoRefreshTimer) clearInterval(_autoRefreshTimer);
+  _autoRefreshTimer = setInterval(fn, ms);
+}
+
 function nav(p) {
+  if (_autoRefreshTimer) { clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
   const wasStats = PAGE === 'sysmon' || PAGE === 'dashboard';
   const isStats  = p   === 'sysmon' || p   === 'dashboard';
   if (wasStats && !isStats && ws?.readyState === 1)
@@ -925,6 +934,10 @@ function renderCon(k) {
   const c = document.getElementById('page-content');
   c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
   c.innerHTML = `<div class="con-wrap">
+    <div style="display:flex;gap:6px;padding:6px 8px 0;flex-shrink:0">
+      <input class="field" id="con-filter" placeholder="🔍 Log filtern…" oninput="applyConFilter()" style="flex:1;font-size:.8rem;padding:4px 8px">
+      <button class="btn" style="font-size:.75rem;padding:3px 10px" onclick="document.getElementById('con-filter').value='';applyConFilter()">✕</button>
+    </div>
     <div class="con-out" id="con-out"></div>
     <div class="con-in">
       <input class="field" id="cmd-in" placeholder="Befehl eingeben…" ${!srv.rcon?'disabled':''}>
@@ -975,6 +988,7 @@ function addLine(out, text, buf=true, cls='') {
       }
       out.appendChild(frag);
       while (out.children.length > 1000) out.removeChild(out.firstChild);
+      applyConFilter();
       if (autoScroll) out.scrollTop = out.scrollHeight;
     });
   }
@@ -988,6 +1002,14 @@ function classLine(l) {
   return '';
 }
 
+function applyConFilter() {
+  const q = (document.getElementById('con-filter')?.value || '').toLowerCase();
+  const out = document.getElementById('con-out'); if (!out) return;
+  for (const d of out.children) {
+    d.style.display = (!q || d.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  }
+}
+
 // ── Players ───────────────────────────────────────────────────────────────
 async function renderPlayers() {
   setHdr('👥 Spielerverwaltung', '');
@@ -995,10 +1017,12 @@ async function renderPlayers() {
   c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
   c.innerHTML = `<div class="pl-page">
     <div class="pl-top">
-      <div class="irow">
-        <input class="field" id="pl-search" placeholder="Spielername suchen…" onkeydown="if(event.key==='Enter')doSearch()">
+      <div class="irow" style="position:relative">
+        <input class="field" id="pl-search" placeholder="Spielername suchen…" autocomplete="off"
+          oninput="plSearchSuggest()" onkeydown="if(event.key==='Enter'){hidePlSuggest();doSearch();}if(event.key==='Escape')hidePlSuggest()">
         <button class="btn btn-p" onclick="doSearch()">🔍 Suchen</button>
         <button class="btn" onclick="nav('permissions');setTimeout(()=>showBanList(),100)" style="margin-left:4px">🔨 Banliste</button>
+        <div id="pl-suggest" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:0 0 8px 8px;z-index:100;max-height:200px;overflow-y:auto"></div>
       </div>
       <div class="chips" id="chips"><span class="chip-lbl">Lade Online-Spieler…</span></div>
     </div>
@@ -1017,7 +1041,37 @@ async function loadChips() {
     : '<span class="chip-lbl">Keine Spieler online</span>';
 }
 
+let _plSuggestTimer = null;
+async function plSearchSuggest() {
+  const q = document.getElementById('pl-search')?.value?.trim() || '';
+  const box = document.getElementById('pl-suggest');
+  if (!box) return;
+  if (q.length < 2) { box.style.display = 'none'; return; }
+  if (_plSuggestTimer) clearTimeout(_plSuggestTimer);
+  _plSuggestTimer = setTimeout(async () => {
+    const r = await apiFetch(`/api/players/search?q=${encodeURIComponent(q)}`);
+    if (!r?.ok) return;
+    const { players } = await r.json();
+    if (!players.length) { box.style.display = 'none'; return; }
+    box.innerHTML = players.map(n =>
+      `<div style="padding:7px 12px;cursor:pointer;font-size:.88rem" onmousedown="selectPlSuggest('${escH(n)}')" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">${escH(n)}</div>`
+    ).join('');
+    box.style.display = 'block';
+  }, 200);
+}
+function selectPlSuggest(name) {
+  const inp = document.getElementById('pl-search');
+  if (inp) inp.value = name;
+  hidePlSuggest();
+  loadPl(name);
+}
+function hidePlSuggest() {
+  const box = document.getElementById('pl-suggest');
+  if (box) box.style.display = 'none';
+}
+
 async function doSearch() {
+  hidePlSuggest();
   const name = document.getElementById('pl-search')?.value?.trim();
   if (name) loadPl(name);
 }
@@ -2843,6 +2897,7 @@ let smashLbTab = 'kills';
 
 async function renderSmash() {
   setHdr('⚔ Smash the Boss', `<button class="btn" onclick="renderSmash()">↺ Aktualisieren</button>`);
+  startAutoRefresh(renderSmash);
   const c = document.getElementById('page-content');
   c.innerHTML = `<div class="page">
     <div class="g4" id="smash-kpi">
@@ -2864,6 +2919,14 @@ async function renderSmash() {
         <button class="rtab ${smashLbTab==='weekly'?'active':''}"  onclick="smashTab('weekly')">🏆 Woche</button>
       </div>
       <div id="smash-lb"><div class="empty">Lade…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔍 Spieler-Lookup</div>
+      <div class="irow">
+        <input class="field" id="smash-pl-search" placeholder="Spielername…" onkeydown="if(event.key==='Enter')smashLookup()">
+        <button class="btn btn-p" onclick="smashLookup()">Suchen</button>
+      </div>
+      <div id="smash-pl-result" style="margin-top:10px"></div>
     </div>
   </div>`;
 
@@ -2982,11 +3045,39 @@ async function smashLoadLb() {
   }
 }
 
+async function smashLookup() {
+  const name = document.getElementById('smash-pl-search')?.value?.trim();
+  if (!name) return;
+  const el = document.getElementById('smash-pl-result');
+  if (el) el.innerHTML = '<div style="color:var(--muted);font-size:.85rem">Suche…</div>';
+  const r = await apiFetch(`/api/smash/player?name=${encodeURIComponent(name)}`);
+  if (!el) return;
+  if (!r?.ok) { el.innerHTML = '<div style="color:var(--red);font-size:.85rem">Spieler nicht gefunden</div>'; return; }
+  const { ok, player: p, error } = await r.json();
+  if (!ok) { el.innerHTML = `<div style="color:var(--red);font-size:.85rem">${escH(error||'Nicht gefunden')}</div>`; return; }
+  el.innerHTML = `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:.85rem">
+    <div style="font-weight:700;margin-bottom:8px">⚔ ${escH(p.name)}</div>
+    <div class="g2" style="gap:6px">
+      <div>
+        <div class="srv-row"><span>Kills</span><span style="color:#e74c3c;font-weight:700">💀 ${Number(p.kills).toLocaleString('de-DE')}</span></div>
+        <div class="srv-row"><span>Schaden</span><span>${Number(p.total_damage||0).toLocaleString('de-DE')}</span></div>
+        <div class="srv-row"><span>Münzen</span><span style="color:var(--yellow)">🪙 ${Number(p.coins).toLocaleString('de-DE')}</span></div>
+      </div>
+      <div>
+        <div class="srv-row"><span>Level</span><span style="color:#F44336">⚡ ${p.personal_level||0}</span></div>
+        <div class="srv-row"><span>Bestes Level</span><span>${p.best_level||0}</span></div>
+        <div class="srv-row"><span>Prestige</span><span style="color:#d966ff">✦ ${p.prestige||0}</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
 // ── IdleForge Generators ─────────────────────────────────────────────────
 let genLbTab = 'money';
 
 async function renderGenDash() {
   setHdr('⚙ IdleForge – Übersicht', `<button class="btn" onclick="renderGenDash()">↺ Aktualisieren</button>`);
+  startAutoRefresh(renderGenDash);
   const c = document.getElementById('page-content');
   c.innerHTML = `<div class="page">
     <div class="g4" id="gen-kpi">
@@ -3012,6 +3103,10 @@ async function renderGenDash() {
         </div>
         <div id="gen-pl-result" style="margin-top:10px"></div>
       </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📈 Server-Einkommen (letzte 24h)</div>
+      <div id="gen-income-chart" style="padding:8px 0"><div class="empty">Lade…</div></div>
     </div>
     <div class="card">
       <div class="card-title">🏆 Top 10 – Geld</div>
@@ -3041,6 +3136,23 @@ async function renderGenDash() {
     if (inc.data?.length) {
       const avg = inc.data.reduce((s,r)=>s+r.total,0) / inc.data.length;
       document.getElementById('gk-income').textContent = '$' + Math.round(avg).toLocaleString('de-DE') + '/h';
+      const chartEl = document.getElementById('gen-income-chart');
+      if (chartEl) {
+        const vals = inc.data.map(r => r.total);
+        const maxV = Math.max(...vals, 1);
+        const bars = vals.map((v, i) => {
+          const h = Math.max(4, Math.round((v / maxV) * 80));
+          const hh = inc.data[i].hour % 24;
+          const lbl = hh + ':00';
+          const col = v > avg * 1.3 ? '#4CAF50' : v < avg * 0.5 ? '#e74c3c' : '#FFD700';
+          return `<div title="${lbl}: $${Math.round(v).toLocaleString('de-DE')}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:default">
+            <div style="width:100%;height:${h}px;background:${col};border-radius:2px 2px 0 0;opacity:.85"></div>
+            ${i % 4 === 0 ? `<span style="font-size:.6rem;color:var(--muted);white-space:nowrap">${lbl}</span>` : '<span style="font-size:.6rem">&nbsp;</span>'}
+          </div>`;
+        }).join('');
+        chartEl.innerHTML = `<div style="display:flex;align-items:flex-end;gap:1px;height:100px;padding:0 4px">${bars}</div>
+          <div style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:4px">Ø ${Math.round(avg).toLocaleString('de-DE')} $/h · Gesamt: $${Math.round(vals.reduce((a,b)=>a+b,0)).toLocaleString('de-DE')}</div>`;
+      }
     }
   }
 
@@ -3100,6 +3212,8 @@ async function genLookupPlayer() {
       <div class="srv-row"><span>Shards</span><span style="color:#d060ff">💎 ${Number(p.shards||0).toLocaleString('de-DE')}</span></div>
       <div class="srv-row"><span>Mining Lvl</span><span>⛏ ${p.mining_level||0}</span></div>
       <div class="srv-row"><span>Generatoren</span><span>${d.generators?.length||0}</span></div>
+      ${p.booster_expiry && p.booster_expiry * 1000 > Date.now()
+        ? `<div class="srv-row"><span>Booster</span><span style="color:#FFD700">⚡ x${p.booster_mult} (${Math.max(0,Math.ceil((p.booster_expiry-Date.now()/1000)/60))}m)</span></div>` : ''}
       <div class="srv-row"><span>Gilde</span><span>${escH(d.guild || '—')}</span></div>
       <div class="srv-row" style="align-items:flex-start"><span>Typen</span><span style="text-align:right;font-size:.78rem;color:var(--muted)">${escH(tierStr)}</span></div>
     </div>`;
@@ -3116,6 +3230,7 @@ async function renderGenLb() {
         <button class="rtab ${genLbTab==='generators'?'active':''}" onclick="genTab('generators')">⚙ Generatoren</button>
         <button class="rtab ${genLbTab==='shards'?'active':''}"     onclick="genTab('shards')">💎 Shards</button>
         <button class="rtab ${genLbTab==='guilds'?'active':''}"     onclick="genTab('guilds')">🛡 Gilden</button>
+        <button class="rtab ${genLbTab==='seasons'?'active':''}"    onclick="genTab('seasons')">🏅 Saison</button>
       </div>
       <div id="gen-lb"><div class="empty">Lade…</div></div>
     </div>
@@ -3139,7 +3254,8 @@ async function genTab(tab) {
       (tab==='prestige'   && b.textContent.includes('Prestige')) ||
       (tab==='generators' && b.textContent.includes('Generator')) ||
       (tab==='shards'     && b.textContent.includes('Shard')) ||
-      (tab==='guilds'     && b.textContent.includes('Gilden')));
+      (tab==='guilds'     && b.textContent.includes('Gilden')) ||
+      (tab==='seasons'    && b.textContent.includes('Saison')));
   });
   await genLoadLb();
 }
@@ -3150,6 +3266,21 @@ async function genLoadLb() {
   const rankColor = i => i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--muted)';
 
   try {
+    if (genLbTab === 'seasons') {
+      const r = await apiFetch('/api/generators/seasons');
+      if (!r?.ok) { el.innerHTML = '<div class="empty" style="color:var(--red)">Fehler</div>'; return; }
+      const { rows, season, maxSeason } = await r.json();
+      if (!rows?.length) { el.innerHTML = `<div class="empty">Keine Saison-Daten (Saison ${season})</div>`; return; }
+      el.innerHTML = `<div style="color:var(--muted);font-size:.8rem;margin-bottom:8px">🏅 Saison ${season} / ${maxSeason}</div>
+        <div class="lb-table">${rows.map((row,i) => `
+          <div class="lb-row">
+            <span class="lb-pos" style="color:${['#FFD700','#C0C0C0','#CD7F32'][i]||'var(--muted)'}">#${row.rank_pos||i+1}</span>
+            <span style="flex:2;font-weight:600">${escH(row.name)}</span>
+            <span style="color:var(--yellow);font-weight:700;min-width:130px">💰 $${Number(row.money).toLocaleString('de-DE')}</span>
+            <span style="color:#AA00FF;min-width:70px">✦ P${row.prestige}</span>
+          </div>`).join('')}</div>`;
+      return;
+    }
     if (genLbTab === 'guilds') {
       const r = await apiFetch('/api/generators/guilds');
       if (!r) { el.innerHTML = '<div class="empty" style="color:var(--red)">Server nicht erreichbar</div>'; return; }
@@ -3262,6 +3393,8 @@ async function genLbLookup() {
         <div><div class="srv-row"><span>Generatoren</span><span style="color:#4CAF50">${d.generators?.length||0}</span></div>
              <div class="srv-row"><span>Mining Lvl</span><span>⛏ ${p.mining_level||0}  🪓 Pick ${p.mining_pickaxe_level||0}  🐾 Pet ${p.pet_level||0}</span></div>
              <div class="srv-row"><span>Total verdient</span><span style="color:var(--yellow)">$${Number(p.total_earned).toLocaleString('de-DE')}</span></div>
+             ${p.booster_expiry && p.booster_expiry * 1000 > Date.now()
+               ? `<div class="srv-row"><span>Booster</span><span style="color:#FFD700">⚡ x${p.booster_mult} (${Math.max(0,Math.ceil((p.booster_expiry-Date.now()/1000)/60))}m)</span></div>` : ''}
              <div class="srv-row"><span>Gilde</span><span>${escH(d.guild || '—')}</span></div></div>
       </div>
       ${tierStr !== '—' ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:.78rem;color:var(--muted)">${escH(tierStr)}</div>` : ''}
@@ -4022,9 +4155,16 @@ function renderXrayAlerts() {
         · ${Number(a.totalBlocks).toLocaleString('de-DE')} Blöcke
       </span>
       <button class="xray-alert-btn" onclick="nav('players');setTimeout(()=>loadPl('${escH(a.player)}'),150)">→ Zum Spieler</button>
+      <button class="xray-alert-btn" style="border-color:rgba(46,204,113,.4);color:#2ecc71" onclick="dismissXray('${escH(a.uuid)}','${escH(a.player)}')">✓ Überprüft</button>
       <button class="xray-dismiss" onclick="xrayAlerts.delete('${escH(a.uuid)}');renderXrayAlerts()" title="Schließen">✕</button>
     </div>`;
   }).join('');
+}
+
+async function dismissXray(uuid, name) {
+  xrayAlerts.delete(uuid);
+  renderXrayAlerts();
+  await apiFetch('/api/xray/dismiss', { method:'POST', body:JSON.stringify({uuid, name}) });
 }
 
 async function loadXrayAlerts() {
