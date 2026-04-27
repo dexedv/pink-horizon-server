@@ -36,8 +36,9 @@ public class PrestigeManager {
         int newPrestige = data.getPrestige() + 1;
         data.setPrestige(newPrestige);
 
-        // Alle Generatoren auf Cobblestone Level 1 zurücksetzen
+        // Alle Generatoren auf Cobblestone Level 1 zurücksetzen (Shard-Generator bleibt erhalten)
         for (PlacedGenerator gen : data.getGenerators()) {
+            if (gen.getType().isShardGenerator()) continue;
             gen.setType(GeneratorType.COBBLESTONE);
             gen.setLevel(1);
             World world = Bukkit.getWorld(gen.getWorld());
