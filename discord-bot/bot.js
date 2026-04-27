@@ -14,6 +14,9 @@
 
 'use strict';
 
+process.on('uncaughtException',    err    => console.error('[FATAL] UncaughtException:',    err.stack ?? err.message));
+process.on('unhandledRejection',   reason => console.error('[FATAL] UnhandledRejection:',   reason?.stack ?? reason));
+
 require('dotenv').config();
 
 const {
@@ -1129,6 +1132,7 @@ const COMMANDS = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 client.once('ready', async () => {
+  try {
   console.log(`[Bot] Eingeloggt als ${client.user.tag}`);
 
   const rest = new REST({ version: '10' }).setToken(TOKEN);
@@ -1196,6 +1200,7 @@ client.once('ready', async () => {
       }
     }
   }
+  } catch (e) { console.error('[FATAL] ready-Event Fehler:', e.stack ?? e.message); }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
