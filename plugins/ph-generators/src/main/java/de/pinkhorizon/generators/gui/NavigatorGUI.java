@@ -22,6 +22,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,8 +49,11 @@ public class NavigatorGUI implements Listener {
     private static final int PICKER_SLOT      = 7;
     private static final int MINING_PICK_SLOT = 6;
 
+    private final NamespacedKey miningPickaxeKey;
+
     public NavigatorGUI(PHGenerators plugin) {
         this.plugin = plugin;
+        this.miningPickaxeKey = new NamespacedKey(plugin, "mining_pickaxe");
     }
 
     // ── Items geben ──────────────────────────────────────────────────────────
@@ -87,6 +92,7 @@ public class NavigatorGUI implements Listener {
         ));
         meta.setUnbreakable(true);
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
+        meta.getPersistentDataContainer().set(miningPickaxeKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return item;
     }
@@ -399,10 +405,9 @@ public class NavigatorGUI implements Listener {
 
     public boolean isMiningPickaxe(ItemStack item) {
         if (item == null || item.getType() != Material.DIAMOND_PICKAXE) return false;
-        if (!item.hasItemMeta() || !item.getItemMeta().hasDisplayName()) return false;
-        String name = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-                .plainText().serialize(item.getItemMeta().displayName());
-        return name.contains("Mining-Spitzhacke");
+        if (!item.hasItemMeta()) return false;
+        return item.getItemMeta().getPersistentDataContainer()
+                .has(miningPickaxeKey, PersistentDataType.BYTE);
     }
 
     private boolean isSpecialItem(ItemStack item) {
