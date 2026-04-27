@@ -8,19 +8,25 @@ proxy/velocity-*.jar
 proxy/server.jar
 
 # ── Welten ────────────────────────────────────────────────────────────
-# Survival + Skyblock werden getrackt für Disaster-Recovery
+# Lobby + Survival: nur Nether/End ignorieren (Overworld wird für Disaster-Recovery getrackt)
 servers/survival/world_nether/
 servers/survival/world_the_end/
-servers/skyblock/world_nether/
-servers/skyblock/world_the_end/
 servers/minigames/world_nether/
 servers/minigames/world_the_end/
 servers/lobby/world_nether/
 servers/lobby/world_the_end/
 servers/lobby/world_backup/
 
+# SkyBlock: Welten NIE in Git – werden durch Docker-Volume gesichert
+# (git pull würde sonst Spieler-Inseln und Spawn-Welt überschreiben!)
+servers/skyblock/world/
+servers/skyblock/world_nether/
+servers/skyblock/world_the_end/
+servers/skyblock/skyblock_world/
+
 # ── Automatisch generierte World-Metadaten (ändern sich bei jedem Start) ──
-# Ausnahme: Survival + Skyblock level.dat wird getrackt (für World-Recovery)
+# Ausnahme: Survival level.dat wird getrackt (für World-Recovery)
+# SkyBlock level.dat ist durch das skyblock/world/ + skyblock/skyblock_world/ Ignore bereits abgedeckt
 servers/lobby/world/level.dat
 servers/lobby/world/level.dat_old
 servers/smash/world/level.dat
@@ -62,6 +68,11 @@ servers/*/plugins/PH-Survival/warps.yml
 servers/*/plugins/PH-Lobby/ranks.yml
 servers/*/plugins/PH-SkyBlock/islands.yml
 servers/*/plugins/PH-Core/data.db
+
+# SkyBlock Plugin-Laufzeitdaten (werden in-game gesetzt, nicht durch git verwalten)
+servers/skyblock/plugins/PH-SkyBlock/config.yml
+servers/skyblock/plugins/PH-SkyBlock/npcs.yml
+servers/skyblock/plugins/PH-SkyBlock/holograms.yml
 
 # ── Secrets ───────────────────────────────────────────────────────────
 .env
