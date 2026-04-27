@@ -67,7 +67,7 @@ mining-block:
   upgrade-shards: 5      # Shards pro Level für Upgrade (level × dieser Wert)
   max-level: 100
   cooldown-ms: 500       # Mindestzeit zwischen Schlägen in ms
-  pickaxe-max-level: 30
+  pickaxe-max-level: 50
   pickaxe-upgrade-shards: 8  # Shards pro Level für Spitzhacke-Upgrade (level × dieser Wert)
 
 # Automatische Community-Events
