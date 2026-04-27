@@ -42,7 +42,7 @@ public class RitualGui extends GuiBase {
         this.plugin = plugin;
         this.player = player;
         var islandOpt = BentoBoxHook.getIsland(player.getUniqueId());
-        this.islandUuid = islandOpt.map(i -> UUID.fromString(i.getUniqueId())).orElse(null);
+        this.islandUuid = islandOpt.isPresent() ? player.getUniqueId() : null;
         build();
     }
 

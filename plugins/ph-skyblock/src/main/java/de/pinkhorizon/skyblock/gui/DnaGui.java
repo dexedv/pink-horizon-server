@@ -50,9 +50,8 @@ public class DnaGui extends GuiBase {
             return;
         }
 
-        UUID islandUuid = UUID.fromString(islandOpt.get().getUniqueId());
         IslandDnaManager dnaManager = plugin.getIslandDnaManager();
-        IslandDna dna = dnaManager.getDna(islandUuid);
+        IslandDna dna = dnaManager.getDna(player.getUniqueId());
 
         // ── Titel-Item ────────────────────────────────────────────────────────
         inventory.setItem(4, item(Material.DRAGON_EGG,

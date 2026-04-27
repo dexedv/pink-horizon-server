@@ -12,6 +12,7 @@ public class PlayerQuest {
     private long progress;
     private boolean completed;
     private boolean rewardClaimed;
+    private boolean notified;
     private LocalDate questDate;
 
     public PlayerQuest(String questId, QuestType type, int difficulty,
@@ -58,7 +59,10 @@ public class PlayerQuest {
     public boolean isRewardClaimed() { return rewardClaimed; }
     public LocalDate getQuestDate()  { return questDate; }
 
+    public boolean isNotified()            { return notified; }
+
     public void setProgress(long v)       { this.progress = v; }
     public void setCompleted(boolean v)   { this.completed = v; }
     public void setRewardClaimed(boolean v){ this.rewardClaimed = v; }
+    public void setNotified(boolean v)    { this.notified = v; }
 }

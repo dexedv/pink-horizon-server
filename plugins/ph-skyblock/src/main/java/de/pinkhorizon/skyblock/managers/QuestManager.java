@@ -211,15 +211,13 @@ public class QuestManager {
         if (player == null) return;
 
         for (PlayerQuest q : quests) {
-            if (q.isCompleted() && !q.isRewardClaimed()) {
-                // einmalige Benachrichtigung (nur wenn eben erst abgeschlossen)
-                if (q.getProgress() == q.getGoal()) {
-                    String questName = q.getType().getName().replaceAll("§[0-9a-fA-Fk-oK-OrR]", "");
-                    player.sendMessage(MM.deserialize(
-                        "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] "
-                        + "<yellow>Quest abschließbar: <white>" + questName
-                        + " <gray>– <green>/is quest"));
-                }
+            if (q.isCompleted() && !q.isRewardClaimed() && !q.isNotified()) {
+                q.setNotified(true);
+                String questName = q.getType().getName().replaceAll("§[0-9a-fA-Fk-oK-OrR]", "");
+                player.sendMessage(MM.deserialize(
+                    "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] "
+                    + "<yellow>Quest abschließbar: <white>" + questName
+                    + " <gray>– <green>/is quest"));
             }
         }
     }
