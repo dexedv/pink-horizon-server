@@ -121,6 +121,16 @@ public class NavigatorGUI implements Listener {
             return;
         }
 
+        if (isMiningPickaxe(item)) {
+            if ((event.getAction() == Action.RIGHT_CLICK_AIR
+                    || event.getAction() == Action.RIGHT_CLICK_BLOCK)
+                    && player.isSneaking()) {
+                event.setCancelled(true);
+                plugin.getMiningUpgradeGUI().open(player);
+            }
+            return;
+        }
+
         if (isPicker(item)) {
             if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
             if (event.getClickedBlock() == null) return;

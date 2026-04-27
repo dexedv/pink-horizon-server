@@ -64,12 +64,27 @@ public class MiningBlockManager implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
-        if (event.getAction() != Action.LEFT_CLICK_BLOCK) return;
         if (event.getClickedBlock() == null) return;
         if (event.getClickedBlock().getType() != BLOCK_MATERIAL) return;
 
         Player player = event.getPlayer();
         World world = player.getWorld();
+
+        // Sneak + Rechtsklick → Upgrade-GUI öffnen
+        if ((event.getAction() == Action.RIGHT_CLICK_BLOCK) && player.isSneaking()) {
+            if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) return;
+            Location expected = getBlockLocation(world);
+            if (expected == null) return;
+            Location clicked = event.getClickedBlock().getLocation();
+            if (clicked.getBlockX() != expected.getBlockX()
+                    || clicked.getBlockY() != expected.getBlockY()
+                    || clicked.getBlockZ() != expected.getBlockZ()) return;
+            event.setCancelled(true);
+            plugin.getMiningUpgradeGUI().open(player);
+            return;
+        }
+
+        if (event.getAction() != Action.LEFT_CLICK_BLOCK) return;
 
         // Nur auf eigener Insel
         if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) return;

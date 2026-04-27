@@ -7,6 +7,7 @@ import de.pinkhorizon.generators.database.GeneratorRepository;
 import de.pinkhorizon.generators.gui.BlockShopGUI;
 import de.pinkhorizon.generators.gui.BoosterGUI;
 import de.pinkhorizon.generators.gui.BorderShopGUI;
+import de.pinkhorizon.generators.gui.MiningUpgradeGUI;
 import de.pinkhorizon.generators.gui.TokenShopGUI;
 import de.pinkhorizon.generators.gui.MarketGUI;
 import de.pinkhorizon.generators.gui.NavigatorGUI;
@@ -66,6 +67,7 @@ public class PHGenerators extends JavaPlugin {
     private MarketGUI     marketGUI;
     private BoosterGUI    boosterGUI;
     private TokenShopGUI  tokenShopGUI;
+    private MiningUpgradeGUI miningUpgradeGUI;
 
     // Border
     private WorldBorderManager worldBorderManager;
@@ -120,6 +122,7 @@ public class PHGenerators extends JavaPlugin {
         marketGUI     = new MarketGUI(this);
         boosterGUI    = new BoosterGUI(this);
         tokenShopGUI  = new TokenShopGUI(this);
+        miningUpgradeGUI = new MiningUpgradeGUI(this);
         scoreboardManager = new ScoreboardManager(this);
 
         // ── Starten ───────────────────────────────────────────────────────────
@@ -151,6 +154,7 @@ public class PHGenerators extends JavaPlugin {
         getServer().getPluginManager().registerEvents(boosterGUI, this);
         getServer().getPluginManager().registerEvents(tokenShopGUI, this);
         getServer().getPluginManager().registerEvents(miningBlockManager, this);
+        getServer().getPluginManager().registerEvents(miningUpgradeGUI, this);
 
         getLogger().info("PH-Generators (IdleForge) gestartet!");
     }
@@ -217,6 +221,7 @@ public class PHGenerators extends JavaPlugin {
     public MarketGUI     getMarketGUI()                  { return marketGUI; }
     public BoosterGUI    getBoosterGUI()                 { return boosterGUI; }
     public TokenShopGUI  getTokenShopGUI()               { return tokenShopGUI; }
+    public MiningUpgradeGUI getMiningUpgradeGUI()        { return miningUpgradeGUI; }
     public WorldBorderManager getWorldBorderManager()    { return worldBorderManager; }
     public ScoreboardManager getScoreboardManager()      { return scoreboardManager; }
 
