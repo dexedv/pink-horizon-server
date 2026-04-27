@@ -40,9 +40,10 @@ public class EventManager {
     private boolean communityGoalReached = false;
 
     // Auto-Scheduler
-    private BukkitTask autoTask      = null;
-    private long       nextEventTime = 0;        // Unix-Sekunden
-    private boolean    announcedNext = false;    // 5-Min-Ankündigung schon gesendet?
+    private BukkitTask autoTask         = null;
+    private long       nextEventTime    = 0;        // Unix-Sekunden
+    private boolean    announcedNext    = false;    // 5-Min-Ankündigung schon gesendet?
+    private EventType  pendingEventType = null;     // beim Ankündigen festgelegter Typ
 
     public EventManager(PHGenerators plugin) {
         this.plugin = plugin;
@@ -84,29 +85,32 @@ public class EventManager {
 
         int announceMin = plugin.getConfig().getInt("auto-events.announce-before-minutes", 5);
 
-        // Ankündigung X Minuten vorher (einmalig)
+        // Ankündigung X Minuten vorher (einmalig) – Typ wird hier festgelegt
         if (!announcedNext && nextEventTime > now
                 && (nextEventTime - now) <= (long) announceMin * 60) {
-            announcedNext = true;
-            EventType next = randomEventType();
+            announcedNext    = true;
+            pendingEventType = randomEventType();   // Typ wird gespeichert
             Bukkit.broadcast(MM.deserialize(
                     "<gold><bold>✦ EVENT IN " + announceMin + " MINUTEN! ✦</bold>"
-                    + "\n<yellow>Bald startet: <white>" + next.name
-                    + "\n" + next.description
+                    + "\n<yellow>Bald startet: <white>" + pendingEventType.name
+                    + "\n" + pendingEventType.description
                     + "\n<gray>Seid bereit!"));
         }
 
-        // Event starten
+        // Event starten – genau den angekündigten Typ verwenden
         if (now >= nextEventTime) {
+            if (pendingEventType == null) pendingEventType = randomEventType();
             int duration = plugin.getConfig().getInt("auto-events.duration-minutes", 30);
-            startEvent(randomEventType(), duration);
+            startEvent(pendingEventType, duration);
+            pendingEventType = null;
         }
     }
 
     private void scheduleNextEvent(long now) {
         int cooldown = plugin.getConfig().getInt("auto-events.cooldown-minutes", 90);
-        nextEventTime = now + (long) cooldown * 60;
-        announcedNext = false;
+        nextEventTime    = now + (long) cooldown * 60;
+        announcedNext    = false;
+        pendingEventType = null;
     }
 
     private EventType randomEventType() {
