@@ -205,6 +205,38 @@ services:
       mysql:
         condition: service_healthy
 
+  # ── SkyBlock ──────────────────────────────────────────────────────────
+  skyblock:
+    image: itzg/minecraft-server:latest
+    container_name: ph-skyblock
+    mem_limit: 6g
+    healthcheck:
+      start_period: 3m
+    environment:
+      EULA: "TRUE"
+      TYPE: PAPER
+      VERSION: "1.21.4"
+      INIT_MEMORY: "1g"
+      MEMORY: "5000m"
+      USE_AIKAR_FLAGS: "true"
+      ONLINE_MODE: "false"
+      ENABLE_RCON: "true"
+      RCON_PORT: "25577"
+      RCON_PASSWORD: "${RCON_PASSWORD}"
+      SERVER_PORT: "25568"
+      TZ: Europe/Berlin
+    ports:
+      - "25581:25577"             # RCON
+      - "25568:25568"             # Minecraft (intern für Velocity)
+    volumes:
+      - ./servers/skyblock:/data
+    networks:
+      - ph-net
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   # ── Dashboard ─────────────────────────────────────────────────────────
   dashboard:
     build: ./dashboard

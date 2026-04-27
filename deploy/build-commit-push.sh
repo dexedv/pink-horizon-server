@@ -18,21 +18,31 @@ echo "=== Baue Plugins ==="
 $MAVEN package -q -f plugins/ph-core/pom.xml
 $MAVEN package -q -f plugins/ph-lobby/pom.xml
 $MAVEN package -q -f plugins/ph-survival/pom.xml
+$MAVEN package -q -f plugins/ph-skyblock/pom.xml
+$MAVEN package -q -f plugins/ph-generators/pom.xml
 
 echo "=== Kopiere JARs ==="
 CORE_JAR="plugins/ph-core/target/ph-core-1.0.0.jar"
 
-cp "$CORE_JAR"                                         servers/lobby/plugins/ph-core-1.0.0.jar
-cp "$CORE_JAR"                                         servers/survival/plugins/ph-core-1.0.0.jar
-cp plugins/ph-lobby/target/ph-lobby-1.0.0.jar         servers/lobby/plugins/PH-Lobby.jar
-cp plugins/ph-survival/target/ph-survival-1.0.0.jar   servers/survival/plugins/ph-survival-1.0.0.jar
+cp "$CORE_JAR"                                                       servers/lobby/plugins/ph-core-1.0.0.jar
+cp "$CORE_JAR"                                                       servers/survival/plugins/ph-core-1.0.0.jar
+cp "$CORE_JAR"                                                       servers/skyblock/plugins/ph-core-1.0.0.jar
+cp "$CORE_JAR"                                                       servers/generators/plugins/ph-core-1.0.0.jar
+cp plugins/ph-lobby/target/ph-lobby-1.0.0.jar                       servers/lobby/plugins/PH-Lobby.jar
+cp plugins/ph-survival/target/ph-survival-1.0.0.jar                 servers/survival/plugins/ph-survival-1.0.0.jar
+cp plugins/ph-skyblock/target/ph-skyblock-1.0.0.jar                 servers/skyblock/plugins/ph-skyblock-1.0.0.jar
+cp plugins/ph-generators/target/ph-generators-1.0.0.jar             servers/generators/plugins/ph-generators-1.0.0.jar
 
 echo "=== Commit & Push ==="
 git add \
   servers/lobby/plugins/PH-Lobby.jar \
   servers/lobby/plugins/ph-core-1.0.0.jar \
   servers/survival/plugins/ph-survival-1.0.0.jar \
-  servers/survival/plugins/ph-core-1.0.0.jar
+  servers/survival/plugins/ph-core-1.0.0.jar \
+  servers/skyblock/plugins/ph-skyblock-1.0.0.jar \
+  servers/skyblock/plugins/ph-core-1.0.0.jar \
+  servers/generators/plugins/ph-generators-1.0.0.jar \
+  servers/generators/plugins/ph-core-1.0.0.jar
 
 # Nur committen wenn sich was geändert hat
 if git diff --cached --quiet; then

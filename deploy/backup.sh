@@ -111,7 +111,7 @@ log "═════════════════════════
 
 # ── Serverweite Benachrichtigung ──────────────────────────────────────────────
 BACKUP_MSG="§8[§a✔ Backup§8] §7Welt-Backup erfolgreich abgeschlossen. §8($(date '+%H:%M'))"
-for container in ph-lobby ph-survival ph-smash ph-generators; do
+for container in ph-lobby ph-survival ph-smash ph-generators ph-skyblock; do
     if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
         docker exec "$container" rcon-cli "broadcast $BACKUP_MSG" 2>/dev/null && \
             log "Nachricht gesendet → $container" || true

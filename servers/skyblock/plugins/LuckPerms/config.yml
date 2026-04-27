@@ -1,0 +1,28 @@
+# LuckPerms Configuration
+# Storage auf MySQL umgestellt für Pink Horizon Netzwerk
+
+storage-method: mysql
+
+data:
+  address: ph-mysql:3306
+  database: pinkhorizon
+  username: ph_user
+  password: 'ph-db-2024'
+  table-prefix: luckperms_
+
+  pool-settings:
+    maximum-pool-size: 10
+    minimum-idle: 10
+    maximum-lifetime: 1800000
+    keepalive-time: 0
+    connection-timeout: 5000
+
+  connection-arguments:
+    useUnicode: true
+    characterEncoding: UTF-8
+    useSSL: false
+    autoReconnect: true
+
+server: skyblock
+sync-minutes: 3
+watch-files: true

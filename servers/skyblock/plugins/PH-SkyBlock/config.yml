@@ -1,4 +1,66 @@
 # PH-SkyBlock Konfiguration
+# ─────────────────────────────────────────────────────────────────
+
+database:
+  host: ph-mysql
+  port: 3306
+  name: ph_skyblock
+  user: ph_user
+  password: ph-db-2024
+  pool-size: 8
+
+worlds:
+  lobby: world
+  skyblock: skyblock_world
+
 island:
   distance: 500
-  reset-cooldown-seconds: 60
+  default-size: 80
+  reset-cooldown: 300
+  max-members: 4
+
+spawn:
+  world: world
+  x: 0.5
+  y: 65.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+
+block-values:
+  GRASS_BLOCK: 1
+  DIRT: 1
+  SAND: 1
+  GRAVEL: 1
+  OAK_LOG: 2
+  BIRCH_LOG: 2
+  SPRUCE_LOG: 2
+  STONE: 1
+  COBBLESTONE: 1
+  IRON_ORE: 5
+  GOLD_ORE: 10
+  DIAMOND_ORE: 50
+  EMERALD_ORE: 75
+  ANCIENT_DEBRIS: 200
+  IRON_BLOCK: 45
+  GOLD_BLOCK: 90
+  DIAMOND_BLOCK: 450
+  EMERALD_BLOCK: 675
+  NETHERITE_BLOCK: 2000
+  OBSIDIAN: 10
+  GLOWSTONE: 8
+  SEA_LANTERN: 15
+  BEACON: 5000
+  CONDUIT: 3000
+  NETHER_STAR: 10000
+
+upgrades:
+  size:
+    2: { size: 100, cost: 500 }
+    3: { size: 150, cost: 2000 }
+    4: { size: 200, cost: 8000 }
+    5: { size: 300, cost: 25000 }
+  members:
+    2: { slots: 6, cost: 1000 }
+    3: { slots: 8, cost: 5000 }
+    4: { slots: 12, cost: 15000 }

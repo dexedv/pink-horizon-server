@@ -1,5 +1,5 @@
 name: PH-SkyBlock
-version: '1.0.0'
+version: '2.0.0'
 main: de.pinkhorizon.skyblock.PHSkyBlock
 api-version: '1.21'
 description: SkyBlock-Plugin fuer Pink Horizon
@@ -8,8 +8,12 @@ depend: [ PH-Core ]
 
 commands:
   island:
-    description: Insel-Verwaltung
-    usage: /island <create|home|reset|info>
+    description: SkyBlock Insel-Verwaltung
+    usage: /island <create|home|spawn|members|invite|kick|setHome|warp|top|info|reset|upgrade|chat|visit>
+    aliases: [ is, sky ]
+  isadmin:
+    description: SkyBlock Admin-Befehle
+    usage: /isadmin <tp|reload|setspawn|delete|info>
 
 permissions:
   skyblock.island:

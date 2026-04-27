@@ -1,0 +1,41 @@
+{
+  "minecraft:story/obtain_armor": {
+    "criteria": {
+      "iron_boots": "2019-03-23 14:16:44 -0400",
+      "iron_chestplate": "2019-03-23 14:16:44 -0400",
+      "iron_leggings": "2019-03-23 14:16:44 -0400",
+      "iron_helmet": "2019-03-23 14:16:44 -0400"
+    },
+    "done": true
+  },
+  "minecraft:nether/obtain_blaze_rod": {
+    "criteria": {
+      "blaze_rod": "2019-03-23 14:16:44 -0400"
+    },
+    "done": true
+  },
+  "minecraft:story/iron_tools": {
+    "criteria": {
+      "iron_pickaxe": "2019-03-23 14:16:44 -0400"
+    },
+    "done": true
+  },
+  "minecraft:recipes/brewing/blaze_powder": {
+    "criteria": {
+      "has_blaze_rod": "2019-03-23 14:16:44 -0400"
+    },
+    "done": true
+  },
+  "minecraft:recipes/brewing/brewing_stand": {
+    "criteria": {
+      "has_blaze_rod": "2019-03-23 14:16:44 -0400"
+    },
+    "done": true
+  },
+  "minecraft:adventure/adventuring_time": {
+    "criteria": {
+      "plains": "2019-03-23 14:16:45 -0400"
+    },
+    "done": false
+  }
+}

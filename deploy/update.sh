@@ -65,16 +65,16 @@ fi
 
 # ── 2. Berechtigungen ────────────────────────────────────────────────────────
 step "Berechtigungen setzen" "[2/5]"
-chown -R 1000:1000 servers/lobby/ servers/survival/ servers/smash/ servers/generators/ 2>/dev/null || true
-chmod -R u+rw  servers/lobby/ servers/survival/ servers/smash/ servers/generators/ 2>/dev/null || true
+chown -R 1000:1000 servers/lobby/ servers/survival/ servers/smash/ servers/generators/ servers/skyblock/ 2>/dev/null || true
+chmod -R u+rw  servers/lobby/ servers/survival/ servers/smash/ servers/generators/ servers/skyblock/ 2>/dev/null || true
 ok "Berechtigungen gesetzt (uid 1000)"
 
 # ── 3. Spielserver neu starten ────────────────────────────────────────────────
 step "Spielserver neu starten" "[3/5]"
 info "Erstelle fehlende Container (z.B. generators bei Erststart)..."
-docker compose up -d --no-recreate lobby survival smash generators velocity
-info "Starte neu: lobby, survival, smash, generators, velocity..."
-docker compose restart lobby survival smash generators velocity
+docker compose up -d --no-recreate lobby survival smash generators skyblock velocity
+info "Starte neu: lobby, survival, smash, generators, skyblock, velocity..."
+docker compose restart lobby survival smash generators skyblock velocity
 ok "Alle Spielserver neu gestartet"
 
 # ── 4. Dashboard ──────────────────────────────────────────────────────────────
