@@ -931,11 +931,13 @@ async function postDefaultContent(guild, createdChannels) {
 async function runSetupGenerators(guild, interaction) {
   const log = msg => { console.log('[AutoSetup]', msg); if (interaction) interaction.editReply(msg).catch(() => {}); };
   try {
+    log('Starte...');
     const everyone   = guild.roles.everyone;
     const adminRole  = guild.roles.cache.find(r => r.name === 'Admin');
     const modRole    = guild.roles.cache.find(r => r.name === 'Moderator');
     const suppRole   = guild.roles.cache.find(r => r.name === 'Supporter');
     const verifRole  = guild.roles.cache.find(r => r.name === 'Verifiziert');
+    log(`Rollen gefunden: Admin=${!!adminRole} Mod=${!!modRole} Supp=${!!suppRole} Verif=${!!verifRole}`);
 
     // ── 1. Neue Rollen ───────────────────────────────────────────────────────
     log('Erstelle fehlende Rollen...');
@@ -958,11 +960,11 @@ async function runSetupGenerators(guild, interaction) {
     // ── 2. SPIELMODUS Kategorie + rollen-wählen ──────────────────────────────
     log('Erstelle 🎮 SPIELMODUS Kategorie...');
     const spielmodusCatPerms = [
-      { id: everyone.id,  deny:  [PermissionFlagsBits.ViewChannel] },
-      { id: verifRole.id, allow: [PermissionFlagsBits.ViewChannel] },
-      { id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel] },
-      { id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel] },
-      { id: suppRole.id,  allow: [PermissionFlagsBits.ViewChannel] },
+      { id: everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+      ...(verifRole ? [{ id: verifRole.id, allow: [PermissionFlagsBits.ViewChannel] }] : []),
+      ...(adminRole ? [{ id: adminRole.id, allow: [PermissionFlagsBits.ViewChannel] }] : []),
+      ...(modRole   ? [{ id: modRole.id,   allow: [PermissionFlagsBits.ViewChannel] }] : []),
+      ...(suppRole  ? [{ id: suppRole.id,  allow: [PermissionFlagsBits.ViewChannel] }] : []),
     ];
     let spielmodusCat = guild.channels.cache.find(c => c.name === '🎮 SPIELMODUS' && c.type === ChannelType.GuildCategory);
     if (!spielmodusCat) {
@@ -972,14 +974,15 @@ async function runSetupGenerators(guild, interaction) {
 
     let selfroleCh = guild.channels.cache.find(c => c.name === 'rollen-wählen' && c.parentId === spielmodusCat.id);
     if (!selfroleCh) {
-      await interaction.editReply('⚙️ Erstelle **rollen-wählen** Kanal...');
+      log('Erstelle rollen-wählen Kanal...');
+      const chPerms = [
+        { id: everyone.id, deny: [PermissionFlagsBits.SendMessages] },
+        ...(adminRole ? [{ id: adminRole.id, allow: [PermissionFlagsBits.SendMessages] }] : []),
+        ...(modRole   ? [{ id: modRole.id,   allow: [PermissionFlagsBits.SendMessages] }] : []),
+      ];
       selfroleCh = await apiCall(() => guild.channels.create({
         name: 'rollen-wählen', type: ChannelType.GuildText, parent: spielmodusCat.id,
-        permissionOverwrites: [
-          { id: everyone.id,  deny:  [PermissionFlagsBits.SendMessages] },
-          { id: adminRole.id, allow: [PermissionFlagsBits.SendMessages] },
-          { id: modRole.id,   allow: [PermissionFlagsBits.SendMessages] },
-        ],
+        permissionOverwrites: chPerms,
       }));
       await sleep(10000);
     }
@@ -987,11 +990,11 @@ async function runSetupGenerators(guild, interaction) {
     // ── 3. IDLEFORGE Kategorie + Kanäle ─────────────────────────────────────
     log('Erstelle ⚙️ IDLEFORGE Kategorie...');
     const idleforgeCatPerms = [
-      { id: everyone.id,                      deny:  [PermissionFlagsBits.ViewChannel] },
-      { id: adminRole.id,                     allow: [PermissionFlagsBits.ViewChannel] },
-      { id: modRole.id,                       allow: [PermissionFlagsBits.ViewChannel] },
-      { id: suppRole.id,                      allow: [PermissionFlagsBits.ViewChannel] },
-      { id: roleMap['IdleForge-Fan'].id,      allow: [PermissionFlagsBits.ViewChannel] },
+      { id: everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+      ...(adminRole                ? [{ id: adminRole.id,               allow: [PermissionFlagsBits.ViewChannel] }] : []),
+      ...(modRole                  ? [{ id: modRole.id,                 allow: [PermissionFlagsBits.ViewChannel] }] : []),
+      ...(suppRole                 ? [{ id: suppRole.id,                allow: [PermissionFlagsBits.ViewChannel] }] : []),
+      ...(roleMap['IdleForge-Fan'] ? [{ id: roleMap['IdleForge-Fan'].id, allow: [PermissionFlagsBits.ViewChannel] }] : []),
     ];
     let idleforgeCat = guild.channels.cache.find(c => c.name === '⚙️ IDLEFORGE' && c.type === ChannelType.GuildCategory);
     if (!idleforgeCat) {
