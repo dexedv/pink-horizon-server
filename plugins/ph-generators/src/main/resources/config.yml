@@ -61,7 +61,7 @@ community-goal: 1000000000000
 
 # Shard-Generator
 shard-generator:
-  upgrade-shards-per-level: 10   # Shard-Kosten pro Upgrade: level × dieser Wert (Lvl 1→2 = 10, Lvl 10→11 = 100)
+  upgrade-shards-per-level: 51   # Shard-Kosten pro Upgrade: level × dieser Wert (Lvl 1→2 = 51, Lvl 100 total ≈ 252.450)
   max-shards-per-hour: 1000      # Maximale Shards/h bei Level 100 (Level N = N × max/100 Shards/h)
 
 # Mining-Pet
