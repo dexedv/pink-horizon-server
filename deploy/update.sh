@@ -64,6 +64,7 @@ fi
 # ── 2. Berechtigungen ────────────────────────────────────────────────────────
 step "Berechtigungen setzen" "[2/5]"
 chown -R 1000:1000 servers/lobby/ servers/survival/ servers/smash/ servers/generators/ 2>/dev/null || true
+chmod -R u+rw  servers/lobby/ servers/survival/ servers/smash/ servers/generators/ 2>/dev/null || true
 ok "Berechtigungen gesetzt (uid 1000)"
 
 # ── 3. Spielserver neu starten ────────────────────────────────────────────────
