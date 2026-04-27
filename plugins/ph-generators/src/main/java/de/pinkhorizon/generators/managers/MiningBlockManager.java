@@ -10,6 +10,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -144,26 +146,47 @@ public class MiningBlockManager implements Listener {
         }
     }
 
-    // ── BlockDamage (Dauerklick / Halten) ────────────────────────────────────
+    // ── BlockDamage (verhindert Abbauen) ─────────────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockDamage(BlockDamageEvent event) {
         if (event.getBlock().getType() != BLOCK_MATERIAL) return;
         Player player = event.getPlayer();
         World world = player.getWorld();
-
         if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) return;
-
         Location expected = getBlockLocation(world);
         if (expected == null) return;
         Location blockLoc = event.getBlock().getLocation();
         if (blockLoc.getBlockX() != expected.getBlockX()
                 || blockLoc.getBlockY() != expected.getBlockY()
                 || blockLoc.getBlockZ() != expected.getBlockZ()) return;
+        event.setCancelled(true); // Block soll niemals abgebaut werden
+    }
 
-        event.setCancelled(true); // Block soll nicht abgebaut werden
+    // ── PlayerAnimation (Dauerklick / Arm-Swing) ─────────────────────────────
 
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onArmSwing(PlayerAnimationEvent event) {
+        if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
+
+        Player player = event.getPlayer();
+        World world = player.getWorld();
+
+        if (!plugin.getIslandWorldManager().isOwnIsland(world, player.getUniqueId())) return;
+
+        // Nur mit Mining-Spitzhacke in der Hand
         if (!plugin.getNavigatorGUI().isMiningPickaxe(player.getInventory().getItemInMainHand())) return;
+
+        // Block in Blickrichtung ermitteln (max 5 Blöcke)
+        org.bukkit.block.Block target = player.getTargetBlockExact(5);
+        if (target == null || target.getType() != BLOCK_MATERIAL) return;
+
+        Location expected = getBlockLocation(world);
+        if (expected == null) return;
+        Location blockLoc = target.getLocation();
+        if (blockLoc.getBlockX() != expected.getBlockX()
+                || blockLoc.getBlockY() != expected.getBlockY()
+                || blockLoc.getBlockZ() != expected.getBlockZ()) return;
 
         processMine(player, world, blockLoc);
     }
