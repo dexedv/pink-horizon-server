@@ -1517,12 +1517,16 @@ app.get('/api/generators/overview', auth, async (req, res) => {
     const [[gens]]       = await poolGen.query('SELECT COUNT(*) AS cnt FROM gen_generators');
     const [[topPrestige]]= await poolGen.query('SELECT COALESCE(MAX(prestige),0) AS max_p FROM gen_players');
     const [[guilds]]     = await poolGen.query('SELECT COUNT(*) AS cnt FROM gen_guilds');
+    const [[shards]]     = await poolGen.query('SELECT COALESCE(SUM(shards),0) AS total FROM gen_players');
+    const [[shardGens]]  = await poolGen.query("SELECT COUNT(*) AS cnt FROM gen_generators WHERE tier='SHARD'");
     res.json({ ok: true,
-      totalPlayers:  Number(players.cnt),
-      totalMoney:    Number(money.total),
+      totalPlayers:    Number(players.cnt),
+      totalMoney:      Number(money.total),
       totalGenerators: Number(gens.cnt),
-      topPrestige:   Number(topPrestige.max_p),
-      totalGuilds:   Number(guilds.cnt)
+      topPrestige:     Number(topPrestige.max_p),
+      totalGuilds:     Number(guilds.cnt),
+      totalShards:     Number(shards.total),
+      totalShardGens:  Number(shardGens.cnt)
     });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -1547,6 +1551,9 @@ app.get('/api/generators/leaderboard', auth, async (req, res) => {
         try { gens = (JSON.parse(r.generators) || []).filter(g => g && g.tier); } catch {}
         return { ...r, generators: gens };
       });
+    } else if (type === 'shards') {
+      [rows] = await poolGen.query(
+        'SELECT name, shards, mining_level, mining_pickaxe_level FROM gen_players ORDER BY shards DESC LIMIT 10');
     } else {
       [rows] = await poolGen.query(
         'SELECT name, money, prestige FROM gen_players ORDER BY money DESC LIMIT 10');

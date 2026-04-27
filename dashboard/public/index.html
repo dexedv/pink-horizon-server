@@ -425,6 +425,8 @@ let conSrv = null;
 let cmdHist = [], histIdx = -1;
 let autoScroll = true;
 const logBuf = { 'ph-velocity': [], 'ph-lobby': [], 'ph-survival': [], 'ph-smash': [], 'ph-generators': [] };
+let _logFlushTimer = null;
+const _logPending = [];  // {text, cls} – gesammelt bis zum nächsten rAF
 
 // ── Rang-Definitionen ─────────────────────────────────────────────────────
 const RANK_DEFS = [
@@ -957,15 +959,25 @@ async function sendCmd(k) {
 function addLine(out, text, buf=true, cls='') {
   if (buf && conSrv) { const b=logBuf[conSrv]||[]; b.push(text); while(b.length>500)b.shift(); logBuf[conSrv]=b; }
   if (!out) return;
-  for (const line of text.split('\n')) {
-    if (!line.trim()) continue;
-    const d = document.createElement('div');
-    d.className = 'll ' + (cls || classLine(line));
-    d.textContent = line;
-    out.appendChild(d);
+  _logPending.push({text, cls});
+  if (!_logFlushTimer) {
+    _logFlushTimer = requestAnimationFrame(() => {
+      _logFlushTimer = null;
+      const frag = document.createDocumentFragment();
+      for (const {text: t, cls: c} of _logPending.splice(0)) {
+        for (const line of t.split('\n')) {
+          if (!line.trim()) continue;
+          const d = document.createElement('div');
+          d.className = 'll ' + (c || classLine(line));
+          d.textContent = line;
+          frag.appendChild(d);
+        }
+      }
+      out.appendChild(frag);
+      while (out.children.length > 1000) out.removeChild(out.firstChild);
+      if (autoScroll) out.scrollTop = out.scrollHeight;
+    });
   }
-  while (out.children.length>1000) out.removeChild(out.firstChild);
-  if (autoScroll) out.scrollTop = out.scrollHeight;
 }
 
 function classLine(l) {
@@ -2983,6 +2995,9 @@ async function renderGenDash() {
       <div class="card stat-card"><span class="stat-icon">⚙</span><div><div class="stat-lbl">Platzierte Generatoren</div><div class="stat-val" id="gk-gens" style="color:#4CAF50">—</div></div></div>
       <div class="card stat-card"><span class="stat-icon">✦</span><div><div class="stat-lbl">Höchstes Prestige</div><div class="stat-val" id="gk-prestige" style="color:#AA00FF">—</div></div></div>
       <div class="card stat-card"><span class="stat-icon">🛡</span><div><div class="stat-lbl">Gilden</div><div class="stat-val" id="gk-guilds" style="color:var(--blue)">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">💎</span><div><div class="stat-lbl">Shards im Umlauf</div><div class="stat-val" id="gk-shards" style="color:#d060ff">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">⛏</span><div><div class="stat-lbl">Shard-Generatoren</div><div class="stat-val" id="gk-shard-gens" style="color:#a040ff">—</div></div></div>
+      <div class="card stat-card"><span class="stat-icon">📈</span><div><div class="stat-lbl">Server $/h (24h)</div><div class="stat-val" id="gk-income" style="color:var(--green)">—</div></div></div>
     </div>
     <div class="g2">
       <div class="card" style="padding:14px 18px">
@@ -3004,19 +3019,29 @@ async function renderGenDash() {
     </div>
   </div>`;
 
-  const [ovRes, onRes, lbRes] = await Promise.all([
+  const [ovRes, onRes, lbRes, incRes] = await Promise.all([
     apiFetch('/api/generators/overview'),
     apiFetch('/api/generators/online'),
-    apiFetch('/api/generators/leaderboard?type=money')
+    apiFetch('/api/generators/leaderboard?type=money'),
+    apiFetch('/api/generators/server-income')
   ]);
 
   if (ovRes?.ok) {
     const ov = await ovRes.json();
-    document.getElementById('gk-players').textContent  = Number(ov.totalPlayers    ?? 0).toLocaleString('de-DE');
-    document.getElementById('gk-money').textContent    = '$' + Number(ov.totalMoney ?? 0).toLocaleString('de-DE');
-    document.getElementById('gk-gens').textContent     = Number(ov.totalGenerators  ?? 0).toLocaleString('de-DE');
-    document.getElementById('gk-prestige').textContent = Number(ov.topPrestige      ?? 0).toLocaleString('de-DE');
-    document.getElementById('gk-guilds').textContent   = Number(ov.totalGuilds      ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-players').textContent    = Number(ov.totalPlayers    ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-money').textContent      = '$' + Number(ov.totalMoney ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-gens').textContent       = Number(ov.totalGenerators  ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-prestige').textContent   = Number(ov.topPrestige      ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-guilds').textContent     = Number(ov.totalGuilds      ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-shards').textContent     = Number(ov.totalShards      ?? 0).toLocaleString('de-DE');
+    document.getElementById('gk-shard-gens').textContent = Number(ov.totalShardGens   ?? 0).toLocaleString('de-DE');
+  }
+  if (incRes?.ok) {
+    const inc = await incRes.json();
+    if (inc.data?.length) {
+      const avg = inc.data.reduce((s,r)=>s+r.total,0) / inc.data.length;
+      document.getElementById('gk-income').textContent = '$' + Math.round(avg).toLocaleString('de-DE') + '/h';
+    }
   }
 
   const onEl = document.getElementById('gen-online');
@@ -3072,9 +3097,9 @@ async function genLookupPlayer() {
     <div style="font-size:.83rem;display:flex;flex-direction:column;gap:4px">
       <div class="srv-row"><span>Geld</span><span style="color:var(--yellow)">$${Number(p.money).toLocaleString('de-DE')}</span></div>
       <div class="srv-row"><span>Prestige</span><span style="color:#AA00FF">✦ ${p.prestige}</span></div>
-      <div class="srv-row"><span>Max-Level</span><span>${Math.max(10, p.prestige * 10)}</span></div>
+      <div class="srv-row"><span>Shards</span><span style="color:#d060ff">💎 ${Number(p.shards||0).toLocaleString('de-DE')}</span></div>
+      <div class="srv-row"><span>Mining Lvl</span><span>⛏ ${p.mining_level||0}</span></div>
       <div class="srv-row"><span>Generatoren</span><span>${d.generators?.length||0}</span></div>
-      <div class="srv-row"><span>Border</span><span>${p.border_size}×${p.border_size}</span></div>
       <div class="srv-row"><span>Gilde</span><span>${escH(d.guild || '—')}</span></div>
       <div class="srv-row" style="align-items:flex-start"><span>Typen</span><span style="text-align:right;font-size:.78rem;color:var(--muted)">${escH(tierStr)}</span></div>
     </div>`;
@@ -3089,6 +3114,7 @@ async function renderGenLb() {
         <button class="rtab ${genLbTab==='money'?'active':''}"      onclick="genTab('money')">💰 Geld</button>
         <button class="rtab ${genLbTab==='prestige'?'active':''}"   onclick="genTab('prestige')">✦ Prestige</button>
         <button class="rtab ${genLbTab==='generators'?'active':''}" onclick="genTab('generators')">⚙ Generatoren</button>
+        <button class="rtab ${genLbTab==='shards'?'active':''}"     onclick="genTab('shards')">💎 Shards</button>
         <button class="rtab ${genLbTab==='guilds'?'active':''}"     onclick="genTab('guilds')">🛡 Gilden</button>
       </div>
       <div id="gen-lb"><div class="empty">Lade…</div></div>
@@ -3112,6 +3138,7 @@ async function genTab(tab) {
       (tab==='money'      && b.textContent.includes('Geld')) ||
       (tab==='prestige'   && b.textContent.includes('Prestige')) ||
       (tab==='generators' && b.textContent.includes('Generator')) ||
+      (tab==='shards'     && b.textContent.includes('Shard')) ||
       (tab==='guilds'     && b.textContent.includes('Gilden')));
   });
   await genLoadLb();
@@ -3196,6 +3223,8 @@ async function genLoadLb() {
         ? `<span style="color:var(--yellow);font-weight:700;min-width:130px">💰 $${Number(row.money||0).toLocaleString('de-DE')}</span><span style="color:#AA00FF;min-width:80px">✦ P${row.prestige||0}</span>`
         : genLbTab === 'prestige'
         ? `<span style="color:#AA00FF;font-weight:700;min-width:110px">✦ Prestige ${row.prestige||0}</span><span style="color:var(--yellow);min-width:130px">💰 $${Number(row.money||0).toLocaleString('de-DE')}</span>`
+        : genLbTab === 'shards'
+        ? `<span style="color:#d060ff;font-weight:700;min-width:120px">💎 ${Number(row.shards||0).toLocaleString('de-DE')} Shards</span><span style="color:var(--muted);min-width:80px">⛏ Lvl ${row.mining_level||0}</span>`
         : `<span style="color:#4CAF50;font-weight:700;min-width:120px">⚙ ${row.gen_count||0} Generatoren</span><span style="color:#AA00FF;min-width:80px">✦ P${row.prestige||0}</span>`;
       return `<div class="lb-row">
         <span class="lb-pos" style="color:${rankColor(i)}">#${i+1}</span>
@@ -3228,10 +3257,10 @@ async function genLbLookup() {
       <div class="g2" style="gap:8px">
         <div><div class="srv-row"><span>Geld</span><span style="color:var(--yellow);font-weight:700">$${Number(p.money).toLocaleString('de-DE')}</span></div>
              <div class="srv-row"><span>Prestige</span><span style="color:#AA00FF">✦ ${p.prestige}</span></div>
-             <div class="srv-row"><span>Max-Level</span><span>${Math.max(10, p.prestige * 10)}</span></div>
+             <div class="srv-row"><span>Shards</span><span style="color:#d060ff">💎 ${Number(p.shards||0).toLocaleString('de-DE')}</span></div>
              <div class="srv-row"><span>Border</span><span>${p.border_size}×${p.border_size}</span></div></div>
         <div><div class="srv-row"><span>Generatoren</span><span style="color:#4CAF50">${d.generators?.length||0}</span></div>
-             <div class="srv-row"><span>Upgrades</span><span>${p.total_upgrades}</span></div>
+             <div class="srv-row"><span>Mining Lvl</span><span>⛏ ${p.mining_level||0}  🪓 Pick ${p.mining_pickaxe_level||0}  🐾 Pet ${p.pet_level||0}</span></div>
              <div class="srv-row"><span>Total verdient</span><span style="color:var(--yellow)">$${Number(p.total_earned).toLocaleString('de-DE')}</span></div>
              <div class="srv-row"><span>Gilde</span><span>${escH(d.guild || '—')}</span></div></div>
       </div>
