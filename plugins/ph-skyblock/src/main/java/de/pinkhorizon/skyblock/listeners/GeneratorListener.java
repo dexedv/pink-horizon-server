@@ -2,9 +2,8 @@ package de.pinkhorizon.skyblock.listeners;
 
 import de.pinkhorizon.skyblock.PHSkyBlock;
 import de.pinkhorizon.skyblock.data.Generator;
-import de.pinkhorizon.skyblock.data.Island;
-import de.pinkhorizon.skyblock.data.SkyPlayer;
 import de.pinkhorizon.skyblock.gui.GeneratorGui;
+import de.pinkhorizon.skyblock.integration.BentoBoxHook;
 import de.pinkhorizon.skyblock.managers.GeneratorManager;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Material;
@@ -41,7 +40,7 @@ public class GeneratorListener implements Listener {
         if (!plugin.getGeneratorManager().isGeneratorItem(item)) return;
 
         // Nur in der Skyblock-Welt
-        var skyWorld = plugin.getWorldManager().getSkyblockWorld();
+        var skyWorld = BentoBoxHook.getSkyBlockWorld().orElse(null);
         if (skyWorld == null || !player.getWorld().equals(skyWorld)) {
             player.sendMessage(MM.deserialize(
                 "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] "
@@ -178,10 +177,9 @@ public class GeneratorListener implements Listener {
     // ── Hilfsmethoden ─────────────────────────────────────────────────────────
 
     private boolean isOnOwnIsland(Player player, Block block) {
-        SkyPlayer sp = plugin.getPlayerManager().getPlayer(player.getUniqueId());
-        if (sp == null || sp.getIslandId() == null) return false;
-        Island island = plugin.getIslandManager().getIslandById(sp.getIslandId());
-        if (island == null) return false;
-        return island.isWithinBorder(block.getX(), block.getZ());
+        // BentoBox prüft ob der Block auf der eigenen Insel liegt
+        return BentoBoxHook.getIsland(player.getUniqueId())
+            .map(island -> island.onIsland(block.getLocation()))
+            .orElse(false);
     }
 }

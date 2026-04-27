@@ -1,9 +1,8 @@
 package de.pinkhorizon.skyblock.managers;
 
 import de.pinkhorizon.skyblock.PHSkyBlock;
-import de.pinkhorizon.skyblock.data.Island;
-import de.pinkhorizon.skyblock.data.SkyPlayer;
 import de.pinkhorizon.skyblock.enums.TitleType;
+import de.pinkhorizon.skyblock.integration.BentoBoxHook;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -20,7 +19,6 @@ public class SkyScoreboardManager {
     private final PHSkyBlock plugin;
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
 
-    // Jede Zeile braucht einen einzigartigen String – unsichtbare §-Prefix-Codes
     private static final String[] PAD = {
         "§0§r","§1§r","§2§r","§3§r","§4§r",
         "§5§r","§6§r","§7§r","§8§r","§9§r",
@@ -62,19 +60,19 @@ public class SkyScoreboardManager {
         Objective obj = sb.getObjective("sb");
         if (obj == null) return;
 
-        // Alte Einträge löschen
         for (String entry : sb.getEntries()) sb.resetScores(entry);
 
-        SkyPlayer sp    = plugin.getPlayerManager().getPlayer(player.getUniqueId());
-        Island island   = (sp != null && sp.getIslandId() != null)
-                        ? plugin.getIslandManager().getIslandById(sp.getIslandId())
-                        : null;
-        TitleType title = plugin.getTitleManager().getActiveTitle(player.getUniqueId());
-        long coins      = plugin.getCoinManager().getCoins(player.getUniqueId());
-        int online      = Bukkit.getOnlinePlayers().size();
-        String date     = LocalDate.now().format(DATE_FMT);
+        UUID uuid   = player.getUniqueId();
+        TitleType title = plugin.getTitleManager().getActiveTitle(uuid);
+        long coins  = plugin.getCoinManager().getCoins(uuid);
+        int online  = Bukkit.getOnlinePlayers().size();
+        String date = LocalDate.now().format(DATE_FMT);
 
-        // Zeilen von unten (i=0) nach oben (höchste i = oben)
+        // Insel-Daten von BentoBox
+        boolean hasIsland = BentoBoxHook.hasIsland(uuid);
+        long level        = BentoBoxHook.getIslandLevel(uuid);
+        int size          = BentoBoxHook.getIslandSize(uuid);
+
         int i = 0;
         line(obj, "§dpinkhorizon.fun",                         i++);
         line(obj, PAD[0],                                      i++);
@@ -82,18 +80,15 @@ public class SkyScoreboardManager {
         line(obj, "§7Online: §a" + online + " §7Spieler",      i++);
         line(obj, PAD[1],                                      i++);
 
-        // Insel-Block
         line(obj, "§e§lInsel-Info",                            i++);
-        if (island != null) {
-            line(obj, "§7Größe:  §f" + island.getSize() + "×" + island.getSize(), i++);
-            line(obj, "§7Score:  §f" + formatNum(island.getScore()),               i++);
-            line(obj, "§7Level:  §6" + island.getLevel(),                          i++);
+        if (hasIsland) {
+            line(obj, "§7Größe:  §f" + size + "×" + size,     i++);
+            line(obj, "§7Level:  §6" + level,                  i++);
         } else {
             line(obj, "§7Keine Insel – §e/is create",          i++);
         }
         line(obj, PAD[2],                                      i++);
 
-        // Spieler-Block
         line(obj, "§b§lSpieler",                               i++);
         line(obj, "§7Coins: §6" + formatNum(coins),            i++);
         String titleStr = (title == null || title == TitleType.KEIN_TITEL)
@@ -101,7 +96,6 @@ public class SkyScoreboardManager {
         line(obj, "§7Titel:  §f" + titleStr,                   i++);
         line(obj, PAD[3],                                      i++);
 
-        // Server-Label (ganz oben)
         line(obj, "§d§lSkyBlock",                              i++);
     }
 
@@ -115,7 +109,6 @@ public class SkyScoreboardManager {
         return String.valueOf(n);
     }
 
-    /** Entfernt §-Farbcodes für die Scoreboard-Darstellung. */
     private String strip(String s) {
         return s == null ? "" : s.replaceAll("§[0-9a-fk-or]", "");
     }

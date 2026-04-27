@@ -1,10 +1,9 @@
 package de.pinkhorizon.skyblock.listeners;
 
 import de.pinkhorizon.skyblock.PHSkyBlock;
-import de.pinkhorizon.skyblock.data.Island;
-import de.pinkhorizon.skyblock.data.SkyPlayer;
 import de.pinkhorizon.skyblock.enums.TitleType;
 import de.pinkhorizon.skyblock.gui.NavigatorGui;
+import de.pinkhorizon.skyblock.integration.BentoBoxHook;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.GameMode;
@@ -30,8 +29,6 @@ public class PlayerListener implements Listener {
 
     /** PDC-Key zum Erkennen des Navigator-Items */
     static final NamespacedKey NAV_KEY = new NamespacedKey("ph_skyblock", "navigator");
-
-    /** Hotbar-Slot des Navigators (0-basiert → Slot 9 = Index 8) */
     private static final int NAV_SLOT = 8;
 
     private final PHSkyBlock plugin;
@@ -45,42 +42,26 @@ public class PlayerListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent e) {
         var player = e.getPlayer();
-        SkyPlayer sp = plugin.getPlayerManager().loadPlayer(player.getUniqueId(), player.getName());
+        var uuid   = player.getUniqueId();
 
-        // Insel laden (wenn vorhanden, in Cache)
-        if (sp.getIslandId() != null) {
-            Island island = plugin.getIslandManager().getIslandById(sp.getIslandId());
-            if (island == null) {
-                sp.setIslandId(null);
-                plugin.getIslandRepository().setPlayerIslandId(player.getUniqueId(), null);
+        plugin.getPlayerManager().loadPlayer(uuid, player.getName());
+        plugin.getGeneratorRepository().ensurePlayerExt(uuid);
+        plugin.getAchievementManager().loadPlayer(uuid);
+        plugin.getTitleManager().loadPlayer(uuid);
+        plugin.getQuestManager().loadPlayer(uuid);
+        plugin.getGeneratorManager().loadForPlayer(uuid);
+
+        // Inselbesitzer-Titel sicherstellen (via BentoBox)
+        if (BentoBoxHook.hasIsland(uuid)) {
+            plugin.getAchievementManager().grantTitleOwnership(uuid, TitleType.INSELBESITZER);
+            if (plugin.getTitleManager().getActiveTitle(uuid) == TitleType.KEIN_TITEL) {
+                plugin.getTitleManager().silentSetActiveTitle(uuid, TitleType.INSELBESITZER);
             }
         }
 
-        // Erweiterte Systeme laden
-        plugin.getGeneratorRepository().ensurePlayerExt(player.getUniqueId());
-        plugin.getAchievementManager().loadPlayer(player.getUniqueId());
-        plugin.getTitleManager().loadPlayer(player.getUniqueId());
-        plugin.getQuestManager().loadPlayer(player.getUniqueId());
-        plugin.getGeneratorManager().loadForPlayer(player.getUniqueId());
-
-        // Inselbesitzer-Titel sicherstellen (falls vorhanden aber noch kein Titel aktiv)
-        if (sp.getIslandId() != null) {
-            plugin.getAchievementManager().grantTitleOwnership(player.getUniqueId(), TitleType.INSELBESITZER);
-            if (plugin.getTitleManager().getActiveTitle(player.getUniqueId()) == TitleType.KEIN_TITEL) {
-                plugin.getTitleManager().silentSetActiveTitle(player.getUniqueId(), TitleType.INSELBESITZER);
-            }
-        }
-
-        // Gamemode setzen
         applyGameMode(player);
-
-        // Scoreboard zeigen
         plugin.getScoreboardManager().show(player);
-
-        // Tablist setzen
         updateTablist(player);
-
-        // Navigator-Item in letzten Hotbar-Slot
         plugin.getServer().getScheduler().runTask(plugin, () -> giveNavigator(player));
     }
 
@@ -105,46 +86,20 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent e) {
-        var player = e.getPlayer();
-        var skyWorld = plugin.getWorldManager().getSkyblockWorld();
-        // Bei Tod in der Skyblock-Welt → Respawn am Spawn
-        if (skyWorld != null && player.getWorld().equals(skyWorld)) {
-            var spawnCfg = plugin.getConfig().getConfigurationSection("spawn");
-            if (spawnCfg != null) {
-                var spawnWorld = org.bukkit.Bukkit.getWorld(
-                    spawnCfg.getString("world", "world"));
-                if (spawnWorld == null) spawnWorld = plugin.getWorldManager().getLobbyWorld();
-                if (spawnWorld != null) {
-                    e.setRespawnLocation(new org.bukkit.Location(
-                        spawnWorld,
-                        spawnCfg.getDouble("x", 0.5),
-                        spawnCfg.getDouble("y", 65.0),
-                        spawnCfg.getDouble("z", 0.5)
-                    ));
-                }
-            }
-        }
-        // Navigator nach Respawn wiedergeben
-        plugin.getServer().getScheduler().runTask(plugin, () -> giveNavigator(player));
+        plugin.getServer().getScheduler().runTask(plugin, () -> giveNavigator(e.getPlayer()));
     }
 
     // ── Navigator: Drop verhindern ────────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onDrop(PlayerDropItemEvent e) {
-        if (isNavigator(e.getItemDrop().getItemStack())) {
-            e.setCancelled(true);
-        }
+        if (isNavigator(e.getItemDrop().getItemStack())) e.setCancelled(true);
     }
-
-    // ── Navigator: Beim Tod nicht fallen lassen ───────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onDeath(PlayerDeathEvent e) {
         e.getDrops().removeIf(this::isNavigator);
     }
-
-    // ── Navigator: Im Inventar nicht verschieben ──────────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onInventoryClick(InventoryClickEvent e) {
@@ -169,11 +124,9 @@ public class PlayerListener implements Listener {
     // ── Hilfsmethoden ─────────────────────────────────────────────────────────
 
     private void giveNavigator(Player player) {
-        // Slot 8 bereits mit Navigator belegt? → nichts tun
         ItemStack existing = player.getInventory().getItem(NAV_SLOT);
         if (isNavigator(existing)) return;
 
-        // Vorhandenes Item aus Slot 8 in erstes freies Slot verschieben
         if (existing != null && existing.getType() != Material.AIR) {
             var overflow = player.getInventory().addItem(existing);
             overflow.values().forEach(leftover ->
@@ -205,11 +158,9 @@ public class PlayerListener implements Listener {
     }
 
     private void applyGameMode(Player player) {
-        World lobby = plugin.getWorldManager().getLobbyWorld();
-        World sky   = plugin.getWorldManager().getSkyblockWorld();
-        if (lobby != null && player.getWorld().equals(lobby)) {
-            player.setGameMode(GameMode.ADVENTURE);
-        } else if (sky != null && player.getWorld().equals(sky)) {
+        // Lobby-Welt = Adventure, BSkyBlock-Welt = Survival
+        var skyWorld = BentoBoxHook.getSkyBlockWorld().orElse(null);
+        if (skyWorld != null && player.getWorld().equals(skyWorld)) {
             if (player.getGameMode() != GameMode.SURVIVAL
                     && player.getGameMode() != GameMode.CREATIVE) {
                 player.setGameMode(GameMode.SURVIVAL);
@@ -218,18 +169,15 @@ public class PlayerListener implements Listener {
     }
 
     private void updateTablist(Player player) {
-        SkyPlayer sp = plugin.getPlayerManager().getPlayer(player.getUniqueId());
-        Island island = (sp != null && sp.getIslandId() != null)
-            ? plugin.getIslandManager().getIslandById(sp.getIslandId())
-            : null;
+        boolean hasIsland = BentoBoxHook.hasIsland(player.getUniqueId());
+        long level        = BentoBoxHook.getIslandLevel(player.getUniqueId());
 
         Component header = MM.deserialize(
             "\n<gradient:#ff69b4:#da70d6><bold>✦ Pink Horizon – SkyBlock ✦</bold></gradient>\n"
         );
 
-        String inselInfo = island != null
-            ? "<gray>Insel-Level: <gold>" + island.getLevel()
-              + "  <gray>Score: <white>" + island.getScore()
+        String inselInfo = hasIsland
+            ? "<gray>Insel-Level: <gold>" + level
             : "<gray>Noch keine Insel – <yellow>/is create";
 
         Component footer = MM.deserialize(

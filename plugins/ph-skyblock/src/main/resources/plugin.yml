@@ -1,28 +1,19 @@
 name: PH-SkyBlock
-version: '2.1.0'
+version: '2.2.0'
 main: de.pinkhorizon.skyblock.PHSkyBlock
 api-version: '1.21'
-description: SkyBlock-Plugin fuer Pink Horizon
+description: SkyBlock Custom-Features fuer Pink Horizon (BentoBox Companion)
 authors: [ PinkHorizon ]
-depend: [ PH-Core ]
+depend: [ PH-Core, BentoBox ]
+softdepend: [ Level, Challenges, Visit, Warps, IslandFly, Border, Chat, TwerkingForTrees ]
 
 commands:
-  island:
-    description: SkyBlock Insel-Verwaltung
-    usage: /island <create|home|spawn|members|invite|kick|setHome|warp|top|info|reset|upgrade|chat|visit>
-    aliases: [ is, sky ]
-  isadmin:
-    description: SkyBlock Admin-Befehle
-    usage: /isadmin <tp|reload|setspawn|delete|info>
   phsk:
     description: Generator & Coins Verwaltung
     usage: /phsk [bal|quests|achievements|titles|top|give|reload]
     aliases: [ skygen, skycoins ]
 
 permissions:
-  skyblock.island:
-    description: Eigene Insel verwalten
-    default: true
   skyblock.admin:
     description: Admin-Zugriff fuer SkyBlock
     default: op

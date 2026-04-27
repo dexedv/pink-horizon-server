@@ -1,8 +1,7 @@
 package de.pinkhorizon.skyblock.gui;
 
 import de.pinkhorizon.skyblock.PHSkyBlock;
-import de.pinkhorizon.skyblock.data.Island;
-import de.pinkhorizon.skyblock.data.SkyPlayer;
+import de.pinkhorizon.skyblock.integration.BentoBoxHook;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -11,11 +10,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 
 /**
  * Navigator-Menü (Slot 8 im Hotbar, immer verfügbar).
- * Erlaubt schnellen Zugriff auf Spawn, eigene Insel, Quests und Achievements.
+ * Erlaubt schnellen Zugriff auf Spawn, eigene Insel (via BentoBox), Quests und Achievements.
  */
 public class NavigatorGui extends GuiBase {
 
-    // Aktions-Slots
     private static final int SLOT_SPAWN        = 10;
     private static final int SLOT_ISLAND       = 12;
     private static final int SLOT_QUESTS       = 14;
@@ -35,10 +33,9 @@ public class NavigatorGui extends GuiBase {
     private void build() {
         setBorder(Material.PINK_STAINED_GLASS_PANE);
 
-        SkyPlayer sp = plugin.getPlayerManager().getPlayer(player.getUniqueId());
-        Island island = (sp != null && sp.getIslandId() != null)
-            ? plugin.getIslandManager().getIslandById(sp.getIslandId())
-            : null;
+        boolean hasIsland = BentoBoxHook.hasIsland(player.getUniqueId());
+        long level        = BentoBoxHook.getIslandLevel(player.getUniqueId());
+        int size          = BentoBoxHook.getIslandSize(player.getUniqueId());
 
         // Spawn
         inventory.setItem(SLOT_SPAWN, item(Material.COMPASS,
@@ -49,13 +46,13 @@ public class NavigatorGui extends GuiBase {
             "<yellow>» Klicken zum Teleportieren"));
 
         // Eigene Insel
-        if (island != null) {
+        if (hasIsland) {
             inventory.setItem(SLOT_ISLAND, item(Material.GRASS_BLOCK,
                 "<green><bold>Eigene Insel",
                 "<gray>Teleportiert dich zu",
                 "<gray>deinem Insel-Home.",
                 "",
-                "<gray>Level: <gold>" + island.getLevel() + "  <gray>Score: <white>" + island.getScore(),
+                "<gray>Level: <gold>" + level + "  <gray>Größe: <white>" + size + "×" + size,
                 "",
                 "<yellow>» Klicken zum Teleportieren"));
         } else {
@@ -82,33 +79,27 @@ public class NavigatorGui extends GuiBase {
             "",
             "<yellow>» Klicken zum Öffnen"));
 
-        // Close
         inventory.setItem(SLOT_CLOSE, closeButton());
-
         fillEmpty();
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        int slot = event.getRawSlot();
-
-        switch (slot) {
+        switch (event.getRawSlot()) {
             case SLOT_SPAWN -> {
                 player.closeInventory();
                 teleportToSpawn();
             }
             case SLOT_ISLAND -> {
                 player.closeInventory();
-                teleportToIsland();
+                BentoBoxHook.teleportHome(player);
             }
             case SLOT_QUESTS -> {
                 plugin.getQuestManager().loadPlayer(player.getUniqueId());
                 new QuestGui(plugin, player).open(player);
             }
-            case SLOT_ACHIEVEMENTS -> {
-                new AchievementGui(plugin, player).open(player);
-            }
-            case SLOT_CLOSE -> player.closeInventory();
+            case SLOT_ACHIEVEMENTS -> new AchievementGui(plugin, player).open(player);
+            case SLOT_CLOSE        -> player.closeInventory();
         }
     }
 
@@ -116,7 +107,6 @@ public class NavigatorGui extends GuiBase {
         ConfigurationSection spawnCfg = plugin.getConfig().getConfigurationSection("spawn");
         if (spawnCfg == null) return;
         org.bukkit.World world = org.bukkit.Bukkit.getWorld(spawnCfg.getString("world", "world"));
-        if (world == null) world = plugin.getWorldManager().getLobbyWorld();
         if (world == null) return;
         player.teleport(new Location(
             world,
@@ -129,28 +119,5 @@ public class NavigatorGui extends GuiBase {
         player.sendMessage(MM.deserialize(
             "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] "
             + "<green>Du wurdest zum Spawn teleportiert."));
-    }
-
-    private void teleportToIsland() {
-        SkyPlayer sp = plugin.getPlayerManager().getPlayer(player.getUniqueId());
-        if (sp == null || sp.getIslandId() == null) {
-            player.sendMessage(MM.deserialize(
-                "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] "
-                + "<red>Du hast noch keine Insel! Erstelle eine mit <yellow>/is create</yellow>."));
-            return;
-        }
-        Island island = plugin.getIslandManager().getIslandById(sp.getIslandId());
-        if (island == null) return;
-        org.bukkit.World world = org.bukkit.Bukkit.getWorld(island.getWorld());
-        if (world == null) world = plugin.getWorldManager().getSkyblockWorld();
-        if (world == null) return;
-        player.teleport(new Location(
-            world,
-            island.getHomeX(), island.getHomeY(), island.getHomeZ(),
-            island.getHomeYaw(), island.getHomePitch()
-        ));
-        player.sendMessage(MM.deserialize(
-            "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] "
-            + "<green>Du wurdest zu deiner Insel teleportiert."));
     }
 }

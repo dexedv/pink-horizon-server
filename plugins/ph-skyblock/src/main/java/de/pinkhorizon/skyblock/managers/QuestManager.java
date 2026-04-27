@@ -159,12 +159,6 @@ public class QuestManager {
         // Coins-Belohnung
         plugin.getCoinManager().addCoins(player.getUniqueId(), quest.getReward());
 
-        // Island-Score-Belohnung
-        long scoreBon = quest.getScoreReward();
-        if (scoreBon > 0) {
-            plugin.getScoreManager().addBonusScore(player.getUniqueId(), scoreBon);
-        }
-
         // total_quests_done erhöhen
         genRepo.incrementQuestsDone(player.getUniqueId());
 

@@ -2,11 +2,9 @@ package de.pinkhorizon.skyblock.gui;
 
 import de.pinkhorizon.skyblock.PHSkyBlock;
 import de.pinkhorizon.skyblock.data.Generator;
-import de.pinkhorizon.skyblock.data.Island;
-import de.pinkhorizon.skyblock.data.SkyPlayer;
 import de.pinkhorizon.skyblock.enums.AchievementType;
-import de.pinkhorizon.skyblock.enums.IslandRank;
 import de.pinkhorizon.skyblock.enums.TitleType;
+import de.pinkhorizon.skyblock.integration.BentoBoxHook;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -15,12 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Hauptmenü – geöffnet über /is oder NPC.
- * Gibt schnellen Zugriff auf alle Features.
+ * Hauptmenü – geöffnet über /phsk oder NPC.
+ * Zeigt Insel-Infos (via BentoBox), Generatoren, Quests, Achievements, Titel, Coins.
  */
 public class MainMenuGui extends GuiBase {
 
-    // Slot-Layout (3 Reihen)
     private static final int SLOT_ISLAND       = 10;
     private static final int SLOT_GENERATORS   = 11;
     private static final int SLOT_QUESTS       = 13;
@@ -43,25 +40,26 @@ public class MainMenuGui extends GuiBase {
         inventory.clear();
         setBorder(Material.PINK_STAINED_GLASS_PANE);
 
-        SkyPlayer sp   = plugin.getPlayerManager().getPlayer(player.getUniqueId());
-        Island island  = (sp != null && sp.getIslandId() != null)
-            ? plugin.getIslandManager().getIslandById(sp.getIslandId()) : null;
-        long coins     = plugin.getCoinManager().getCoins(player.getUniqueId());
-        TitleType title = plugin.getTitleManager().getActiveTitle(player.getUniqueId());
-        List<Generator> gens = plugin.getGeneratorManager().getGeneratorsOf(player.getUniqueId());
+        var uuid      = player.getUniqueId();
+        long coins    = plugin.getCoinManager().getCoins(uuid);
+        TitleType title = plugin.getTitleManager().getActiveTitle(uuid);
+        List<Generator> gens = plugin.getGeneratorManager().getGeneratorsOf(uuid);
 
-        // ── Insel-Info ────────────────────────────────────────────────────────
-        if (island != null) {
-            IslandRank rank = IslandRank.of(island.getLevel());
+        // Insel-Info via BentoBox
+        boolean hasIsland = BentoBoxHook.hasIsland(uuid);
+        long level        = BentoBoxHook.getIslandLevel(uuid);
+        int size          = BentoBoxHook.getIslandSize(uuid);
+
+        if (hasIsland) {
             inventory.setItem(SLOT_ISLAND, item(
                 Material.GRASS_BLOCK,
                 "<green><bold>Meine Insel",
-                "<gray>Level: <yellow>" + island.getLevel(),
-                "<gray>Score: <white>" + String.format("%,d", island.getScore()),
-                "<gray>Rang: " + rank.getBadge(),
-                "<gray>Mitglieder: <white>" + (island.getMembers().size() + 1),
+                "<gray>Level: <yellow>" + level,
+                "<gray>Größe: <white>" + size + "×" + size,
                 " ",
-                "<yellow>Klicke für Insel-Optionen."
+                "<gray>Nutze <yellow>/is</yellow> für alle Insel-Optionen.",
+                " ",
+                "<yellow>Klicke zum Teleportieren."
             ));
         } else {
             inventory.setItem(SLOT_ISLAND, item(
@@ -72,7 +70,7 @@ public class MainMenuGui extends GuiBase {
             ));
         }
 
-        // ── Generatoren ───────────────────────────────────────────────────────
+        // Generatoren
         int totalBuffer = gens.stream().mapToInt(g -> g.getBuffer().size()).sum();
         List<String> genLore = new ArrayList<>();
         genLore.add("<gray>Platzierte Generatoren: <yellow>" + gens.size());
@@ -88,9 +86,9 @@ public class MainMenuGui extends GuiBase {
             genLore.toArray(new String[0])
         ));
 
-        // ── Quests ────────────────────────────────────────────────────────────
+        // Quests
         List<de.pinkhorizon.skyblock.data.PlayerQuest> quests =
-            plugin.getQuestManager().getQuests(player.getUniqueId());
+            plugin.getQuestManager().getQuests(uuid);
         long claimable = quests.stream().filter(q -> q.isCompleted() && !q.isRewardClaimed()).count();
         inventory.setItem(SLOT_QUESTS, item(
             Material.PAPER,
@@ -101,8 +99,8 @@ public class MainMenuGui extends GuiBase {
             "<yellow>Klicke für Quests."
         ));
 
-        // ── Achievements ──────────────────────────────────────────────────────
-        int unlockedCount = (int) plugin.getAchievementManager().getUnlocked(player.getUniqueId())
+        // Achievements
+        int unlockedCount = (int) plugin.getAchievementManager().getUnlocked(uuid)
             .stream().filter(id -> !id.startsWith("title_")).count();
         int totalAchievements = AchievementType.values().length;
         inventory.setItem(SLOT_ACHIEVEMENTS, item(
@@ -113,7 +111,7 @@ public class MainMenuGui extends GuiBase {
             "<yellow>Klicke für Achievements."
         ));
 
-        // ── Titel ─────────────────────────────────────────────────────────────
+        // Titel
         inventory.setItem(SLOT_TITLES, item(
             Material.NAME_TAG,
             "<aqua><bold>✦ Titel",
@@ -123,7 +121,7 @@ public class MainMenuGui extends GuiBase {
             "<yellow>Klicke für Titel-Auswahl."
         ));
 
-        // ── Kontostand ────────────────────────────────────────────────────────
+        // Coins
         inventory.setItem(SLOT_BALANCE, item(
             Material.GOLD_INGOT,
             "<gold><bold>Meine Coins",
@@ -133,24 +131,23 @@ public class MainMenuGui extends GuiBase {
             "<gray>Auto-Sell, Quests & Achievements."
         ));
 
-        // ── Schließen ─────────────────────────────────────────────────────────
         inventory.setItem(SLOT_CLOSE, closeButton());
     }
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        int slot = event.getSlot();
-
-        switch (slot) {
+        switch (event.getSlot()) {
+            case SLOT_ISLAND -> {
+                player.closeInventory();
+                BentoBoxHook.teleportHome(player);
+            }
             case SLOT_QUESTS       -> new QuestGui(plugin, player).open(player);
             case SLOT_ACHIEVEMENTS -> new AchievementGui(plugin, player).open(player);
             case SLOT_TITLES       -> new TitleGui(plugin, player).open(player);
-            case SLOT_BALANCE      -> {
+            case SLOT_BALANCE -> {
                 plugin.getCoinManager().sendBalance(player);
                 player.closeInventory();
             }
-            case SLOT_CLOSE        -> player.closeInventory();
-            // SLOT_GENERATORS: GeneratorGui nur wenn 1 Generator vorhanden
             case SLOT_GENERATORS -> {
                 List<Generator> gens = plugin.getGeneratorManager().getGeneratorsOf(player.getUniqueId());
                 if (gens.isEmpty()) {
@@ -159,12 +156,10 @@ public class MainMenuGui extends GuiBase {
                         + "<gray>Du hast noch keine Generatoren. Platziere einen Furnace!"));
                     player.closeInventory();
                 } else {
-                    // Erster Generator als Standard
                     new GeneratorGui(plugin, player, gens.get(0)).open(player);
                 }
             }
-            default -> { /* Nichts tun */ }
+            case SLOT_CLOSE -> player.closeInventory();
         }
     }
-
 }
