@@ -554,14 +554,17 @@ public class HologramManager {
 
     private String buildMiningHoloText(PlayerData data) {
         int blockLvl   = data.getMiningLevel();
-        int maxBlock   = plugin.getConfig().getInt("mining-block.max-level", 50);
+        int maxBlock   = plugin.getConfig().getInt("mining-block.max-level", 100);
         int pickLvl    = data.getMiningPickaxeLevel();
-        int maxPick    = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 30);
+        int maxPick    = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 50);
         long baseMoney = plugin.getConfig().getLong("mining-block.base-money", 5);
         double pickMult = 1.0 + (pickLvl - 1) * 0.15;
         long incomeHit  = (long) (baseMoney * blockLvl * pickMult);
         double shardPct = (plugin.getConfig().getDouble("mining-block.shard-chance", 0.10)
-                + (blockLvl * 0.005) + (pickLvl * 0.01)) * 100;
+                + (blockLvl * 0.005) + (pickLvl * 0.01) + data.getPetShardBonus()) * 100;
+        String petBar = data.isPetMaxLevel() ? "<gold>★MAX"
+                : "<green>" + "█".repeat((int)(data.getPetXp() * 5 / Math.max(1, data.petXpToNextLevel())))
+                + "<dark_gray>" + "█".repeat(5 - (int)(data.getPetXp() * 5 / Math.max(1, data.petXpToNextLevel())));
 
         return "<light_purple><bold>⛏ Mining-Block</bold>\n"
                 + "<dark_gray>─────────────────\n"
@@ -570,6 +573,7 @@ public class HologramManager {
                 + "<gray>Geld/Schlag: <green>$" + MoneyManager.formatMoney(incomeHit) + "\n"
                 + "<gray>Shard-Chance: <light_purple>" + String.format("%.1f", shardPct) + "%\n"
                 + "<light_purple>✦ Shards: <white>" + data.getShards() + "\n"
+                + "<gold>🐾 Pet: <white>Lvl " + data.getPetLevel() + " " + petBar + "\n"
                 + "<dark_gray>Sneak+Rechtsklick → Upgrade";
     }
 

@@ -79,17 +79,27 @@ public class NavigatorGUI implements Listener {
         int lvl = data != null ? data.getMiningPickaxeLevel() : 1;
         double mult = 1.0 + (lvl - 1) * 0.15;
         double shardBonus = lvl * 1.0;
+        int petLvl = data != null ? data.getPetLevel() : 1;
+        int maxPick = 50;
+        double tCoin = (lvl - 1) / (double)(maxPick - 1);
+        double coinChance = (0.01 + tCoin * tCoin * 0.09 + (data != null ? data.getPetCoinBonus() : 0)) * 100;
         ItemStack item = new ItemStack(Material.DIAMOND_PICKAXE);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(MM.deserialize("<aqua><bold>⛏ Mining-Spitzhacke</bold> <dark_gray>[Lvl " + lvl + "]"));
-        meta.lore(List.of(
-                MM.deserialize("<gray>Für den Mining-Block benutzen"),
-                MM.deserialize(""),
-                MM.deserialize("<gray>Geld-Multiplikator: <green>x" + String.format("%.2f", mult)),
-                MM.deserialize("<gray>Shard-Bonus: <light_purple>+" + (int) shardBonus + "%"),
-                MM.deserialize(""),
-                MM.deserialize("<dark_gray>/gen mining pickaxe upgrade")
-        ));
+        List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+        lore.add(MM.deserialize("<gray>Für den Mining-Block benutzen"));
+        lore.add(MM.deserialize(""));
+        lore.add(MM.deserialize("<gray>Geld-Multiplikator: <green>x" + String.format("%.2f", mult)));
+        lore.add(MM.deserialize("<gray>Shard-Bonus: <light_purple>+" + (int) shardBonus + "%"));
+        lore.add(MM.deserialize("<gray>Coin-Drop: <gold>" + String.format("%.1f", coinChance) + "% <dark_gray>(1–$10k)"));
+        lore.add(MM.deserialize(""));
+        lore.add(MM.deserialize("<gold>🐾 Pet Lvl " + petLvl + ": <green>+"
+                + String.format("%.0f", (data != null ? data.getPetCoinBonus() : 0) * 100) + "% Coin"
+                + "  <light_purple>+"
+                + String.format("%.0f", (data != null ? data.getPetShardBonus() : 0) * 100) + "% Shard"));
+        lore.add(MM.deserialize(""));
+        lore.add(MM.deserialize("<dark_gray>/gen mining pickaxe upgrade"));
+        meta.lore(lore);
         meta.setUnbreakable(true);
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
         meta.getPersistentDataContainer().set(miningPickaxeKey, PersistentDataType.BYTE, (byte) 1);
@@ -265,6 +275,8 @@ public class NavigatorGUI implements Listener {
                 "<gray>Insel eines Spielers besuchen",         "/gen visit "));
         inv.setItem(46, btn(Material.AMETHYST_BLOCK,   "<light_purple>Mining-Block",
                 "<gray>Schlag & verdiene Geld + Shards",       "/gen mining"));
+        inv.setItem(48, btn(Material.ARMADILLO_SPAWN_EGG, "<gold>Mining-Pet",
+                "<gray>Pet leveln & Boni ansehen",             "/gen mining"));
 
         player.openInventory(inv);
     }
@@ -371,6 +383,18 @@ public class NavigatorGUI implements Listener {
             if (data.getUpgradeTokens() > 0) {
                 lore.add(MM.deserialize("<gray>Upgrade-Tokens: <aqua>" + data.getUpgradeTokens()));
             }
+
+            // Mining-Pet
+            lore.add(MM.deserialize(""));
+            String petProgress = data.isPetMaxLevel()
+                    ? "<gold>★ MAX"
+                    : "<white>" + data.getPetXp() + "<dark_gray>/" + data.petXpToNextLevel() + " XP";
+            lore.add(MM.deserialize("<gold>🐾 Pet: <white>Lvl " + data.getPetLevel()
+                    + " <dark_gray>/ 500  " + petProgress));
+            lore.add(MM.deserialize("<gray>Einkommen-Bonus: <green>+"
+                    + String.format("%.0f", (data.getPetIncomeMultiplier() - 1) * 100) + "%"
+                    + "  <gray>Upgrade-Rabatt: <aqua>-"
+                    + String.format("%.0f", (1 - data.getPetUpgradeCostMultiplier()) * 100) + "%"));
         }
         meta.lore(lore);
         item.setItemMeta(meta);

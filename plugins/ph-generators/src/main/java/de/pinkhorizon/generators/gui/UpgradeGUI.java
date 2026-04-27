@@ -323,6 +323,14 @@ public class UpgradeGUI implements Listener {
                     + " <dark_gray>(Rechtsklick)"));
         }
 
+        // Pet
+        lore.add(MM.deserialize(""));
+        lore.add(MM.deserialize("<gold>🐾 Pet Lvl <white>" + data.getPetLevel() + " <dark_gray>/ 500"));
+        lore.add(MM.deserialize("<gray>Einkommen: <green>+"
+                + String.format("%.0f", (data.getPetIncomeMultiplier() - 1) * 100) + "%"
+                + "  <gray>Rabatt: <aqua>-"
+                + String.format("%.0f", (1 - data.getPetUpgradeCostMultiplier()) * 100) + "%"));
+
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;

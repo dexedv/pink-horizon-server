@@ -62,8 +62,26 @@ public class ScoreboardManager {
                         * plugin.getMoneyManager().getServerBoosterMultiplier()
                         * plugin.getSynergyManager().getTotalSynergyMultiplier(data)
                         * data.getRankMultiplier()
-                        * talentMult)
+                        * talentMult
+                        * data.getPetIncomeMultiplier())
                 .sum();
+
+        // Booster-Zeile (leer wenn kein Booster aktiv)
+        String boosterLine = data.hasActiveBooster()
+                ? "§6⚡ §ex" + data.getBoosterMultiplier() + " Booster"
+                : (plugin.getMoneyManager().isServerBoosterActive()
+                        ? "§6⚡ §eServer-Boost aktiv"
+                        : "");
+
+        // Pet XP-Fortschritt
+        String petXpBar;
+        if (data.isPetMaxLevel()) {
+            petXpBar = "§6★ MAX";
+        } else {
+            int filled = (int) Math.round((double) data.getPetXp() / data.petXpToNextLevel() * 5);
+            petXpBar = "§a" + "█".repeat(filled) + "§8" + "█".repeat(5 - filled)
+                    + " §7" + data.getPetXp() + "§8/§7" + data.petXpToNextLevel();
+        }
 
         int line = 15;
         set(obj, "§r", line--);
@@ -84,6 +102,13 @@ public class ScoreboardManager {
         set(obj, "§5⛏ Mining: §fLvl " + data.getMiningLevel()
                 + "  §d✦ " + data.getShards() + " Shards", line--);
         set(obj, "§r§r§r§r§r§r", line--);
+        set(obj, "§6🐾 Pet: §fLvl " + data.getPetLevel() + " §7/ 500", line--);
+        set(obj, petXpBar, line--);
+        if (!boosterLine.isEmpty()) {
+            set(obj, "§r§r§r§r§r§r§r", line--);
+            set(obj, boosterLine, line--);
+        }
+        set(obj, "§r§r§r§r§r§r§r§r", line--);
         set(obj, "§7play.pinkhorizon.de", line--);
 
         player.setScoreboard(board);
