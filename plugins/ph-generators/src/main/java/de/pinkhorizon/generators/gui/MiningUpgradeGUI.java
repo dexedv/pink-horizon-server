@@ -51,8 +51,8 @@ public class MiningUpgradeGUI implements Listener {
 
         int blockLevel   = data.getMiningLevel();
         int pickLevel    = data.getMiningPickaxeLevel();
-        int maxBlockLvl  = plugin.getConfig().getInt("mining-block.max-level", 50);
-        int maxPickLvl   = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 30);
+        int maxBlockLvl  = plugin.getConfig().getInt("mining-block.max-level", 100);
+        int maxPickLvl   = plugin.getConfig().getInt("mining-block.pickaxe-max-level", 50);
         int shards       = data.getShards();
 
         long baseMoney   = plugin.getConfig().getLong("mining-block.base-money", 5);

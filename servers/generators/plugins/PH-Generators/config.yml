@@ -36,6 +36,17 @@ db-save-interval: 30
 # Hologramm-Update alle X Ticks (20 Ticks = 1 Sekunde)
 hologram-update-ticks: 40
 
+# Mining-Block (fester Block neben Insel-Spawn)
+mining-block:
+  offset-x: 3           # X-Offset vom Island-Spawn
+  base-money: 5          # Geld pro Schlag bei Level 1
+  shard-chance: 0.10     # Basis-Chance für Shard-Drop (10%)
+  upgrade-shards: 5      # Shards pro Level für Upgrade (level × dieser Wert)
+  max-level: 100
+  cooldown-ms: 500       # Mindestzeit zwischen Schlägen in ms
+  pickaxe-max-level: 50
+  pickaxe-upgrade-shards: 8  # Shards pro Level für Spitzhacke-Upgrade (level × dieser Wert)
+
 # AFK-Belohnungsbox nach X Minuten AFK
 afk-reward-minutes: 120
 
