@@ -88,7 +88,8 @@ const state = {
   statusMessageId:           null,
   memberCountChannelId:      null,
   ingameCountChannelId:      null,
-  leaderboardMessageId:      null,  // Smash-Rangliste – wird editiert, nicht neu gepostet
+  leaderboardMessageId:          null,  // Smash-Rangliste – wird editiert, nicht neu gepostet
+  idleforgeLeaderboardMessageId: null,  // IdleForge-Rangliste – wird editiert, nicht neu gepostet
 };
 
 const SMASH_LEADERBOARD_CHANNEL_ID = '1498256403377160245';
@@ -1133,6 +1134,11 @@ const COMMANDS = [
     .setName('post-smash-guide')
     .setDescription('Postet die Smash the Boss Spielanleitung + Befehle (Admin)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName('post-idleforge-guide')
+    .setDescription('Postet die IdleForge Spielanleitung + Befehle (Admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 ].map(c => c.toJSON());
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1180,6 +1186,15 @@ client.once('ready', async () => {
     await initLeaderboardMessage(guild);
     updateSmashLeaderboard(guild).catch(() => {});
     setInterval(() => updateSmashLeaderboard(guild), 5 * 60_000); // alle 5 Minuten
+
+    // IdleForge Rangliste
+    await initIdleForgeLeaderboardMessage(guild);
+    updateIdleForgeLeaderboard(guild).catch(() => {});
+    setInterval(() => updateIdleForgeLeaderboard(guild), 5 * 60_000);
+
+    // IdleForge Guide posten wenn Kanal leer
+    const idleforgeGuideCh = guild.channels.cache.get(IDLEFORGE_GUIDE_CHANNEL_ID);
+    if (idleforgeGuideCh) postIdleForgeGuide(idleforgeGuideCh, false).catch(() => {});
 
     // Thread-only Kanäle: keine normalen Nachrichten, nur Threads
     const THREAD_ONLY_CHANNELS = ['1497212103671550155', '1497212066950283395'];
@@ -1551,6 +1566,12 @@ client.on('interactionCreate', async interaction => {
       await postSmashGuide(ch, true);
       await interaction.editReply(`✅ Smash the Boss Guide in <#${SMASH_GUIDE_CHANNEL_ID}> gepostet.`);
 
+    } else if (commandName === 'post-idleforge-guide') {
+      const ch = guild.channels.cache.get(IDLEFORGE_GUIDE_CHANNEL_ID);
+      if (!ch) { await interaction.editReply('❌ Kanal nicht gefunden!'); return; }
+      await postIdleForgeGuide(ch, true);
+      await interaction.editReply(`✅ IdleForge Guide in <#${IDLEFORGE_GUIDE_CHANNEL_ID}> gepostet.`);
+
     } else if (commandName === 'status') {
       await interaction.editReply({ embeds: [await buildStatusEmbed()] });
 
@@ -1710,6 +1731,242 @@ async function updateSmashLeaderboard(guild) {
     state.leaderboardMessageId = sent.id;
   } catch (e) {
     console.error('[Leaderboard] updateSmashLeaderboard:', e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IdleForge – Rangliste (edit-in-place)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const IDLEFORGE_LEADERBOARD_CHANNEL_ID = '1498256370242420836';
+const IDLEFORGE_GUIDE_CHANNEL_ID       = '1498115229144449025';
+
+function formatMoney(n) {
+  n = Number(n);
+  if (n >= 1e15) return (n / 1e15).toFixed(2) + 'Q';
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+  if (n >= 1e9)  return (n / 1e9).toFixed(2)  + 'B';
+  if (n >= 1e6)  return (n / 1e6).toFixed(2)  + 'M';
+  if (n >= 1e3)  return (n / 1e3).toFixed(1)  + 'K';
+  return String(n);
+}
+
+async function buildIdleForgeLeaderboardEmbed() {
+  const pool = await getDb();
+  const updatedAt = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });
+
+  if (!pool) {
+    return new EmbedBuilder()
+      .setTitle('🏆 IdleForge – Rangliste')
+      .setColor(0xFFAA00)
+      .setDescription('❌ Datenbank nicht erreichbar.')
+      .setFooter({ text: `Zuletzt aktualisiert: ${updatedAt} Uhr` });
+  }
+
+  try {
+    const [rows] = await pool.query(`
+      SELECT name, money, prestige, total_earned, total_upgrades
+      FROM ph_generators.gen_players
+      ORDER BY total_earned DESC
+      LIMIT 10
+    `);
+
+    const medals = ['🥇', '🥈', '🥉'];
+    const lines = rows.length === 0
+      ? ['*Noch keine Einträge.*']
+      : rows.map((r, i) => {
+          const medal  = medals[i] ?? `**#${i + 1}**`;
+          const prest  = r.prestige > 0 ? ` ✦${r.prestige}` : '';
+          return `${medal} **${r.name}**${prest} · 💰 $${formatMoney(r.total_earned)} verdient · Konto: $${formatMoney(r.money)}`;
+        });
+
+    return new EmbedBuilder()
+      .setTitle('🏆 IdleForge – Rangliste')
+      .setColor(0xFFAA00)
+      .setDescription(lines.join('\n'))
+      .setFooter({ text: `Zuletzt aktualisiert: ${updatedAt} Uhr · Pink Horizon` })
+      .setTimestamp();
+
+  } catch (e) {
+    console.error('[IdleForge LB] SQL-Fehler:', e.message);
+    return new EmbedBuilder()
+      .setTitle('🏆 IdleForge – Rangliste')
+      .setColor(0xFFAA00)
+      .setDescription(`❌ Fehler: \`${e.message}\``)
+      .setFooter({ text: `Zuletzt aktualisiert: ${updatedAt} Uhr` });
+  }
+}
+
+async function initIdleForgeLeaderboardMessage(guild) {
+  const ch = guild.channels.cache.get(IDLEFORGE_LEADERBOARD_CHANNEL_ID);
+  if (!ch) return;
+  try {
+    const msgs = await ch.messages.fetch({ limit: 20 });
+    const existing = msgs.find(m => m.author.id === client.user.id
+      && m.embeds?.[0]?.title?.includes('IdleForge'));
+    if (existing) {
+      state.idleforgeLeaderboardMessageId = existing.id;
+      console.log('[IdleForge LB] Vorhandene Nachricht gefunden:', existing.id);
+    }
+  } catch (e) {
+    console.error('[IdleForge LB] init:', e.message);
+  }
+}
+
+async function updateIdleForgeLeaderboard(guild) {
+  const ch = guild.channels.cache.get(IDLEFORGE_LEADERBOARD_CHANNEL_ID);
+  if (!ch) return;
+  const embed = await buildIdleForgeLeaderboardEmbed();
+  try {
+    if (state.idleforgeLeaderboardMessageId) {
+      const msg = await ch.messages.fetch(state.idleforgeLeaderboardMessageId).catch(() => null);
+      if (msg) { await msg.edit({ embeds: [embed] }); return; }
+      state.idleforgeLeaderboardMessageId = null;
+    }
+    const sent = await ch.send({ embeds: [embed] });
+    state.idleforgeLeaderboardMessageId = sent.id;
+  } catch (e) {
+    console.error('[IdleForge LB] update:', e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IdleForge – Guide
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildIdleForgeGuideEmbeds() {
+  const overview = new EmbedBuilder()
+    .setTitle('⚙️ IdleForge – Spielanleitung')
+    .setColor(0xFFAA00)
+    .setDescription([
+      '**IdleForge** ist ein passiver Einkommensmodus auf Pink Horizon.',
+      'Du platzierst **Generatoren** auf deiner eigenen Insel – sie verdienen',
+      'automatisch Geld, auch wenn du offline bist (bis zu 8 Stunden).',
+      '',
+      '**Ziel:** Upgrade deine Generatoren, steige im Prestige auf und',
+      'verdiene so viel Geld wie möglich!',
+    ].join('\n'))
+    .addFields(
+      {
+        name: '🚀 Einstieg',
+        value: [
+          '1. Tritt dem IdleForge-Server bei',
+          '2. Du startest mit einem **Cobblestone-Generator** (gratis)',
+          '3. Verdiene Geld passiv – jede Sekunde',
+          '4. Kaufe bessere Generatoren im Shop (`/gen shop`)',
+          '5. Upgrade deine Generatoren für mehr Einkommen',
+          '6. Prestige für permanente Boni und höhere Max-Level',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '⚡ Generatoren-Typen',
+        value: [
+          '🪨 **Cobblestone** · $1/s · Gratis',
+          '🔩 **Iron** · $5/s · $500',
+          '🥇 **Gold** · $15/s · $2.500',
+          '💎 **Diamond** · $100/s · $50.000',
+          '🔥 **Netherite** · $500/s · $250.000',
+          '*Mega-Generatoren: 3× Max-Level → 4× Ertrag + Aura*',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '🔑 Wichtige Systeme',
+        value: [
+          '**Prestige** – Setzt Generatoren zurück, gibt +% Einkommen permanent',
+          '**Synergien** – Benachbarte Generatoren geben Bonus aufeinander',
+          '**Talente** – Passive Boni für Einkommen, Upgrades & mehr',
+          '**Mining-Block** – Amethyst-Block schlagen → Shards → Upgrades',
+          '**Quests** – Täglich 3 Quests + Wochen-Quest für Belohnungen',
+          '**Gilden** – Bis zu 5 Spieler, gemeinsames Einkommen & Perk',
+          '**Events** – Serverweite x2-Events & Community Goals',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '😴 Offline-Einkommen',
+        value: 'Generatoren verdienen bis zu **8 Stunden** weiter wenn du offline bist. Beim nächsten Login bekommst du alles gutgeschrieben.',
+        inline: false,
+      },
+    )
+    .setFooter({ text: 'Pink Horizon · play.pinkhorizon.fun' });
+
+  const commands = new EmbedBuilder()
+    .setTitle('📋 Befehle – IdleForge')
+    .setColor(0xFF8800)
+    .addFields(
+      {
+        name: '🏪 Shop & Generatoren',
+        value: [
+          '`/gen` oder `/gen shop` – Generator-Shop öffnen',
+          '`/gen upgrade` – Generatoren upgraden (GUI)',
+          '`/gen upgradeall [typ]` – Alle Generatoren auf einmal upgraden',
+          '`/gen list` – Alle platzierten Generatoren anzeigen',
+          '`/gen fuse <x,y,z> <x,y,z> <x,y,z>` – 3 Max-Generatoren fusionieren',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '📊 Statistiken & Finanzen',
+        value: [
+          '`/gen stats` – Deine vollständigen Statistiken',
+          '`/gen balance` – Kontostand & Prestige-Info',
+          '`/gen top` – Serverweite Rangliste',
+          '`/gen pay <spieler> <betrag>` – Geld senden',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '🏆 Prestige & Fortschritt',
+        value: [
+          '`/gen prestige` – Prestige durchführen',
+          '`/gen quests` – Tägliche Quests anzeigen',
+          '`/gen achievements` – Achievements anzeigen',
+          '`/gen milestones` – Meilensteine anzeigen',
+          '`/gen season` – Saison-Rangliste',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '⛏️ Mining & Extras',
+        value: [
+          '`/gen mining` – Mining-Block Stats anzeigen',
+          '`/gen mining upgrade` – Mining-Block upgraden',
+          '`/gen mining pickaxe upgrade` – Spitzhacke upgraden',
+          '`/gen talents` – Talent-Baum öffnen',
+          '`/gen tokens` – Upgrade-Tokens & Talentpunkte',
+          '`/gen booster` – Booster aktivieren/anzeigen',
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '🏝️ Insel & Soziales',
+        value: [
+          '`/gen home` – Zur eigenen Insel',
+          '`/gen visit <spieler>` – Insel eines Spielers besuchen',
+          '`/gen guild <create|join|leave|info>` – Gilden-System',
+          '`/gen guildtop` – Gilden-Rangliste',
+          '`/gen holo set/remove` – Stats-Hologramm platzieren',
+          '`/gen market` – Marktplatz (Upgrade-Tokens kaufen/verkaufen)',
+          '`/gen synergy` – Aktive Synergien anzeigen',
+        ].join('\n'),
+        inline: false,
+      },
+    )
+    .setFooter({ text: 'Pink Horizon · IdleForge · /gen <Befehl>' });
+
+  return [overview, commands];
+}
+
+async function postIdleForgeGuide(channel, force = false) {
+  if (!channel) return;
+  if (!force) {
+    const msgs = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+    if (msgs && msgs.size > 0) return;
+  }
+  for (const embed of buildIdleForgeGuideEmbeds()) {
+    await channel.send({ embeds: [embed] }).catch(e => console.error('[IdleForge Guide]', e.message));
   }
 }
 
