@@ -1,16 +1,28 @@
 package de.pinkhorizon.skyblock;
 
+import de.pinkhorizon.skyblock.commands.GeneratorCommand;
 import de.pinkhorizon.skyblock.commands.IslandAdminCommand;
 import de.pinkhorizon.skyblock.commands.IslandCommand;
+import de.pinkhorizon.skyblock.database.GeneratorRepository;
 import de.pinkhorizon.skyblock.database.IslandRepository;
+import de.pinkhorizon.skyblock.database.QuestRepository;
 import de.pinkhorizon.skyblock.database.SkyDatabase;
+import de.pinkhorizon.skyblock.listeners.GeneratorListener;
+import de.pinkhorizon.skyblock.listeners.GuiListener;
 import de.pinkhorizon.skyblock.listeners.IslandChatListener;
 import de.pinkhorizon.skyblock.listeners.IslandProtectionListener;
 import de.pinkhorizon.skyblock.listeners.PlayerListener;
+import de.pinkhorizon.skyblock.managers.AchievementManager;
+import de.pinkhorizon.skyblock.managers.CoinManager;
+import de.pinkhorizon.skyblock.managers.GeneratorManager;
+import de.pinkhorizon.skyblock.managers.HologramManager;
 import de.pinkhorizon.skyblock.managers.IslandManager;
 import de.pinkhorizon.skyblock.managers.IslandScoreManager;
+import de.pinkhorizon.skyblock.managers.NpcManager;
 import de.pinkhorizon.skyblock.managers.PlayerManager;
+import de.pinkhorizon.skyblock.managers.QuestManager;
 import de.pinkhorizon.skyblock.managers.SkyScoreboardManager;
+import de.pinkhorizon.skyblock.managers.TitleManager;
 import de.pinkhorizon.skyblock.managers.WorldManager;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.Component;
@@ -19,17 +31,28 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class PHSkyBlock extends JavaPlugin {
 
     private static PHSkyBlock instance;
+
+    // ── Datenbank ─────────────────────────────────────────────────────────────
     private SkyDatabase database;
     private IslandRepository islandRepository;
+    private GeneratorRepository generatorRepository;
+    private QuestRepository questRepository;
+
+    // ── Manager ───────────────────────────────────────────────────────────────
     private WorldManager worldManager;
     private PlayerManager playerManager;
     private IslandManager islandManager;
     private IslandScoreManager scoreManager;
     private SkyScoreboardManager scoreboardManager;
+    private CoinManager coinManager;
+    private HologramManager hologramManager;
+    private GeneratorManager generatorManager;
+    private QuestManager questManager;
+    private AchievementManager achievementManager;
+    private TitleManager titleManager;
+    private NpcManager npcManager;
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
-
-    // ── Präfix für alle Nachrichten ───────────────────────────────────────────
     private static final String PREFIX = "<dark_gray>[<light_purple><bold>SkyBlock</bold></light_purple><dark_gray>] <white>";
 
     @Override
@@ -37,42 +60,72 @@ public class PHSkyBlock extends JavaPlugin {
         instance = this;
         saveDefaultConfig();
 
-        // Datenbank
-        database         = new SkyDatabase(this);
-        islandRepository = new IslandRepository(this, database);
+        // ── Datenbank ─────────────────────────────────────────────────────────
+        database             = new SkyDatabase(this);
+        islandRepository     = new IslandRepository(this, database);
+        generatorRepository  = new GeneratorRepository(this, database); // erstellt alle Tabellen
+        questRepository      = new QuestRepository(this, database);
 
-        // Manager
-        worldManager  = new WorldManager(this);
-        playerManager = new PlayerManager(this, islandRepository);
-        islandManager = new IslandManager(this, islandRepository, worldManager);
+        // ── Basis-Manager ─────────────────────────────────────────────────────
+        worldManager       = new WorldManager(this);
+        playerManager      = new PlayerManager(this, islandRepository);
+        islandManager      = new IslandManager(this, islandRepository, worldManager);
         scoreManager       = new IslandScoreManager(this);
         scoreboardManager  = new SkyScoreboardManager(this);
 
-        // Kommandos
+        // ── Erweiterte Manager (Reihenfolge ist wichtig!) ─────────────────────
+        hologramManager    = new HologramManager(this);
+        coinManager        = new CoinManager(this, generatorRepository);
+        achievementManager = new AchievementManager(this, generatorRepository);
+        titleManager       = new TitleManager(this, generatorRepository);
+        questManager       = new QuestManager(this, questRepository, generatorRepository);
+        generatorManager   = new GeneratorManager(this, generatorRepository);
+        npcManager         = new NpcManager(this);
+
+        // Generator-Ticks starten
+        generatorManager.startTasks();
+
+        // NPCs nach einer kurzen Verzögerung laden (Welt muss geladen sein)
+        getServer().getScheduler().runTaskLater(this, () -> npcManager.reloadNpcs(), 60L);
+
+        // ── Kommandos ─────────────────────────────────────────────────────────
         getCommand("island").setExecutor(new IslandCommand(this));
         getCommand("isadmin").setExecutor(new IslandAdminCommand(this));
+        var genCmd = new GeneratorCommand(this);
+        getCommand("gen").setExecutor(genCmd);
+        getCommand("gen").setTabCompleter(genCmd);
 
-        // Listener
+        // ── Listener ──────────────────────────────────────────────────────────
         var pm = getServer().getPluginManager();
         pm.registerEvents(new PlayerListener(this), this);
         pm.registerEvents(new IslandProtectionListener(this), this);
         pm.registerEvents(new IslandChatListener(this), this);
+        pm.registerEvents(new GeneratorListener(this), this);
+        pm.registerEvents(new GuiListener(this), this);
 
-        getLogger().info("PH-SkyBlock v2.0.0 gestartet!");
+        getLogger().info("PH-SkyBlock v2.1.0 gestartet! (Generatoren, Quests, Achievements, Titel)");
     }
 
     @Override
     public void onDisable() {
-        // Alle Online-Spieler speichern
-        getServer().getOnlinePlayers().forEach(p ->
-            playerManager.saveAndUnload(p.getUniqueId()));
+        // Alle Hologramme entfernen
+        if (hologramManager != null) hologramManager.removeAll();
+
+        // Generatoren speichern
+        if (generatorManager != null) generatorManager.saveAll();
+
+        // Online-Spieler speichern
+        getServer().getOnlinePlayers().forEach(p -> {
+            if (questManager != null)     questManager.savePlayer(p.getUniqueId());
+            if (playerManager != null)    playerManager.saveAndUnload(p.getUniqueId());
+        });
+
         if (database != null) database.close();
         getLogger().info("PH-SkyBlock gestoppt.");
     }
 
-    // ── Hilfsmethoden ─────────────────────────────────────────────────────────
+    // ── msg() Hilfsmethoden ───────────────────────────────────────────────────
 
-    /** Gibt einen farbigen MiniMessage-Component mit Präfix zurück. */
     public Component msg(String key, Object... args) {
         String raw = MESSAGES.getOrDefault(key, "<red>Unbekannte Nachricht: " + key);
         for (int i = 0; i < args.length - 1; i += 2) {
@@ -89,7 +142,7 @@ public class PHSkyBlock extends JavaPlugin {
         return MM.deserialize(raw);
     }
 
-    // ── Statische Nachrichten (Deutsch) ───────────────────────────────────────
+    // ── Nachrichten ───────────────────────────────────────────────────────────
 
     private static final java.util.Map<String, String> MESSAGES = java.util.Map.ofEntries(
         java.util.Map.entry("no-permission",         "<red>Du hast keine Berechtigung dafür."),
@@ -151,11 +204,20 @@ public class PHSkyBlock extends JavaPlugin {
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
-    public static PHSkyBlock getInstance()         { return instance; }
-    public IslandManager getIslandManager()        { return islandManager; }
-    public PlayerManager getPlayerManager()        { return playerManager; }
-    public WorldManager getWorldManager()          { return worldManager; }
-    public IslandScoreManager getScoreManager()    { return scoreManager; }
-    public IslandRepository getIslandRepository()  { return islandRepository; }
-    public SkyScoreboardManager getScoreboardManager() { return scoreboardManager; }
+    public static PHSkyBlock getInstance()              { return instance; }
+    public IslandManager getIslandManager()             { return islandManager; }
+    public PlayerManager getPlayerManager()             { return playerManager; }
+    public WorldManager getWorldManager()               { return worldManager; }
+    public IslandScoreManager getScoreManager()         { return scoreManager; }
+    public IslandRepository getIslandRepository()       { return islandRepository; }
+    public GeneratorRepository getGeneratorRepository() { return generatorRepository; }
+    public QuestRepository getQuestRepository()         { return questRepository; }
+    public SkyScoreboardManager getScoreboardManager()  { return scoreboardManager; }
+    public CoinManager getCoinManager()                 { return coinManager; }
+    public HologramManager getHologramManager()         { return hologramManager; }
+    public GeneratorManager getGeneratorManager()       { return generatorManager; }
+    public QuestManager getQuestManager()               { return questManager; }
+    public AchievementManager getAchievementManager()   { return achievementManager; }
+    public TitleManager getTitleManager()               { return titleManager; }
+    public NpcManager getNpcManager()                   { return npcManager; }
 }

@@ -40,6 +40,13 @@ public class PlayerListener implements Listener {
             }
         }
 
+        // Erweiterte Systeme laden
+        plugin.getGeneratorRepository().ensurePlayerExt(player.getUniqueId());
+        plugin.getAchievementManager().loadPlayer(player.getUniqueId());
+        plugin.getTitleManager().loadPlayer(player.getUniqueId());
+        plugin.getQuestManager().loadPlayer(player.getUniqueId());
+        plugin.getGeneratorManager().loadForPlayer(player.getUniqueId());
+
         // Gamemode setzen
         applyGameMode(player);
 
@@ -52,8 +59,13 @@ public class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent e) {
-        plugin.getScoreboardManager().remove(e.getPlayer());
-        plugin.getPlayerManager().saveAndUnload(e.getPlayer().getUniqueId());
+        var player = e.getPlayer();
+        plugin.getScoreboardManager().remove(player);
+        plugin.getQuestManager().savePlayer(player.getUniqueId());
+        plugin.getGeneratorManager().saveAndUnloadForPlayer(player.getUniqueId());
+        plugin.getAchievementManager().unloadPlayer(player.getUniqueId());
+        plugin.getTitleManager().unloadPlayer(player.getUniqueId());
+        plugin.getPlayerManager().saveAndUnload(player.getUniqueId());
     }
 
     @EventHandler

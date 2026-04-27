@@ -36,6 +36,20 @@ public class IslandScoreManager {
         return blockValues.getOrDefault(mat, 0);
     }
 
+    /** Fügt der Insel des Spielers Bonus-Score hinzu (z.B. aus Quest-Belohnungen). */
+    public void addBonusScore(java.util.UUID playerUuid, long amount) {
+        Island island = plugin.getIslandManager().getIslandOfPlayer(playerUuid);
+        if (island == null) return;
+        island.setScore(island.getScore() + amount);
+        long newLevel = Math.max(1, (long) Math.cbrt(island.getScore() / 10.0));
+        island.setLevel(newLevel);
+        plugin.getIslandManager().saveIsland(island);
+        var player = Bukkit.getPlayer(playerUuid);
+        if (player != null) {
+            plugin.getAchievementManager().checkScoreAchievements(player, island.getScore());
+        }
+    }
+
     /**
      * Berechnet den Score einer Insel asynchron und ruft dann den Callback auf dem Main-Thread auf.
      */

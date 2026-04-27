@@ -1,5 +1,5 @@
 name: PH-SkyBlock
-version: '2.0.0'
+version: '2.1.0'
 main: de.pinkhorizon.skyblock.PHSkyBlock
 api-version: '1.21'
 description: SkyBlock-Plugin fuer Pink Horizon
@@ -14,6 +14,10 @@ commands:
   isadmin:
     description: SkyBlock Admin-Befehle
     usage: /isadmin <tp|reload|setspawn|delete|info>
+  gen:
+    description: Generator & Coins Verwaltung
+    usage: /gen [bal|quests|achievements|titles|top|give|reload]
+    aliases: [ generator, coins ]
 
 permissions:
   skyblock.island:
