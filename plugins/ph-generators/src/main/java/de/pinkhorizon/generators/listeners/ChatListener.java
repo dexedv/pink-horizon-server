@@ -90,6 +90,15 @@ public class ChatListener implements Listener {
         try {
             LuckPerms lp = LuckPermsProvider.get();
             User user = lp.getPlayerAdapter(Player.class).getUser(player);
+            // Rang-Priorität: höchsten bekannten Rang prüfen (geerbte Gruppen eingeschlossen)
+            java.util.Set<String> groups = user.getInheritedGroups(user.getQueryOptions())
+                    .stream()
+                    .map(g -> g.getName().toLowerCase())
+                    .collect(java.util.stream.Collectors.toSet());
+            if (groups.contains("nexus"))    return "nexus";
+            if (groups.contains("catalyst")) return "catalyst";
+            if (groups.contains("rune"))     return "rune";
+            if (groups.contains("cataklysem")) return "cataklysem";
             return user.getPrimaryGroup();
         } catch (Exception ignored) {}
         return "default";
