@@ -99,6 +99,7 @@ public class NavigatorGUI implements Listener {
         lore.add(MM.deserialize(""));
         lore.add(MM.deserialize("<dark_gray>/gen mining pickaxe upgrade"));
         meta.lore(lore);
+        meta.setCustomModelData(1001);
         meta.setUnbreakable(true);
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
         meta.getPersistentDataContainer().set(miningPickaxeKey, PersistentDataType.BYTE, (byte) 1);
@@ -114,6 +115,7 @@ public class NavigatorGUI implements Listener {
                 MM.deserialize("<gray>Rechtsklick auf Generator → Aufheben"),
                 MM.deserialize("<dark_gray>Level-Fortschritt bleibt erhalten!")
         ));
+        meta.setCustomModelData(1002);
         meta.setUnbreakable(true);
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
         item.setItemMeta(meta);
