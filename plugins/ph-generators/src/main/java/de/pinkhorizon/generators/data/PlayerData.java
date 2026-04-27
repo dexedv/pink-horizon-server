@@ -82,7 +82,7 @@ public class PlayerData {
     // Mining-Pet
     private int  petLevel = 1;
     private long petXp    = 0;
-    private static final int PET_MAX_LEVEL = 50;
+    private static final int PET_MAX_LEVEL = 500;
 
     // Stats-Hologramm (Spieler-Selbst-Platzierung)
     private String holoWorld = null;
@@ -379,17 +379,17 @@ public class PlayerData {
         return levelsUp;
     }
 
-    /** Generator-Einkommen Multiplikator durch Pet (+1% pro Level) */
-    public double getPetIncomeMultiplier()          { return 1.0 + (petLevel - 1) * 0.01; }
+    /** Generator-Einkommen Multiplikator durch Pet (+0.2% pro Level → max +100% bei Lvl 500) */
+    public double getPetIncomeMultiplier()          { return 1.0 + (petLevel - 1) * 0.002; }
 
-    /** Upgrade-Kosten Multiplikator durch Pet (-0.4% pro Level, min 0.8) */
-    public double getPetUpgradeCostMultiplier()     { return Math.max(0.8, 1.0 - (petLevel - 1) * 0.004); }
+    /** Upgrade-Kosten Multiplikator durch Pet (-0.05% pro Level → max -25% bei Lvl 500) */
+    public double getPetUpgradeCostMultiplier()     { return Math.max(0.75, 1.0 - (petLevel - 1) * 0.0005); }
 
-    /** Bonus auf Shard-Chance (+0.3% pro Level) */
-    public double getPetShardBonus()                { return (petLevel - 1) * 0.003; }
+    /** Bonus auf Shard-Chance (+0.05% pro Level → max +25% bei Lvl 500) */
+    public double getPetShardBonus()                { return (petLevel - 1) * 0.0005; }
 
-    /** Bonus auf Coin-Drop-Chance (+0.2% pro Level) */
-    public double getPetCoinBonus()                 { return (petLevel - 1) * 0.002; }
+    /** Bonus auf Coin-Drop-Chance (+0.03% pro Level → max +15% bei Lvl 500) */
+    public double getPetCoinBonus()                 { return (petLevel - 1) * 0.0003; }
 
     // ── Mining-Block custom position ─────────────────────────────────────────
     public boolean hasMiningBlockCustomPos()        { return miningBlockCustomPos; }
