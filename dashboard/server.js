@@ -2116,6 +2116,11 @@ app.delete('/api/db/row', auth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Hilfsfunktion: MySQL-Fehler bei fehlender Tabelle ─────────────────────
+function isMissingTable(e) {
+  return e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146;
+}
+
 // ── REST-API: SkyBlock – Skills ────────────────────────────────────────────
 
 app.get('/api/skyblock/skills', auth, async (req, res) => {
@@ -2134,7 +2139,10 @@ app.get('/api/skyblock/skills', auth, async (req, res) => {
     }
     const leaderboard = Object.values(playerMap).sort((a, b) => b.totalLevel - a.totalLevel).slice(0, 20);
     res.json({ leaderboard });
-  } catch (e) { res.status(500).json({ error: e.message, leaderboard: [] }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ leaderboard: [] });
+    res.status(500).json({ error: e.message, leaderboard: [] });
+  }
 });
 
 // ── REST-API: SkyBlock – Companions ────────────────────────────────────────
@@ -2153,7 +2161,10 @@ app.get('/api/skyblock/companions', auth, async (req, res) => {
        FROM sky_companions`
     );
     res.json({ companions, stats });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ companions: [], stats: {} });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Runes ─────────────────────────────────────────────
@@ -2173,7 +2184,10 @@ app.get('/api/skyblock/runes', auth, async (req, res) => {
        GROUP BY rune_type ORDER BY total DESC`
     );
     res.json({ top, distribution });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ top: [], distribution: [] });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Dungeons ──────────────────────────────────────────
@@ -2201,7 +2215,10 @@ app.get('/api/skyblock/dungeons', auth, async (req, res) => {
        FROM sky_dungeon_runs`
     );
     res.json({ recent, leaderboard, stats });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ recent: [], leaderboard: [], stats: {} });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Battle Pass ───────────────────────────────────────
@@ -2222,7 +2239,10 @@ app.get('/api/skyblock/battlepass', auth, async (req, res) => {
        FROM sky_battlepass WHERE season = ?`, [season]
     );
     res.json({ leaderboard, stats: stats || {}, season });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ leaderboard: [], stats: {}, season });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Story / Nyx ──────────────────────────────────────
@@ -2244,7 +2264,10 @@ app.get('/api/skyblock/story', auth, async (req, res) => {
        ORDER BY s.updated_at DESC LIMIT 10`
     );
     res.json({ chapters, nyx: nyx || { progress: 0, active: 0 }, topChapter });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ chapters: [], nyx: { progress: 0, active: 0 }, topChapter: [] });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Research ─────────────────────────────────────────
@@ -2263,7 +2286,10 @@ app.get('/api/skyblock/research', auth, async (req, res) => {
        FROM sky_research`
     );
     res.json({ popular, stats: stats || {} });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ popular: [], stats: {} });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Machines ─────────────────────────────────────────
@@ -2282,7 +2308,10 @@ app.get('/api/skyblock/machines', auth, async (req, res) => {
        FROM sky_machines`
     );
     res.json({ byType, totals: totals || {} });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ byType: [], totals: {} });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – DNA ───────────────────────────────────────────────
@@ -2298,7 +2327,10 @@ app.get('/api/skyblock/dna', auth, async (req, res) => {
        FROM sky_dna_fragments GROUP BY fragment_id ORDER BY total DESC LIMIT 15`
     );
     res.json({ islands, fragments });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ islands: [], fragments: [] });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Auktionshaus (ph-auction) ────────────────────────
@@ -2318,7 +2350,10 @@ app.get('/api/skyblock/auctions', auth, async (req, res) => {
        FROM sky_auctions`
     );
     res.json({ listings, stats: stats || {} });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ listings: [], stats: {} });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.delete('/api/skyblock/auctions/:id', auth, async (req, res) => {
@@ -2329,7 +2364,10 @@ app.delete('/api/skyblock/auctions/:id', auth, async (req, res) => {
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Listing nicht gefunden' });
     addAudit('sb_auction_delete', id, 'SkyBlock Auktion gelöscht');
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.status(404).json({ error: 'Tabelle nicht vorhanden' });
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Stars ─────────────────────────────────────────────
@@ -2346,7 +2384,10 @@ app.get('/api/skyblock/stars', auth, async (req, res) => {
        GROUP BY tier ORDER BY FIELD(tier,'LEGENDARY','EPIC','RARE','COMMON')`
     );
     res.json({ recent, byTier });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ recent: [], byTier: [] });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Rituals ───────────────────────────────────────────
@@ -2362,7 +2403,10 @@ app.get('/api/skyblock/rituals', auth, async (req, res) => {
               COUNT(*) AS total_rituals FROM sky_rituals`
     );
     res.json({ popular, stats: stats || {} });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({ popular: [], stats: {} });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REST-API: SkyBlock – Komplett-Übersicht ────────────────────────────────
@@ -2386,7 +2430,14 @@ app.get('/api/skyblock/overview', auth, async (req, res) => {
       nyxProgress:  nyx?.progress || 0,
       nyxActive:    !!(nyx?.active)
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (isMissingTable(e)) return res.json({
+      islands: 0, skillPlayers: 0, dungeonRuns: 0,
+      activeAuctions: 0, activeMachines: 0, starsCollected: 0,
+      nyxProgress: 0, nyxActive: false
+    });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────
