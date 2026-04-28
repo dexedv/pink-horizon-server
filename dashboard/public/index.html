@@ -199,6 +199,14 @@
 
   /* Commands */
   .cg-title { font-size:.92rem; font-weight:600; padding:4px 0 8px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+  details.cmd-group { border-radius:var(--r); overflow:hidden; border:1px solid var(--border); }
+  details.cmd-group + details.cmd-group { margin-top:8px; }
+  details.cmd-group summary.cg-title { cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; }
+  details.cmd-group summary.cg-title::-webkit-details-marker { display:none; }
+  details.cmd-group[open] summary.cg-title { border-bottom:1px solid var(--border); }
+  .cg-count { font-size:.72rem; color:var(--muted); font-weight:400; font-family:var(--mono); margin-left:auto; }
+  details.cmd-group summary.cg-title::after { content:'▶'; font-size:.7rem; color:var(--muted); transition:transform .2s; margin-left:8px; }
+  details.cmd-group[open] summary.cg-title::after { transform:rotate(90deg); }
   .csec { display:flex; flex-direction:column; gap:4px; }
   .csec-lbl { font-size:.67rem; text-transform:uppercase; letter-spacing:.11em; color:var(--muted); padding:8px 0 4px; font-weight:600; }
   .crow { display:grid; grid-template-columns:155px 1fr 2fr auto; align-items:center; gap:10px; padding:7px 12px; background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:var(--r-sm); font-size:.85rem; transition:border-color .18s; }
@@ -564,7 +572,6 @@ const NAV_DEF = [
   { sec: 'System' },
   { id:'sysmon',       icon:'📡', label:'System-Monitor'  },
   { id:'backup',       icon:'💾', label:'Backup'          },
-  { id:'motd',         icon:'📝', label:'MOTD-Editor'     },
   { id:'audit',        icon:'📜', label:'Audit-Log'       },
 ];
 
@@ -638,7 +645,6 @@ function renderPage() {
   if (PAGE === 'commands')     return renderCmds();
   if (PAGE === 'sqlconsole')   return renderSqlConsole();
   if (PAGE === 'backup')       return renderBackup();
-  if (PAGE === 'motd')         return renderMotd();
   if (PAGE === 'smash_lb')     return renderSmash();
   if (PAGE === 'gen_dash')     return renderGenDash();
   if (PAGE === 'gen_lb')       return renderGenLb();
@@ -2525,6 +2531,42 @@ const CMD_DATA = [
       {n:'/gen season snapshot',u:'/gen season snapshot',                        d:'Saisonales Leaderboard-Snapshot erstellen',  admin:true},
     ]},
   ]},
+  { server:'SkyBlock', sections:[
+    { label:'Allgemein – Spieler', cmds:[
+      {n:'/phsk',            u:'/phsk',                                           d:'SkyBlock-Hauptmenü öffnen',                  admin:false},
+      {n:'/phsk bal',        u:'/phsk bal',                                       d:'Eigenen Coin-Stand anzeigen',                admin:false},
+      {n:'/phsk quests',     u:'/phsk quests',                                    d:'Tägliche Quests anzeigen',                   admin:false},
+      {n:'/phsk achievements',u:'/phsk achievements',                             d:'Achievements anzeigen',                      admin:false},
+      {n:'/phsk titles',     u:'/phsk titles',                                    d:'Titel-Übersicht öffnen',                     admin:false},
+      {n:'/phsk top',        u:'/phsk top',                                       d:'Leaderboard (Score, Coins, Mining)',         admin:false},
+      {n:'/skydna',          u:'/skydna',                                         d:'Insel-DNA anzeigen',                         admin:false},
+      {n:'/skyrituals',      u:'/skyrituals',                                     d:'Ritual-Übersicht öffnen',                    admin:false},
+      {n:'/skyweather',      u:'/skyweather',                                     d:'Aktuelles Wetter & Vorhersage',              admin:false},
+      {n:'/skychronicle',    u:'/skychronicle',                                   d:'Insel-Chronik lesen',                        admin:false},
+      {n:'/skystory',        u:'/skystory',                                       d:'Story-Fortschritt (Nyx-Lore)',               admin:false},
+    ]},
+    { label:'Insel & Blueprint', cmds:[
+      {n:'/is',              u:'/is',                                             d:'BentoBox Insel-Menü',                        admin:false},
+      {n:'/is create',       u:'/is create',                                      d:'Neue Insel erstellen',                       admin:false},
+      {n:'/is go',           u:'/is go',                                          d:'Zur eigenen Insel teleportieren',            admin:false},
+      {n:'/is team',         u:'/is team <invite|kick|leave|promote>',            d:'Insel-Team verwalten',                       admin:false},
+      {n:'/is warp',         u:'/is warp [Spieler]',                              d:'Zum Insel-Warp teleportieren',               admin:false},
+      {n:'/blueprint save',  u:'/blueprint save <Name>',                          d:'Insel-Layout als Blueprint speichern',       admin:false},
+      {n:'/blueprint load',  u:'/blueprint load <Name>',                          d:'Blueprint auf Insel laden',                  admin:false},
+      {n:'/blueprint list',  u:'/blueprint list',                                 d:'Eigene Blueprints auflisten',                admin:false},
+      {n:'/blueprint share', u:'/blueprint share <Name>',                         d:'Blueprint mit Community teilen',             admin:false},
+    ]},
+    { label:'Kontrakte', cmds:[
+      {n:'/skycontract',     u:'/skycontract',                                    d:'Auftrags-Brett öffnen',                      admin:false},
+      {n:'/skycontract list',u:'/skycontract list',                               d:'Aktive Kontrakte anzeigen',                  admin:false},
+      {n:'/skycontract create',u:'/skycontract create',                           d:'Neuen Kontrakt erstellen',                   admin:false},
+      {n:'/skycontract accept',u:'/skycontract accept <ID>',                      d:'Kontrakt annehmen',                          admin:false},
+    ]},
+    { label:'Admin', cmds:[
+      {n:'/phsk give',       u:'/phsk give <Spieler> <Coins>',                    d:'Coins an Spieler geben',                     admin:true},
+      {n:'/phsk reload',     u:'/phsk reload',                                    d:'Konfiguration neu laden',                    admin:true},
+    ]},
+  ]},
   { server:'Discord & Vote', sections:[
     { label:'Discord Sync', cmds:[
       {n:'/syncdiscord',  u:'/syncdiscord',                                d:'Discord-Konto mit MC verknüpfen',       admin:false},
@@ -2559,7 +2601,9 @@ function buildCmdHtml(q) {
       }
       gH+=`<div class="csec${sV?'':' ch'}"><div class="csec-lbl">${escH(sec.label)}</div>${sH}</div>`;
     }
-    html+=`<div${gV?'':' class="ch"'}><div class="cg-title">${escH(grp.server)}</div>${gH}</div>`;
+    if (!gV) continue;
+    const totalCmds = grp.sections.reduce((s,sec)=>s+sec.cmds.length,0);
+    html+=`<details class="cmd-group" ${q?'open':''}><summary class="cg-title">${escH(grp.server)}<span class="cg-count">${totalCmds} Befehle</span></summary>${gH}</details>`;
   }
   return html||'<div class="empty">Keine Befehle gefunden</div>';
 }
@@ -2909,10 +2953,14 @@ async function loadBackupList() {
   const icons = { survival:'⛏️', lobby:'🏛️', smash:'⚔️', skyblock:'🌴', generators:'⚙️' };
 
   el.innerHTML = Object.entries(groups).map(([srv, items]) => `
-    <div style="margin-bottom:1rem">
-      <div style="font-weight:700;color:var(--pink);margin-bottom:.4rem">${icons[srv]||'📦'} ${srv.charAt(0).toUpperCase()+srv.slice(1)} <span style="font-weight:400;color:var(--muted);font-size:.8rem">(${items.length})</span></div>
+    <details style="margin-bottom:8px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+      <summary style="padding:10px 14px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.02);user-select:none">
+        <span style="font-weight:700;color:var(--pink)">${icons[srv]||'📦'} ${srv.charAt(0).toUpperCase()+srv.slice(1)}</span>
+        <span style="color:var(--muted);font-size:.8rem">${items.length} Backups · ${fmtBytes(items.reduce((s,b)=>s+b.size,0))}</span>
+        <span style="margin-left:auto;font-size:.7rem;color:var(--muted)">▶</span>
+      </summary>
       <table style="width:100%;border-collapse:collapse">
-        <thead><tr style="color:var(--muted);font-size:.8rem;text-align:left">
+        <thead><tr style="color:var(--muted);font-size:.8rem;text-align:left;background:rgba(255,255,255,.02)">
           <th style="padding:.25rem .5rem">Datei</th>
           <th style="padding:.25rem .5rem">Größe</th>
           <th style="padding:.25rem .5rem">Erstellt</th>
@@ -2925,7 +2973,7 @@ async function loadBackupList() {
           <td style="padding:.25rem .5rem"><button class="btn btn-sm" style="background:var(--red,#c0392b);color:#fff;border-color:var(--red,#c0392b)" onclick="confirmRestore('${b.name}')">↩ Wiederherstellen</button></td>
         </tr>`).join('')}</tbody>
       </table>
-    </div>`).join('');
+    </details>`).join('');
 }
 
 function fmtBytes(b) {
@@ -3095,63 +3143,6 @@ async function runQuery() {
   </table></div>`;
 }
 
-// ── MOTD-Editor ───────────────────────────────────────────────────────────
-async function renderMotd() {
-  setHdr('📝 MOTD-Editor', '');
-  document.getElementById('page-content').innerHTML = `<div class="page">
-    ${['lobby','survival'].map(srv=>`
-      <div class="card">
-        <div class="card-title">${srv==='lobby'?'🏛️ Lobby':'⛏️ Survival'} – MOTD</div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-          <input class="field" id="motd-${srv}" placeholder="Lade…" onkeydown="if(event.key==='Enter')saveMotd('${srv}')">
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn btn-p" onclick="saveMotd('${srv}')">💾 Speichern</button>
-            <span style="font-size:.78rem;color:var(--muted)">§6, §a etc. für Farben · Tritt nach Neustart in Kraft</span>
-          </div>
-          <div id="motd-msg-${srv}" style="display:none" class="msg"></div>
-        </div>
-      </div>`).join('')}
-    <div class="card">
-      <div class="card-title">🎨 Farb-Codes</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-        ${[['§0','#000','Schwarz'],['§1','#0000AA','Dunkelblau'],['§2','#00AA00','Dunkelgrün'],['§3','#00AAAA','Türkis'],
-           ['§4','#AA0000','Dunkelrot'],['§5','#AA00AA','Lila'],['§6','#FFAA00','Gold'],['§7','#AAAAAA','Grau'],
-           ['§8','#555555','Dunkelgrau'],['§9','#5555FF','Blau'],['§a','#55FF55','Grün'],['§b','#55FFFF','Cyan'],
-           ['§c','#FF5555','Rot'],['§d','#FF55FF','Pink'],['§e','#FFFF55','Gelb'],['§f','#FFFFFF','Weiß'],
-           ['§l','','Fett'],['§o','','Kursiv'],['§n','','Unterstrichen'],['§r','','Reset']
-          ].map(([code,col,name])=>`
-          <span style="font-family:var(--mono);font-size:.76rem;padding:3px 8px;border-radius:4px;border:1px solid var(--border);cursor:pointer;background:var(--surface);${col?`color:${col};`:''}"
-                onclick="insertMotdCode('${code}')" title="${name}">${code} ${name}</span>`).join('')}
-      </div>
-    </div>
-  </div>`;
-  for (const srv of ['lobby','survival']) {
-    const r = await apiFetch(`/api/servers/${srv}/motd`);
-    const d = r?.ok ? await r.json() : null;
-    const el = document.getElementById(`motd-${srv}`);
-    if (el) el.value = d?.motd || '';
-  }
-}
-
-function insertMotdCode(code) {
-  const focused = document.activeElement;
-  if (focused && (focused.id==='motd-lobby'||focused.id==='motd-survival')) {
-    const s = focused.selectionStart, e = focused.selectionEnd;
-    focused.value = focused.value.slice(0,s) + code + focused.value.slice(e);
-    focused.selectionStart = focused.selectionEnd = s + code.length;
-    focused.focus();
-  }
-}
-
-async function saveMotd(srv) {
-  const el  = document.getElementById(`motd-${srv}`);
-  const msg = document.getElementById(`motd-msg-${srv}`);
-  if (!el) return;
-  const r = await apiFetch(`/api/servers/${srv}/motd`, { method:'POST', body:JSON.stringify({ motd: el.value }) });
-  const d = r ? await r.json() : null;
-  showMsg(msg, d?.ok, d?.ok ? `✓ MOTD gespeichert (${srv})` : `✗ ${d?.error||'Fehler'}`);
-  if (d?.ok) showToast(`✓ MOTD (${srv}) gespeichert`);
-}
 
 // ── Smash the Boss ────────────────────────────────────────────────────────
 let smashLbTab = 'kills';
@@ -3976,11 +3967,11 @@ function showToast(msg, ok=true) {
 }
 
 // ── System-Monitor ────────────────────────────────────────────────────────
-const SYSMON_ORDER  = ['velocity','lobby','survival','smash','mysql','dashboard'];
-const SYSMON_LABELS = { velocity:'Velocity Proxy', lobby:'Lobby', survival:'Survival', smash:'Smash the Boss', mysql:'MySQL', dashboard:'Dashboard' };
+const SYSMON_ORDER  = ['velocity','lobby','survival','smash','skyblock','generators','minigames','mysql','dashboard'];
+const SYSMON_LABELS = { velocity:'Velocity Proxy', lobby:'Lobby', survival:'Survival', smash:'Smash the Boss', skyblock:'SkyBlock', generators:'Generators', minigames:'Minigames', mysql:'MySQL', dashboard:'Dashboard' };
 const SYSMON_SECTIONS = [
   { label: '📡 Velocity',   keys: ['velocity'] },
-  { label: '🖥️ Server',    keys: ['lobby','survival','smash'] },
+  { label: '🖥️ Server',    keys: ['lobby','survival','smash','skyblock','generators','minigames'] },
   { label: '🗄️ Datenbank', keys: ['mysql'] },
   { label: '📊 Dashboard',  keys: ['dashboard'] },
 ];
@@ -4019,9 +4010,11 @@ async function loadWorldSize() {
   const r = await apiFetch('/api/system/worldsize');
   if (!r?.ok) { el.innerHTML='<div class="card-title">🌍 Weltgröße</div><div class="empty" style="color:var(--red)">Nicht verfügbar</div>'; return; }
   const { sizes } = await r.json();
+  const SRV_ICONS = { lobby:'🏛️', survival:'⛏️', smash:'⚔️', skyblock:'🏝️', generators:'⚙️', minigames:'🎮' };
+  const SRV_LBLS  = { lobby:'Lobby', survival:'Survival', smash:'Smash', skyblock:'SkyBlock', generators:'Generators', minigames:'Minigames' };
   const rows = Object.entries(sizes).map(([srv, size]) =>
     `<div class="stat-row">
-      <span class="sl">${srv === 'lobby' ? '🏛️ Lobby' : '⛏️ Survival'} (world + nether + end)</span>
+      <span class="sl">${SRV_ICONS[srv]||'📦'} ${SRV_LBLS[srv]||srv} (world + nether + end)</span>
       <span class="sv" style="color:var(--blue);font-family:var(--mono)">${size || '—'}</span>
     </div>`
   ).join('');
@@ -4184,18 +4177,33 @@ async function renderDatabase() {
   setHdr('🗄️ Datenbank-Editor', `<button class="btn" onclick="loadDbTables()">↺ Aktualisieren</button>`);
   const c = document.getElementById('page-content');
   c.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;';
-  const DB_LABELS = { pinkhorizon: 'Core / Vote', ph_survival: 'Survival', ph_smash: 'Smash', ph_generators: 'IdleForge', ph_minigames: 'Minigames', ph_skyblock: 'SkyBlock' };
+  const DB_DEFS = [
+    { id:'pinkhorizon',   label:'Core / Vote',  icon:'🏠', color:'#a78bfa' },
+    { id:'ph_survival',   label:'Survival',     icon:'🌿', color:'#34d399' },
+    { id:'ph_smash',      label:'Smash',        icon:'⚔️', color:'#f87171' },
+    { id:'ph_generators', label:'IdleForge',    icon:'⚙️', color:'#fbbf24' },
+    { id:'ph_minigames',  label:'Minigames',    icon:'🎮', color:'#f472b6' },
+    { id:'ph_skyblock',   label:'SkyBlock',     icon:'🏝️', color:'#38bdf8' },
+  ];
   c.innerHTML = `<div class="page" style="display:flex;flex-direction:column;flex:1;min-height:0;padding-bottom:0">
     <div class="db-editor">
       <div class="db-sidebar">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);padding:0 2px 6px">Datenbank</div>
         <div class="db-tabs">
-          ${Object.entries(DB_LABELS).map(([k,v])=>`<button class="db-tab ${dbState.database===k?'active':''}" onclick="dbSetDb('${k}')">${v}</button>`).join('')}
+          ${DB_DEFS.map(d=>`
+            <button class="db-tab ${dbState.database===d.id?'active':''}" onclick="dbSetDb('${d.id}')"
+              style="${dbState.database===d.id?`background:${d.color}22;border-color:${d.color}66;color:${d.color};`:''}">
+              ${d.icon} ${d.label}
+            </button>`).join('')}
         </div>
-        <div style="font-size:.72rem;color:var(--muted);padding:2px 2px">Tabellen</div>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);padding:10px 2px 4px">Tabellen</div>
         <div class="dbt-list" id="db-tbl-list"><div class="empty" style="padding:8px;font-size:.8rem">Lade…</div></div>
       </div>
       <div class="db-main" id="db-main">
-        <div class="empty" style="flex:1;color:var(--muted)">← Tabelle auswählen</div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:8px">
+          <span style="font-size:2rem">🗄️</span>
+          <span style="font-size:.9rem">Datenbank und Tabelle auswählen</span>
+        </div>
       </div>
     </div>
   </div>`;
@@ -4207,13 +4215,12 @@ async function dbSetDb(db) {
   dbState.table = null;
   dbState.page = 1;
   document.querySelectorAll('.db-tab').forEach(b => {
-    const map = { 'Core / Vote': 'pinkhorizon', 'Survival': 'ph_survival', 'Smash': 'ph_smash', 'IdleForge': 'ph_generators', 'Minigames': 'ph_minigames', 'SkyBlock': 'ph_skyblock' };
-    b.classList.toggle('active', map[b.textContent.trim()] === db);
+    b.classList.toggle('active', b.getAttribute('onclick')?.includes(`'${db}'`));
   });
   const tl = document.getElementById('db-tbl-list');
   if (tl) tl.innerHTML = '<div class="empty" style="padding:8px;font-size:.8rem">Lade…</div>';
   const dm = document.getElementById('db-main');
-  if (dm) dm.innerHTML = '<div class="empty" style="flex:1;color:var(--muted)">← Tabelle auswählen</div>';
+  if (dm) dm.innerHTML = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:8px"><span style="font-size:2rem">🗄️</span><span style="font-size:.9rem">Tabelle auswählen</span></div>';
   loadDbTables();
 }
 
