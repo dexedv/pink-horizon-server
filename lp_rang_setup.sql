@@ -6,6 +6,7 @@
 
 -- Gruppen erstellen (falls noch nicht vorhanden)
 INSERT IGNORE INTO luckperms_groups (name) VALUES
+  ('team'),
   ('owner'), ('admin'), ('dev'), ('moderator'), ('supporter'),
   ('vip'), ('nexus'), ('catalyst'), ('rune'),
   ('legende'), ('krieger'), ('siedler'), ('default');
@@ -20,7 +21,8 @@ WHERE permission = 'group.sr_moderator';
 
 -- Alte Prefix-, Gewicht-, Vererbungs- und Plugin-Permission-Nodes entfernen
 DELETE FROM luckperms_group_permissions
-WHERE name IN ('owner','admin','dev','moderator','supporter',
+WHERE name IN ('team',
+               'owner','admin','dev','moderator','supporter',
                'vip','nexus','catalyst','rune',
                'legende','krieger','siedler','default')
   AND (permission LIKE 'prefix.%'
@@ -30,20 +32,27 @@ WHERE name IN ('owner','admin','dev','moderator','supporter',
     OR permission LIKE 'ph.generators.%'
     OR permission LIKE 'skyblock.%');
 
--- ═══════════════ TEAM-RÄNGE ════════════════
+-- ═══════════════ TEAM-KATEGORIE ══════════════
+-- Elterngruppe: alle Team-Ränge erben von "team"
+-- Ermöglicht gemeinsame Permissions für das gesamte Team über eine Gruppe
+
+INSERT INTO luckperms_group_permissions
+  (name, permission, value, server, world, expiry, contexts) VALUES
+  ('team', 'weight.750', 1, 'global', '', 0, '{}');
+
+-- ─────────────────── TEAM-RÄNGE ────────────────────
 
 -- OWNER  (dunkelrot fett | erbt catalyst + nexus | alle Rechte)
 INSERT INTO luckperms_group_permissions
   (name, permission, value, server, world, expiry, contexts) VALUES
   ('owner', 'prefix.1000.&4&l[Owner] &r',  1, 'global', '', 0, '{}'),
   ('owner', 'weight.1000',                  1, 'global', '', 0, '{}'),
+  ('owner', 'group.team',                   1, 'global', '', 0, '{}'),
   ('owner', '*',                            1, 'global', '', 0, '{}'),
   ('owner', 'group.catalyst',               1, 'global', '', 0, '{}'),
   ('owner', 'group.nexus',                  1, 'global', '', 0, '{}'),
-  -- Generator-Permissions
   ('owner', 'ph.generators.admin',          1, 'global', '', 0, '{}'),
   ('owner', 'ph.generators.booster.admin',  1, 'global', '', 0, '{}'),
-  -- SkyBlock-Admin
   ('owner', 'skyblock.admin',               1, 'global', '', 0, '{}');
 
 -- ADMIN  (rot fett)
@@ -51,10 +60,9 @@ INSERT INTO luckperms_group_permissions
   (name, permission, value, server, world, expiry, contexts) VALUES
   ('admin', 'prefix.900.&c&l[Admin] &r',   1, 'global', '', 0, '{}'),
   ('admin', 'weight.900',                   1, 'global', '', 0, '{}'),
-  -- Generator-Permissions
+  ('admin', 'group.team',                   1, 'global', '', 0, '{}'),
   ('admin', 'ph.generators.admin',          1, 'global', '', 0, '{}'),
   ('admin', 'ph.generators.booster.admin',  1, 'global', '', 0, '{}'),
-  -- SkyBlock-Admin
   ('admin', 'skyblock.admin',               1, 'global', '', 0, '{}');
 
 -- DEV  (aqua fett)
@@ -62,10 +70,9 @@ INSERT INTO luckperms_group_permissions
   (name, permission, value, server, world, expiry, contexts) VALUES
   ('dev', 'prefix.850.&b&l[DEV] &r',       1, 'global', '', 0, '{}'),
   ('dev', 'weight.850',                     1, 'global', '', 0, '{}'),
-  -- Generator-Permissions (zum Testen)
+  ('dev', 'group.team',                     1, 'global', '', 0, '{}'),
   ('dev', 'ph.generators.admin',            1, 'global', '', 0, '{}'),
   ('dev', 'ph.generators.booster.admin',    1, 'global', '', 0, '{}'),
-  -- SkyBlock-Admin
   ('dev', 'skyblock.admin',                 1, 'global', '', 0, '{}');
 
 -- MODERATOR  (blau fett)
@@ -73,7 +80,7 @@ INSERT INTO luckperms_group_permissions
   (name, permission, value, server, world, expiry, contexts) VALUES
   ('moderator', 'prefix.800.&9&l[Mod] &r', 1, 'global', '', 0, '{}'),
   ('moderator', 'weight.800',               1, 'global', '', 0, '{}'),
-  -- Generator-Admin (Spieler-Generatoren verwalten/Support)
+  ('moderator', 'group.team',               1, 'global', '', 0, '{}'),
   ('moderator', 'ph.generators.admin',      1, 'global', '', 0, '{}');
   -- KEIN booster.admin und KEIN skyblock.admin für Mods
 
@@ -81,7 +88,8 @@ INSERT INTO luckperms_group_permissions
 INSERT INTO luckperms_group_permissions
   (name, permission, value, server, world, expiry, contexts) VALUES
   ('supporter', 'prefix.700.&3&l[Support] &r', 1, 'global', '', 0, '{}'),
-  ('supporter', 'weight.700',                   1, 'global', '', 0, '{}');
+  ('supporter', 'weight.700',                   1, 'global', '', 0, '{}'),
+  ('supporter', 'group.team',                   1, 'global', '', 0, '{}');
   -- Supporter: keine Generator-Admin-Rechte
 
 -- ═══════════════ DONOR-RÄNGE ═══════════════
