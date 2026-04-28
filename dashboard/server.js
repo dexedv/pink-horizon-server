@@ -1123,7 +1123,7 @@ app.post('/api/db/query', auth, async (req, res) => {
 app.get('/api/permissions/players', auth, async (req, res) => {
   try {
     const [rows] = await poolCore.execute(
-      "SELECT name, `rank` FROM players ORDER BY FIELD(`rank`,'owner','admin','dev','moderator','supporter','vip','legende','krieger','siedler','spieler'), name"
+      "SELECT name, `rank` FROM players ORDER BY FIELD(`rank`,'owner','admin','dev','moderator','supporter','nexus','catalyst','rune','vip','vip_plus','legende','krieger','siedler','skyblock_pioneer','skyblock_veteran','skyblock_legend','spieler'), name"
     );
     res.json({ players: rows });
   } catch (e) {
