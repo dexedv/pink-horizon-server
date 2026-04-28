@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Verwaltet die täglichen Quests der Spieler.
@@ -26,7 +27,7 @@ public class QuestManager {
     private final GeneratorRepository genRepo;
 
     /** UUID → aktive Quests des heutigen Tages */
-    private final Map<UUID, List<PlayerQuest>> cache = new HashMap<>();
+    private final Map<UUID, List<PlayerQuest>> cache = new ConcurrentHashMap<>();
 
     public QuestManager(PHSkyBlock plugin, QuestRepository questRepo, GeneratorRepository genRepo) {
         this.plugin = plugin;

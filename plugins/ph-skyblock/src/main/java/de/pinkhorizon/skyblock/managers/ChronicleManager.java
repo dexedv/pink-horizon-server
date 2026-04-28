@@ -51,7 +51,7 @@ public class ChronicleManager {
      */
     public void addEntry(UUID playerUuid, String type, String message) {
         BentoBoxHook.getIsland(playerUuid).ifPresent(island ->
-            insertEntry(playerUuid, type, message));
+            insertEntry(island.getUniqueId(), type, message));
     }
 
     public void insertEntry(UUID islandUuid, String type, String message) {
@@ -79,7 +79,7 @@ public class ChronicleManager {
             player.sendMessage(MM.deserialize("<red>Du hast keine Insel."));
             return;
         }
-        UUID islandUuid = player.getUniqueId();
+        UUID islandUuid = islandOpt.get().getUniqueId();
 
         List<String[]> entries = loadEntries(islandUuid, 20);
 

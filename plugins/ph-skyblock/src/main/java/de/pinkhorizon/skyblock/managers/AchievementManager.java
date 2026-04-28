@@ -69,7 +69,7 @@ public class AchievementManager {
 
         // Coin-Belohnung
         if (type.getCoinReward() > 0) {
-            repo.addCoins(uuid, type.getCoinReward());
+            plugin.getCoinManager().addCoins(uuid, type.getCoinReward());
         }
 
         // Titel-Belohnung: als "title_<id>" in der Achievement-Tabelle speichern

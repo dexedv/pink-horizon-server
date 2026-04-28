@@ -83,7 +83,9 @@ public class NpcManager {
             .filter(e -> e.getPersistentDataContainer().has(NPC_KEY, PersistentDataType.BYTE))
             .forEach(Entity::remove);
 
-        for (String id : npcConfig.getConfigurationSection("npcs").getKeys(false)) {
+        var npcsSection = npcConfig.getConfigurationSection("npcs");
+        if (npcsSection == null) return;
+        for (String id : npcsSection.getKeys(false)) {
             String path = "npcs." + id;
             String worldName = npcConfig.getString(path + ".world", lobbyWorldName);
             World world = plugin.getServer().getWorld(worldName);
@@ -151,8 +153,9 @@ public class NpcManager {
 
     /** Gibt alle gespeicherten NPC-IDs zurück. */
     public List<String> listNpcIds() {
-        if (!npcConfig.contains("npcs")) return List.of();
-        return new ArrayList<>(npcConfig.getConfigurationSection("npcs").getKeys(false));
+        var section = npcConfig.getConfigurationSection("npcs");
+        if (section == null) return List.of();
+        return new ArrayList<>(section.getKeys(false));
     }
 
     /** Gibt den NPC-Typ für eine Entity zurück, oder null. */
