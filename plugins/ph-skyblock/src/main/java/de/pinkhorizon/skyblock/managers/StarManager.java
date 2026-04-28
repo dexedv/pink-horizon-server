@@ -172,7 +172,7 @@ public class StarManager {
         dropped.setPickupDelay(40);
 
         // DB loggen
-        logStar(island.getUniqueId(), tier);
+        logStar(UUID.fromString(island.getUniqueId()), tier);
 
         // Auto-Despawn nach 5 Minuten
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {

@@ -124,7 +124,7 @@ public class IslandDnaManager {
     /** Gibt true zurück wenn die Insel des Spielers das Gen hat. */
     public boolean playerHasGene(UUID playerUuid, IslandGene gene) {
         return BentoBoxHook.getIsland(playerUuid)
-            .map(i -> getDna(i.getUniqueId()).hasGene(gene))
+            .map(i -> getDna(UUID.fromString(i.getUniqueId())).hasGene(gene))
             .orElse(false);
     }
 
@@ -157,7 +157,7 @@ public class IslandDnaManager {
             player.sendMessage(MM.deserialize("<red>Du hast keine Insel."));
             return;
         }
-        IslandDna dna = getDna(islandOpt.get().getUniqueId());
+        IslandDna dna = getDna(UUID.fromString(islandOpt.get().getUniqueId()));
         player.sendMessage(MM.deserialize("<light_purple>━━━ <bold>Insel-DNA</bold> ━━━━━━━━━━━━"));
         for (IslandGene g : dna.genes()) {
             player.sendMessage(MM.deserialize("<gold>◆ <white>" + g.displayName + "  <dark_gray>│ " + g.description));
