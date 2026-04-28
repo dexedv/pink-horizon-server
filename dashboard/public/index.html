@@ -416,11 +416,12 @@ const _logPending = [];  // {text, cls} – gesammelt bis zum nächsten rAF
 
 // ── Rang-Definitionen ─────────────────────────────────────────────────────
 const RANK_CATEGORIES = [
-  { id:'team',    label:'Team',    icon:'🛡️' },
-  { id:'smash',   label:'Smash',   icon:'⚔️' },
-  { id:'idle',    label:'Idle',    icon:'⚙️' },
-  { id:'donor',   label:'Donor',   icon:'💎' },
-  { id:'default', label:'Standard',icon:'🎮' },
+  { id:'team',     label:'Team',     icon:'🛡️' },
+  { id:'survival', label:'Survival', icon:'🌿' },
+  { id:'idle',     label:'Idle',     icon:'⚙️' },
+  { id:'sb',       label:'SkyBlock', icon:'🏝️' },
+  { id:'donor',    label:'Donor',    icon:'💎' },
+  { id:'default',  label:'Standard', icon:'🎮' },
 ];
 
 const RANK_DEFS = [
@@ -436,26 +437,34 @@ const RANK_DEFS = [
   { id:'supporter', cat:'team', label:'Supporter', color:'#00ccaa', bg:'rgba(0,204,170,.1)',  border:'rgba(0,204,170,.3)',  icon:'🎧', desc:'Support-Team',
     perks:['50 Claims','6 Homes','15 AH-Slots','4% Zinsen (bis 200K)'] },
 
-  // ── Smash ─────────────────────────────────────────────────────────────────
-  { id:'legende',   cat:'smash', label:'Legende',  color:'#ff69b4', bg:'rgba(255,105,180,.1)',border:'rgba(255,105,180,.3)',icon:'✦',  desc:'Shop-Rang · 30€',
+  // ── Survival ──────────────────────────────────────────────────────────────
+  { id:'legende',   cat:'survival', label:'Legende', color:'#ff69b4', bg:'rgba(255,105,180,.1)',border:'rgba(255,105,180,.3)',icon:'✦',  desc:'Shop-Rang · 30€',
     perks:['40 Claims','8 Homes','15 AH-Slots','8% Zinsen (bis 300K)','/nick · /ptime · /pweather'] },
-  { id:'krieger',   cat:'smash', label:'Krieger',  color:'#ffaa00', bg:'rgba(255,170,0,.1)',  border:'rgba(255,170,0,.3)',  icon:'⚔️', desc:'Shop-Rang · 20€',
+  { id:'krieger',   cat:'survival', label:'Krieger', color:'#ffaa00', bg:'rgba(255,170,0,.1)',  border:'rgba(255,170,0,.3)',  icon:'⚔️', desc:'Shop-Rang · 20€',
     perks:['30 Claims','6 Homes','10 AH-Slots','6% Zinsen (bis 200K)','/nick · /ptime · /pweather'] },
-  { id:'siedler',   cat:'smash', label:'Siedler',  color:'#55cc55', bg:'rgba(85,204,85,.1)',  border:'rgba(85,204,85,.3)',  icon:'🏡', desc:'Shop-Rang · 10€',
+  { id:'siedler',   cat:'survival', label:'Siedler', color:'#55cc55', bg:'rgba(85,204,85,.1)',  border:'rgba(85,204,85,.3)',  icon:'🏡', desc:'Shop-Rang · 10€',
     perks:['20 Claims','4 Homes','7 AH-Slots','4% Zinsen (bis 150K)','/nick · /ptime · /pweather'] },
 
   // ── Idle ──────────────────────────────────────────────────────────────────
-  { id:'skyblock_pioneer', cat:'idle', label:'SB Pioneer', color:'#44eebb', bg:'rgba(68,238,187,.1)',  border:'rgba(68,238,187,.3)',  icon:'🌴', desc:'SkyBlock Pionier',
+  { id:'nexus',     cat:'idle', label:'Nexus',    color:'#ffaa00', bg:'rgba(255,170,0,.1)',   border:'rgba(255,170,0,.3)',   icon:'🌀', desc:'Idle-Rang · Nexus',
+    perks:[] },
+  { id:'catalyst',  cat:'idle', label:'Catalyst', color:'#dd88ff', bg:'rgba(221,136,255,.1)', border:'rgba(221,136,255,.3)', icon:'⚗️', desc:'Idle-Rang · Catalyst',
+    perks:[] },
+  { id:'rune',      cat:'idle', label:'Rune',     color:'#aa55ff', bg:'rgba(170,85,255,.1)',  border:'rgba(170,85,255,.3)',  icon:'🔮', desc:'Idle-Rang · Rune',
+    perks:[] },
+
+  // ── SkyBlock ──────────────────────────────────────────────────────────────
+  { id:'skyblock_pioneer', cat:'sb', label:'SB Pioneer', color:'#44eebb', bg:'rgba(68,238,187,.1)',  border:'rgba(68,238,187,.3)',  icon:'🌴', desc:'SkyBlock Pionier',
     perks:['SkyBlock: 2 Begleiter','+10% SkyBlock Coins','1 extra Blueprint-Slot'] },
-  { id:'skyblock_veteran', cat:'idle', label:'SB Veteran', color:'#22ddcc', bg:'rgba(34,221,204,.1)',  border:'rgba(34,221,204,.3)',  icon:'🏝️', desc:'SkyBlock Veteran',
+  { id:'skyblock_veteran', cat:'sb', label:'SB Veteran', color:'#22ddcc', bg:'rgba(34,221,204,.1)',  border:'rgba(34,221,204,.3)',  icon:'🏝️', desc:'SkyBlock Veteran',
     perks:['SkyBlock: 3 Begleiter','+20% SkyBlock Coins','3 extra Blueprint-Slots','1 DNA-Fragment/Woche'] },
-  { id:'skyblock_legend',  cat:'idle', label:'SB Legende', color:'#ff69b4', bg:'rgba(255,105,180,.1)', border:'rgba(255,105,180,.3)', icon:'✦',  desc:'SkyBlock Legende',
+  { id:'skyblock_legend',  cat:'sb', label:'SB Legende', color:'#ff69b4', bg:'rgba(255,105,180,.1)', border:'rgba(255,105,180,.3)', icon:'✦',  desc:'SkyBlock Legende',
     perks:['SkyBlock: 4 Begleiter','+35% SkyBlock Coins','5 extra Blueprint-Slots','2 DNA-Fragmente/Woche','Legendärer Void-Stab (Season)'] },
 
   // ── Donor ─────────────────────────────────────────────────────────────────
   { id:'vip',      cat:'donor', label:'VIP',  color:'#ffcc00', bg:'rgba(255,204,0,.1)',  border:'rgba(255,204,0,.3)',  icon:'⭐', desc:'VIP-Spieler',
     perks:['20 Claims','3 Homes','10 AH-Slots','4% Zinsen (bis 200K)'] },
-  { id:'vip_plus', cat:'donor', label:'VIP+', color:'#ffdd33', bg:'rgba(255,221,51,.1)',  border:'rgba(255,221,51,.3)',  icon:'🌟', desc:'VIP+ Spieler',
+  { id:'vip_plus', cat:'donor', label:'VIP+', color:'#ffdd33', bg:'rgba(255,221,51,.1)', border:'rgba(255,221,51,.3)',  icon:'🌟', desc:'VIP+ Spieler',
     perks:['25 Claims','4 Homes','12 AH-Slots','5% Zinsen (bis 250K)','/ptime'] },
 
   // ── Standard ──────────────────────────────────────────────────────────────
