@@ -1603,6 +1603,7 @@ async function renderPermissions() {
       <button class="rtab ${permTab==='ranks'?'active':''}"    onclick="switchPermTab('ranks')">Rang-Übersicht</button>
       <button class="rtab ${permTab==='rights'?'active':''}"   onclick="switchPermTab('rights')">Rechte</button>
       <button class="rtab ${permTab==='players'?'active':''}"  onclick="switchPermTab('players')">Spieler</button>
+      <button class="rtab ${permTab==='servers'?'active':''}"  onclick="switchPermTab('servers')">Server OPs</button>
       <button class="rtab ${permTab==='banlist'?'active':''}"  onclick="switchPermTab('banlist')">Banliste</button>
       <button class="rtab ${permTab==='ipbanlist'?'active':''}" onclick="switchPermTab('ipbanlist')">IP-Bans</button>
     </div>
@@ -1614,7 +1615,7 @@ async function renderPermissions() {
 function switchPermTab(t) {
   permTab = t;
   document.querySelectorAll('.rtab').forEach(b => {
-    const labels = { ranks:'Rang-Übersicht', rights:'Rechte', players:'Spieler', banlist:'Banliste', ipbanlist:'IP-Bans' };
+    const labels = { ranks:'Rang-Übersicht', rights:'Rechte', players:'Spieler', servers:'Server OPs', banlist:'Banliste', ipbanlist:'IP-Bans' };
     b.classList.toggle('active', b.textContent === labels[t]);
   });
   loadPermTab(t);
@@ -1625,6 +1626,7 @@ async function loadPermTab(t) {
   if (t === 'ranks')     return renderPermRanks(el);
   if (t === 'rights')    return renderPermRights(el);
   if (t === 'players')   return renderPermPlayers(el);
+  if (t === 'servers')   return renderPermServers(el);
   if (t === 'banlist')   return renderPermBanlist(el);
   if (t === 'ipbanlist') return renderPermIpBanlist(el);
 }
@@ -1848,6 +1850,121 @@ function quickRankChange(name, currentRank) {
     showToast(d?.ok ? `✓ ${name} → ${rank}` : `✗ ${d?.error||'Fehler'}`, d?.ok);
     if (d?.ok) loadPermTab('players');
   });
+}
+
+const SERVER_DEFS = [
+  { id:'lobby',      label:'Lobby',      icon:'🏠', color:'#a78bfa' },
+  { id:'survival',   label:'Survival',   icon:'🌿', color:'#34d399' },
+  { id:'smash',      label:'Smash',      icon:'⚔️', color:'#f87171' },
+  { id:'skyblock',   label:'SkyBlock',   icon:'🏝️', color:'#38bdf8' },
+  { id:'generators', label:'Generators', icon:'⚙️', color:'#fbbf24' },
+  { id:'minigames',  label:'Minigames',  icon:'🎮', color:'#f472b6' },
+];
+
+async function renderPermServers(el) {
+  el.innerHTML = `<div class="empty" style="margin-top:12px">Lade Server-Daten…</div>`;
+
+  // Alle Server parallel laden
+  const results = await Promise.all(SERVER_DEFS.map(async srv => {
+    const [opsRes, wlRes] = await Promise.all([
+      apiFetch(`/api/servers/${srv.id}/ops`),
+      apiFetch(`/api/servers/${srv.id}/whitelist`),
+    ]);
+    const ops       = opsRes?.ok  ? (await opsRes.json()).ops       || [] : null;
+    const wlData    = wlRes?.ok   ? await wlRes.json()              : null;
+    const whitelist = wlData?.whitelist || [];
+    const wlEnabled = wlData?.enabled ?? false;
+    return { ...srv, ops, whitelist, wlEnabled };
+  }));
+
+  let html = `<div style="display:flex;flex-direction:column;gap:18px;margin-top:10px">`;
+
+  for (const srv of results) {
+    const opsFailed = srv.ops === null;
+    html += `
+    <div class="card" style="border-color:rgba(255,255,255,.08)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:1.3rem">${srv.icon}</span>
+        <span style="font-weight:700;font-size:1rem;color:${srv.color}">${srv.label}</span>
+        <span style="font-family:var(--mono);font-size:.72rem;color:var(--muted)">${srv.id}</span>
+        <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+          <span style="font-size:.75rem;padding:2px 8px;border-radius:8px;border:1px solid;
+            ${srv.wlEnabled ? 'color:#fbbf24;border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08)' : 'color:var(--muted);border-color:var(--border);background:transparent'}">
+            ${srv.wlEnabled ? '🔒 Whitelist AN' : '🔓 Whitelist AUS'}
+          </span>
+          <button class="btn-xs" onclick="toggleWhitelist('${srv.id}','${srv.wlEnabled?'off':'on'}')" title="Whitelist umschalten">
+            ${srv.wlEnabled ? 'Deaktivieren' : 'Aktivieren'}
+          </button>
+        </div>
+      </div>
+      <div class="g2" style="gap:12px">
+        <div>
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">
+            👑 OPs ${opsFailed ? '<span style="color:var(--red)">(nicht verfügbar)</span>' : `(${srv.ops.length})`}
+          </div>
+          ${opsFailed ? '<span style="color:var(--muted);font-size:.82rem">Fehler beim Laden</span>' :
+            srv.ops.length === 0 ? '<span style="color:var(--muted);font-size:.82rem">Keine OPs</span>' :
+            `<div style="display:flex;flex-direction:column;gap:4px">
+              ${srv.ops.map(op => `
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:rgba(255,255,255,.03)">
+                  <span style="font-size:.88rem;flex:1;color:var(--text)">${escH(op.name)}</span>
+                  <span style="font-size:.7rem;color:var(--muted);font-family:var(--mono)">lvl ${op.level||4}</span>
+                  <button class="btn-xs g" onclick="manageOp('${srv.id}','${escH(op.name)}','remove')">Entfernen</button>
+                </div>`).join('')}
+            </div>`}
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <input class="field fsm" id="op-input-${srv.id}" placeholder="Spielername…" style="flex:1"
+              onkeydown="if(event.key==='Enter')manageOp('${srv.id}',this.value,'add')">
+            <button class="btn btn-s" onclick="manageOp('${srv.id}',document.getElementById('op-input-${srv.id}').value,'add')">+ OP</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">
+            📋 Whitelist (${srv.whitelist.length})
+          </div>
+          ${srv.whitelist.length === 0 ? '<span style="color:var(--muted);font-size:.82rem">Whitelist leer</span>' :
+            `<div style="display:flex;flex-direction:column;gap:4px">
+              ${srv.whitelist.map(p => `
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;background:rgba(255,255,255,.03)">
+                  <span style="font-size:.88rem;flex:1;color:var(--text)">${escH(p.name)}</span>
+                  <button class="btn-xs g" onclick="manageWhitelist('${srv.id}','${escH(p.name)}','remove')">Entfernen</button>
+                </div>`).join('')}
+            </div>`}
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <input class="field fsm" id="wl-input-${srv.id}" placeholder="Spielername…" style="flex:1"
+              onkeydown="if(event.key==='Enter')manageWhitelist('${srv.id}',this.value,'add')">
+            <button class="btn btn-s" onclick="manageWhitelist('${srv.id}',document.getElementById('wl-input-${srv.id}').value,'add')">+ WL</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+async function manageOp(server, name, action) {
+  name = name?.trim(); if (!name) return;
+  const r = await apiFetch(`/api/servers/${server}/op`, { method:'POST', body:JSON.stringify({ name, action }) });
+  const d = r ? await r.json() : null;
+  showToast(d?.ok ? `✓ ${name} ${action==='add'?'als OP hinzugefügt':'OP entfernt'} (${server})` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+  if (d?.ok) renderPermServers(document.getElementById('perm-body'));
+}
+
+async function manageWhitelist(server, name, action) {
+  name = name?.trim(); if (!name) return;
+  const r = await apiFetch(`/api/servers/${server}/whitelist`, { method:'POST', body:JSON.stringify({ name, action }) });
+  const d = r ? await r.json() : null;
+  showToast(d?.ok ? `✓ ${name} ${action==='add'?'zur Whitelist hinzugefügt':'von Whitelist entfernt'} (${server})` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+  if (d?.ok) renderPermServers(document.getElementById('perm-body'));
+}
+
+async function toggleWhitelist(server, state) {
+  const r = await apiFetch(`/api/servers/${server}/whitelist`, { method:'POST', body:JSON.stringify({ action: state }) });
+  const d = r ? await r.json() : null;
+  showToast(d?.ok ? `✓ Whitelist ${state==='on'?'aktiviert':'deaktiviert'} (${server})` : `✗ ${d?.error||'Fehler'}`, d?.ok);
+  if (d?.ok) renderPermServers(document.getElementById('perm-body'));
 }
 
 async function renderPermBanlist(el) {

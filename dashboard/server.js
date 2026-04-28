@@ -1155,7 +1155,7 @@ app.get('/api/permissions/groups', auth, async (req, res) => {
 
 // ── REST-API: Rechteverwaltung ────────────────────────────────────────────
 
-const MANAGED_SERVERS = ['lobby', 'survival', 'smash', 'skyblock', 'generators'];
+const MANAGED_SERVERS = ['lobby', 'survival', 'smash', 'skyblock', 'generators', 'minigames'];
 
 app.get('/api/servers/:name/ops', auth, async (req, res) => {
   const name = req.params.name;
